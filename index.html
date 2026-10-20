@@ -4714,7 +4714,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = 'CD68';
+const SR86_BUILD = '4B66';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -13103,7 +13103,9 @@ function physics(dt) {
   if (G.finished) { const sp = Math.hypot(c.u, c.v); const d = Math.max(1, (T.stopIdx - c.hint) * STEP - 3); const need = sp * sp / (2 * d); I = { steer: inp.steer, throttle: 0, brake: sp < 0.4 || c.u < -0.3 ? 1 : clamp(need / 6.5, 0, 1), handbrake: false, auto: true }; }
   if (G.mpMenu) I = { steer: 0, throttle: 0, brake: 1, handbrake: false, auto: true }; // (a race does not stop for the menu)
   if (MP.game) MP.stepRivals(dt);
-  stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished });
+  // (held on the brakes, at the finish or under the race menu, a car stops and stays stopped: the brake held at a
+  // standstill doesn't select reverse as it does when the driver holds it)
+  stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished || !!G.mpMenu });
   if (!hold) { G.time += dt; }
   if (!hold && !G.finished) {
     courseCheck(c, T, dt);
