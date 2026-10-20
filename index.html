@@ -321,6 +321,7 @@ body[data-inspect] #gl:active{cursor:grabbing}
   .touch [data-t=hb]{right:196px;bottom:max(130px,calc(env(safe-area-inset-bottom,0px) + 110px));width:64px;height:64px;font-size:14px}
   .touch .sm{width:48px;height:48px;font-size:13px;top:max(84px,calc(env(safe-area-inset-top,0px) + 70px))}
   #tReset{right:16px} #tPause{right:72px} #tCam{right:128px} #tHelp{right:184px} #tLights{right:240px}
+  #tReset.wait{opacity:.4}
   #mini{display:none}
   .dash{bottom:max(16px,env(safe-area-inset-bottom,0px));right:200px}
   .bars{width:160px}
@@ -4713,7 +4714,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '6ADE';
+const SR86_BUILD = 'CD68';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -12615,7 +12616,7 @@ function startRun() {
   if (G.ghostMesh) { dropCarMesh(G.ghostMesh); G.ghostMesh = null; }
   G.ghost = G.rally || MP.phase === 'race' ? null : lsGet('sr86.ghost.' + recKey(G.T.seed), null); G.mpMenu = false;
   if (G.ghost && G.ghost.f && G.ghost.f.length) { G.ghostMesh = buildCarMesh(carById(G.ghost.car) || G.spec, true); scene.add(G.ghostMesh.root); }
-  placeCar(G.T.startIdx); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
+  placeCar(G.T.startIdx); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
   Particles.clear(); CrowdFx.reset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1;
@@ -12628,17 +12629,30 @@ function startRun() {
   if (G.rally) Rally.onStart(); else { G.lead = null; $('#rallyTag').textContent = ''; }
   snapCamera();
 }
+// In a race against friends a reset is for a car in trouble: one stopped for two seconds (stuck, beached, or on its side
+// or roof), or off the road, or in the water. Never more often than once in ten seconds, put back no further on than it
+// had got, and away from the other cars (see MP.resetSpot); it comes back a ghost, passing through them until clear
+const MP_RESET_GAP = 10, MP_RESET_STOP = 2;
+function mpResetBlock(c) {
+  const left = (G.resetAt != null ? G.resetAt : -1e9) + MP_RESET_GAP - G.time; if (left > 0) return `Reset again in ${Math.ceil(left)} s`;
+  const I = c.info, off = !!I && Math.abs(I.lat) > I.w / 2 + 1, water = !!c.flooded || (c.deep || 0) > 0.3;
+  return off || water || (G.stopT || 0) >= MP_RESET_STOP ? '' : 'Reset is for a car that is stuck, stopped or off the road';
+}
 function resetCar() {
-  if (!G.car || G.finished) return; const T = G.T;
+  if (!G.car || G.finished) return; const T = G.T, mp = MP.phase === 'race';
+  if (G.state !== 'run') { if (G.state === 'countdown') flash('Reset works once you are under way'); return; } // (never off the grid, ahead of the start)
+  if (mp) { const why = mpResetBlock(G.car); if (why) { flash(why); return; } }
   // a car still rolling over can't be helped yet; one rocking to a stop can. Only one on its side or roof costs the
   // spectators' help; one nearly on its wheels is an ordinary recovery
   let righted = false; { const c0 = G.car; if (c0.over) { if (!c0.stuck && Math.hypot(c0.u, c0.v, c0.vyb) > 2.5) return; righted = true; } }
-  let i = clamp(G.prog + 3, T.startIdx, T.pts.length - 2); if (T.pts[i].wall) { while (i > T.startIdx && T.pts[i].wall) i--; i = Math.max(T.startIdx, i - 3); } // (put back short of a bridge or a gate, not in it)
+  let i = clamp(G.prog + 3, T.startIdx, T.pts.length - 2), lat = 0; if (T.pts[i].wall) { while (i > T.startIdx && T.pts[i].wall) i--; i = Math.max(T.startIdx, i - 3); } // (put back short of a bridge or a gate, not in it)
+  if (mp) ({ i, lat } = MP.resetSpot(G.car, T));
   const p = T.pts[i], c = G.car, river = !!c.flooded || (c.deep || 0) > 0.3, D = c.dmg, plugs = !!(c.es && c.es.run === 'lock' && D && D.mode === 'real' && !D.drowned);
-  Object.assign(c, { x: p.x, z: p.z, psi: p.h, u: 0, v: 0, r: 0, hint: i, gear: 1, boost: 0, spin: 0, rpm: 1000, flooded: false, floodT: 0, deep: 0 }); settleCar(c, G.phys, G.T);
+  Object.assign(c, { x: p.x + Math.cos(p.h) * lat, z: p.z - Math.sin(p.h) * lat, psi: p.h, u: 0, v: 0, r: 0, hint: i, gear: 1, boost: 0, spin: 0, rpm: 1000, flooded: false, floodT: 0, deep: 0 }); settleCar(c, G.phys, G.T);
+  if (mp) { G.resetAt = G.time; G.stopT = 0; c.ghost = true; c.ghostAt = G.time; c.rivals = null; MP.pub({ gh: 1 }); }
   engineRecover(c); // (out of the water, it turns again unless the water broke it)
   G.cut = null; G.odoAtProg = G.odo;
-  if (G.state === 'run') { if (plugs) { G.penalty += 120; flash('Plugs out and the water cranked out of the cylinders: 2 minute penalty'); } else if (river) { G.penalty += 30; flash('Pulled out of the river and back on the road: 30 s penalty'); } else if (righted) { G.penalty += 30; flash('Spectators put you back on your wheels and the road: 30 s penalty'); } else { G.penalty += 5; flash('Recovered: 5 second penalty'); } }
+  if (G.state === 'run') { if (plugs) { G.penalty += 120; flash('Plugs out and the water cranked out of the cylinders: 2 minute penalty'); } else if (river) { G.penalty += 30; flash('Pulled out of the river and back on the road: 30 s penalty'); } else if (righted) { G.penalty += 30; flash('Spectators put you back on your wheels and the road: 30 s penalty'); } else { G.penalty += 5; flash(mp ? 'Recovered: 5 s penalty. A ghost until clear of the other cars' : 'Recovered: 5 second penalty'); } }
   G.camYaw = p.h; snapCamera();
 }
 function togglePause() { if (G.state !== 'run' && G.state !== 'countdown') return; if (G.finished && G.rally) return;
@@ -13159,6 +13173,9 @@ function updateRun(dt) {
   } else if (G.ghostMesh) G.ghostMesh.root.visible = false;
   // stuck hint
   if (G.state === 'run' && !G.finished && sp < 1.2 && inp.throttle > 0.5 && !c.over) { G.stuckT += dt; if (G.stuckT > 3) { flash('Stuck? Press R to get back on the road'); G.stuckT = 0; } } else G.stuckT = 0;
+  G.stopT = G.state === 'run' && !G.finished && sp < 1.5 ? (G.stopT || 0) + dt : 0;
+  // (in a race the reset button shows whether a reset can be had now)
+  { const b = $('#tReset'), no = MP.phase === 'race' && G.state === 'run' && !G.finished && !!mpResetBlock(c); if (b && b.classList.contains('wait') !== no) b.classList.toggle('wait', no); }
   if (G.finished && !G.finShown && ((sp < 0.6 && G.time - (G.finT - G.penalty) > 1.5) || G.time - (G.finT - G.penalty) > 14)) { G.finShown = true; if (G.rally) Rally.showResult(); else if (MP.phase === 'done') MP.results(); else showScreen('finish'); }
   crewJolt(dt); updateCamera(dt); updateHud(sp);
 }
@@ -14658,7 +14675,7 @@ const MP = {
     if (carId && carId !== r.carId && carById(carId)) { this.dropRival(p.peer); this.rivalFor(p); return; }
     const ck = mpNum(P.ck, 0, 1e15), st = ck !== r.ck || !r.st ? this.unpack(P.s) : null;
     if (st) { r.st = st; r.ck = ck; r.hc = mpNum(P.hc, -1e13, 1e13); r.at = p.updatedAt || Date.now(); if (!r.pose) r.pose = { x: st.x, yb: st.yb, z: st.z, Q: st.Q.slice() }; }
-    r.ph = ['grid', 'run', 'fin', 'out', 'lobby'].includes(P.ph) ? P.ph : r.ph; r.p = mpNum(P.p, 0, 1e5) || 0; r.et = mpNum(P.et, 0, 1e6); r.ft = mpNum(P.ft, 0, 1e6); r.by = p.by;
+    r.ph = ['grid', 'run', 'fin', 'out', 'lobby'].includes(P.ph) ? P.ph : r.ph; r.gh = P.gh === 1; r.p = mpNum(P.p, 0, 1e5) || 0; r.et = mpNum(P.et, 0, 1e6); r.ft = mpNum(P.ft, 0, 1e6); r.by = p.by;
     if (Array.isArray(P.dm) && JSON.stringify(P.dm) !== r.dmKey) { r.dmKey = JSON.stringify(P.dm); this.dentsFor(r, P.dm); }
   },
   rivalFor(p) {
@@ -14734,8 +14751,29 @@ const MP = {
       // (a car whose last word is more than a second old is not struck: its page may be gone, or its news held up)
       if (Math.max(age, (now - r.at) / 1000) < 1 && r.ph !== 'fin') live.push(r);
     }
+    // a car just put back on the road is a ghost: it passes through the other cars and they through it (each page leaves
+    // a ghost out of its own car's knocks), until it has been back two seconds and is clear of every one of them
+    const c = G.car; if (c && c.ghost && G.time - (c.ghostAt || 0) > 2 && !this.overlaps(c, live)) { c.ghost = false; this.pub({ gh: 0 }); }
     // (past the finish a car is out of the fight: the cars pulling up at the stop line pass through each other)
-    if (G.car) G.car.rivals = this.cfg && this.cfg.ct && this.phase === 'race' && !G.finished ? live : null;
+    if (c) c.rivals = this.cfg && this.cfg.ct && this.phase === 'race' && !G.finished && !c.ghost ? live.filter(r => !r.gh) : null;
+  },
+  // does this car's body overlap any of these cars' (the same test the knocks use)
+  overlaps(c, list) {
+    if (!list.length || !c.Q) return false; const S = G.phys || G.spec, M = this._M || (this._M = new Array(9)), out = [], keep = c.rivals;
+    bodyAxes(c.Q, M); c.rivals = list; try { bodyCars(c, S, M, out); } catch (e) { } c.rivals = keep; return out.length > 0;
+  },
+  // where a car is put back on the road in a race: no further on than it had got (the road beside it, or behind it), and
+  // away from the other cars: the middle of the road, then either side of it, then further back, the first place with no
+  // car within six and a half metres (with none clear, the first: the car is a ghost until it is clear anyway)
+  resetSpot(c, T) {
+    let i0 = clamp(Math.min(G.prog, c.hint) - 2, T.startIdx, T.pts.length - 2);
+    if (T.pts[i0].wall) { while (i0 > T.startIdx && T.pts[i0].wall) i0--; i0 = Math.max(T.startIdx, i0 - 3); }
+    const R = [...this.rivals.values()].filter(r => r.pose && r.ph !== 'out' && r.ph !== 'lobby');
+    for (const back of [0, 3, 6, 10, 15, 22]) {
+      const i = Math.max(T.startIdx, i0 - back), p = T.pts[i]; if (p.wall) continue;
+      for (const lat of [0, p.w / 4, -p.w / 4]) { const x = p.x + Math.cos(p.h) * lat, z = p.z - Math.sin(p.h) * lat; if (R.every(r => Math.hypot(r.pose.x - x, r.pose.z - z) > 6.5)) return { i, lat }; }
+    }
+    return { i: i0, lat: 0 };
   },
   // each rival drawn where it is: its body about its centre of gravity, its wheels on their struts, steered and turning,
   // its lamps lit as its page says, its dents
@@ -14767,7 +14805,7 @@ const MP = {
     this.sendT += dt;
     // (sent on after the finish too, while the car pulls up at the stop line, so the others see it stop)
     if ((this.phase === 'race' || this.phase === 'done') && c && this.sendT >= 1 / MP_HZ) { this.sendT = 0; const T = G.T;
-      this.pub({ s: this.pack(c), ck: now, hc: this.hcMe == null ? null : Math.round(this.hcMe), ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : G.state === 'countdown' ? 'grid' : 'run', p: Math.max(0, G.prog - T.startIdx), et: Math.round((G.time + G.penalty) * 100) / 100 }); }
+      this.pub({ s: this.pack(c), ck: now, hc: this.hcMe == null ? null : Math.round(this.hcMe), ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : G.state === 'countdown' ? 'grid' : 'run', p: Math.max(0, G.prog - T.startIdx), et: Math.round((G.time + G.penalty) * 100) / 100, gh: c.ghost ? 1 : 0 }); }
     this.dmT -= dt; if (this.phase === 'race' && c && c.dmg && this.dmT <= 0 && c.dmg.ver !== this.dmVer) { this.dmT = 0.5; this.dmVer = c.dmg.ver; this.pub({ dm: this.digest(c.dmg) }); }
     this.standT -= dt; if (this.standT <= 0) { this.standT = 0.25; this.F = this.phase === 'race' || this.phase === 'done' ? this.field() : null; this.standings(); if (this.phase === 'done') this.results(); }
     this.drawRivals(dt); this.tags();
@@ -14810,7 +14848,7 @@ const MP = {
       if (!r.pose || !r.mesh.root.visible) { r.tag.hidden = true; continue; }
       v.set(r.pose.x, r.pose.yb + 1.35, r.pose.z); const d = camera.position.distanceTo(v); v.project(camera);
       if (v.z > 1 || d > 300 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) { r.tag.hidden = true; continue; }
-      const p = this.peers.find(q => q.peer === r.peer), k = F.findIndex(f => f.peer === r.peer), txt = (k >= 0 ? 'P' + (k + 1) + ' ' : '') + (p ? this.nameOf(p, this.gr.indexOf(r.peer)) : '');
+      const p = this.peers.find(q => q.peer === r.peer), k = F.findIndex(f => f.peer === r.peer), txt = (k >= 0 ? 'P' + (k + 1) + ' ' : '') + (p ? this.nameOf(p, this.gr.indexOf(r.peer)) : '') + (r.gh ? ' · ghost' : '');
       if (r.tag.textContent !== txt) r.tag.textContent = txt; r.tag.hidden = false;
       r.tag.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px) translate(-50%, -100%)`; r.tag.style.opacity = String(clamp(1.4 - d / 220, 0.35, 1));
     }
