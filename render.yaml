@@ -1,0 +1,9 @@
+# Settings for Render (render.com): one free web service, the race server, that installs its library and starts it.
+services:
+  - type: web
+    name: seed-rally-86-races
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
