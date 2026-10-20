@@ -73,3 +73,6 @@ All optional. On Render, add them under **Environment**.
 - Race codes are not secret: anyone who knows a code can join that race, as with the race list.
 - Each page sends its car's position about 15 times a second while racing, and the server passes it on to the others in
   the same race. A page whose connection drops keeps its place for 20 seconds, so a short drop doesn't end the race.
+- A race room always has a host. If the host leaves, or their page goes quiet for 20 seconds (a phone locked, say), the
+  player who has been in the room longest takes over. A host who comes back is the host again, and a race started
+  meanwhile carries on. A race ends by itself a few seconds after the last car is in.

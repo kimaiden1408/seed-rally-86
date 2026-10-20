@@ -433,7 +433,7 @@ body[data-inspect] #gl:active{cursor:grabbing}
         <p class="rsub">Drivers</p>
         <ul id="mpPlayers" class="mpplayers" aria-live="polite"></ul>
         <p id="mpStatus" role="status"></p>
-        <div class="row"><button id="mpLeave" class="ghostbtn" type="button">Leave race</button></div>
+        <div class="row"><button id="mpLeave" class="ghostbtn" type="button">Leave the room</button></div>
         <p id="mpVer2" class="small mpver"></p>
       </div>
     </div>
@@ -546,7 +546,7 @@ body[data-inspect] #gl:active{cursor:grabbing}
     <p class="sub" id="mpResSub"></p>
     <table class="rt" id="mpResT" aria-label="Race results"></table>
     <p class="rnote" id="mpResNote"></p>
-    <div class="btns"><button id="mpResLobby" class="go" type="button">Gather everyone at the start</button><button id="mpResLeave" class="ghostbtn" type="button">Leave race</button></div>
+    <div class="btns"><button id="mpResLobby" class="go" type="button">Gather everyone at the start</button><button id="mpResLeave" class="ghostbtn" type="button">Back to the room</button></div>
   </div>
 </div>
 
@@ -667,7 +667,7 @@ body[data-inspect] #gl:active{cursor:grabbing}
         const nx = Object.assign({}, r.my); for (const k in patch) { if (badKey(k)) continue; if (patch[k] === null || patch[k] === undefined) delete nx[k]; else nx[k] = clone(patch[k]); }
         if (bytes(JSON.stringify(nx)) > 4096) throw { code: 'invalid_argument', message: 'presence over 4 KiB' };
         r.my = nx; if (N.peer) upsert(r, N.peer, uid, r.my, true); pushPresence(r); },
-      peers: () => r.snap,
+      peers: () => snapshot(r), // (as the room is now, though the news of it is still on its way to onPeers)
       onPeers: (h, onErr) => { r.hs.push(h); if (onErr) r.errs.push(onErr);
         Promise.resolve().then(() => { if (!r.hs.includes(h)) return; h(Object.freeze({ peers: snapshot(r), joined: Object.freeze([...r.peers.values()]), left: Object.freeze([]), updated: Object.freeze([]) })); });
         return () => { r.hs = r.hs.filter(x => x !== h); }; },
@@ -4714,7 +4714,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '4B66';
+const SR86_BUILD = '942F';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -14461,12 +14461,12 @@ const mpStr = (v, re, max) => (typeof v === 'string' && v.length <= max && re.te
 const MP = {
   avail: null, room: null, user: null, game: null, code: '', my: null, jt: 0,
   host: false, hostPeer: null, cfg: null, lastCfg: null, round: 0, phase: 'off', gr: [], slot: -1,
-  peers: [], lobbyPeers: [], clk: new Map(), names: {}, nameAsk: new Set(), rivals: new Map(),
-  sendT: 0, keepT: 0, dmT: 0, dmVer: -1, standT: 0, stageKey: '', stageT: 0, renderT: 0, lastCar: '', shown: false,
+  peers: [], lobbyPeers: [], clk: new Map(), seen: new Map(), carAt: new Map(), ckSeen: new Map(), names: {}, nameAsk: new Set(), rivals: new Map(), raced: {},
+  sendT: 0, keepT: 0, hostT: 0, wokeAt: 0, dmT: 0, dmVer: -1, standT: 0, stageKey: '', stageT: 0, renderT: 0, lastCar: '', shown: false, tickAt: 0, frameAt: 0,
 
   // ---- reaching the room ----
   async init() {
-    this.wire();
+    this.wire(); setInterval(() => this.idle(), 1000);
     try {
       if (!window.claude || !window.claude.use) { this.off('here'); return; }
       const [room, user] = await Promise.all([window.claude.use('room'), window.claude.use('user')]);
@@ -14487,7 +14487,7 @@ const MP = {
   // the race held open, shown in the lobby room (or taken down)
   advertise() {
     if (!this.room) return; const c = this.cfg;
-    const race = this.game && this.host && c ? { code: this.code, sd: c.sd, ty: c.ty, tm: c.tm, wx: c.wx, wd: c.wd, n: Math.min(99, this.drivers().length), ph: c.ph } : null;
+    const race = this.game && this.host && c ? { code: this.code, sd: c.sd, ty: c.ty, tm: c.tm, wx: c.wx, wd: c.wd, n: Math.min(99, this.drivers().filter(p => this.fresh(p)).length), ph: c.ph } : null;
     this.room.presence({ race }).catch(() => {});
   },
 
@@ -14501,25 +14501,34 @@ const MP = {
   newCode() { let s = ''; for (let i = 0; i < 4; i++) s += MP_CODE[Math.floor(Math.random() * MP_CODE.length)]; return s; },
   defaultCfg() { const sd = String(($('#seed') && $('#seed').value) || (G.T && G.T.seed) || Math.floor(Math.random() * 999999) + 1).replace(/\D/g, '').slice(0, 6) || '1';
     return { v: MP_V, sd: String(parseInt(sd, 10)), ty: '', tm: '', wx: '', wd: 1, ct: 1, dg: Damage.mode || 'real', rd: 0, ph: 'lobby', go: 0, gr: [] }; },
-  async hostRace() { if (!this.room) return; await this.enter(this.newCode(), true); },
+  // (a new code each time, and another if a race already has it: a host never lands in someone else's room)
+  async hostRace() { if (!this.room) return;
+    for (let k = 0; k < 4; k++) { await this.enter(this.newCode(), true); const g = this.game; if (!g) return;
+      if (!(g.peers ? g.peers() || [] : []).some(p => !p.sameTab && p.presence && p.presence.v === MP_V)) return; await this.leave(true); } },
   async joinCode(code) { code = String(code || '').toLowerCase().replace(/[^a-z0-9]/g, ''); if (!/^[a-z0-9]{4}$/.test(code)) { this.note('A race code is four letters or numbers.'); return; } await this.enter(code, false); },
   async enter(code, asHost) {
     if (!this.room) return; await this.leave(true);
-    let g; try { g = await this.room.join('race-' + code); } catch (e) { this.note(e && e.code === 'limit_reached' ? 'Too many races are open on this page right now.' : 'Could not reach that race.'); return; }
-    Object.assign(this, { game: g, code, round: 0, host: !!asHost, hostPeer: null, phase: 'lobby', jt: Date.now(), cfg: asHost ? this.defaultCfg() : null, lastCfg: null, cfgKey: '', goAt: 0, lgKey: '', lgT: 0, gr: [], slot: -1, stageKey: '' });
-    g.onPeers(ch => this.onPeers(ch), () => { this.note('The race room closed.'); this.leave(); });
+    let g; try { g = await this.room.join('race-' + code); } catch (e) { this.note(e && e.code === 'limit_reached' ? 'That race is full.' : 'Could not reach that race.'); return; } // (a page is in one race room at a time: so a limit reached is the room's)
+    Object.assign(this, { game: g, code, round: 0, host: !!asHost, alone: false, endAt: 0, hostPeer: null, phase: 'lobby', jt: Date.now(), cfg: asHost ? this.defaultCfg() : null, lastCfg: null, cfgKey: '', goAt: 0, lgKey: '', lgT: 0, gr: [], slot: -1, stageKey: '' });
+    this.seen.clear(); this.carAt.clear(); this.ckSeen.clear(); g.onPeers(ch => this.onPeers(ch), () => { this.note('The race room closed.'); this.leave(); });
     this.lastCar = G.spec.id;
     this.rdy = 0; this.pub({ v: MP_V, jt: this.jt, car: G.spec.id, rdy: 0, ph: 'lobby', rr: 0, ck: Date.now(), cfg: this.host ? this.cfg : null, s: null, p: 0, ft: null, dm: null });
     if (this.host) { this.applyCfg(this.cfg); this.advertise(); }
     this.note(''); this.render();
-    // (an empty room after a few seconds: said so, and the page keeps waiting. A host whose page went quiet, a phone
-    // switched to another app to send the code, comes back into the room by itself, and the race finds them then)
-    if (!asHost) { const jt = this.jt; setTimeout(() => { if (this.game === g && this.jt === jt) this.render(); }, 6100); }
+    // (a room nobody holds a few seconds on, its host gone or never come: the driver here longest hosts it, so nobody is
+    // left waiting on a host who isn't there. See pickHost, which also hands the race back to a host whose page went
+    // quiet for a while, a phone switched to another app to send the code, when it comes back)
+    if (!asHost) { const jt = this.jt; setTimeout(() => { if (this.game !== g || this.jt !== jt) return; this.pickHost(); this.render(); }, 6100); }
+  },
+  hostEmpty() {
+    this.host = true; this.alone = !this.drivers().some(p => !p.sameTab); this.hostPeer = this.my;
+    this.cfg = this.lastCfg ? Object.assign({}, this.lastCfg, { ph: 'lobby', go: 0, gr: [] }) : this.defaultCfg(); this.lastCfg = this.cfg;
+    this.pub({ cfg: this.cfg }); this.applyCfg(this.cfg); this.advertise(); this.render();
   },
   async leave(quiet) {
     const g = this.game; if (!g) return;
     const wasRacing = this.phase === 'race' || this.phase === 'done';
-    this.game = null; this.code = ''; this.host = false; this.hostPeer = null; this.phase = 'off'; this.peers = []; this.cfg = null; this.cfgKey = ''; this.goAt = 0; window.__mpDmg = null;
+    this.game = null; this.code = ''; this.host = false; this.alone = false; this.endAt = 0; this.hostPeer = null; this.phase = 'off'; this.peers = []; this.cfg = null; this.cfgKey = ''; this.goAt = 0; this.rdy = 0; this.seen.clear(); this.carAt.clear(); this.ckSeen.clear(); window.__mpDmg = null;
     this.clearRivals(); try { await g.leave(); } catch (e) { }
     if (this.room) this.room.presence({ race: null }).catch(() => {});
     if (wasRacing && G.state !== 'menu') toMenu();
@@ -14529,16 +14538,23 @@ const MP = {
   // ---- the race room ----
   onPeers(ch) {
     this.peers = ch.peers;
+    const now = Date.now();
     for (const p of ch.joined.concat(ch.updated)) {
       if (p.sameTab) { this.my = p.peer; continue; }
-      const ck = mpNum(p.presence && p.presence.ck, 0, 1e15); if (ck != null) this.sample(p.peer, p.updatedAt - ck);
+      // (when each page last said anything, and when its car last moved on: its timestamp, sent with each new state)
+      this.seen.set(p.peer, now);
+      const ck = mpNum(p.presence && p.presence.ck, 0, 1e15); if (ck != null) { this.sample(p.peer, p.updatedAt - ck); if (ck !== this.ckSeen.get(p.peer)) { this.ckSeen.set(p.peer, ck); this.carAt.set(p.peer, now); } }
       this.take(p);
     }
-    for (const p of ch.left) { this.dropRival(p.peer); if (p.peer !== this.goPeer) this.clk.delete(p.peer); } // (the race keeps its starter's clock)
+    for (const p of ch.left) { this.dropRival(p.peer); this.seen.delete(p.peer); this.carAt.delete(p.peer); this.ckSeen.delete(p.peer); if (p.peer !== this.goPeer) this.clk.delete(p.peer); } // (the race keeps its starter's clock)
     this.ask(ch.peers.map(p => p.by));
     this.pickHost();
-    this.renderSoon();
+    this.renderSoon(); this.idle();
   },
+  // a driver whose page has said something in the last twenty seconds (every page in a room says something at least
+  // once a second: a page silent longer is asleep, a phone's screen off or its browser in the background, or cut off)
+  // (and a page that has itself been asleep or held up a while judges nobody so until the news since has come in)
+  fresh(p) { const now = Date.now(); return p.sameTab || now - (this.seen.get(p.peer) || 0) < 20000 || now - this.wokeAt < 5000; },
   // another page's clock against this one's. Each timestamp a page sends, against its arrival here, is its clock's
   // difference plus the time on the way; the smallest such over the last minute (lag) is the difference plus the way at
   // its quickest. The host's page says how late this page's own timestamps reach it, so for the host the way is taken out
@@ -14561,30 +14577,54 @@ const MP = {
     const ty = c.ty === '' || (typeof c.ty === 'string' && typeById(c.ty)) ? c.ty : '';
     const tm = c.tm === '' || TIMES.includes(c.tm) ? c.tm : '', wx = c.wx === '' || (typeof c.wx === 'string' && WEATHER[c.wx]) ? c.wx : '';
     const gr = Array.isArray(c.gr) ? c.gr.filter(x => typeof x === 'string' && x.length < 64).slice(0, MP_MAX) : [];
-    return { v: MP_V, sd, ty, tm, wx, wd: c.wd ? 1 : 0, ct: c.ct ? 1 : 0, dg: ['off', 'visual', 'real'].includes(c.dg) ? c.dg : 'real', rd: mpNum(c.rd, 0, 1e6) | 0, ph: c.ph === 'race' ? 'race' : 'lobby', go: mpNum(c.go, 0, 1e15) || 0, gr };
+    return { v: MP_V, sd, ty, tm, wx, wd: c.wd ? 1 : 0, ct: c.ct ? 1 : 0, dg: ['off', 'visual', 'real'].includes(c.dg) ? c.dg : 'real', rd: mpNum(c.rd, 0, 2e9) | 0, ph: c.ph === 'race' ? 'race' : 'lobby', go: mpNum(c.go, 0, 1e15) || 0, gr };
   },
-  // the host: the driver holding the settings who has been here longest. With none (the host has left), the driver here
-  // longest takes the race over, with the settings last seen
+  // the host: of the drivers holding the race (its settings, and the race under way), the one here longest. Two hold it
+  // only for a moment: a host whose page went quiet (its driver away in another app, or cut off) is passed over after
+  // twenty seconds, the room taken over meanwhile, and on coming back it is the host again, taking on the race as it
+  // is by then (the furthest on of those held: by the race's number, and over or not); the one who held it meanwhile
+  // holds on until then
   pickHost() {
-    let best = null;
-    for (const p of this.drivers()) { const c = p.sameTab ? (this.host ? this.cfg : null) : this.checkCfg(p.presence.cfg); if (!c) continue; const jt = mpNum(p.presence.jt, 0, 1e15) || 0;
-      if (!best || jt < best.jt || (jt === best.jt && p.peer < best.p.peer)) best = { p, jt, c }; }
-    if (!best) {
-      const L = this.drivers().slice().sort((a, b) => (mpNum(a.presence.jt, 0, 1e15) || 0) - (mpNum(b.presence.jt, 0, 1e15) || 0) || (a.peer < b.peer ? -1 : 1));
-      if (L.length && L[0].sameTab && this.lastCfg && !this.host) { this.host = true; this.cfg = Object.assign({}, this.lastCfg, { ph: this.phase === 'race' ? this.lastCfg.ph : 'lobby' }); this.pub({ cfg: this.cfg }); this.advertise(); this.render(); }
+    const H = [];
+    for (const p of this.drivers()) { if (!this.fresh(p)) continue; const c = p.sameTab ? (this.host ? this.cfg : null) : this.checkCfg(p.presence.cfg); if (c) H.push({ p, c, jt: mpNum(p.presence.jt, 0, 1e15) || 0 }); }
+    if (!H.length) {
+      // nobody holds it (the host has left, or is away): the driver here longest takes it over, with the race as last
+      // seen; a page that has seen nobody hold it, once it has been here a few seconds (the room's news has come by then)
+      this.hostPeer = null;
+      const L = this.drivers().filter(p => this.fresh(p)).sort((a, b) => (mpNum(a.presence.jt, 0, 1e15) || 0) - (mpNum(b.presence.jt, 0, 1e15) || 0) || (a.peer < b.peer ? -1 : 1));
+      if (L.length && L[0].sameTab && !this.host) {
+        if (this.lastCfg) { this.host = true; this.hostPeer = this.my; this.cfg = Object.assign({}, this.lastCfg); this.lastCfg = this.cfg; this.pub({ cfg: this.cfg }); this.advertise(); this.render(); }
+        else if (Date.now() - this.jt > 6000) this.hostEmpty();
+      }
       return;
     }
-    this.hostPeer = best.p.peer;
-    if (best.p.sameTab) { if (!this.host) { this.host = true; this.render(); } return; }
-    if (this.host) { this.host = false; this.lgKey = ''; this.pub({ cfg: null, lg: null }); this.advertise(); } // (someone here longer holds it)
-    this.applyCfg(best.c);
+    H.sort((a, b) => a.jt - b.jt || (a.p.peer < b.p.peer ? -1 : 1));
+    const far = c => c.rd * 2 + (c.ph === 'lobby' ? 1 : 0); // (a race over is further on than the same race under way)
+    const best = H[0]; let cur = best; for (const h of H) if (far(h.c) > far(cur.c)) cur = h;
+    if (best.p.sameTab) {
+      this.hostPeer = best.p.peer;
+      if (cur !== best) { this.cfg = Object.assign({}, cur.c); this.lastCfg = this.cfg; this.pub({ cfg: this.cfg }); this.advertise(); this.applyCfg(this.cfg); }
+      if (this.alone && this.drivers().length > 1) { this.alone = false; this.renderSoon(); }
+      return;
+    }
+    if (this.host) {
+      if (far(best.c) < far(this.cfg)) { this.hostPeer = this.my; return; }
+      this.host = false; this.alone = false; this.endAt = 0; this.lgKey = ''; this.pub({ cfg: null, lg: null }); this.advertise();
+    }
+    this.hostPeer = cur.p.peer; this.applyCfg(cur.c);
   },
   // the settings as they are now (heard again and again from the host's presence: acted on only when they change)
   applyCfg(c) {
     const was = this.cfg, key = JSON.stringify(c); if (was && key === this.cfgKey && this.phase !== 'off') return;
     this.cfg = c; this.lastCfg = c; this.cfgKey = key; if (window.__mpDmg !== c.dg) { window.__mpDmg = c.dg; Damage.render(); }
     if (this.phase === 'lobby' || this.phase === 'watch') this.stageSoon();
-    if (c.ph === 'race' && c.rd !== this.round && (this.phase === 'lobby' || this.phase === 'watch')) this.begin(c);
+    if (c.ph === 'race' && c.rd !== this.round && (this.phase === 'lobby' || this.phase === 'watch')) {
+      // (a race this page has already been in, which it left and came back to the room from, or one that started more
+      // than half a minute ago: watched, and the next raced. A page a little late to hear of a race it is on the grid
+      // for still races it, with a short countdown)
+      const late = c.go && Date.now() - (c.go + this.offset(this.hostPeer)) > 30000;
+      if (this.raced[this.code] === c.rd || late) { this.round = c.rd; this.gr = c.gr.slice(); this.slot = -1; this.phase = 'watch'; this.render(); } else this.begin(c);
+    }
     else if (c.ph === 'lobby' && (this.phase === 'race' || this.phase === 'done' || this.phase === 'watch')) this.back();
     this.renderSoon();
   },
@@ -14609,16 +14649,19 @@ const MP = {
   // ---- the start ----
   // the host's start: the host and every driver who is ready (up to eight in all) on the grid, two abreast, in an order
   // drawn afresh each race, and the start seven seconds on (a driver not ready waits for the next race)
+  // (each race's number is the one before's and one more, and never less than the seconds on the clock since a moment
+  // in 2023: so of two races held apart, by a host and by someone who took the room over, the later is the higher)
   start() {
     if (!this.host || !this.cfg || this.cfg.ph === 'race') return;
-    const rd = this.cfg.rd + 1, h = s => strHash(s + ':' + rd + ':' + this.cfg.sd);
-    const gr = this.drivers().filter(p => p.sameTab || (p.presence.ph === 'lobby' && p.presence.rdy)).map(p => p.peer).sort((a, b) => h(a) - h(b)).slice(0, MP_MAX);
+    const rd = Math.max((this.cfg.rd | 0) + 1, Math.floor(Date.now() / 1000) - 1.7e9), h = s => strHash(s + ':' + rd + ':' + this.cfg.sd);
+    const gr = this.drivers().filter(p => p.sameTab || (this.fresh(p) && p.presence.ph === 'lobby' && p.presence.rdy)).map(p => p.peer).sort((a, b) => h(a) - h(b)).slice(0, MP_MAX);
     this.setCfg({ rd, ph: 'race', go: Date.now() + 7000, gr });
   },
   begin(c) {
     this.round = c.rd; this.gr = c.gr.slice(); this.slot = this.gr.indexOf(this.my);
     if (this.slot < 0) { this.phase = 'watch'; this.render(); return; } // (not on this grid: the next race)
-    this.stage(); this.phase = 'race'; this.myFin = null; this.dmVer = -1; this.shown = false;
+    this.meIn = this.my; // (this page's place on the grid, kept should its connection be made anew mid-race)
+    this.raced[this.code] = c.rd; this.stage(); this.phase = 'race'; this.myFin = null; this.dmVer = -1; this.shown = false;
     for (const p of this.peers) if (!p.sameTab && this.gr.includes(p.peer)) this.rivalFor(p);
     if (typeof SetupUI !== 'undefined' && SetupUI.close) try { SetupUI.close(); } catch (e) { }
     startRun();
@@ -14638,10 +14681,11 @@ const MP = {
     const c = makeCar(G.phys || G.spec, T, i), lat = (col ? -1 : 1) * Math.min(2.7, p.w / 4);
     c.x += Math.cos(p.h) * lat; c.z -= Math.sin(p.h) * lat; settleCar(c, G.phys || G.spec, T); G.car = c;
   },
-  back() { // the host has gathered everyone at the start again
+  back() { // the race is over, and everyone at the start again (a driver who watched it, ready for this one, still ready)
+    const keep = this.phase === 'watch' ? this.rdy : 0;
     this.phase = 'lobby'; this.clearRivals(); this.gr = []; this.slot = -1; const r = $('#mpRes'); if (r) r.hidden = true;
     if (G.state !== 'menu') toMenu();
-    this.rdy = 0; this.pub({ ph: 'lobby', rdy: 0, s: null, ft: null, p: 0 }); this.stageSoon(); this.render();
+    this.rdy = keep; this.pub({ ph: 'lobby', rdy: keep, s: null, ft: null, p: 0 }); this.stageSoon(); this.render();
   },
   // this driver's race over (finished, retired or gone back to the menu)
   onFinish(total) { this.phase = 'done'; this.myFin = total; this.pub({ ph: 'fin', ft: Math.round(total * 1000) / 1000, s: this.pack(G.car), ck: Date.now() }); speak('Stop, stop.'); this.results(); },
@@ -14812,12 +14856,34 @@ const MP = {
     this.standT -= dt; if (this.standT <= 0) { this.standT = 0.25; this.F = this.phase === 'race' || this.phase === 'done' ? this.field() : null; this.standings(); if (this.phase === 'done') this.results(); }
     this.drawRivals(dt); this.tags();
   },
-  // between races (and in the menu): settings follow, the car chosen is shown to the others, a keepalive for the clocks
-  tick(dt) {
-    if (!this.game) return; this.keepT -= dt; this.pubLags(dt);
+  // between races (and in the menu): settings follow, the car chosen is shown to the others, a keepalive for the clocks.
+  // Every frame, and once a second while the page draws none (see idle); its timers by the clock, not the frames
+  tick(dt, idle) {
+    const t = performance.now(), rt = this.tickAt ? Math.min(5, (t - this.tickAt) / 1000) : 0; this.tickAt = t; if (!idle) this.frameAt = t;
+    if (rt >= 3) this.wokeAt = Date.now(); // (three seconds or more since the last: this page was asleep, or held up)
+    if (!this.game) return; this.keepT -= rt; this.pubLags(rt);
     if (this.phase !== 'race' && (this.keepT <= 0 || G.spec.id !== this.lastCar)) { this.keepT = 1; if (G.spec.id !== this.lastCar) { this.lastCar = G.spec.id; this.renderSoon(); } this.pub({ car: G.spec.id, ck: Date.now() }); }
-    if (this.host && this.phase !== 'race') { this.advT = (this.advT || 0) - dt; if (this.advT <= 0) { this.advT = 3; this.advertise(); } }
+    // (a page out of sight mid-race, its car standing still: still here, though its car is not racing)
+    else if (this.phase === 'race' && idle && this.keepT <= 0) { this.keepT = 1; this.ka = ((this.ka || 0) + 1) % 1000; this.pub({ ka: this.ka }); }
+    if (this.host && this.phase !== 'race') { this.advT = (this.advT || 0) - rt; if (this.advT <= 0) { this.advT = 3; this.advertise(); } }
+    this.hostT -= rt; if (this.hostT <= 0) { this.hostT = 1; this.pickHost(); } // (a host gone quiet is noticed without news)
+    // the host ends a race by itself once nobody from its grid is still racing (finished, retired, back in the room, gone,
+    // or silent twenty seconds: its page asleep): eight seconds on when someone finished, for the results, two when nobody
+    // did. Everyone is then back at the start, ready buttons on, for the next race
+    const c = this.cfg;
+    if (this.host && c && c.ph === 'race') {
+      const now = Date.now(), D = this.drivers().filter(p => c.gr.includes(p.peer) || (p.sameTab && this.phase === 'race'));
+      const on = D.some(p => p.sameTab ? this.phase === 'race' && t - this.frameAt < 20000 : (now - (this.carAt.get(p.peer) || 0) < 20000 || now - this.wokeAt < 5000) && (p.presence.ph === 'grid' || p.presence.ph === 'run') && p.presence.rr === c.rd);
+      if (on || now < c.go + 10000) this.endAt = 0;
+      else if (!this.endAt) this.endAt = now + (D.some(p => p.sameTab ? this.myFin != null : p.presence.ph === 'fin') ? 8000 : 2000);
+      else if (now >= this.endAt) { this.endAt = 0; this.setCfg({ ph: 'lobby', go: 0 }); }
+    } else this.endAt = 0;
   },
+
+  // the room kept going while this page draws no frames (its tab in the background, or hidden behind another window):
+  // its word to the others, its place in the race list and, for a host, the end of a race nobody is still in. Once a
+  // second, and as the others' news comes in (a browser holds a page's own timers back while it is out of sight)
+  idle() { if (this.game && performance.now() - this.frameAt > 1500) this.tick(0, true); },
 
   // ---- the race on screen: places, gaps, names over the cars, the results ----
   // how far along the stage a rival is (m): where it is now (its last state carried on), found on the road near where
@@ -14828,9 +14894,10 @@ const MP = {
   field() { // everyone on this grid, this driver included: finished first (by time), then the rest by how far along
     const T = G.T, out = [], c = G.car;
     for (const peer of this.gr) {
-      if (peer === this.my) { out.push({ me: true, name: 'You', car: G.spec.name, m: c ? Math.max(0, c.info ? Math.min(c.info.dist - T.startIdx * STEP, (G.prog - T.startIdx + 30) * STEP) : (G.prog - T.startIdx) * STEP) : 0, ft: this.phase === 'done' ? this.myFin : null, ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : 'run' }); continue; }
+      if (peer === this.my || peer === this.meIn) { out.push({ me: true, name: 'You', car: G.spec.name, m: c ? Math.max(0, c.info ? Math.min(c.info.dist - T.startIdx * STEP, (G.prog - T.startIdx + 30) * STEP) : (G.prog - T.startIdx) * STEP) : 0, ft: this.phase === 'done' ? this.myFin : null, ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : 'run' }); continue; }
       const r = this.rivals.get(peer), p = this.peers.find(q => q.peer === peer), k = this.gr.indexOf(peer);
-      out.push({ me: false, peer, name: p ? this.nameOf(p, k) : 'Driver ' + (k + 1), car: r ? r.S.name : '', m: r ? this.along(r) : 0, ft: r ? r.ft : null, ph: !p ? 'gone' : r ? r.ph : 'grid' });
+      // (a driver gone back to the room has left the race: out, or in with the time it finished in)
+      out.push({ me: false, peer, name: p ? this.nameOf(p, k) : 'Driver ' + (k + 1), car: r ? r.S.name : '', m: r ? this.along(r) : 0, ft: r ? r.ft : null, ph: !p ? 'gone' : !r ? 'grid' : r.ph === 'lobby' ? (r.ft != null ? 'fin' : 'out') : r.ph });
     }
     const gone = f => f.ph === 'out' || f.ph === 'gone';
     out.sort((a, b) => (a.ft != null) !== (b.ft != null) ? (a.ft != null ? -1 : 1) : a.ft != null ? a.ft - b.ft : gone(a) !== gone(b) ? (gone(a) ? 1 : -1) : b.m - a.m);
@@ -14862,7 +14929,7 @@ const MP = {
     const all = F.every(f => f.ft != null || f.ph === 'out' || f.ph === 'gone');
     $('#mpResH').textContent = this.myFin != null ? 'You finished ' + ordinal(F.findIndex(f => f.me) + 1) : 'Out of the race';
     $('#mpResSub').textContent = (G.T.type ? G.T.type.name : 'Stage') + ' · stage ' + G.T.seed + (all ? ' · everyone is in' : ' · the rest are still on the stage');
-    $('#mpResLobby').hidden = !this.host; $('#mpResNote').textContent = this.host ? 'Gather everyone at the start for the next race when you are ready.' : 'The host brings everyone back to the start for the next race.';
+    $('#mpResLobby').hidden = !this.host; $('#mpResNote').textContent = (this.host ? 'Gather everyone at the start now, or it' : 'Everyone') + (this.host ? ' happens' : ' goes back to the start') + ' a few seconds after the last car is in.';
   },
 
   // ---- the menu ----
@@ -14872,7 +14939,7 @@ const MP = {
     on('#mpCode', 'keydown', e => { if (e.key === 'Enter') this.joinCode(e.target.value); });
     on('#mpLeave', 'click', () => this.leave());
     on('#mpResLobby', 'click', () => { if (this.host) this.setCfg({ ph: 'lobby', go: 0 }); });
-    on('#mpResLeave', 'click', () => { $('#mpRes').hidden = true; this.leave(); });
+    on('#mpResLeave', 'click', () => { $('#mpRes').hidden = true; toMenu(); }); // (back to the race room, still in it: Leave the room there leaves it)
     on('#mpRoll', 'click', () => this.setCfg({ sd: String(Math.floor(Math.random() * 999999) + 1) }));
     // everything at once: a new stage in any region, at any time of day, in any weather that region has
     on('#mpAll', 'click', () => { const pick = L => L[Math.floor(Math.random() * L.length)], ty = pick(allTypeIds());
@@ -14909,11 +14976,14 @@ const MP = {
     }
     const c = this.cfg, T = G.T, D = this.drivers(), me = D.find(p => p.sameTab);
     $('#mpCodeBig').textContent = this.code.toUpperCase();
-    const hp = D.find(p => p.peer === this.hostPeer);
-    $('#mpRole').textContent = this.host ? 'You are the host. Keep this page open while friends join from the race list or with this code.' : hp ? `${this.nameOf(hp, 0)} is the host. Pick your car and press Ready.`
-      : Date.now() - this.jt < 6000 ? 'Looking for this race…' : `Nobody is in race ${this.code.toUpperCase()} yet. You join the moment the host is here: their game must be open, on the same game version as yours.`;
-    for (const id of ['#mpTy', '#mpSd', '#mpRoll', '#mpAll', '#mpTm', '#mpWx']) { const e = $(id); if (e) e.disabled = !this.host || !c || c.ph === 'race'; }
-    for (const b of document.querySelectorAll('#mpSetup .mpopt button')) b.disabled = !this.host || !c || c.ph === 'race';
+    const hp = D.find(p => p.peer === this.hostPeer), here = D.filter(p => this.fresh(p));
+    $('#mpRole').textContent = this.host ? (this.alone ? 'Nobody else was here, so you are the host. ' : 'You are the host. ') + 'Keep this page open while friends join from the race list or with this code.' : hp ? `${this.nameOf(hp, 0)} is the host. Pick your car and press Ready.`
+      : Date.now() - this.jt < 6000 ? 'Looking for this race…' : here.length > 1 ? 'The host has gone. Another driver takes the race over in a moment.'
+      : `Nobody is in race ${this.code.toUpperCase()} yet. You join the moment the host is here: their game must be open, on the same game version as yours.`;
+    // (while a race is under way the host sets up the next one: the stage, region, time, weather and roads, none of which
+    // touches the cars on the stage; contact and damage wait until every car is in, as they would change the race)
+    for (const id of ['#mpTy', '#mpSd', '#mpRoll', '#mpAll', '#mpTm', '#mpWx']) { const e = $(id); if (e) e.disabled = !this.host || !c; }
+    for (const b of document.querySelectorAll('#mpSetup .mpopt button')) b.disabled = !this.host || !c || (c.ph === 'race' && !/^mp_wd/.test(b.id));
     if (c) {
       // the regions, as the stage menu lists them: the stage's own first
       { const ty = $('#mpTy'), nat = T && T.mpKey ? T.natural : ''; if (ty && nat && ty.dataset.k !== nat) { ty.dataset.k = nat; ty.textContent = ''; const N = typeById(nat);
@@ -14936,17 +15006,21 @@ const MP = {
     const ul = $('#mpPlayers'); ul.textContent = '';
     D.slice().sort((a, b) => (mpNum(a.presence.jt, 0, 1e15) || 0) - (mpNum(b.presence.jt, 0, 1e15) || 0)).forEach((p, k) => {
       const P = p.sameTab ? Object.assign({}, p.presence, { rdy: this.rdy }) : p.presence, S = carById(mpStr(P.car, /^[a-z0-9_]{1,24}$/, 24) || '') || null, isHost = p.peer === this.hostPeer || (p.sameTab && this.host);
-      const st = P.ph === 'grid' || P.ph === 'run' ? 'racing' : P.ph === 'fin' ? 'finished ' + (mpNum(P.ft, 0, 1e6) != null ? fmtT(P.ft) : '') : P.ph === 'out' ? 'retired' : isHost ? 'host' : P.rdy ? 'ready' : 'not ready';
-      ul.append(mel('li', { class: (p.sameTab ? 'me ' : '') + (P.rdy || isHost ? 'ok' : '') }, mel('b', { text: this.nameOf(p, k) }), mel('span', { text: S ? S.name : '' }), mel('small', { text: st })));
+      // (a driver whose page has gone quiet is away: not counted, nor put on the grid, until it is back)
+      const away = !this.fresh(p), st = away ? 'away' : P.ph === 'grid' || P.ph === 'run' ? 'racing' : P.ph === 'fin' ? 'finished ' + (mpNum(P.ft, 0, 1e6) != null ? fmtT(P.ft) : '') : P.ph === 'out' ? 'retired' : isHost ? 'host' : P.rdy ? 'ready' : 'not ready';
+      ul.append(mel('li', { class: (p.sameTab ? 'me ' : '') + (!away && (P.rdy || isHost) ? 'ok' : '') }, mel('b', { text: this.nameOf(p, k) }), mel('span', { text: S ? S.name : '' }), mel('small', { text: st })));
     });
-    const racing = c && c.ph === 'race', n = D.length, ready = D.filter(p => (p.sameTab ? this.rdy : p.presence.rdy) || p.peer === this.hostPeer || (p.sameTab && this.host)).length;
-    $('#mpStatus').textContent = racing ? (this.phase === 'watch' ? 'A race is under way. You join the next one.' : 'A race is under way.') : n < 2 ? (this.host ? 'Waiting for friends to join…' : 'Waiting for the host…') : `${ready} of ${n} ready.` + (ready < n ? ' A driver not ready waits for the next race.' : '');
+    // (while a race is under way a driver in the room can be ready for the next one already)
+    const racing = c && c.ph === 'race', n = here.length, ready = here.filter(p => (p.sameTab ? this.rdy : p.presence.rdy) || p.peer === this.hostPeer || (p.sameTab && this.host)).length;
+    $('#mpStatus').textContent = racing ? (this.host ? 'A race is under way: set up the next one here. Contact and damage can change once every car is in.' : this.rdy ? "A race is under way. You're ready for the next one." : 'A race is under way. Press Ready to race the next one.')
+      : n < 2 ? (this.host ? 'Waiting for friends to join…' : 'Waiting for the host…') : `${ready} of ${n} ready.` + (ready < n ? ' A driver not ready waits for the next race.' : '');
     if (this.host) { go.textContent = racing ? 'Gather everyone at the start' : ready < 2 ? 'Start on your own' : ready > MP_MAX ? `Start race (first ${MP_MAX})` : 'Start race'; go.disabled = false; }
-    else { go.textContent = this.rdy ? 'Ready ✓ (tap to undo)' : 'Ready'; go.disabled = !!racing; }
+    else { go.textContent = this.rdy ? 'Ready ✓ (tap to undo)' : racing ? 'Ready for the next race' : 'Ready'; go.disabled = false; }
   },
   renderList() {
     const ul = $('#mpList'); if (!ul || Rally.mode !== 'mp' || this.game) return; ul.textContent = '';
-    const L = this.lobbyPeers.filter(p => !p.sameTab && p.presence && p.presence.race && mpStr(p.presence.race.code, /^[a-z0-9]{4}$/, 4));
+    const codes = new Set(), L = this.lobbyPeers.filter(p => !p.sameTab && p.presence && p.presence.race && mpStr(p.presence.race.code, /^[a-z0-9]{4}$/, 4))
+      .filter(p => !codes.has(p.presence.race.code) && codes.add(p.presence.race.code)); // (one entry a race, though two pages hold it for a moment)
     for (const p of L) { const R = p.presence.race, sd = mpStr(R.sd, /^[0-9]{1,6}$/, 6) || '', t = 'Stage ' + sd + (typeof R.ty === 'string' && typeById(R.ty) ? ' · ' + typeById(R.ty).t.name : ''), n = mpNum(R.n, 0, 99) || 1;
       const nm = (p.by && this.names[p.by]) || 'A friend';
       ul.append(mel('li', {}, mel('div', {}, mel('b', { text: nm + "'s race" }), mel('small', { text: `${t}${R.wd ? ', wide roads' : ''} · ${n} driver${n === 1 ? '' : 's'}${R.ph === 'race' ? ' · racing now' : ''}` })), mel('button', { class: 'ghostbtn', type: 'button', text: 'Join', onclick: () => this.joinCode(R.code) }))); }

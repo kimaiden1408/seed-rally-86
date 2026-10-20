@@ -1,7 +1,7 @@
 // Seed Rally 86 on its own website: this runs the race rooms, the players' names and the shared board of stage times,
-// and serves the game page too (index.html, and config.js beside it, which tells a page kept elsewhere, as on GitHub
-// Pages, where this server is). Start it with "npm install" and then "npm start". Settings, all optional, from the
-// environment:
+// and serves the game page too (index.html; the config.js beside it tells a page kept elsewhere, as on GitHub Pages,
+// where this server is, while the page served here talks to this server). Start it with "npm install" and then
+// "npm start". Settings, all optional, from the environment:
 //   PORT         the port to listen on (8080 when not set; hosting services set it themselves)
 //   DATA_DIR     the folder the board and the names are saved in (a folder named data next to this file when not set)
 //   MAX_PLAYERS  how many pages may be connected at once (500 when not set)
@@ -74,7 +74,7 @@ function storeTimes(uid, c) {
 
 // ---- the page ----
 // (sent compressed: kept ready as brotli and gzip, from the files made with it when they match it, or made here)
-const PAGE = path.join(__dirname, 'index.html'), CONFIG = path.join(__dirname, 'config.js');
+const PAGE = path.join(__dirname, 'index.html');
 const page = (() => {
   const raw = fs.readFileSync(PAGE), etag = '"' + crypto.createHash('sha1').update(raw).digest('hex').slice(0, 20) + '"';
   const ready = (ext, unzip) => { try { const b = fs.readFileSync(PAGE + ext); if (unzip(b).equals(raw)) return b; } catch (e) { } return null; };
@@ -96,8 +96,10 @@ const server = http.createServer((req, res) => {
     if (req.method === 'GET') { stats.pages++; stats.bytes += body.length; }
     res.writeHead(200, head); res.end(req.method === 'HEAD' ? undefined : body); return;
   }
+  // (config.js names the race server for a page kept elsewhere, as on GitHub Pages; a page this server sent talks to
+  // this server, wherever it runs, so its config.js names none)
   if (u === '/config.js') {
-    let js = ''; try { js = fs.readFileSync(CONFIG); } catch (e) { }
+    const js = '// this page came from the race server itself: it talks to it\n';
     res.writeHead(200, Object.assign(head, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' })); res.end(req.method === 'HEAD' ? undefined : js); return;
   }
   if (u === '/healthz') { res.writeHead(200, Object.assign(head, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' })); res.end('ok'); return; }
