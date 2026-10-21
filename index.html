@@ -4735,7 +4735,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '1AA4';
+const SR86_BUILD = 'E8A3';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -6449,7 +6449,11 @@ function buildStage(T) {
 //   the windscreen's base); visorZ: a windscreen curved round like a visor, the rib z of its pillars' feet: the glass's
 //   base runs back from its centre (the cowl rib) to the feet along a curve, the wing tops running on beside it at deck
 //   height, and the pillars rise from the feet to the roof, so they stand steeper than the glass's centre line;
-//   glIn: how far the glass stands in from the body's edges (0.09): the width of the pillars and frames round the glass
+//   rvisorZ: the same for a rear window curved round, the rib z of its pillars' feet: the pillars come down from the roof
+//   to the feet, and the glass's base runs on back from them along a curve to its centre (the rib the rear window ends on);
+//   glIn: how far the glass stands in from the body's edges (0.09): the width of the pillars and frames round the glass;
+//   rearLid: what opens behind the rear window, 'tailgate' (the glass with it) or 'boot' (a boot lid, or an engine cover on
+//   a mid- or rear-engined car, hinged at the glass's base); without it a short deck goes with the glass as a tailgate
 const CK_SEG7 = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
 // The digital instruments (the WRC and Rally2 cars'): lcd, the monochrome seven-segment LCD of a 2000s data logger;
 // tft, a colour screen. In the glass's own coordinates (0-1 across from the driver's left, 0-1 up), boxes [x, y, w, h];
@@ -6562,7 +6566,7 @@ float scrRound(vec2 p, vec4 b, float r) { vec2 d = abs(p - b.xy - b.zw * 0.5) - 
 }`;
   return { head, lcd, tft, leds };
 }
-const CK_BUDGET = { triangles: [2500, 4100], drawCalls: [3, 4] }; // (what lies under the opening panels, and the floor's channel between the wheels, take some 500-650)
+const CK_BUDGET = { triangles: [2500, 4300], drawCalls: [3, 4] }; // (what lies under the opening panels, and the floor's channel between the wheels, take some 500-650)
 const ckLerp = (a, b, t) => a + (b - a) * t;
 const ckSub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const ckCross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -6778,7 +6782,12 @@ const CK_PARTS = {
     const z = o.z + c.zOff, zr = c.zr, zF = z + 0.15, zT = Math.min(z - 0.07, zr - 0.03), yD = c.topAt(zF), rise = o.rise || 0.045, span = Math.min(o.span, 2 * (c.lowAt(zF).wb / 2 - c.SH_IN));
     ckPrism(c.body, [[zF, yD - 0.04], [zT, yD + rise], [zT, yD + rise - 0.05], [zr + 0.005, c.topAt(zr + 0.005) - 0.03]], -span / 2, span / 2, c.C.base, 'lip');
   },
-  tray(c, o) { const z = o.z + c.zOff; ckBox(c.body, [0, o.y, z], [o.span, 0.04, 0.4], c.C.base); c.mir(sd => ckBox(c.body, [sd * o.span / 2, o.y + 0.06, z], [0.03, 0.12, 0.4], c.C.base)); },
+  // tray: a flat spoiler with raised sides on the engine lid. { z: its centre, y: its height (or lift: how far over the lid
+  // at its leading edge), span, chord (0.4), plinth: the space under it filled in down to the lid, in body colour }
+  tray(c, o) { const z = o.z + c.zOff, ch = o.chord || 0.4, y = o.y != null ? o.y : c.topAt(z + ch / 2) + (o.lift || 0.02);
+    ckBox(c.body, [0, y, z], [o.span, 0.04, ch], c.C.base); c.mir(sd => ckBox(c.body, [sd * o.span / 2, y + 0.06, z], [0.03, 0.12, ch], c.C.base));
+    if (o.plinth) { const zF = z + ch / 2 - 0.01, zR = z - ch / 2 + 0.01;
+      ckPrism(c.body, [[zF, c.topAt(zF) - 0.02], [zF, y - 0.015], [zR, y - 0.015], [zR, c.topAt(zR) - 0.02]], -o.span / 2 + 0.02, o.span / 2 - 0.02, c.C.base, 'plinth'); } },
   // whaleTail: an elevated upper wing on two heavy raked stanchions, with end plates and a Gurney strip; tiers: 2 adds a lower
   // aerofoil just off the deck or hatch, closed at its ends by body-colour cheeks.
   // upper: false leaves only the lower aerofoil (no upper wing, stanchions, end plates or strip).
@@ -6849,6 +6858,7 @@ function ckFitDesign(D, S) {
   out.lamps = { front: D.lamps.front ? D.lamps.front.map((v, i) => i === 2 ? n5(ym(v)) : v) : D.lamps.front, rear: D.lamps.rear.map((v, i) => i === 1 ? n5(ym(v)) : v) };
   if (D.shut) out.shut = D.shut.map(v => Array.isArray(v) ? v.map((u, i) => i === 0 ? n5(zm(u)) : u ? n5(ym(u)) : u) : n5(zm(v)));
   if (D.handles) out.handles = D.handles.map(v => n5(zm(v)));
+  for (const key of ['visorZ', 'rvisorZ']) if (D[key] != null) out[key] = n5(zm(D[key]));
   out.tyreHalf = [S.tyres[0] / 2000, S.tyres[1] / 2000];
   if (F.W) { out.flareOut = F.W / 2 - Math.max(...D.track) / 2; out.flareMin = 0.015; }
   return out;
@@ -7093,8 +7103,9 @@ class RallyCarKit {
     // (dc / rc: how much higher the bonnet's or roof's centre line stands than its edges, for a crowned section)
     const deckCols = (r, lift) => { const s2 = r.wb / 2 - SH_IN, dc = r.dc || 0; return [[s2, r.b + SH_UP + lift], [s2 - GL_IN, r.b + 0.045 + lift * 0.9 + dc * 0.5], [HW, r.b + 0.055 + dc * 0.92], [0, r.b + 0.055 + dc]]; };
     const roofCols = (y, w, rc) => { rc = rc || 0; return [[w / 2, y], [w / 2 - GL_IN, y + 0.012 + rc * 0.5], [HW, y + 0.02 + rc * 0.92], [0, y + 0.02 + rc]]; };
-    // a visor windscreen (D.visorZ): the rib z of the pillars' feet, behind the cowl rib
-    const visorZ = D.visorZ != null ? D.visorZ + zOff : null;
+    // a visor windscreen (D.visorZ): the rib z of the pillars' feet, behind the cowl rib; a rear window curved round the
+    // same way (D.rvisorZ): the rib z of its pillars' feet, ahead of the rib its centre comes down to
+    const visorZ = D.visorZ != null ? D.visorZ + zOff : null, rvisorZ = D.rvisorZ != null ? D.rvisorZ + zOff : null;
     const profileAt = z => {
       const [A, B, t] = seg(z), lo = lowerAt(z), k = kindOf(A, B); let U;
       if (k === 'deck') U = deckCols(lo.r, lo.lift);
@@ -7113,6 +7124,14 @@ class RallyCarKit {
             U[0] = dZ[0].slice(); U[1] = [x, ckLerp(dZ[2][1], dZ[1][1], w)]; }
           else { U[0] = [ckLerp(dZ[0][0], dR[0][0], us), ckLerp(dZ[0][1], dR[0][1], us)]; U[1] = [ckLerp(dZ[1][0], dR[1][0], us), ckLerp(dZ[1][1], dR[1][1], us)]; }
         }
+        // the rear window's: its pillars come down from the roof's edge to their feet, and behind them the glass's edge runs
+        // in along the base curve at deck height to the centre stripe's edge where the centre line meets the deck
+        if (k === 'rw' && rvisorZ != null && u > 0 && u < 1 && rvisorZ < A.z && rvisorZ > B.z) {
+          const dZ = deckCols(lo.r, lo.lift), ub = Math.min(1, (z - B.z) / (rvisorZ - B.z)), us = Math.max(0, (z - rvisorZ) / (A.z - rvisorZ));
+          if (us <= 0) { const x = HW + (dZ[1][0] - HW) * Math.sqrt(ub), w = (x - HW) / ((dZ[1][0] - HW) || 1);
+            U[0] = dZ[0].slice(); U[1] = [x, ckLerp(dZ[2][1], dZ[1][1], w)]; }
+          else { U[0] = [ckLerp(dZ[0][0], dR[0][0], us), ckLerp(dZ[0][1], dR[0][1], us)]; U[1] = [ckLerp(dZ[1][0], dR[1][0], us), ckLerp(dZ[1][1], dR[1][1], us)]; }
+        }
       }
       return lo.P.concat(U);
     };
@@ -7123,7 +7142,7 @@ class RallyCarKit {
     // From the loft's sections: the bonnet is the deck ahead of the windscreen between the inner deck edges (the wing tops
     // stay with the body), hinged at the screen's base; behind the rear window a long deck is a boot lid (an engine cover
     // on a mid- or rear-engined car) hinged at the glass's base, a short one goes with the glass as a tailgate hinged at
-    // the roof's trailing edge; each door runs between its shut lines (or, where a design draws none, from just behind
+    // the roof's trailing edge (D.rearLid: 'tailgate' or 'boot' says which, whatever the deck's length); each door runs between its shut lines (or, where a design draws none, from just behind
     // the windscreen's base, clear of the front wheel opening, back to the first pillar), from the sill up to the roof's
     // edge, its window with it. Every door edge is made a loft station, so no triangle of the shell or glass straddles
     // one. Each panel: what it is, its hinge (a point, and the axis a positive turn about which opens it), how far it
@@ -7136,7 +7155,7 @@ class RallyCarKit {
     if (wsSec) { const zH = wsSec.A.z, yH = topAt(zH) - 0.012, zL = zNose - 0.02, yL = topAt(zL), phiH = angYZ(yL - yH, zL - zH), phiW = angYZ(wsSec.B.r - wsSec.A.b, wsSec.B.z - wsSec.A.z);
       hoodP = { id: 'hood', kind: 'bonnet', engine: epos === 'front', z0: zH, zEnd: zNose, hinge: { p: [0, yH, zH], a: [-1, 0, 0] }, stay: 1.45, max: Math.max(1.6, phiW - phiH - 0.08), latch: [0, yL, zL] };
       panels.push(hoodP); hoodP.n = panels.length; }
-    if (rwSec) { const zG = rwSec.B.z, hatch = zG - zTail < 0.45, zL = zTail + 0.02, yL = topAt(zL);
+    if (rwSec) { const zG = rwSec.B.z, hatch = D.rearLid ? D.rearLid === 'tailgate' : zG - zTail < 0.45, zL = zTail + 0.02, yL = topAt(zL);
       if (hatch) { const zH = rwSec.A.z, yH = topAt(zH) - 0.01, phi = angYZ(yL - yH, zL - zH);
         rearP = { id: 'tail', kind: 'tailgate', engine: epos !== 'front', hatch: true, z0: zH, zEnd: zTail, hinge: { p: [0, yH, zH], a: [1, 0, 0] }, stay: 1.65, max: phi + 2 * Math.PI - 0.12, latch: [0, yL, zL] }; }
       else { const zH = zG, yH = topAt(zH) - 0.01, phi = angYZ(yL - yH, zL - zH), phiG = angYZ(rwSec.A.r - rwSec.B.b, rwSec.A.z - rwSec.B.z);
@@ -7177,6 +7196,9 @@ class RallyCarKit {
     // (a visor's base curve, drawn through stations from the cowl rib back to the pillars' feet)
     if (visorZ != null) { const i = ribs.findIndex((r, j) => j < ribs.length - 1 && kindOf(r, ribs[j + 1]) === 'ws');
       if (i >= 0 && visorZ < ribs[i].z && visorZ > ribs[i + 1].z) for (const u of [0.03, 0.1, 0.2, 0.33, 0.48, 0.65, 0.82, 1]) zs.add(+(ribs[i].z - (ribs[i].z - visorZ) * u).toFixed(5)); }
+    // (and a rear window's, from the rib its centre comes down to forward to its pillars' feet)
+    const rwRib = ribs.findIndex((r, j) => j < ribs.length - 1 && kindOf(r, ribs[j + 1]) === 'rw'), rvOn = rvisorZ != null && rwRib >= 0 && rvisorZ < ribs[rwRib].z && rvisorZ > ribs[rwRib + 1].z;
+    if (rvOn) for (const u of [0.04, 0.14, 0.3, 0.5, 0.75, 1]) zs.add(+(ribs[rwRib + 1].z + (rvisorZ - ribs[rwRib + 1].z) * u).toFixed(5));
     for (const d of doors) for (const z of [d.zF, d.zR]) if (![...zs].some(q => Math.abs(q - z) < 0.004)) zs.add(+z.toFixed(5));
     axles.forEach(([z0], ai) => { zs.add(+(z0 + Ra + 0.002).toFixed(5)); zs.add(+(z0 - Ra - 0.002).toFixed(5)); for (const [z] of archPath(z0, ai)) zs.add(+z.toFixed(5)); zs.add(+z0.toFixed(5)); });
     const st = [...zs].filter(z => z <= ribs[0].z + 1e-9 && z >= ribs[ribs.length - 1].z - 1e-9).sort((x, y) => y - x);
@@ -7184,6 +7206,7 @@ class RallyCarKit {
     // (a visor's glass starts from nothing at the cowl: there its edge meets the centre stripe's)
     if (visorZ != null) { const i = ribs.findIndex((r, j) => j < ribs.length - 1 && kindOf(r, ribs[j + 1]) === 'ws'), j = i >= 0 ? st.findIndex(z => Math.abs(z - ribs[i].z) < 1e-4) : -1;
       if (j >= 0) prof[j][9] = prof[j][10].slice(); }
+    if (rvOn) { const j = st.findIndex(z => Math.abs(z - ribs[rwRib + 1].z) < 1e-4); if (j >= 0) prof[j][9] = prof[j][10].slice(); }
     // the floor runs on at its own height between the wheel arches' liners: where it rises over a wheel it does so only
     // outboard of them, so the space between the wheels (an engine bay, a boot) keeps its depth. tun[i]: that channel's
     // half-width (just inside the liners), its floor and the raised floor outboard of it at each station; where the floor
@@ -7943,16 +7966,16 @@ class RallyCarKit {
       dimensions.push({ dimension: 'tyres inside arches', target: +(2 * xmax).toFixed(3), measured: +(2 * tyre).toFixed(3), deviationPct: 0, ok: tyre <= xmax + 0.002 });
       for (const d of dimensions) if (!d.ok) issues.push(`${d.dimension}: ${d.measured} m against ${d.target} m${d.deviationPct ? ` (${d.deviationPct}%)` : ''}`);
     }
-    const tris = rows.reduce((n, r) => n + r.triangles, 0), drawCalls = meshes.length;
+    const tris = rows.reduce((n, r) => n + r.triangles, 0), drawCalls = meshes.length, B = this.designs[id].budget || this.budget; // (a design may carry its own)
     const welded = meshes.reduce((n, m) => n + analyse([{ pos: m.geometry.attributes.position.array, start: 0, end: m.geometry.attributes.position.count / 3 }]).welded, 0);
     const report = {
-      car: id, name: this.designs[id].name, triangles: tris, vertices: tris * 3, weldedVertices: welded, drawCalls, budget: this.budget,
-      withinTriangleBudget: tris >= this.budget.triangles[0] && tris <= this.budget.triangles[1], withinDrawCallBudget: drawCalls >= this.budget.drawCalls[0] && drawCalls <= this.budget.drawCalls[1],
+      car: id, name: this.designs[id].name, triangles: tris, vertices: tris * 3, weldedVertices: welded, drawCalls, budget: B,
+      withinTriangleBudget: tris >= B.triangles[0] && tris <= B.triangles[1], withinDrawCallBudget: drawCalls >= B.drawCalls[0] && drawCalls <= B.drawCalls[1],
       materials: [...new Set(meshes.map(m => m.material === this.mats.body ? 'matBody' : m.material === this.mats.trim ? 'matTrim' : m.material === this.mats.glass ? 'matGlass' : m.material === this.mats.interior ? 'matInterior' : 'ghost'))],
       submeshes: rows, shell, dimensions, issues
     };
-    if (!report.withinTriangleBudget) issues.push(`${tris} triangles is outside the ${this.budget.triangles.join('-')} budget`);
-    if (!report.withinDrawCallBudget) issues.push(`${drawCalls} draw calls is outside the ${this.budget.drawCalls.join('-')} budget`);
+    if (!report.withinTriangleBudget) issues.push(`${tris} triangles is outside the ${B.triangles.join('-')} budget`);
+    if (!report.withinDrawCallBudget) issues.push(`${drawCalls} draw calls is outside the ${B.drawCalls.join('-')} budget`);
     if (!options.quiet && typeof console !== 'undefined') {
       console.log(`[${this.label}] ${report.name} (${id}): ${tris} triangles, ${report.vertices} vertices (${report.weldedVertices} welded), ${drawCalls} draw calls`);
       if (console.table) console.table(rows); else console.log(JSON.stringify(rows));
@@ -8005,7 +8028,8 @@ const f2Belt = (L, x) => L.beltK ? f2Pwl(L.beltK, f2Clamp(x, L.beltK[0][0], L.be
 // (the shut line runs down from there to the rear wheel arch's flare, the handle 0.14 ahead); SH.pillars adds solid
 // pillars along the side glass, [[x0, x1, p]] with p 2 black or 1 body colour (the frame between a rear door's glass and
 // a fixed quarter light); SH.deckEnd [x, y] is a saloon's boot lid trailing edge, the deck running from the rear glass's
-// base to it and the tail panel's top falling from there to tailTop; SH.arch { r, cy } sizes the wheel openings.
+// base to it and the tail panel's top falling from there to tailTop; SH.arch { r, cy } sizes the wheel openings;
+// SH.rearLid ('tailgate' or 'boot') says what opens behind the rear window, where the deck's length alone would not.
 // SH.doorF: the front door's leading edge, for a windscreen whose base (the cowl) stands over the front wheel: the door
 // starts behind the wheel opening, the side glass ahead of it under the windscreen pillar is a black sail panel, and
 // the door mirrors sit on the door just behind it (without it the door starts 4 cm behind the cowl).
@@ -8098,7 +8122,8 @@ function f2Loft(L, SH) {
     ribs, stations: S.map(([x, tag]) => ({ x: +x.toFixed(4), tag })), glassBase: gb,
     shut: [X(SH.doorF != null ? SH.doorF : L.cowl[0] + 0.04), X(xB)].concat(SH.xD != null ? [rearShut] : []), handles: [X(xB - 0.14)].concat(SH.xD != null ? [X(SH.xD - 0.14)] : []), cLine: cF ? [X(cF.xTop), X(cF.xBot)] : SH.xC2 ? [X(xC), X(SH.xC2)] : undefined, ...(cF ? { cLineY: [+cF.yTop.toFixed(4), +cF.yBot.toFixed(4)] } : {}),
     wheelArch: Object.assign({ r: R, cy: AR.cy, open: L.sill - 0.01 }, AR.cyR != null ? { cyR: AR.cyR } : {}), flareHW: [L.hw.fa, L.hw.ra], flareD: 0.05,
-    ...(SH.doorF != null ? { sailZ: X(SH.doorF), mirrorZ: X(SH.doorF + 0.06) } : {}), ...(SH.visor != null ? { visorZ: X(SH.visor) } : {})
+    ...(SH.doorF != null ? { sailZ: X(SH.doorF), mirrorZ: X(SH.doorF + 0.06) } : {}), ...(SH.visor != null ? { visorZ: X(SH.visor) } : {}), ...(SH.rvisor != null ? { rvisorZ: X(SH.rvisor) } : {}),
+    ...(SH.rearLid ? { rearLid: SH.rearLid } : {})
   };
 }
 
@@ -8782,7 +8807,7 @@ function f2LandmarkCheck(rig, L, SH) {
   const body = verts(shell.concat(bumper)), wide = verts(shell.concat(flare)), tall = verts(shell.concat(glass));
   const zMax = Math.max(...body.map(p => p[2])), zMin = Math.min(...body.map(p => p[2])), zShell = Math.max(...verts(shell).map(p => p[2]));
   let top = tall[0]; for (const p of tall) if (p[1] > top[1] + 1e-9 || (Math.abs(p[1] - top[1]) < 1e-9 && Math.abs(p[0]) < Math.abs(top[0]))) top = p;
-  const ws = glass.filter(t => { const n = nrm(t); return n[2] > 0.25 && n[1] > 0.1; }), rw = glass.filter(t => { const n = nrm(t); return n[2] < -0.25 && n[1] > 0.05; }), side = glass.filter(t => Math.abs(nrm(t)[0]) > 0.6);
+  const ws = glass.filter(t => { const n = nrm(t); return n[2] > 0.25 && n[1] > 0.1; }), rw = glass.filter(t => { const n = nrm(t); return n[2] < -0.25 && n[1] > -0.02; }) /* (an upright rear window too) */, side = glass.filter(t => Math.abs(nrm(t)[0]) > 0.6);
   const pick = (T, better) => { let b = null; for (const p of verts(T)) if (Math.abs(p[0]) < 0.25 && (!b || better(p, b))) b = p; return b; };
   const cowl = pick(ws, (p, b) => p[2] > b[2] + 1e-9 || (Math.abs(p[2] - b[2]) < 1e-9 && p[1] > b[1])), wsTop = pick(ws, (p, b) => p[1] > b[1] + 1e-9);
   const rTop = pick(rw, (p, b) => p[1] > b[1] + 1e-9), rBase = pick(rw, (p, b) => p[2] < b[2] - 1e-9 || (Math.abs(p[2] - b[2]) < 1e-9 && p[1] < b[1]));
@@ -8815,21 +8840,24 @@ function f2LandmarkCheck(rig, L, SH) {
 }
 // ==== END LANDMARK BODIES ====
 // ==== GROUP B CAR FACTORY ====
-// GroupBCarFactory: procedural low-poly 1980s Group B rally cars (original designs) on the shared car kit.
+// GroupBCarFactory: procedural low-poly 1980s Group B rally cars (original designs) on the shared car kit. Most are
+// lofted from rib tables fitted to their published sizes; two are later evolutions of Group 4 cars and keep those cars'
+// landmark bodies, with their own Group B wheels, livery and aero (GB_ON_G4, added to this table in the Group 4 section).
 const GB_CARS = {
   ardent_5t: {
     fit: { L: 4.24, W: 1.86, H: 1.344, lip: 0.075, src: '4,240 x 1,860 x 1,344 mm (the wide-arch evolution)' }, 
     name: 'Ardent 5T', layout: 'Front-engine turbo, four-wheel drive', track: [1.48, 1.5], flare: 'box', rim: ['spokes', 8, '#e8e6df'],
     livery: { base: '#f1efe8', band: '#0f6e6e', pin: '#e8762d', roof: '#0f6e6e', hood: '#0f6e6e' },
+    rearLid: 'tailgate', // (the rear glass is the hatch: no boot lid)
     ribs: [
       { z: 1.96, f: 0.3, s: 0.4, ws: 1.56, b: 0.64, wb: 1.52 },
       { z: 1.86, f: 0.26, s: 0.34, ws: 1.67, b: 0.76, wb: 1.63 },
       { z: 1.3, f: 0.26, s: 0.33, ws: 1.71, b: 0.84, wb: 1.66 },
-      { z: 0.5, f: 0.26, s: 0.32, ws: 1.71, b: 0.92, wb: 1.66 },
-      { z: -0.02, f: 0.26, s: 0.32, ws: 1.71, b: 0.96, wb: 1.66, r: 1.36, wr: 1.3 },
+      { z: 0.457, f: 0.26, s: 0.32, ws: 1.71, b: 0.92, wb: 1.66 },
+      { z: 0.023, f: 0.26, s: 0.32, ws: 1.71, b: 0.96, wb: 1.66, r: 1.36, wr: 1.3 },
       { z: -0.8, f: 0.26, s: 0.32, ws: 1.71, b: 0.98, wb: 1.66, r: 1.34, wr: 1.29, p: 1 },
-      { z: -1.0, f: 0.26, s: 0.32, ws: 1.71, b: 0.99, wb: 1.66, r: 1.32, wr: 1.27 },
-      { z: -1.45, f: 0.26, s: 0.32, ws: 1.71, b: 1.0, wb: 1.66 },
+      { z: -1, f: 0.26, s: 0.32, ws: 1.71, b: 0.99, wb: 1.66, r: 1.32, wr: 1.27 },
+      { z: -1.615, f: 0.26, s: 0.32, ws: 1.71, b: 0.991, wb: 1.66 },
       { z: -1.84, f: 0.26, s: 0.34, ws: 1.68, b: 0.98, wb: 1.64 },
       { z: -1.96, f: 0.32, s: 0.4, ws: 1.58, b: 0.88, wb: 1.54 }
     ],
@@ -8841,20 +8869,20 @@ const GB_CARS = {
     name: 'Vespera SC', layout: 'Mid-engine supercharged, rear-wheel drive', track: [1.5, 1.49], flare: 'round', rim: ['dish', 8, '#d8b04a'],
     livery: { base: '#b8322a', band: '#f0ebdf', pin: '#1b1b1b', roof: '#f0ebdf', hood: '#f0ebdf' },
     ribs: [
-      { z: 2.0, f: 0.26, s: 0.33, ws: 1.5, b: 0.46, wb: 1.46 },
+      { z: 2, f: 0.26, s: 0.33, ws: 1.5, b: 0.46, wb: 1.46 },
       { z: 1.84, f: 0.24, s: 0.31, ws: 1.66, b: 0.58, wb: 1.62 },
       { z: 1.2, f: 0.24, s: 0.3, ws: 1.72, b: 0.72, wb: 1.66 },
-      { z: 0.8, f: 0.24, s: 0.3, ws: 1.72, b: 0.85, wb: 1.66 },
-      { z: 0.22, f: 0.24, s: 0.3, ws: 1.72, b: 0.9, wb: 1.66, r: 1.2, wr: 1.26 },
+      { z: 0.808, f: 0.24, s: 0.3, ws: 1.72, b: 0.85, wb: 1.66 },
+      { z: 0.212, f: 0.24, s: 0.3, ws: 1.72, b: 0.9, wb: 1.66, r: 1.2, wr: 1.26 },
       { z: -0.4, f: 0.24, s: 0.3, ws: 1.72, b: 0.92, wb: 1.66, r: 1.19, wr: 1.25, p: 1 },
       { z: -0.58, f: 0.24, s: 0.3, ws: 1.72, b: 0.93, wb: 1.66, r: 1.17, wr: 1.24 },
-      { z: -0.63, f: 0.24, s: 0.3, ws: 1.72, b: 0.98, wb: 1.68 }, // (the rear window stands upright)
-      { z: -1.62, f: 0.24, s: 0.3, ws: 1.72, b: 1.0, wb: 1.7 },
+      { z: -1.132, f: 0.24, s: 0.3, ws: 1.72, b: 0.991, wb: 1.68 }, // the rear glass's base: the glass lies low over the engine
+      { z: -1.62, f: 0.24, s: 0.3, ws: 1.72, b: 1, wb: 1.7 },
       { z: -1.86, f: 0.3, s: 0.38, ws: 1.7, b: 0.98, wb: 1.66 },
-      { z: -2.0, f: 0.36, s: 0.44, ws: 1.62, b: 0.92, wb: 1.58 }
+      { z: -2, f: 0.36, s: 0.44, ws: 1.62, b: 0.92, wb: 1.58 }
     ],
     lamps: { front: ['round', 2, 0.38, 0.06], rear: ['pair', 0.8] }, bumperY: 0.285, bumperH: 0.07, // round lamps in the low nose, above a slim bar
-    aero: [['louvresLong', { z0: -1.55, z1: -0.88, n: 5 }], ['tailLip', { z: -1.93, y: 1.0, span: 1.54 }], ['valance', {}], ['chinLip', { y: 0.25, depth: 0.06 }]]
+    aero: [['louvresLong', { z0: -1.6, z1: -1.24, n: 5 }], ['tailLip', { z: -1.93, y: 1.0, span: 1.54 }], ['valance', {}], ['chinLip', { y: 0.25, depth: 0.06 }]]
   },
   petrel_m4: {
     fit: { L: 3.825, W: 1.77, H: 1.354, lip: 0.075, src: '3,825 x 1,770 x 1,354 mm (homologation form: the last evolution)' }, 
@@ -8864,37 +8892,37 @@ const GB_CARS = {
       { z: 1.88, f: 0.28, s: 0.38, ws: 1.52, b: 0.64, wb: 1.48 },
       { z: 1.78, f: 0.26, s: 0.34, ws: 1.62, b: 0.78, wb: 1.58 },
       { z: 1.35, f: 0.26, s: 0.32, ws: 1.66, b: 0.86, wb: 1.6 },
-      { z: 0.86, f: 0.26, s: 0.32, ws: 1.66, b: 0.94, wb: 1.6 },
-      { z: 0.24, f: 0.26, s: 0.32, ws: 1.66, b: 0.98, wb: 1.6, r: 1.4, wr: 1.32 },
-      { z: -0.8, f: 0.26, s: 0.32, ws: 1.66, b: 1.0, wb: 1.6, r: 1.4, wr: 1.32, p: 1 },
-      { z: -0.88, f: 0.26, s: 0.32, ws: 1.66, b: 1.0, wb: 1.6, r: 1.4, wr: 1.32 },
-      { z: -1.3, f: 0.26, s: 0.32, ws: 1.66, b: 1.0, wb: 1.6, r: 1.39, wr: 1.31, p: 1 },
-      { z: -1.61, f: 0.26, s: 0.32, ws: 1.66, b: 1.0, wb: 1.6, r: 1.35, wr: 1.28 },
+      { z: 0.836, f: 0.26, s: 0.32, ws: 1.66, b: 0.94, wb: 1.6 },
+      { z: 0.264, f: 0.26, s: 0.32, ws: 1.66, b: 0.98, wb: 1.6, r: 1.4, wr: 1.32 },
+      { z: -0.8, f: 0.26, s: 0.32, ws: 1.66, b: 1, wb: 1.6, r: 1.4, wr: 1.32, p: 1 },
+      { z: -0.88, f: 0.26, s: 0.32, ws: 1.66, b: 1, wb: 1.6, r: 1.4, wr: 1.32 },
+      { z: -1.198, f: 0.26, s: 0.32, ws: 1.66, b: 1, wb: 1.6, r: 1.39, wr: 1.31, p: 1 },
+      { z: -1.433, f: 0.26, s: 0.32, ws: 1.66, b: 1, wb: 1.6, r: 1.35, wr: 1.28 },
       { z: -1.8, f: 0.28, s: 0.34, ws: 1.64, b: 0.97, wb: 1.58 },
       { z: -1.88, f: 0.3, s: 0.4, ws: 1.58, b: 0.9, wb: 1.52 }
     ],
     lamps: { front: ['rect', 2, 0.52, 0.36, 0.12], rear: ['pair', 0.8] },
-    aero: [['roofLip', { z: -1.61, y: 1.35, span: 1.24 }], ['glassLouvres', { n: 5 }], ['chinLip', { y: 0.28, depth: 0.07 }], ['sideVents', { z: -1.05 }], ['roofVent', {}]]
+    aero: [['roofLip', { z: -1.433, y: 1.35, span: 1.24 }], ['glassLouvres', { n: 5 }], ['chinLip', { y: 0.28, depth: 0.07 }], ['sideVents', { z: -1.05 }], ['roofVent', {}]]
   },
   halberd_x4: {
     fit: { L: 3.99, W: 1.75, H: 1.32, lip: 0.075, src: '3,990 x 1,750 x 1,320 mm (rally-car data)' }, 
     name: 'Halberd X4', layout: 'Mid-engine turbo, four-wheel drive', track: [1.5, 1.5], flare: 'round', rim: ['spokes', 8, '#d8b04a'],
     livery: { base: '#1f4d36', band: '#f1efe8', pin: '#d4a43a', roof: '#f1efe8', hood: '#f1efe8' },
+    rvisorZ: -1.172, // the rear glass curves round: its pillars come down ahead of its centre
     ribs: [
-      { z: 2.0, f: 0.28, s: 0.36, ws: 1.54, b: 0.54, wb: 1.5 },
+      { z: 2, f: 0.28, s: 0.36, ws: 1.54, b: 0.54, wb: 1.5 },
       { z: 1.86, f: 0.26, s: 0.32, ws: 1.68, b: 0.68, wb: 1.64 },
       { z: 1.1, f: 0.26, s: 0.32, ws: 1.72, b: 0.82, wb: 1.66 },
-      { z: 0.97, f: 0.26, s: 0.32, ws: 1.72, b: 0.9, wb: 1.66 },
-      { z: 0.28, f: 0.26, s: 0.32, ws: 1.72, b: 0.94, wb: 1.66, r: 1.3, wr: 1.3 },
+      { z: 0.911, f: 0.26, s: 0.32, ws: 1.72, b: 0.9, wb: 1.66 },
+      { z: 0.339, f: 0.26, s: 0.32, ws: 1.72, b: 0.94, wb: 1.66, r: 1.3, wr: 1.3 },
       { z: -0.4, f: 0.26, s: 0.32, ws: 1.72, b: 0.96, wb: 1.66, r: 1.3, wr: 1.3, p: 1 },
       { z: -0.7, f: 0.26, s: 0.32, ws: 1.72, b: 0.97, wb: 1.66, r: 1.29, wr: 1.29 },
-      { z: -0.94, f: 0.26, s: 0.32, ws: 1.72, b: 1.02, wb: 1.66 },
-      { z: -1.72, f: 0.26, s: 0.32, ws: 1.72, b: 1.04, wb: 1.66 },
+      { z: -1.685, f: 0.26, s: 0.32, ws: 1.72, b: 1.04, wb: 1.66 },
       { z: -1.9, f: 0.3, s: 0.4, ws: 1.68, b: 0.98, wb: 1.62 },
       { z: -2.02, f: 0.34, s: 0.44, ws: 1.58, b: 0.9, wb: 1.54 }
     ],
     lamps: { front: ['rect', 4, 0.455, 0.24, 0.1], rear: ['bar', 0.84] },
-    aero: [['postWing', { z: -1.72, y: 1.36, span: 1.58, chord: 0.44 }], ['hoodVents', { z: 1.3 }], ['chinLip', { y: 0.27, depth: 0.08 }], ['nacaDucts', { z: -1.05 }]]
+    aero: [['postWing', { z: -1.8, y: 1.36, span: 1.58, chord: 0.44 }], ['hoodVents', { z: 1.3 }], ['chinLip', { y: 0.27, depth: 0.08 }], ['nacaDucts', { z: -1.05 }]]
   },
   mamba_tc: {
     fit: { L: 3.99, W: 1.88, H: 1.344, lip: 0.075, src: '3,990 x 1,880 x 1,344 mm (rally-car data)' }, 
@@ -8904,37 +8932,17 @@ const GB_CARS = {
       { z: 1.96, f: 0.28, s: 0.38, ws: 1.6, b: 0.62, wb: 1.56 },
       { z: 1.84, f: 0.26, s: 0.34, ws: 1.7, b: 0.76, wb: 1.66 },
       { z: 1.3, f: 0.26, s: 0.32, ws: 1.73, b: 0.84, wb: 1.68 },
-      { z: 0.8, f: 0.26, s: 0.32, ws: 1.73, b: 0.92, wb: 1.68 },
-      { z: 0.22, f: 0.26, s: 0.32, ws: 1.73, b: 0.96, wb: 1.68, r: 1.36, wr: 1.32 },
+      { z: 0.774, f: 0.26, s: 0.32, ws: 1.73, b: 0.92, wb: 1.68 },
+      { z: 0.246, f: 0.26, s: 0.32, ws: 1.73, b: 0.96, wb: 1.68, r: 1.36, wr: 1.32 },
       { z: -0.7, f: 0.26, s: 0.32, ws: 1.73, b: 0.98, wb: 1.68, r: 1.36, wr: 1.32, p: 1 },
       { z: -0.78, f: 0.26, s: 0.32, ws: 1.73, b: 0.98, wb: 1.68, r: 1.36, wr: 1.32 },
-      { z: -1.2, f: 0.26, s: 0.32, ws: 1.73, b: 0.99, wb: 1.68, r: 1.34, wr: 1.31, p: 1 },
-      { z: -1.6, f: 0.26, s: 0.32, ws: 1.73, b: 1.0, wb: 1.68, r: 1.26, wr: 1.26 },
+      { z: -1.12, f: 0.26, s: 0.32, ws: 1.73, b: 0.99, wb: 1.68, r: 1.34, wr: 1.31, p: 1 },
+      { z: -1.443, f: 0.26, s: 0.32, ws: 1.73, b: 1, wb: 1.68, r: 1.26, wr: 1.26 },
       { z: -1.9, f: 0.28, s: 0.34, ws: 1.7, b: 0.97, wb: 1.66 },
       { z: -2.04, f: 0.32, s: 0.42, ws: 1.64, b: 0.9, wb: 1.6 }
     ],
     lamps: { front: ['rect', 2, 0.52, 0.44, 0.12], rear: ['pair', 0.8] },
     aero: [['hatchWing', { z: -1.8, y: 1.2, span: 1.44 }], ['hoodBulge', { z0: 0.95, z1: 1.65 }], ['chinLip', { y: 0.28, depth: 0.08 }], ['quarterScoops', { z: -1.0 }]]
-  },
-  tasman_6r: {
-    fit: { L: 4.235, W: 1.78, H: 1.32, lip: 0.075, src: 'length 4,235 mm (published); spec width; height as built' }, 
-    name: 'Tasman 6R', layout: 'Rear-engine flat six, rear-wheel drive', track: [1.43, 1.47], flare: 'box', rim: ['dish', 8, '#d0d0d0'],
-    livery: { base: '#f0eee8', band: '#2e7d4f', pin: '#151515', roof: '#2e7d4f', hood: '#2e7d4f' },
-    ribs: [
-      { z: 2.02, f: 0.28, s: 0.36, ws: 1.5, b: 0.6, wb: 1.46 },
-      { z: 1.9, f: 0.26, s: 0.34, ws: 1.62, b: 0.72, wb: 1.58 },
-      { z: 1.2, f: 0.26, s: 0.32, ws: 1.67, b: 0.8, wb: 1.6 },
-      { z: 0.75, f: 0.26, s: 0.32, ws: 1.67, b: 0.9, wb: 1.6 },
-      { z: 0.08, f: 0.26, s: 0.32, ws: 1.67, b: 0.94, wb: 1.6, r: 1.3, wr: 1.26 },
-      { z: -0.5, f: 0.26, s: 0.32, ws: 1.67, b: 0.96, wb: 1.6, r: 1.29, wr: 1.25, p: 1 },
-      { z: -0.66, f: 0.26, s: 0.32, ws: 1.67, b: 0.97, wb: 1.6, r: 1.28, wr: 1.24 },
-      { z: -1.42, f: 0.26, s: 0.32, ws: 1.67, b: 1.02, wb: 1.62 },
-      { z: -1.84, f: 0.26, s: 0.32, ws: 1.67, b: 1.01, wb: 1.62 },
-      { z: -1.98, f: 0.32, s: 0.4, ws: 1.62, b: 0.95, wb: 1.56 },
-      { z: -2.08, f: 0.36, s: 0.46, ws: 1.54, b: 0.88, wb: 1.5 }
-    ],
-    lamps: { front: ['rect', 2, 0.48, 0.34, 0.12], rear: ['bar', 0.84] },
-    aero: [['tray', { z: -1.92, y: 1.06, span: 1.42 }], ['deckGrille', { z: -1.62, n: 5 }], ['chinLip', { y: 0.28, depth: 0.08 }], ['roofVent', {}]]
   },
   bantam_6x: {
     fit: { L: 3.657, W: 1.86, H: 1.35, lip: 0.075, src: '3,657 x 1,860 x 1,350 mm without the wing (published figures)' }, 
@@ -8944,57 +8952,55 @@ const GB_CARS = {
       { z: 1.792, f: 0.28, s: 0.4, ws: 1.6, b: 0.7, wb: 1.56 },
       { z: 1.689, f: 0.26, s: 0.34, ws: 1.72, b: 0.84, wb: 1.68 },
       { z: 1.339, f: 0.26, s: 0.32, ws: 1.75, b: 0.9, wb: 1.7 },
-      { z: 0.989, f: 0.26, s: 0.32, ws: 1.75, b: 0.96, wb: 1.7 },
-      { z: 0.453, f: 0.26, s: 0.32, ws: 1.75, b: 1.0, wb: 1.7, r: 1.5, wr: 1.4 },
+      { z: 1.017, f: 0.26, s: 0.32, ws: 1.75, b: 0.96, wb: 1.7 },
+      { z: 0.425, f: 0.26, s: 0.32, ws: 1.75, b: 1, wb: 1.7, r: 1.5, wr: 1.4 },
       { z: -0.639, f: 0.26, s: 0.32, ws: 1.75, b: 1.02, wb: 1.7, r: 1.5, wr: 1.4, p: 1 },
       { z: -0.721, f: 0.26, s: 0.32, ws: 1.75, b: 1.02, wb: 1.7, r: 1.5, wr: 1.4 },
-      { z: -1.133, f: 0.26, s: 0.32, ws: 1.75, b: 1.02, wb: 1.7, r: 1.5, wr: 1.4, p: 1 },
-      { z: -1.607, f: 0.26, s: 0.32, ws: 1.75, b: 1.02, wb: 1.7, r: 1.48, wr: 1.38 },
-      { z: -1.71, f: 0.28, s: 0.34, ws: 1.73, b: 1.0, wb: 1.68 },
+      { z: -1.041, f: 0.26, s: 0.32, ws: 1.75, b: 1.02, wb: 1.7, r: 1.5, wr: 1.4, p: 1 },
+      { z: -1.41, f: 0.26, s: 0.32, ws: 1.75, b: 1.02, wb: 1.7, r: 1.48, wr: 1.38 },
+      { z: -1.71, f: 0.28, s: 0.34, ws: 1.73, b: 1, wb: 1.68 },
       { z: -1.772, f: 0.3, s: 0.4, ws: 1.7, b: 0.92, wb: 1.66 }
     ],
     lamps: { front: ['rect', 4, 0.6, 0.22, 0.12], rear: ['bar', 0.84] },
-    aero: [['roofLip', { z: -1.607, y: 1.48, span: 1.3 }], ['chinLip', { y: 0.28, depth: 0.07 }], ['nacaDucts', { z: -0.948 }], ['hoodVents', { z: 1.236 }]]
-  },
-  corbeau_maxi: {
-    fit: { L: 3.7, W: 1.77, H: 1.32, lip: 0.075, src: '3,700 x 1,770 x 1,320 mm (rally-car data)' }, 
-    name: 'Corbeau Maxi', layout: 'Mid-engine turbo, rear-wheel drive', track: [1.39, 1.49], flare: 'round', rim: ['spokes', 4, '#c9c9c9'],
-    livery: { base: '#24323a', band: '#e8762d', pin: '#f2f0ea', roof: '#e8762d', hood: '#e8762d' },
-    ribs: [
-      { z: 1.8, f: 0.28, s: 0.38, ws: 1.54, b: 0.64, wb: 1.5 },
-      { z: 1.7, f: 0.26, s: 0.34, ws: 1.66, b: 0.78, wb: 1.62 },
-      { z: 1.28, f: 0.26, s: 0.32, ws: 1.7, b: 0.85, wb: 1.64 },
-      { z: 0.84, f: 0.26, s: 0.32, ws: 1.7, b: 0.93, wb: 1.64 },
-      { z: 0.24, f: 0.26, s: 0.32, ws: 1.7, b: 0.97, wb: 1.64, r: 1.33, wr: 1.28 },
-      { z: -0.72, f: 0.26, s: 0.32, ws: 1.7, b: 0.99, wb: 1.64, r: 1.33, wr: 1.28, p: 1 },
-      { z: -1.47, f: 0.26, s: 0.32, ws: 1.7, b: 1.0, wb: 1.64, r: 1.31, wr: 1.26 },
-      { z: -1.62, f: 0.26, s: 0.32, ws: 1.7, b: 0.99, wb: 1.64 },
-      { z: -1.78, f: 0.28, s: 0.36, ws: 1.66, b: 0.95, wb: 1.6 },
-      { z: -1.86, f: 0.32, s: 0.42, ws: 1.6, b: 0.88, wb: 1.54 }
-    ],
-    lamps: { front: ['rect', 2, 0.52, 0.36, 0.12], rear: ['pair', 0.8] },
-    aero: [['hoodPods', { z: 1.35 }], ['roofLip', { z: -1.47, y: 1.31, span: 1.22 }], ['chinLip', { y: 0.28, depth: 0.08 }], ['sideVents', { z: -0.95 }]]
+    aero: [['roofLip', { z: -1.41, y: 1.48, span: 1.3 }], ['chinLip', { y: 0.28, depth: 0.07 }], ['nacaDucts', { z: -0.948 }], ['hoodVents', { z: 1.236 }]]
   }
+  // tasman_6r and corbeau_maxi: Group 4 bodies with their Group B parts (GB_ON_G4, in the Group 4 section)
 };
 const GB_BUDGET = CK_BUDGET;
 class GroupBCarFactory extends RallyCarKit {
   // buildCar(id, options) returns the car's THREE.Group; its animated parts are on car.rig ({ id, root, tilt, body, wheels, flame, I, eye, livery, sync })
   constructor(opts = {}) { super('GroupBCarFactory', GB_CARS, CARS.filter(S => GB_CARS[S.id]), opts); }
+  // the landmarks of a car built on a landmark body (null for the rib-table cars)
+  getLandmarks(id) { const D = this.designs[id]; return D && D.landmarks ? JSON.parse(JSON.stringify(D.landmarks)) : null; }
+  // the kit's report, and for a car on a landmark body the landmark check as well (measured against its landmarks)
+  debugInspectCar(id, options = {}) {
+    const D = this.designs[id]; if (!D || !D.landmarks) return super.debugInspectCar(id, options);
+    const rig = this.buildRig(id, Object.assign({}, options, { ghost: false })), quiet = !!options.quiet;
+    const report = super.debugInspectCar(id, Object.assign({}, options, { car: rig.root, quiet: true }));
+    const lc = f2LandmarkCheck(rig, D.landmarks, D.shape); report.landmarks = lc.rows; report.landmarkDeviations = lc.deviations;
+    for (const d of lc.deviations) report.issues.push(`landmark ${d.landmark}: ${d.measured} ${d.unit} against ${d.target} (${d.deviationPct}%)`);
+    if (!quiet && typeof console !== 'undefined') {
+      console.log(`[${this.label}] ${report.name} (${id}): ${report.triangles} triangles, ${report.drawCalls} draw calls`);
+      if (console.table) { console.table(report.submeshes); console.table(lc.rows); } else console.log(JSON.stringify(report.submeshes), JSON.stringify(lc.rows));
+      console.log(report.issues.length ? 'Issues: ' + report.issues.join('; ') : 'Geometry and landmark checks passed');
+    }
+    return report;
+  }
 }
 // ==== END GROUP B CAR FACTORY ====
 // ==== GROUP A CAR FACTORY ====
 // GroupACarFactory: procedural low-poly early-1990s Group A rally cars (original designs) on the shared car kit.
 // Production-based shells come from three body generators, each with its own station layout, rather than one rib
-// template; homologation aero comes from the kit's reusable parts (CK_PARTS). Budget: 2,600-3,200 triangles, four
+// template; homologation aero comes from the kit's reusable parts (CK_PARTS). Budget: 2,600-4,000 triangles, four
 // shared materials, four draw calls, wheels and gauges skinned to bones.
 
 // ---- body architectures ----
 // Each generator turns a few key dimensions into a rib matrix plus door shut lines and handle positions:
-//   sedan  three-box notchback: blunt nose, upright windscreen, flat roof, steep rear glass dropping onto a flat,
+//   sedan  three-box notchback: blunt nose, raked windscreen, flat roof, rear glass dropping onto a flat,
 //          horizontal boot deck, then the rear bumper
 //   coupe  liftback coupe: long, low diving nose (three bonnet stations), raked screen, a roofline that runs back into a
 //          rear lip; `deck` inserts a short flat boot behind a steeper rear glass
-//   hatch  hot hatch, three or five doors: short bonnet, upright cabin, near-vertical hatch cutoff, short tail; the roof's
+//   hatch  hot hatch, three or five doors: short bonnet, tall cabin, hatch glass falling to a short tail; the roof's
 //          trailing edge is the spoiler mount line
 // Dimensions: Z (rib z, + forward from the wheelbase midpoint): nose, cowl (windscreen base), aTop (windscreen top),
 //   b (B pillar), c (C pillar), roofEnd, glass (rear glass base), tail;  H (heights): f floor, s sill, nose, cowl,
@@ -9013,7 +9019,7 @@ const GA_ARCH = {
       g(Z.b - 0.1, belt(Z.b - 0.1), { r: H.roof, wr: W.r }),
       g(Z.c, belt(Z.c), { r: H.roof - 0.01, wr: W.r - 0.01, p: 1 }),
       g(Z.roofEnd, belt(Z.roofEnd), { r: H.roof - 0.025, wr: W.r - 0.025 }),
-      g(Z.glass, H.deck),                                                                          // steep rear glass lands on the boot
+      g(Z.glass, H.deck),                                                                          // the rear glass lands on the boot
       gaRib(Z.tail + 0.15, H.f + 0.01, H.s + 0.02, W.s - 0.03, H.deck - 0.005, W.b - 0.03),        // flat horizontal boot deck
       gaRib(Z.tail, H.f + 0.06, H.s + 0.09, W.s - 0.15, H.tail, W.b - 0.15)
     ];
@@ -9049,7 +9055,7 @@ const GA_ARCH = {
       g(Z.b - 0.1, belt(Z.b - 0.1), { r: H.roof, wr: W.r }),
       g(Z.c, belt(Z.c), { r: H.roof - 0.01, wr: W.r - 0.01, p: 1 }),                               // rear door or quarter glass ends
       g(Z.roofEnd, belt(Z.roofEnd), { r: H.roof - 0.02, wr: W.r - 0.02 }),                         // spoiler mount line
-      g(Z.glass, H.deck),                                                                          // near-vertical hatch cutoff
+      g(Z.glass, H.deck),                                                                          // the hatch glass's base
       gaRib(Z.tail + 0.12, H.f + 0.02, H.s + 0.03, W.s - 0.05, H.deck - 0.035, W.b - 0.05),
       gaRib(Z.tail, H.f + 0.06, H.s + 0.09, W.s - 0.15, H.tail, W.b - 0.15)
     ];
@@ -9069,7 +9075,7 @@ function gaCar(id, arch, dims, style) {
 }
 const GA_CARS = {
   veloce_hr: gaCar('veloce_hr', 'hatch', {
-    doors: 5, Z: { nose: 2.0, cowl: 0.75, aTop: 0.07, b: -0.44, c: -1.1, roofEnd: -1.46, glass: -1.66, tail: -1.9 },
+    doors: 5, Z: { nose: 2, cowl: 0.727, aTop: 0.093, b: -0.44, c: -0.793, roofEnd: -0.985, glass: -1.66, tail: -1.9 },
     H: { f: 0.27, s: 0.34, nose: 0.66, cowl: 0.9, belt0: 0.94, belt1: 0.97, roof: 1.41, deck: 0.97, tail: 0.86 }, W: { s: 1.72, b: 1.66, r: 1.34 }
   }, {
     fit: { L: 3.9, W: 1.77, H: 1.365, lip: 0.025, src: '3,900 x 1,770 x 1,365 mm (published figures)' }, 
@@ -9078,10 +9084,10 @@ const GA_CARS = {
     lamps: { front: ['rect', 2, 0.6, 0.32, 0.12], rear: ['pair', 0.8, 0.36, 0.12] },
     aero: [['grille', { y: 0.6, w: 1.36, h: 0.17, sunken: true }], ['bumperMaw', { y: 0.39, w: 0.78, h: 0.1, slats: 1, ducts: { x: 0.62, w: 0.13, h: 0.07 } }],
       ['louvres', { z: 0.81, x: 0, w: 0.86, len: 0.12, n: 3 }], ['louvres', { z: 1.14, x: 0.42, w: 0.24, len: 0.26, n: 4 }],
-      ['roofLip', { z: -1.46, over: 0.14, chord: 0.26, ang: 0.38, lift: 0.08, brackets: 'plate' }], ['chinLip', { y: 0.27, depth: 0.08 }]]
+      ['roofLip', { z: -0.985, over: 0.14, chord: 0.26, ang: 0.38, lift: 0.08, brackets: 'plate' }], ['chinLip', { y: 0.27, depth: 0.08 }]]
   }),
   sentai_gt4: gaCar('sentai_gt4', 'coupe', {
-    Z: { nose: 2.2, cowl: 0.74, aTop: -0.06, b: -0.84, roofEnd: -1.06, glass: -1.86, tail: -2.12 },
+    Z: { nose: 2.2, cowl: 0.661, aTop: 0.019, b: -0.84, roofEnd: -0.95, glass: -1.95, tail: -2.12 },
     H: { f: 0.27, s: 0.34, nose: 0.52, cowl: 0.86, belt0: 0.91, belt1: 0.94, roof: 1.31, deck: 0.99, lip: 1.0, tail: 0.89 }, W: { s: 1.73, b: 1.67, r: 1.3 }
   }, {
     fit: { L: 4.41, W: 1.745, H: 1.3, lip: 0.025, src: '4,410 x 1,745 x 1,300 mm (team Group A specification)' }, 
@@ -9092,7 +9098,7 @@ const GA_CARS = {
       ['archWing', { z: -1.97, y: 1.2, span: 1.58, chord: 0.24 }], ['chinLip', { y: 0.27, depth: 0.1 }]]
   }),
   acrobat_2t: gaCar('acrobat_2t', 'sedan', {
-    Z: { nose: 2.1, cowl: 0.72, aTop: -0.04, b: -0.44, c: -0.99, roofEnd: -1.05, glass: -1.62, tail: -2.14 },
+    Z: { nose: 2.1, cowl: 0.739, aTop: -0.059, b: -0.44, c: -0.99, roofEnd: -1.05, glass: -1.528, tail: -2.14 },
     H: { f: 0.27, s: 0.34, nose: 0.66, cowl: 0.92, belt0: 0.95, belt1: 0.99, roof: 1.42, deck: 1.02, tail: 0.93 }, W: { s: 1.71, b: 1.65, r: 1.32 }
   }, {
     fit: { L: 4.34, W: 1.69, H: 1.39, lip: 0.025, src: '4,340 x 1,690 x 1,390 mm (rally-car data)' }, 
@@ -9103,7 +9109,7 @@ const GA_CARS = {
       ['whaleTail', { z: -1.86, y: 1.36, span: 1.5, chord: 0.28, ang: 0.12, plate: 0.18, tiers: 2, upper: false, lower: { z: -1.8, lift: 0.06, chord: 0.22 } }], ['chinLip', { y: 0.27, depth: 0.08 }]]
   }),
   katana_evo: gaCar('katana_evo', 'sedan', {
-    Z: { nose: 2.16, cowl: 0.74, aTop: -0.04, b: -0.44, c: -0.96, roofEnd: -1.02, glass: -1.61, tail: -2.14 },
+    Z: { nose: 2.16, cowl: 0.728, aTop: -0.028, b: -0.44, c: -0.96, roofEnd: -1.02, glass: -1.554, tail: -2.14 },
     H: { f: 0.27, s: 0.34, nose: 0.7, cowl: 0.95, belt0: 0.98, belt1: 1.01, roof: 1.46, deck: 1.05, tail: 0.96 }, W: { s: 1.72, b: 1.66, r: 1.34 }
   }, {
     fit: { L: 4.35, W: 1.77, H: 1.395, lip: 0.025, src: '4,350 x 1,770 x 1,395 mm (rally-car data: the wide-body evolution)' }, 
@@ -9115,7 +9121,7 @@ const GA_CARS = {
       ['whaleTail', { z: -1.9, y: 1.5, span: 1.5, chord: 0.3, ang: 0.14, plate: 0.3, stW: 0.08, tiers: 2, upper: false, lower: { z: -1.79, lift: 0.07, chord: 0.22 } }], ['chinLip', { y: 0.27, depth: 0.1 }]]
   }),
   bastion_rs: gaCar('bastion_rs', 'hatch', {
-    doors: 3, Z: { nose: 2.02, cowl: 0.74, aTop: -0.02, b: -0.78, c: -1.26, roofEnd: -1.46, glass: -1.89, tail: -2.04 },
+    doors: 3, Z: { nose: 2.02, cowl: 0.747, aTop: -0.027, b: -0.78, c: -1.117, roofEnd: -1.257, glass: -1.89, tail: -2.04 },
     H: { f: 0.27, s: 0.34, nose: 0.64, cowl: 0.9, belt0: 0.93, belt1: 0.96, roof: 1.38, deck: 0.99, tail: 0.88 }, W: { s: 1.75, b: 1.69, r: 1.32 }
   }, {
     fit: { L: 4.211, W: 1.738, H: 1.405, lip: 0.025, src: '4,211 x 1,738 x 1,405 mm (published road-car figures)' }, 
@@ -9123,10 +9129,10 @@ const GA_CARS = {
     livery: { base: '#d9541e', band: '#1b1b1b', pin: '#f2efe6', roof: '#1b1b1b', hood: '#1b1b1b' }, frame: 'black', bumper: 'body',
     lamps: { front: ['rect', 2, 0.6, 0.42, 0.12], rear: ['pair', 0.82, 0.4, 0.13] },
     aero: [['grille', { y: 0.6, w: 0.4, h: 0.1, n: 2 }], ['bumperMaw', { y: 0.38, w: 0.9, h: 0.12, slats: 1 }], ['louvres', { z: 1.06, x: 0.4, w: 0.24, len: 0.32, n: 5, sunken: true }],
-      ['whaleTail', { z: -1.52, y: 1.5, back: 0.22, span: 1.6, chord: 0.36, ang: 0.12, plate: 0.16, stW: 0.09 }], ['chinLip', { y: 0.27, depth: 0.12 }]]
+      ['whaleTail', { z: -1.317, y: 1.5, back: 0.22, span: 1.6, chord: 0.36, ang: 0.12, plate: 0.16, stW: 0.09 }], ['chinLip', { y: 0.27, depth: 0.12 }]]
   }),
   kaiser_3r: gaCar('kaiser_3r', 'coupe', {
-    deck: 0.5, Z: { nose: 2.08, cowl: 0.66, aTop: 0.1, b: -0.7, roofEnd: -0.96, glass: -1.42, tail: -2.18 },
+    deck: 0.5, Z: { nose: 2.08, cowl: 0.699, aTop: 0.061, b: -0.7, roofEnd: -0.96, glass: -1.354, tail: -2.18 },
     H: { f: 0.27, s: 0.34, nose: 0.64, cowl: 0.92, belt0: 0.96, belt1: 0.99, roof: 1.37, deck: 1.05, lip: 1.06, tail: 0.97 }, W: { s: 1.69, b: 1.65, r: 1.3 }
   }, {
     fit: { L: 4.345, W: 1.68, H: 1.37, lip: 0.025, src: '4,345 x 1,680 x 1,370 mm (published road-car figures)' }, 
@@ -9137,7 +9143,7 @@ const GA_CARS = {
       ['deckSpoiler', { z: -2.04, span: 1.46, chord: 0.22, lift: 0.05, gurney: 0.04 }], ['chinLip', { y: 0.26, depth: 0.14 }]]
   }),
   ronin_tx: gaCar('ronin_tx', 'hatch', {
-    doors: 3, Z: { nose: 1.92, cowl: 0.86, aTop: 0.07, b: -0.62, c: -0.98, roofEnd: -1.25, glass: -1.66, tail: -1.9 },
+    doors: 3, Z: { nose: 1.92, cowl: 0.81, aTop: 0.12, b: -0.62, c: -1.077, roofEnd: -1.419, glass: -1.66, tail: -1.9 },
     H: { f: 0.27, s: 0.34, nose: 0.68, cowl: 0.93, belt0: 0.96, belt1: 0.98, roof: 1.45, deck: 1.0, tail: 0.87 }, W: { s: 1.7, b: 1.64, r: 1.33 }
   }, {
     fit: { L: 3.975, W: 1.69, H: 1.41, lip: 0.025, src: '3,975 x 1,690 x 1,410 mm (published figures)' }, 
@@ -9146,10 +9152,10 @@ const GA_CARS = {
     lamps: { front: ['rect', 2, 0.66, 0.34, 0.12], rear: ['pair', 0.86, 0.32, 0.14] },
     aero: [['grille', { y: 0.66, w: 0.42, h: 0.08, n: 1 }], ['bumperMaw', { y: 0.38, w: 0.64, h: 0.11, slats: 1, ducts: { x: 0.56, w: 0.12, h: 0.07 } }],
       ['hoodBulge', { z0: 0.88, z1: 1.36, w: 0.5, h: 0.05 }], ['louvres', { z: 1.08, x: 0.5, w: 0.16, len: 0.3, n: 4 }],
-      ['bridgeWing', { z: -1.42, y: 1.52, span: 1.42, chord: 0.24, mount: 'glass', drop: 0.06 }], ['chinLip', { y: 0.27, depth: 0.08 }]]
+      ['bridgeWing', { z: -1.519, y: 1.52, span: 1.42, chord: 0.24, mount: 'glass', drop: 0.06 }], ['chinLip', { y: 0.27, depth: 0.08 }]]
   }),
   hiryu_18t: gaCar('hiryu_18t', 'hatch', {
-    doors: 3, Z: { nose: 1.9, cowl: 0.78, aTop: 0.03, b: -0.74, c: -1.04, roofEnd: -1.28, glass: -1.66, tail: -1.84 },
+    doors: 3, Z: { nose: 1.9, cowl: 0.74, aTop: 0.07, b: -0.74, c: -1.021, roofEnd: -1.245, glass: -1.66, tail: -1.84 },
     H: { f: 0.27, s: 0.34, nose: 0.62, cowl: 0.9, belt0: 0.93, belt1: 0.96, roof: 1.38, deck: 0.98, tail: 0.86 }, W: { s: 1.69, b: 1.64, r: 1.3 }
   }, {
     fit: { L: 3.996, W: 1.675, H: 1.379, lip: 0.025, src: '3,996 x 1,675 x 1,379 mm (published figures)' }, 
@@ -9157,7 +9163,7 @@ const GA_CARS = {
     livery: { base: '#efe9dc', band: '#2f7d5b', pin: '#d14b3d', roof: '#2f7d5b', hood: '#2f7d5b' }, frame: 'black', bumper: 'body',
     lamps: { front: ['rect', 2, 0.6, 0.38, 0.1], rear: ['pair', 0.82, 0.38, 0.12] },
     aero: [['grille', { y: 0.6, w: 0.5, h: 0.05 }], ['rallyBumperPods', { y: 0.42, x: 0.44, d: 0.22 }], ['bumperMaw', { y: 0.33, w: 0.5, h: 0.06, slats: 0 }],
-      ['roofLip', { z: -1.28, over: 0.06, chord: 0.2, ang: 0.06 }], ['chinLip', { y: 0.27, depth: 0.08 }]]
+      ['roofLip', { z: -1.245, over: 0.06, chord: 0.2, ang: 0.06 }], ['chinLip', { y: 0.27, depth: 0.08 }]]
   })
 };
 const GA_BUDGET = { triangles: [2600, 4000], drawCalls: [4, 4] };
@@ -9173,7 +9179,7 @@ class GroupACarFactory extends RallyCarKit {
 // F2KitCarFactory: procedural low-poly late-1990s 2-litre front-drive kit cars (original designs) on the shared car
 // kit. Every body is generated from a table of landmarks (F2_LANDMARKS) rather than typed-in vertices: f2Loft turns
 // the landmarks into the kit's loft stations, so correcting one landmark moves everything built from it, and
-// debugInspectCar measures the finished mesh against the same table. Budget: 2,600-3,900 triangles, four shared
+// debugInspectCar measures the finished mesh against the same table. Budget: 2,600-4,500 triangles, four shared
 // materials, four draw calls, wheels and gauges skinned to bones.
 
 // ---- landmarks ----
@@ -9197,9 +9203,9 @@ const F2_LANDMARKS = {
     L: 3.995, W: 1.835, H: 1.33,                                    // pub.
     fo: 0.78, ro: 0.635,                                            // pub.
     nose: 0.62,
-    cowl: [0.4, 0.9], wsTop: [1.12, 1.295],
-    peak: [1.6, 1.33], roofEnd: [2.62, 1.31],
-    hatch: 52,
+    cowl: [0.45, 0.9], wsTop: [1.07, 1.295],
+    peak: [1.5489, 1.33], roofEnd: [2.5666, 1.31],
+    hatch: 55,
     belt: 0.88, sill: 0.2, gc: 0.08,
     hw: { nose: 0.66, fa: 0.9175, b: 0.843, ra: 0.9175, tail: 0.72 }, // pub. fa, ra, b
     roofHW: 0.63, beltHW: 0.815,
@@ -9212,9 +9218,9 @@ const F2_LANDMARKS = {
     L: 3.932, W: 1.835, H: 1.36,                                    // pub. length, width; height est.
     fo: 0.84, ro: 0.623,                                            // pub.
     nose: 0.64,
-    cowl: [0.4, 0.88], wsTop: [1.18, 1.3],
-    peak: [1.62, 1.36], roofEnd: [2.2, 1.3],
-    hatch: 58,
+    cowl: [0.4032, 0.88], wsTop: [1.1768, 1.3],
+    peak: [1.5158, 1.36], roofEnd: [1.9627, 1.3],
+    hatch: 71,
     belt: [0.84, 0.92], sill: 0.2, gc: 0.08,                        // rising wedge beltline
     hw: { nose: 0.62, fa: 0.9175, b: 0.845, ra: 0.9175, tail: 0.7 }, // pub. fa, ra, b
     roofHW: 0.58, beltHW: 0.82,
@@ -9227,9 +9233,9 @@ const F2_LANDMARKS = {
     L: 4.167, W: 1.855, H: 1.391,                                   // pub.
     fo: 0.856, ro: 0.756,                                           // pub.
     nose: 0.66,
-    cowl: [0.4, 0.91], wsTop: [1.16, 1.33],
-    peak: [1.72, 1.391], roofEnd: [2.245, 1.33],
-    hatch: 61.5,
+    cowl: [0.4439, 0.91], wsTop: [1.1161, 1.33],
+    peak: [1.6666, 1.391], roofEnd: [2.1827, 1.33],
+    hatch: 63.5,
     belt: 0.88, sill: 0.21, gc: 0.08,
     hw: { nose: 0.64, fa: 0.924, b: 0.846, ra: 0.9275, tail: 0.7 }, // pub. fa, ra, b
     roofHW: 0.58, beltHW: 0.825,
@@ -9242,9 +9248,9 @@ const F2_LANDMARKS = {
     L: 3.869, W: 1.763, H: 1.369,                                   // pub.
     fo: 0.838, ro: 0.591,                                           // pub.
     nose: 0.62,
-    cowl: [0.4, 0.92], wsTop: [1.1, 1.325],
-    peak: [1.52, 1.369], roofEnd: [2.64, 1.32],
-    hatch: 30,
+    cowl: [0.4346, 0.92], wsTop: [1.0654, 1.325],
+    peak: [1.435, 1.369], roofEnd: [2.4204, 1.32],
+    hatch: 49.5,
     belt: 0.92, sill: 0.22, gc: 0.08,
     hw: { nose: 0.64, fa: 0.8815, b: 0.818, ra: 0.8815, tail: 0.69 }, // pub. fa, ra, b
     roofHW: 0.58, beltHW: 0.79,
@@ -9257,9 +9263,9 @@ const F2_LANDMARKS = {
     L: 4.34, W: 1.77, H: 1.3,                                       // pub. length, width; height est.
     fo: 0.973, ro: 0.892,                                           // pub.
     nose: 0.6,
-    cowl: [0.42, 0.86], wsTop: [1.22, 1.25],
-    peak: [1.5, 1.3], roofEnd: [2.17, 1.25],                        // roofEnd is the top of the fastback glass
-    hatch: 71.57,
+    cowl: [0.3492, 0.86], wsTop: [1.2908, 1.25],
+    peak: [1.5758, 1.3], roofEnd: [2.2579, 1.25],                        // roofEnd is the top of the fastback glass
+    hatch: 69.5,
     belt: 0.88, sill: 0.19, gc: 0.075,
     hw: { nose: 0.62, fa: 0.885, b: 0.862, ra: 0.885, tail: 0.74 }, // pub. fa, ra, b
     roofHW: 0.56, beltHW: 0.835,
@@ -9272,9 +9278,9 @@ const F2_LANDMARKS = {
     L: 4.14, W: 1.83, H: 1.345,                                     // pub. length, width; height est.
     fo: 0.772, ro: 0.843,                                           // pub.
     nose: 0.65,
-    cowl: [0.4, 0.88], wsTop: [1.19, 1.305],
-    peak: [1.62, 1.345], roofEnd: [2.38, 1.3],
-    hatch: 54,
+    cowl: [0.4549, 0.88], wsTop: [1.1351, 1.305],
+    peak: [1.5021, 1.345], roofEnd: [2.1509, 1.3],
+    hatch: 64,
     belt: 0.92, sill: 0.22, gc: 0.08,
     hw: { nose: 0.68, fa: 0.9, b: 0.84, ra: 0.915, tail: 0.73 },     // pub. fa, ra, b
     roofHW: 0.56, beltHW: 0.8,
@@ -9287,9 +9293,9 @@ const F2_LANDMARKS = {
     L: 4.1, W: 1.8, H: 1.37,                                        // about 4.1 m (the brief's figure); width and height est.
     fo: 0.82, ro: 0.68,                                             // est.
     nose: 0.64,
-    cowl: [0.4, 0.91], wsTop: [1.1, 1.32],
-    peak: [1.64, 1.37], roofEnd: [2.64, 1.32],
-    hatch: 46,
+    cowl: [0.3477, 0.91], wsTop: [1.1523, 1.32],
+    peak: [1.5836, 1.37], roofEnd: [2.3823, 1.32],
+    hatch: 60,
     belt: 0.9, sill: 0.21, gc: 0.08,
     hw: { nose: 0.68, fa: 0.9, b: 0.84, ra: 0.9, tail: 0.74 },       // pub. b; fa, ra est.
     roofHW: 0.62, beltHW: 0.81,
@@ -9302,9 +9308,9 @@ const F2_LANDMARKS = {
     L: 4.12, W: 1.847, H: 1.36,                                     // pub. length, width; height est.
     fo: 0.83, ro: 0.755,                                            // pub.
     nose: 0.62,
-    cowl: [0.4, 0.92], wsTop: [1.13, 1.32],
-    peak: [1.62, 1.36], roofEnd: [2.7, 1.32],
-    hatch: 40,
+    cowl: [0.3889, 0.92], wsTop: [1.1411, 1.32],
+    peak: [1.6308, 1.36], roofEnd: [2.71, 1.32],
+    hatch: 39,
     belt: 0.94, sill: 0.2, gc: 0.08,
     hw: { nose: 0.64, fa: 0.9235, b: 0.842, ra: 0.9235, tail: 0.72 }, // pub. fa, ra, b
     roofHW: 0.6, beltHW: 0.815,
@@ -9325,28 +9331,28 @@ const F2_LANDMARKS = {
 //   bumper: y0 / y1 its bottom and top, n its plan's squareness, cap the share of its width that is flat across the
 //   face, bulge, color ('black' for an unpainted one). tail: the same at the rear (xR where the rounding begins).
 const F2_SHAPE = {
-  esker_kr: { xB: 1.82, xC: 2.38, glassBase: 0.95, tailTop: 0.8, bonnetK: 1.7, sb: 0.02, dc: 0.028, rc: 0.032,
+  esker_kr: { xB: 1.82, xC: 2.3427, glassBase: 0.95, tailTop: 0.8, bonnetK: 1.7, sb: 0.02, dc: 0.028, rc: 0.032,
     nose: { db: 0.1, ds: 0.15, y: 0.47, xF: 0.0, n: 2.4, inset: 0.07, bumper: { y0: 0.15, y1: 0.45, n: 4, cap: 0.62 } },
     tail: { db: 0.1, xR: 2.7, n: 2.6, inset: 0.05, bumper: { y0: 0.2, y1: 0.5, n: 3.6, cap: 0.66 } } },
-  corvid_f2: { xB: 1.82, xC: 1.96, xC2: 2.16, glassBase: 0.98, deckEnd: [2.93, 0.965], tailTop: 0.9, bonnetK: 1.4, sb: 0.022, dc: 0.03, rc: 0.035,
+  corvid_f2: { xB: 1.82, xC: 1.8726, xC2: 1.9476, glassBase: 0.98, deckEnd: [2.93, 0.965], tailTop: 0.9, bonnetK: 1.4, sb: 0.022, dc: 0.03, rc: 0.035,
     nose: { db: 0.1, ds: 0.16, y: 0.5, xF: 0.0, n: 2.2, inset: 0.08, bumper: { y0: 0.14, y1: 0.47, n: 3.6, cap: 0.58 } },
     tail: { db: 0.1, xR: 2.64, n: 2.4, inset: 0.06, bumper: { y0: 0.2, y1: 0.5, n: 3.4, cap: 0.64 } } },
-  quintel_20: { xB: 1.76, xC: 2.0, xC2: 2.2, glassBase: 0.95, tailTop: 0.92, bonnetK: 1.5, sb: 0.024, dc: 0.032, rc: 0.038,
+  quintel_20: { xB: 1.76, xC: 1.9692, xC2: 2.1435, glassBase: 0.95, tailTop: 0.92, bonnetK: 1.5, sb: 0.024, dc: 0.032, rc: 0.038,
     nose: { db: 0.1, ds: 0.17, y: 0.51, xF: 0.05, n: 2.3, inset: 0.08, bumper: { y0: 0.15, y1: 0.48, n: 3.8, cap: 0.6 } },
     tail: { db: 0.1, xR: 2.7, n: 2.3, inset: 0.07, bumper: { y0: 0.2, y1: 0.49, n: 3.4, cap: 0.62 } } },
-  sorrel_ve: { xB: 1.78, xC: 2.38, glassBase: 0.95, tailTop: 0.75, bonnetK: 1.6, sb: 0.02, dc: 0.026, rc: 0.032,
+  sorrel_ve: { xB: 1.78, xC: 2.2268, glassBase: 0.95, tailTop: 0.75, bonnetK: 1.6, sb: 0.02, dc: 0.026, rc: 0.032,
     nose: { db: 0.1, ds: 0.15, y: 0.47, xF: 0.0, n: 2.6, inset: 0.06, bumper: { y0: 0.15, y1: 0.45, n: 4, cap: 0.62 } },
     tail: { db: 0.1, xR: 2.56, n: 2.6, inset: 0.05, bumper: { y0: 0.2, y1: 0.5, n: 3.8, cap: 0.66 } } },
-  pavane_2s: { xB: 1.72, xC: 1.96, xC2: 2.12, deck: [2.98, 0.98], tailTop: 0.92, bonnetSlope: [0.38, 0.24], sb: 0.024, dc: 0.032, rc: 0.036,
+  pavane_2s: { rvisor: 2.8482, doorF: 0.6634, visor: 0.6534, xB: 1.72, xC: 2.0069, xC2: 2.1981, deck: [2.98, 0.98], tailTop: 0.92, bonnetSlope: [0.38, 0.24], sb: 0.024, dc: 0.032, rc: 0.036,
     nose: { db: 0.11, ds: 0.2, y: 0.42, xF: 0.05, n: 2.2, inset: 0.09, bumper: { y0: 0.14, y1: 0.41, n: 3.6, cap: 0.6 } },
     tail: { db: 0.1, xR: 2.62, n: 2.4, inset: 0.07, bumper: { y0: 0.2, y1: 0.5, n: 3.6, cap: 0.64 } } },
-  torvo_20: { xB: 1.82, xC: 2.06, xC2: 2.32, glassBase: 0.96, tailTop: 0.93, bonnetK: 2.0, sb: 0.018, dc: 0.025, rc: 0.03,
+  torvo_20: { xB: 1.82, xC: 1.9618, xC2: 2.1154, glassBase: 0.96, tailTop: 0.93, bonnetK: 2.0, sb: 0.018, dc: 0.025, rc: 0.03,
     nose: { db: 0.1, ds: 0.14, y: 0.48, xF: 0.0, n: 2.8, inset: 0.05, bumper: { y0: 0.16, y1: 0.46, n: 4.2, cap: 0.64 } },
     tail: { db: 0.16, xR: 2.66, n: 2.8, inset: 0.05, bumper: { y0: 0.2, y1: 0.52, n: 4, cap: 0.68 } } },
-  linnet_20v: { xB: 1.84, xC: 2.43, glassBase: 0.95, tailTop: 0.7, bonnetK: 1.6, sb: 0.018, dc: 0.025, rc: 0.03,
+  linnet_20v: { xB: 1.84, xC: 2.2399, glassBase: 0.95, tailTop: 0.7, bonnetK: 1.6, sb: 0.018, dc: 0.025, rc: 0.03,
     nose: { db: 0.1, ds: 0.13, y: 0.5, xF: 0.0, n: 3.0, inset: 0.05, bumper: { y0: 0.16, y1: 0.47, n: 4.4, cap: 0.66 } },
     tail: { db: 0.12, xR: 2.7, n: 3.0, inset: 0.04, bumper: { y0: 0.2, y1: 0.5, n: 4.2, cap: 0.7 } } },
-  rhodon_kx: { xB: 1.84, xC: 2.42, glassBase: 0.98, tailTop: 0.74, bonnetK: 1.8, sb: 0.022, dc: 0.03, rc: 0.034,
+  rhodon_kx: { xB: 1.84, xC: 2.4267, glassBase: 0.98, tailTop: 0.74, bonnetK: 1.8, sb: 0.022, dc: 0.03, rc: 0.034,
     nose: { db: 0.1, ds: 0.18, y: 0.45, xF: 0.05, n: 2.4, inset: 0.08, bumper: { y0: 0.15, y1: 0.43, n: 3.8, cap: 0.6 } },
     tail: { db: 0.12, xR: 2.66, n: 2.5, inset: 0.06, bumper: { y0: 0.2, y1: 0.5, n: 3.6, cap: 0.64 } } }
 };
@@ -9476,7 +9482,7 @@ const F2_PHYSICS_CONFIG = Object.fromEntries(CARS_F2.map(S => [S.id, Object.assi
 // landmark moves everything built from it, and debugInspectCar measures the finished mesh against the same table.
 // Three body types: three-door hatches and coupes, five-door hatches (rear doors, a fixed quarter light where the car has
 // one) and four-door saloons (rear doors and a boot). The cars are in gravel trim: 15-inch wheels, wheel openings with
-// room for long suspension travel, full-width mudflaps behind every wheel. Budget: 2,600-3,400 triangles, four shared
+// room for long suspension travel, full-width mudflaps behind every wheel. Budget: 2,600-4,600 triangles, four shared
 // materials, four draw calls, wheels and gauges skinned to bones.
 
 // ---- landmarks ----
@@ -9498,24 +9504,24 @@ const WRC_LANDMARKS = {
     L: 4.005, W: 1.77, H: 1.3,                                      // pub.
     fo: 0.871, ro: 0.666,                                           // est. (from the road car's split, lengthened at both bumpers)
     nose: 0.65,
-    cowl: [0.4, 0.84], wsTop: [1.13, 1.255],
-    peak: [1.56, 1.3], roofEnd: [2.56, 1.22],
-    hatch: 45,
+    cowl: [0.3488, 0.84], wsTop: [1.1812, 1.255],
+    peak: [1.5641, 1.3], roofEnd: [2.4546, 1.22],
+    hatch: 53.5,
     belt: [0.83, 0.89], sill: 0.25, gc: 0.12,                       // the belt rising toward the tail
     hw: { nose: 0.64, fa: 0.885, b: 0.826, ra: 0.885, tail: 0.7 },  // pub. fa, ra (width); b the road car's
     roofHW: 0.57, beltHW: 0.79,
     blister: { out: 0.059, profile: 'round' },
     pub: ['wb', 'track', 'L', 'W', 'H', 'hw.fa', 'hw.ra', 'hw.b']
   },
-  // three-door coupe: the same body as the F2 Quintel 2.0, on narrower arches and in gravel trim
+  // three-door coupe: the F2 Quintel 2.0's body type, on narrower arches and in gravel trim
   quintel_4t: {
     wb: 2.555, track: [1.555, 1.555],                               // pub. wheelbase; tracks est. (gravel tyres inside 1.77 m)
     L: 4.167, W: 1.77, H: 1.39,                                     // pub.
     fo: 0.856, ro: 0.756,                                           // pub.
     nose: 0.66,
-    cowl: [0.4, 0.91], wsTop: [1.16, 1.33],
-    peak: [1.72, 1.39], roofEnd: [2.245, 1.33],
-    hatch: 61.5,
+    cowl: [0.4163, 0.91], wsTop: [1.1437, 1.33],
+    peak: [1.6328, 1.39], roofEnd: [2.0914, 1.33],
+    hatch: 66,
     belt: 0.88, sill: 0.25, gc: 0.12,
     hw: { nose: 0.64, fa: 0.885, b: 0.846, ra: 0.885, tail: 0.7 },
     roofHW: 0.58, beltHW: 0.825,
@@ -9528,9 +9534,9 @@ const WRC_LANDMARKS = {
     L: 4.152, W: 1.77, H: 1.42,                                     // pub.
     fo: 0.855, ro: 0.682,                                           // est.
     nose: 0.7,
-    cowl: [0.38, 0.93], wsTop: [1.15, 1.37],
-    peak: [1.64, 1.42], roofEnd: [2.86, 1.31],
-    hatch: 22,
+    cowl: [0.3915, 0.93], wsTop: [1.1385, 1.37],
+    peak: [1.5738, 1.42], roofEnd: [2.6578, 1.31],
+    hatch: 44,
     belt: [0.92, 0.955], sill: 0.25, gc: 0.12,
     hw: { nose: 0.66, fa: 0.885, b: 0.851, ra: 0.885, tail: 0.72 },
     roofHW: 0.6, beltHW: 0.82,
@@ -9543,9 +9549,9 @@ const WRC_LANDMARKS = {
     L: 4.425, W: 1.8, H: 1.39,                                      // pub. (the last form)
     fo: 0.93, ro: 0.95,                                             // pub. front (the road saloon's homologation form); rear the remainder
     nose: 0.68,
-    cowl: [0.52, 0.91], wsTop: [1.25, 1.335],
-    peak: [1.74, 1.39], roofEnd: [2.32, 1.335],
-    hatch: 60,
+    cowl: [0.4679, 0.91], wsTop: [1.3021, 1.335],
+    peak: [1.7682, 1.39], roofEnd: [2.32, 1.335],
+    hatch: 64,
     belt: [0.9, 0.95], sill: 0.25, gc: 0.12,
     hw: { nose: 0.67, fa: 0.9, b: 0.87, ra: 0.9, tail: 0.75 },       // b the wide-body road car's
     roofHW: 0.6, beltHW: 0.825,
@@ -9558,39 +9564,39 @@ const WRC_LANDMARKS = {
     L: 4.36, W: 1.77, H: 1.39,                                      // pub. (height from one weak source)
     fo: 0.87, ro: 0.89,                                             // est.
     nose: 0.7,
-    cowl: [0.44, 0.93], wsTop: [1.2, 1.345],
-    peak: [1.72, 1.39], roofEnd: [2.38, 1.335],
-    hatch: 58,
+    cowl: [0.4074, 0.93], wsTop: [1.2326, 1.345],
+    peak: [1.7382, 1.39], roofEnd: [2.38, 1.335],
+    hatch: 54.5,
     belt: [0.92, 0.97], sill: 0.25, gc: 0.12,
     hw: { nose: 0.67, fa: 0.885, b: 0.8475, ra: 0.885, tail: 0.74 },
     roofHW: 0.6, beltHW: 0.815,
     blister: { out: 0.0375, profile: 'round' },
     pub: ['wb', 'track', 'L', 'W', 'H', 'hw.fa', 'hw.ra', 'hw.b']
   },
-  // five-door hatch: short and upright, with a long flat roof and an upright tailgate
+  // five-door hatch: short and upright, with a flat roof and a sloping tailgate
   halvik_4t: {
     wb: 2.462, track: [1.53, 1.53],                                 // pub. wheelbase; tracks est.
     L: 4.002, W: 1.77, H: 1.429,                                    // pub.
     fo: 0.848, ro: 0.692,                                           // est. (the road car's homologated 0.827 / 0.671, each end lengthened by half the WRC's extra 42 mm)
     nose: 0.72,
-    cowl: [0.42, 0.95], wsTop: [1.1, 1.385],
-    peak: [1.56, 1.429], roofEnd: [2.7, 1.395],
-    hatch: 18,
+    cowl: [0.3594, 0.95], wsTop: [1.1606, 1.385],
+    peak: [1.5117, 1.429], roofEnd: [2.3819, 1.395],
+    hatch: 47.5,
     belt: [0.94, 0.97], sill: 0.25, gc: 0.12,
     hw: { nose: 0.66, fa: 0.885, b: 0.823, ra: 0.885, tail: 0.71 },
     roofHW: 0.6, beltHW: 0.79,
     blister: { out: 0.062, profile: 'round' },
     pub: ['wb', 'L', 'W', 'H', 'hw.fa', 'hw.ra', 'hw.b']
   },
-  // three-door coupe: a steeply raked screen, an arched roof running back to a short, near-vertical hatch over a cut-off tail
+  // three-door coupe: a steeply raked screen, an arched roof running back to an upright rear window over a cut-off tail
   caspen_4t: {
     wb: 2.608, track: [1.585, 1.585],                               // pub. wheelbase; tracks est. (gravel tyres inside 1.80 m)
     L: 4.274, W: 1.8, H: 1.4,                                       // pub. length, width; height est.
     fo: 0.935, ro: 0.731,                                           // pub. (one source)
     nose: 0.67,
-    cowl: [0.44, 0.89], wsTop: [1.3, 1.345],
-    peak: [1.66, 1.4], roofEnd: [2.6, 1.27],
-    hatch: 60,
+    cowl: [0.359, 0.89], wsTop: [1.381, 1.345],
+    peak: [1.8872, 1.4], roofEnd: [3.2089, 1.27],
+    hatch: 1,
     belt: [0.88, 0.96], sill: 0.25, gc: 0.12,
     hw: { nose: 0.66, fa: 0.9, b: 0.8865, ra: 0.9, tail: 0.74 },
     roofHW: 0.6, beltHW: 0.84,
@@ -9603,9 +9609,9 @@ const WRC_LANDMARKS = {
     L: 4.2, W: 1.77, H: 1.332,                                      // pub.
     fo: 0.86, ro: 0.9,                                              // est.
     nose: 0.66,
-    cowl: [0.42, 0.87], wsTop: [1.15, 1.29],
-    peak: [1.56, 1.332], roofEnd: [2.5, 1.27],
-    hatch: 48,
+    cowl: [0.4489, 0.87], wsTop: [1.1211, 1.29],
+    peak: [1.4746, 1.332], roofEnd: [2.285, 1.27],
+    hatch: 61,
     belt: [0.86, 0.9], sill: 0.25, gc: 0.12,
     hw: { nose: 0.65, fa: 0.885, b: 0.835, ra: 0.885, tail: 0.72 },
     roofHW: 0.58, beltHW: 0.8,
@@ -9624,21 +9630,21 @@ const WRC_ARCH = { r: 0.375, cy: 0.335 }; // round a 15-inch gravel wheel, with 
 const WRC_NOSE = (o, b) => Object.assign({ db: 0.1, ds: 0.16, y: 0.48, xF: 0.0, n: 2.4, inset: 0.08 }, o, { bumper: Object.assign({ y0: 0.18, y1: 0.48, n: 3.6, cap: 0.6 }, b) });
 const WRC_TAIL = (o, b) => Object.assign({ db: 0.1, n: 2.4, inset: 0.06 }, o, { bumper: Object.assign({ y0: 0.22, y1: 0.5, n: 3.4, cap: 0.64 }, b) });
 const WRC_SHAPE = {
-  vireo_4t: { xB: 1.76, xC: 2.14, xC2: 2.46, glassBase: 0.92, tailTop: 0.8, bonnetK: 1.5, sb: 0.022, dc: 0.03, rc: 0.034, arch: WRC_ARCH,
+  vireo_4t: { xB: 1.76, xC: 2.0899, xC2: 2.3678, glassBase: 0.92, tailTop: 0.8, bonnetK: 1.5, sb: 0.022, dc: 0.03, rc: 0.034, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.17, y: 0.47, n: 2.3, inset: 0.09 }, { y1: 0.46, cap: 0.58 }), tail: WRC_TAIL({ xR: 2.62, n: 2.3, inset: 0.07 }, { y1: 0.49 }) },
-  quintel_4t: { xB: 1.76, xC: 2.0, xC2: 2.2, glassBase: 0.95, tailTop: 0.92, bonnetK: 1.5, sb: 0.024, dc: 0.032, rc: 0.038, arch: WRC_ARCH,
+  quintel_4t: { xB: 1.76, xC: 1.924, xC2: 2.0606, glassBase: 0.95, tailTop: 0.92, bonnetK: 1.5, sb: 0.024, dc: 0.032, rc: 0.038, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.17, y: 0.51, xF: 0.05, n: 2.3, inset: 0.08 }, { y1: 0.49, n: 3.8 }), tail: WRC_TAIL({ xR: 2.7, n: 2.3, inset: 0.07 }, { y1: 0.5, cap: 0.62 }) },
-  brenik_4t: { xB: 1.6, xC: 2.62, xC2: 2.8, xD: 2.4, pillars: [[2.36, 2.42, 2]], glassBase: 0.95, tailTop: 0.84, bonnetK: 1.8, sb: 0.02, dc: 0.03, rc: 0.036, arch: WRC_ARCH,
+  brenik_4t: { xB: 1.6, xC: 2.4563, xC2: 2.6074, xD: 2.2716, pillars: [[2.238, 2.2884, 2]], glassBase: 0.95, tailTop: 0.84, bonnetK: 1.8, sb: 0.02, dc: 0.03, rc: 0.036, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.16, y: 0.5, n: 2.6, inset: 0.07 }, { y1: 0.49, cap: 0.62 }), tail: WRC_TAIL({ xR: 2.86, n: 2.8, inset: 0.05 }, { y1: 0.52, cap: 0.68 }) },
-  acrobat_4t: { xB: 1.78, xC: 2.1, xC2: 2.3, xD: 2.42, glassBase: 1.0, deckEnd: [3.3, 0.985], tailTop: 0.93, bonnetK: 1.7, sb: 0.02, dc: 0.03, rc: 0.034, arch: WRC_ARCH,
+  acrobat_4t: { rearLid: 'boot', rvisor: 2.8487, doorF: 0.717, visor: 0.707, xB: 1.78, xC: 2.1, xC2: 2.3, xD: 2.42, glassBase: 1.0, deckEnd: [3.3, 0.985], tailTop: 0.93, bonnetK: 1.7, sb: 0.02, dc: 0.03, rc: 0.034, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.17, y: 0.5, n: 2.5, inset: 0.08 }, { y1: 0.49 }), tail: WRC_TAIL({ db: 0.11, xR: 3.0, n: 2.6, inset: 0.06 }, { y1: 0.53, cap: 0.66 }) },
   katana_4t: { xB: 1.76, xC: 2.18, xC2: 2.36, xD: 2.5, glassBase: 1.0, deckEnd: [3.32, 1.0], tailTop: 0.95, bonnetK: 1.9, sb: 0.018, dc: 0.026, rc: 0.032, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.15, y: 0.52, n: 2.8, inset: 0.06 }, { y1: 0.5, n: 4, cap: 0.64 }), tail: WRC_TAIL({ db: 0.11, xR: 3.06, n: 2.8, inset: 0.05 }, { y1: 0.54, n: 3.8, cap: 0.68 }) },
-  halvik_4t: { xB: 1.56, xC: 2.42, xC2: 2.62, xD: 2.56, glassBase: 0.98, tailTop: 0.86, bonnetK: 2.0, sb: 0.018, dc: 0.026, rc: 0.03, arch: WRC_ARCH,
+  halvik_4t: { xB: 1.56, xC: 2.1801, xC2: 2.3243, xD: 2.281, glassBase: 0.98, tailTop: 0.86, bonnetK: 2.0, sb: 0.018, dc: 0.026, rc: 0.03, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.15, y: 0.52, n: 2.8, inset: 0.06 }, { y1: 0.5, n: 4, cap: 0.64 }), tail: WRC_TAIL({ xR: 2.78, n: 3.0, inset: 0.04 }, { y1: 0.52, n: 4, cap: 0.7 }) },
-  caspen_4t: { xB: 1.92, xC: 2.2, xC2: 2.5, glassBase: 0.98, tailTop: 0.92, bonnetK: 1.4, sb: 0.024, dc: 0.032, rc: 0.038, arch: WRC_ARCH,
+  caspen_4t: { xB: 1.92, xC: 2.4507, xC2: 3.0194, glassBase: 0.98, tailTop: 0.97, bonnetK: 1.4, sb: 0.024, dc: 0.032, rc: 0.038, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.18, y: 0.48, xF: 0.05, n: 2.2, inset: 0.09 }, { y1: 0.47, cap: 0.58 }), tail: WRC_TAIL({ xR: 2.86, n: 2.3, inset: 0.07 }, { y1: 0.52, cap: 0.62 }) },
-  pellam_4t: { xB: 1.78, xC: 2.2, xC2: 2.44, glassBase: 0.96, tailTop: 0.9, bonnetK: 1.6, sb: 0.022, dc: 0.03, rc: 0.034, arch: WRC_ARCH,
+  pellam_4t: { xB: 1.78, xC: 2.0746, xC2: 2.2429, glassBase: 0.96, tailTop: 0.9, bonnetK: 1.6, sb: 0.022, dc: 0.03, rc: 0.034, arch: WRC_ARCH,
     nose: WRC_NOSE({ ds: 0.16, y: 0.48, n: 2.4, inset: 0.08 }, { y1: 0.47 }), tail: WRC_TAIL({ xR: 2.8, n: 2.4, inset: 0.06 }, { y1: 0.5 }) }
 };
 
@@ -9734,7 +9740,7 @@ function wrcDesign(id) {
     { mudflaps: Object.assign({ xMax: Math.min(L.hw.fa, L.hw.ra) - 0.015 }, st.mudflaps) }); // the flaps' outer edges inside the arches
 }
 const WRC_CARS = Object.fromEntries(Object.keys(WRC_LANDMARKS).map(id => [id, wrcDesign(id)]));
-const WRC_BUDGET = { triangles: [2600, 4300], drawCalls: [4, 4] };
+const WRC_BUDGET = { triangles: [2600, 4600], drawCalls: [4, 4] };
 
 class WRCCarFactory extends RallyCarKit {
   // buildCar(id, options) returns the car's THREE.Group; its animated parts are on car.rig ({ id, root, tilt, body, wheels, flame, I, eye, livery, lamps, wipers, screen, sync })
@@ -9772,7 +9778,7 @@ const WRC_PHYSICS_CONFIG = Object.fromEntries(CARS_WRC.map(S => [S.id, Object.as
 // Rally2CarFactory: procedural low-poly 2020s Rally2 cars (original designs) on the shared car kit and its landmark
 // bodies, built as the World Rally Cars are: every body lofted from a table of landmarks (R2_LANDMARKS) by f2Loft and
 // measured against it by debugInspectCar. Two body types, three-door and five-door hatches, in gravel trim: 15-inch
-// wheels, wheel openings with room for long suspension travel, mudflaps behind every wheel. Budget: 2,600-3,900
+// wheels, wheel openings with room for long suspension travel, mudflaps behind every wheel. Budget: 2,600-4,800
 // triangles, four shared materials, four draw calls.
 
 // ---- landmarks ----
@@ -9786,10 +9792,9 @@ const WRC_PHYSICS_CONFIG = Object.fromEntries(CARS_WRC.map(S => [S.id, Object.as
 // the way in from the wheel's rear edge to its centre (R2_COWL_X: 5/7 of the 0.31 m radius behind the axle), the
 // screen top following at the car's own rake, so the bonnet is short and the roof long; the front door still starts
 // behind the wheel opening (R2_SHAPE doorF), a black sail filling the corner between it and the screen pillar.
-// The two glass angles (// photo) are measured on a side photo of the same real car, scaled by its wheel centres: the
-// windscreen's from its pillar's outline, the tailgate's (hatch) from the rear outline between the roof's trailing edge
-// and the tops of the tail lamps; the screen top and the roof's end are placed to give those angles (the roof's end
-// far enough forward that the rear glass still ends ahead of the tail).
+// The two glass angles (// given) are the real car's, along each glass's centre line: the windscreen's (from upright)
+// and the tailgate's (hatch, from vertical); the screen top and the roof's end are placed to give those angles (the
+// roof's end far enough forward that the rear glass still ends ahead of the tail).
 const R2_COWL_X = +(0.31 * 5 / 7).toFixed(3);
 const R2_LANDMARKS = {
   // five-door hatch: the longest here, a long level roof and a fast tailgate
@@ -9798,9 +9803,9 @@ const R2_LANDMARKS = {
     L: 4.108, W: 1.82, H: 1.445,                                    // pub. length, width; height est.
     fo: 0.83, ro: 0.709,                                            // est.
     nose: 0.76,
-    cowl: [R2_COWL_X, 1.01], wsTop: [0.922, 1.405],                 // screen 60.6 deg from upright (photo)
-    peak: [1.411, 1.445], roofEnd: [2.72, 1.395],
-    hatch: 48,                                                      // photo
+    cowl: [0.221, 1.01], wsTop: [0.9798, 1.405],                 // screen 62.5 deg from upright (given)
+    peak: [1.4513, 1.445], roofEnd: [2.7136, 1.395],
+    hatch: 48.5,                                                      // given
     belt: [0.99, 1.05], sill: 0.27, gc: 0.13,
     hw: { nose: 0.76, fa: 0.91, b: 0.89, ra: 0.91, tail: 0.8 },
     roofHW: 0.6, beltHW: 0.84,
@@ -9813,9 +9818,9 @@ const R2_LANDMARKS = {
     L: 3.995, W: 1.82, H: 1.345,                                    // pub. (the brief's height; the road car stands about 1.455 m)
     fo: 0.8, ro: 0.639,                                             // est.
     nose: 0.72,
-    cowl: [R2_COWL_X, 0.97], wsTop: [0.826, 1.3],                   // screen 61.4 deg (photo)
-    peak: [1.315, 1.345], roofEnd: [2.6, 1.27],
-    hatch: 46,                                                      // photo
+    cowl: [0.221, 0.97], wsTop: [0.8687, 1.3],                   // screen 63 deg (given)
+    peak: [1.3351, 1.345], roofEnd: [2.5609, 1.27],
+    hatch: 50,                                                      // given
     belt: [0.95, 1.03], sill: 0.27, gc: 0.13,
     hw: { nose: 0.77, fa: 0.91, b: 0.9025, ra: 0.91, tail: 0.81 },
     roofHW: 0.6, beltHW: 0.85,
@@ -9828,9 +9833,9 @@ const R2_LANDMARKS = {
     L: 3.996, W: 1.82, H: 1.455,                                    // pub. length, width; height est.
     fo: 0.78, ro: 0.649,                                            // est.
     nose: 0.8,
-    cowl: [R2_COWL_X, 1.04], wsTop: [1.014, 1.415],                 // screen 64.7 deg (photo)
-    peak: [1.503, 1.455], roofEnd: [2.64, 1.43],
-    hatch: 45,                                                      // photo
+    cowl: [0.221, 1.04], wsTop: [1.1044, 1.415],                 // screen 67 deg (given)
+    peak: [1.5586, 1.455], roofEnd: [2.6147, 1.43],
+    hatch: 47,                                                      // given
     belt: [1.02, 1.06], sill: 0.28, gc: 0.14,
     hw: { nose: 0.75, fa: 0.91, b: 0.8745, ra: 0.91, tail: 0.79 },
     roofHW: 0.61, beltHW: 0.83,
@@ -9843,9 +9848,9 @@ const R2_LANDMARKS = {
     L: 4.04, W: 1.82, H: 1.43,                                      // pub. length, width; height est.
     fo: 0.82, ro: 0.66,                                             // est.
     nose: 0.74,
-    cowl: [R2_COWL_X, 0.99], wsTop: [0.996, 1.39],                  // screen 62.7 deg (photo)
-    peak: [1.485, 1.43], roofEnd: [2.66, 1.36],
-    hatch: 47,                                                      // photo
+    cowl: [0.221, 0.99], wsTop: [0.9733, 1.39],                  // screen 62 deg (given)
+    peak: [1.4527, 1.43], roofEnd: [2.6046, 1.36],
+    hatch: 51.5,                                                      // given
     belt: [0.98, 1.07], sill: 0.26, gc: 0.13,
     hw: { nose: 0.75, fa: 0.91, b: 0.8875, ra: 0.91, tail: 0.79 },
     roofHW: 0.59, beltHW: 0.84,
@@ -9858,9 +9863,9 @@ const R2_LANDMARKS = {
     L: 4.07, W: 1.82, H: 1.425,                                     // pub. length, width; height est.
     fo: 0.86, ro: 0.66,                                             // est.
     nose: 0.75,
-    cowl: [R2_COWL_X, 1.0], wsTop: [0.862, 1.385],                  // screen 59 deg (photo)
-    peak: [1.351, 1.425], roofEnd: [2.74, 1.37],
-    hatch: 41,                                                      // photo
+    cowl: [0.221, 1], wsTop: [0.9015, 1.385],                  // screen 60.5 deg (given)
+    peak: [1.3413, 1.425], roofEnd: [2.5905, 1.37],
+    hatch: 53.5,                                                      // given
     belt: [1.0, 1.04], sill: 0.27, gc: 0.13,
     hw: { nose: 0.73, fa: 0.91, b: 0.85, ra: 0.91, tail: 0.78 },     // b the road car's (the competition shell's wide arches)
     roofHW: 0.6, beltHW: 0.81,
@@ -9873,9 +9878,9 @@ const R2_LANDMARKS = {
     L: 4.065, W: 1.82, H: 1.455,                                    // pub. length, width; height est.
     fo: 0.85, ro: 0.725,                                            // est.
     nose: 0.77,
-    cowl: [R2_COWL_X, 1.02], wsTop: [1.077, 1.41],                  // screen 65.5 deg (photo)
-    peak: [1.566, 1.455], roofEnd: [2.62, 1.41],
-    hatch: 45,                                                      // photo
+    cowl: [0.221, 1.02], wsTop: [1.0689, 1.41],                  // screen 65.3 deg (given)
+    peak: [1.5312, 1.455], roofEnd: [2.5276, 1.41],
+    hatch: 52,                                                      // given
     belt: [1.0, 1.1], sill: 0.27, gc: 0.13,
     hw: { nose: 0.75, fa: 0.91, b: 0.8675, ra: 0.91, tail: 0.79 },
     roofHW: 0.6, beltHW: 0.82,
@@ -9891,17 +9896,17 @@ const R2_ARCH = { r: 0.38, cy: 0.34 }; // round a 15-inch gravel wheel, with roo
 const R2_NOSE = (o, b) => Object.assign({ db: 0.1, ds: 0.15, y: 0.6, xF: 0.0, n: 3.4, inset: 0.03 }, o, { bumper: Object.assign({ y0: 0.2, y1: 0.58, n: 4.4, cap: 0.72 }, b) });
 const R2_TAIL = (o, b) => Object.assign({ db: 0.1, n: 3.4, inset: 0.03 }, o, { bumper: Object.assign({ y0: 0.24, y1: 0.58, n: 4.4, cap: 0.76 }, b) });
 const R2_SHAPE = {
-  avocet_16t: { doorF: 0.48, xB: 1.62, xC: 2.44, xC2: 2.68, xD: 2.3, pillars: [[2.28, 2.34, 2]], glassBase: 1.07, tailTop: 1.0, bonnetK: 1.7, sb: 0.016, dc: 0.024, rc: 0.03, arch: R2_ARCH,
+  avocet_16t: { doorF: 0.48, xB: 1.62, xC: 2.4352, xC2: 2.6738, xD: 2.296, pillars: [[2.2762, 2.3358, 2]], glassBase: 1.07, tailTop: 1.0, bonnetK: 1.7, sb: 0.016, dc: 0.024, rc: 0.03, arch: R2_ARCH,
     nose: R2_NOSE({ ds: 0.14, y: 0.62 }, { y1: 0.6 }), tail: R2_TAIL({ xR: 2.98 }, { y1: 0.6 }) },
-  siskin_16t: { doorF: 0.48, xB: 1.8, xC: 2.14, xC2: 2.5, glassBase: 1.02, tailTop: 0.95, bonnetK: 1.5, sb: 0.02, dc: 0.028, rc: 0.032, arch: R2_ARCH,
+  siskin_16t: { doorF: 0.48, xB: 1.8, xC: 2.1234, xC2: 2.4658, glassBase: 1.02, tailTop: 0.95, bonnetK: 1.5, sb: 0.02, dc: 0.028, rc: 0.032, arch: R2_ARCH,
     nose: R2_NOSE({ ds: 0.13, y: 0.58, n: 3.0 }, { y1: 0.56, cap: 0.7 }), tail: R2_TAIL({ xR: 2.86 }, { y1: 0.56 }) },
-  dunlin_16t: { doorF: 0.48, xB: 1.58, xC: 2.44, xC2: 2.64, xD: 2.34, glassBase: 1.08, tailTop: 1.02, bonnetK: 2.0, sb: 0.014, dc: 0.02, rc: 0.024, arch: R2_ARCH,
+  dunlin_16t: { doorF: 0.48, xB: 1.58, xC: 2.4195, xC2: 2.6147, xD: 2.3218, glassBase: 1.08, tailTop: 1.02, bonnetK: 2.0, sb: 0.014, dc: 0.02, rc: 0.024, arch: R2_ARCH,
     nose: R2_NOSE({ ds: 0.12, y: 0.66, n: 3.8 }, { y1: 0.64, cap: 0.74 }), tail: R2_TAIL({ xR: 2.92, n: 3.8 }, { y1: 0.62, cap: 0.78 }) },
-  jacana_16t: { doorF: 0.48, xB: 1.66, xC: 2.34, xC2: 2.62, xD: 2.32, glassBase: 1.06, tailTop: 0.98, bonnetK: 1.6, sb: 0.018, dc: 0.026, rc: 0.03, arch: R2_ARCH,
+  jacana_16t: { doorF: 0.48, xB: 1.66, xC: 2.3023, xC2: 2.5668, xD: 2.2834, glassBase: 1.06, tailTop: 0.98, bonnetK: 1.6, sb: 0.018, dc: 0.026, rc: 0.03, arch: R2_ARCH,
     nose: R2_NOSE({ ds: 0.15, y: 0.6 }, { y1: 0.58 }), tail: R2_TAIL({ xR: 2.92 }, { y1: 0.58 }) },
-  pipit_16t: { doorF: 0.48, xB: 1.6, xC: 2.52, xC2: 2.74, xD: 2.34, pillars: [[2.32, 2.38, 1]], glassBase: 1.06, tailTop: 0.99, bonnetK: 1.7, sb: 0.018, dc: 0.03, rc: 0.036, arch: R2_ARCH,
+  pipit_16t: { doorF: 0.48, xB: 1.6, xC: 2.3994, xC2: 2.5905, xD: 2.243, pillars: [[2.2256, 2.2777, 1]], glassBase: 1.06, tailTop: 0.99, bonnetK: 1.7, sb: 0.018, dc: 0.03, rc: 0.036, arch: R2_ARCH,
     nose: R2_NOSE({ ds: 0.16, y: 0.6, n: 2.8, inset: 0.05 }, { y1: 0.58, cap: 0.68 }), tail: R2_TAIL({ xR: 2.9, n: 2.8, inset: 0.05 }, { y1: 0.58, cap: 0.72 }) },
-  ouzel_16t: { doorF: 0.48, xB: 1.76, xC: 2.06, xC2: 2.42, glassBase: 1.08, tailTop: 1.0, bonnetK: 1.7, sb: 0.018, dc: 0.026, rc: 0.032, arch: R2_ARCH,
+  ouzel_16t: { doorF: 0.48, xB: 1.76, xC: 2.0278, xC2: 2.3491, glassBase: 1.08, tailTop: 1.0, bonnetK: 1.7, sb: 0.018, dc: 0.026, rc: 0.032, arch: R2_ARCH,
     nose: R2_NOSE({ ds: 0.14, y: 0.62 }, { y1: 0.6 }), tail: R2_TAIL({ xR: 2.88 }, { y1: 0.6 }) }
 };
 
@@ -10450,6 +10455,39 @@ function g4Design(id) {
 }
 const G4_CARS = Object.fromEntries(Object.keys(G4_LANDMARKS).map(id => [id, g4Design(id)]));
 const G4_BUDGET = { triangles: [2400, 4800], drawCalls: [4, 4] };
+// ---- two Group B cars on these bodies ----
+// The Tasman 6R and the Corbeau Maxi are later evolutions of the Ketch 30 and the Felucca 14T, as the cars they stand for
+// were of theirs: the same shell (the donor's landmarks and shape) at the Group B car's own sizes from its specs (its
+// length, the overhangs keeping their proportion; its tracks, the front arches moving out with the front track and the
+// rear ones to its width), with the Group B car's wheels, livery and aero in place of the period trim (bonnet straps,
+// rivets, the bonnet lamp pod, air dam, louvres and spoiler). keep: the donor's parts that belong to its body (bumpers,
+// lamps, grille, plates); style: the Group B car's own (aero placed by landmark x, from the front axle rearward); rimIn:
+// the wheel size, if not the Group B cars' 16 inches; pub: the sizes taken from published figures. The Group B factory
+// builds them.
+const GB_ON_G4 = {
+  // the deck grille just behind the rear glass, the tray spoiler on a plinth on the lid behind it
+  tasman_6r: { body: 'ketch_30', pub: ['wb', 'L'], keep: ['f2Bumpers', 'f2HeadLamps', 'f2Grille', 'f2FogLamps', 'lmEndBand', 'f2TailLamps', 'f2Plates', 'f2BonnetPlate'],
+    style: L => ({ name: 'Tasman 6R', layout: 'Rear-engine flat six, rear-wheel drive', rim: ['dish', 8, '#d0d0d0'],
+      livery: { base: '#f0eee8', band: '#2e7d4f', pin: '#151515', roof: '#2e7d4f', hood: '#2e7d4f' },
+      aero: [['f2Splitter', { out: 0.06 }], ['deckGrille', { z: rz(L, 2.965), n: 3 }], ['tray', { z: rz(L, 3.28), chord: 0.26, span: 1.42, lift: 0.02, plinth: true }], ['roofVent', {}]] }) },
+  // 15-inch wheels; two lamp pods on the bonnet, a roof spoiler, vents in the rear wings behind the doors
+  corbeau_maxi: { body: 'felucca_14t', pub: ['wb', 'track', 'L', 'W'], rimIn: 15, keep: ['f2Bumpers', 'f2HeadLamps', 'f2Grille', 'f2FogLamps', 'f2TailLamps', 'f2Plates', 'f2BonnetPlate'],
+    style: L => ({ name: 'Corbeau Maxi', layout: 'Mid-engine turbo, rear-wheel drive', rim: ['spokes', 4, '#c9c9c9'],
+      livery: { base: '#24323a', band: '#e8762d', pin: '#f2f0ea', roof: '#e8762d', hood: '#e8762d' },
+      aero: [['f2Splitter', { out: 0.06 }], ['hoodPods', { z: rz(L, -0.135) }], ['roofLip', { z: rz(L, L.roofEnd[0]), span: 1.22 }], ['sideVents', { z: rz(L, 1.88) }]] }) }
+};
+function gbOnG4Design(id, o) {
+  const S = CARS.find(c => c.id === id), L0 = G4_LANDMARKS[o.body], L = JSON.parse(JSON.stringify(L0)), SH = G4_SHAPE[o.body];
+  const fo = L.fo + (S.len - L.L) * L.fo / (L.fo + L.ro);
+  Object.assign(L, { track: S.track.slice(), L: S.len, W: S.width, fo: +fo.toFixed(4), ro: +(S.len - L.wb - fo).toFixed(4), pub: o.pub });
+  L.hw.fa = +(L0.hw.fa + (S.track[0] - L0.track[0]) / 2).toFixed(4); L.hw.ra = +(S.width / 2).toFixed(4); L.blister.out = +(L.hw.fa - L.hw.b).toFixed(4);
+  const D0 = G4_STYLE[o.body](L), st = o.style(L), body = {};
+  for (const k of ['flare', 'archSeg', 'glIn', 'frame']) if (D0[k] != null) body[k] = D0[k];
+  return Object.assign({ track: L.track.slice(), tyreHalf: [S.tyres[0] / 2000, S.tyres[1] / 2000], exhaust: { x: 0.36, y: 0.24, tip: SH.tail.db + 0.03, r: 0.04 },
+    faces: 'custom', lamps: { front: null, rear: null }, landmarks: L, shape: SH, budget: G4_BUDGET }, o.rimIn ? { rimR: +(o.rimIn * 0.0127).toFixed(4) } : {}, body, st,
+    { aero: D0.aero.filter(([k]) => o.keep.includes(k)).concat(st.aero), cockpit: { seatZ: rz(L, f2SeatX(L, SH)) }, numZ: rz(L, f2NumX(L, SH)) }, f2Loft(L, SH));
+}
+for (const [id, o] of Object.entries(GB_ON_G4)) GB_CARS[id] = gbOnG4Design(id, o);
 
 class Group4CarFactory extends RallyCarKit {
   // buildCar(id, options) returns the car's THREE.Group; its animated parts are on car.rig ({ id, root, tilt, body, wheels, flame, I, eye, livery, lamps, wipers, screen, sync })
