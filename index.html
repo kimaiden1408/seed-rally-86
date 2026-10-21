@@ -2122,12 +2122,14 @@ function buildGround(T) {
 // ---- cars ----
 // Original cars. Their figures follow published data for 1980s Group B cars of the same layout (mass, power,
 // torque curve, drivetrain split, weight distribution, wheelbase, track); where sources vary, a mid value is used.
-//  tq: full-load torque curve [rpm, Nm]; na: share of that torque available with no boost;
+//  tq: full-load torque curve [rpm, Nm] (a turbo's at full boost: below the top of its boost window it delivers less);
+//  na: share of that torque available with no boost;
 //  boost: turbo | sc (Roots supercharger) | twin (supercharger + turbo) | na; spool: turbo boost window (rpm);
 //  lag: turbo spool time constant (s); als: anti-lag keeps the turbo spinning off throttle; idle: idle speed (rpm);
 //  wf: front weight share; fs: front torque share at the centre diff; yawK: yaw inertia index (Izz / m·a·b);
 //  tyres: section width front/rear (mm); aero: drag area CdA (m²), downforce ClA (m², negative = lift), front share;
-//  diff: per axle { pre: preload Nm, ramp: torque-sensing share, kv: viscous Nm per rad/s }.
+//  diff: per axle { pre: preload Nm, ramp: torque-sensing share, kv: viscous Nm per rad/s };
+//  gears: a car's own ratios where they were published, else a shared five-speed set (est.); rollR: as for Group 4.
 // Centres of gravity and aerodynamics, every class (research/cg_aero_research.md). No rally car's centre of gravity was
 // published, so each is est. from road cars of the period whose centres of gravity were measured: about 0.245 m +
 // 0.206 x the car's height (the trend of seven cars built 1979-87, within 2 cm of each), plus 0.02 m for a car on
@@ -2142,12 +2144,15 @@ function buildGround(T) {
 // rear wing on the 34:66 four-wheel-drive car, a published 45 N at the front and 190 N at the rear at 180 km/h); wings
 // and splitters make about the downforce estimated for modern rally cars (50-70 kg at high speed for a Rally2 car).
 const CARS = [
-  { id: 'ardent_5t', name: 'Ardent 5T', num: 1, drive: 'Four-wheel drive, 50:50', motor: '2.1-litre turbo five, front-mounted, about 470 hp', mass: 1090, wf: 0.58, fs: 0.5, wb: 2.224, track: [1.48, 1.5], yawK: 1.15, lock: 0.58, idle: 1000, redline: 8200, cyl: 5,
-    tq: [[1000, 250], [3000, 400], [4500, 500], [5500, 540], [6500, 500], [8000, 418], [8200, 400]], na: 0.42, boost: 'turbo', spool: [3500, 5800], lag: 0.65, als: true,
-    gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 4.82, len: 4.24, width: 1.86, tyres: [235, 235], aero: [0.95, 0.55, 0.4],
+  // front-mounted five, 2.1 litres: 470 hp (350 kW) at 7,500 rpm and 480 Nm at 5,500, revving to 8,500; 1,090 kg, its
+  // coolers moved to the back for a 52:48 weight split; a six-speed gearbox, its ratios and final drive est. for the
+  // published top speed of about 220 km/h
+  { id: 'ardent_5t', name: 'Ardent 5T', num: 1, drive: 'Four-wheel drive, 50:50', motor: '2.1-litre turbo five, front-mounted, about 470 hp', mass: 1090, wf: 0.52, fs: 0.5, wb: 2.224, track: [1.48, 1.5], yawK: 1.15, lock: 0.58, idle: 1000, redline: 8500, cyl: 5,
+    tq: [[1000, 230], [3000, 380], [4500, 460], [5500, 490], [6000, 480], [6500, 470], [7500, 446], [8000, 418], [8500, 388]], na: 0.42, boost: 'turbo', spool: [3500, 5800], lag: 0.65, als: true,
+    gears: [3.08, 2.1, 1.66, 1.37, 1.15, 0.98], final: 4.6, len: 4.24, width: 1.86, tyres: [235, 235], aero: [0.95, 0.55, 0.4],
     susp: { fF: 1.95, fR: 1.75, arbF: 0.12, arbR: 0.06, rcF: 0.06, rcR: 0.1, camF: -1.2, camR: -0.8, gainF: -12, gainR: -10, hcg: 0.505, bias: 0.64, Ie: 0.22 },
     diff: { f: { pre: 15 }, c: { pre: 2500 }, r: { pre: 80, ramp: 0.5 } },
-    note: 'Inline five hung ahead of the front axle and a centre diff run locked. Turbo lag at low revs, softened by anti-lag that keeps the turbo spinning between corners. Understeers unless you rotate it early.' },
+    note: 'Inline five hung ahead of the front axle, its coolers moved to the tail to even out the weight, and a centre diff run locked. Turbo lag at low revs, softened by anti-lag that keeps the turbo spinning between corners. Six close gears. Rotate it early or it pushes wide.' },
   { id: 'vespera_sc', name: 'Vespera SC', num: 2, drive: 'Rear-wheel drive, plate limited slip', motor: '2.1-litre supercharged four, mid-mounted, about 325 hp', mass: 960, wf: 0.40, fs: 0, wb: 2.44, track: [1.5, 1.49], yawK: 0.85, lock: 0.58, idle: 1050, redline: 8500, cyl: 4,
     tq: [[1000, 200], [2500, 270], [4000, 315], [5000, 333], [6500, 320], [8000, 285], [8500, 265]], na: 1, boost: 'sc',
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.12, len: 3.89, width: 1.8, tyres: [205, 235], aero: [0.72, 0.12, 0.4],
@@ -2160,12 +2165,15 @@ const CARS = [
     susp: { fF: 1.85, fR: 1.85, arbF: 0.085, arbR: 0.03, gainF: -22, gainR: -20, hcg: 0.505, bias: 0.62, Ie: 0.15 },
     diff: { f: { pre: 20 }, c: { pre: 30, kv: 35 }, r: { pre: 60, ramp: 0.4 } },
     note: 'Transverse mid-engine and a long wheelbase for a short car. Rear-biased drive through a viscous centre coupling, so it rotates willingly. Anti-lag keeps the turbo spinning between corners.' },
-  { id: 'halberd_x4', name: 'Halberd X4', num: 4, drive: 'Four-wheel drive, 37:63, viscous diffs', motor: '1.8-litre turbo four, mid-mounted, about 450 hp', mass: 1100, wf: 0.5, fs: 0.37, wb: 2.53, track: [1.5, 1.5], yawK: 0.95, lock: 0.58, idle: 1050, redline: 8200, cyl: 4,
-    tq: [[1000, 200], [3000, 330], [4500, 450], [5500, 480], [6500, 460], [8000, 400], [8200, 385]], na: 0.42, boost: 'turbo', spool: [3800, 5800], lag: 0.6, als: false,
-    gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 4.94, len: 3.99, width: 1.75, tyres: [225, 225], aero: [0.82, 0.2, 0.4],
+  // mid-mounted four, 1.8 litres: 444 hp (450 PS) at 8,000 rpm and 490 Nm at 5,500; 1,080 kg, 49:51; the published
+  // five-speed ratios (3.23 ... 1.14) on a 4.375 final drive behind a 1.15 step in the transfer gears, and tyres rolling
+  // at 0.325 m, which give the published 190 km/h at 8,900 rpm
+  { id: 'halberd_x4', name: 'Halberd X4', num: 4, drive: 'Four-wheel drive, 37:63, viscous diffs', motor: '1.8-litre turbo four, mid-mounted, about 445 hp', mass: 1080, wf: 0.49, fs: 0.37, wb: 2.53, track: [1.5, 1.5], yawK: 0.95, lock: 0.58, idle: 1050, redline: 8900, cyl: 4,
+    tq: [[1000, 200], [3000, 330], [4500, 455], [5500, 498], [6500, 478], [8000, 395], [8500, 368], [8900, 340]], na: 0.42, boost: 'turbo', spool: [3800, 5800], lag: 0.6, als: false,
+    gears: [3.23, 2.14, 1.68, 1.36, 1.14], final: 5.031, rollR: 0.325, len: 3.99, width: 1.75, tyres: [225, 225], aero: [0.82, 0.2, 0.4],
     susp: { fF: 1.7, fR: 1.8, arbF: 0.145, arbR: 0.07, travel: 0.15, droop: 0.13, gainF: -24, gainR: -22, hcg: 0.485, bias: 0.68, Ie: 0.16 },
     diff: { f: { pre: 15, kv: 20 }, c: { pre: 20, kv: 40 }, r: { pre: 20, kv: 30 } },
-    note: 'Mid engine with the gearbox up front for a near 50:50 balance, and viscous couplings front, centre and rear. Heaviest of the four-wheel-drive cars, planted and predictable.' },
+    note: 'Mid engine with the gearbox up front for a near 50:50 balance, and viscous couplings front, centre and rear. Short gears and revs to 8,900: quick out of corners, slow at the top. Planted and predictable.' },
   { id: 'mamba_tc', name: 'Mamba TC', num: 5, drive: 'Four-wheel drive, 40:60', motor: '1.8-litre twin-charged four, mid-mounted, about 480 hp', mass: 890, wf: 0.42, fs: 0.4, wb: 2.44, track: [1.5, 1.52], yawK: 0.85, lock: 0.6, idle: 1050, redline: 8800, cyl: 4,
     tq: [[1000, 230], [2500, 360], [4000, 460], [5000, 490], [6500, 470], [8400, 401], [8800, 380]], na: 0.42, boost: 'twin', spool: [3500, 5500], lag: 0.45, als: false,
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.05, len: 3.99, width: 1.88, tyres: [225, 235], aero: [0.88, 0.3, 0.4],
@@ -2184,8 +2192,9 @@ const CARS = [
     susp: { fF: 1.9, fR: 1.9, arbF: 0.08, arbR: 0.02, gainF: -12, gainR: -10, hcg: 0.505, bias: 0.63, Ie: 0.14 },
     diff: { f: { pre: 30, ramp: 0.2 }, c: { pre: 40 }, r: { pre: 70, ramp: 0.45 } },
     note: 'High-revving naturally aspirated V6 behind the crew: no lag at all, power arrives the instant you ask. Short wheelbase makes it twitchy, and the big aero costs top speed.' },
-  { id: 'corbeau_maxi', name: 'Corbeau Maxi', num: 8, drive: 'Rear-wheel drive, plate limited slip', motor: '1.4-litre high-boost turbo four, mid-mounted, about 350 hp', mass: 905, wf: 0.38, fs: 0, wb: 2.43, track: [1.46, 1.5], yawK: 0.86, lock: 0.58, idle: 1000, redline: 7800, cyl: 4,
-    tq: [[1000, 140], [3000, 230], [4500, 345], [5000, 380], [6500, 365], [7500, 335], [7800, 318]], na: 0.42, boost: 'turbo', spool: [3500, 5500], lag: 0.68, als: true,
+  // mid-mounted four, 1,527 cc: about 350 hp and 421 Nm; 905 kg; tracks 1.39 m front and 1.49 m rear
+  { id: 'corbeau_maxi', name: 'Corbeau Maxi', num: 8, drive: 'Rear-wheel drive, plate limited slip', motor: '1.5-litre high-boost turbo four, mid-mounted, about 350 hp', mass: 905, wf: 0.38, fs: 0, wb: 2.43, track: [1.39, 1.49], yawK: 0.86, lock: 0.58, idle: 1000, redline: 7800, cyl: 4,
+    tq: [[1000, 150], [3000, 255], [4500, 390], [5000, 418], [5500, 421], [6500, 383], [7500, 332], [7800, 318]], na: 0.42, boost: 'turbo', spool: [3500, 5500], lag: 0.68, als: true,
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.0, len: 3.7, width: 1.77, tyres: [195, 235], aero: [0.8, 0.05, 0.4],
     susp: { fF: 1.75, fR: 1.8, arbF: 0.15, arbR: 0.02, rcF: 0.05, rcR: 0.13, gainF: -22, gainR: -20, hcg: 0.515, bias: 0.56, Ie: 0.13 },
     diff: { r: { pre: 70, ramp: 0.6 } },
@@ -2193,8 +2202,12 @@ const CARS = [
 ];
 // ---- group A cars ----
 // Original cars. Their figures follow published data for early-1990s Group A cars of the same layout: production
-// shells, a 40 mm turbo restrictor holding the turbo fours near 300 hp with a fat mid-range, six-speed gearboxes.
-//  tq: full-load torque curve [rpm, Nm]; na: share of that torque available with no boost; boost: turbo | na;
+// shells, a turbo restrictor (40 mm on the early cars, cut in steps to 34 mm by 1995, which the latest car here runs)
+// holding the turbo fours near 300 hp with a fat mid-range, six-speed gearboxes (the turbo cars share one set of
+// ratios, est.). Where a car's rally figures were never published its power, torque and weight are est. from the
+// class's restrictors and minimum weights.
+//  tq: full-load torque curve [rpm, Nm] (at full boost; below the top of the boost window a turbo delivers less);
+//  na: share of that torque available with no boost; boost: turbo | na;
 //  spool: turbo boost window (rpm); lag: turbo spool time constant (s); als: anti-lag keeps the turbo spinning off throttle;
 //  wf: front weight share; fs: front torque share at the centre diff; yawK: yaw inertia index (Izz / m·a·b);
 //  tyres: section width front/rear (mm); aero: drag area CdA (m²), downforce ClA (m², negative = lift), front share;
@@ -2222,9 +2235,11 @@ const CARS_A = [
     susp: { fF: 1.95, fR: 1.85, arbF: 0.1, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.535, bias: 0.63, Ie: 0.16 },
     diff: { f: { pre: 25 }, c: { pre: 120, ramp: 0.3, kv: 20 }, r: { pre: 50, ramp: 0.5 } }, diffType: { f: 'Open', c: 'Active multi-plate, clamped harder under power', r: 'Mechanical plate limited slip' },
     note: 'The flat four sits low in the nose, so it turns in sharply and rolls least of the four-wheel-drive cars. The active centre diff tightens up as you squeeze the throttle out of a corner.' },
-  { id: 'katana_evo', name: 'Katana Evo', num: 12, drive: 'Four-wheel drive, 50:50', motor: '2.0-litre turbo four, about 270 hp', engine: 'Front transverse inline four, 16 valves, turbocharged and intercooled', litres: 2.0,
+  // four-door saloon, 1,230 kg: 290 hp at 6,000 rpm and 510 Nm at 3,500 through the smaller 34 mm restrictor of its
+  // later day, its turbo on full boost by then
+  { id: 'katana_evo', name: 'Katana Evo', num: 12, drive: 'Four-wheel drive, 50:50', motor: '2.0-litre turbo four, about 290 hp', engine: 'Front transverse inline four, 16 valves, turbocharged and intercooled', litres: 2.0,
     mass: 1230, wf: 0.61, fs: 0.5, wb: 2.51, track: [1.5, 1.49], yawK: 1.04, lock: 0.6, idle: 950, redline: 7500, cyl: 4,
-    tq: [[1000, 180], [2000, 330], [3000, 440], [4000, 430], [5000, 380], [6000, 320], [7000, 265], [7500, 240]], na: 0.38, boost: 'turbo', spool: [2400, 4000], lag: 0.48, als: true,
+    tq: [[1000, 190], [2000, 360], [3000, 480], [3500, 510], [4000, 500], [5000, 410], [6000, 344], [7000, 280], [7500, 252]], na: 0.38, boost: 'turbo', spool: [2000, 3500], lag: 0.48, als: true,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.0, len: 4.35, width: 1.77, tyres: [215, 215], aero: [0.83, 0.05, 0.3],
     susp: { fF: 1.9, fR: 1.85, arbF: 0.11, arbR: 0.08, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.55, bias: 0.63, Ie: 0.16 },
     diff: { f: { pre: 20 }, c: { pre: 40, kv: 40 }, r: { pre: 90, ramp: 0.5 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Mechanical plate limited slip' },
@@ -2236,16 +2251,19 @@ const CARS_A = [
     susp: { fF: 1.9, fR: 1.85, arbF: 0.12, arbR: 0.05, rcF: 0.07, rcR: 0.11, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.555, bias: 0.62, Ie: 0.17 },
     diff: { f: { pre: 20 }, c: { pre: 30, kv: 35 }, r: { pre: 40, kv: 40 } }, diffType: { f: 'Open', c: 'Epicyclic 34:66 with viscous coupling', r: 'Viscous limited slip' },
     note: 'Two thirds of the torque goes to the back, so this is the four-wheel-drive car that slides most like a rear-driven one. The long wheelbase and big wing make it planted at speed.' },
-  { id: 'kaiser_3r', name: 'Kaiser 3R', num: 14, drive: 'Rear-wheel drive, 75% limited slip', motor: '2.3-litre four, no turbo, about 305 hp', engine: 'Front longitudinal inline four, 16 valves, naturally aspirated, revs to 9,000', litres: 2.3,
+  // about 295 hp in its last rally form (as a works car's history tells it); its torque and rally weight were not published
+  { id: 'kaiser_3r', name: 'Kaiser 3R', num: 14, drive: 'Rear-wheel drive, 75% limited slip', motor: '2.3-litre four, no turbo, about 295 hp', engine: 'Front longitudinal inline four, 16 valves, naturally aspirated, revs to 9,000', litres: 2.3,
     mass: 1040, wf: 0.52, fs: 0, wb: 2.565, track: [1.46, 1.46], yawK: 1.12, lock: 0.58, idle: 1150, redline: 9000, cyl: 4,
-    tq: [[1000, 140], [3000, 215], [5000, 255], [6500, 280], [7500, 276], [8500, 255], [9000, 235]], na: 1, boost: 'na',
+    tq: [[1000, 140], [3000, 215], [5000, 255], [6500, 280], [7500, 276], [8500, 247], [9000, 228]], na: 1, boost: 'na',
     gears: [2.92, 2.05, 1.6, 1.3, 1.1], final: 4.9, len: 4.345, width: 1.68, tyres: [225, 225], aero: [0.71, -0.1, 0.55],
     susp: { fF: 2.1, fR: 2.0, arbF: 0.2, arbR: 0.05, rcF: 0.06, rcR: 0.12, camF: -1.6, camR: -1.1, gainF: -16, gainR: -14, hcg: 0.545, bias: 0.65, Ie: 0.13 },
     diff: { r: { pre: 60, ramp: 0.75 } }, diffType: { r: 'Mechanical ramp limited slip, 75% locking' },
     note: 'Rear drive and no turbo: a light, high-revving four with instant response, built for tarmac. Keep it above 6,000 rpm, and be gentle with the throttle on gravel.' },
-  { id: 'ronin_tx', name: 'Ronin TX', num: 15, drive: 'Four-wheel drive, 50:50, viscous diffs', motor: '2.0-litre turbo four, about 285 hp', engine: 'Front transverse inline four, 16 valves, turbocharged and intercooled', litres: 2.0,
+  // three-door hatch, the maker's figures for its works car: 3.975 m, wheelbase 2.43 m, 1.695 m, tracks 1.445 / 1.435 m,
+  // over 1,100 kg; 2,026 cc, 300 PS (296 hp) at 6,400 rpm and over 373 Nm at 4,800
+  { id: 'ronin_tx', name: 'Ronin TX', num: 15, drive: 'Four-wheel drive, 50:50, viscous diffs', motor: '2.0-litre turbo four, about 295 hp', engine: 'Front transverse inline four, 16 valves, turbocharged and intercooled', litres: 2.0,
     mass: 1110, wf: 0.62, fs: 0.5, wb: 2.43, track: [1.44, 1.43], yawK: 0.98, lock: 0.62, idle: 950, redline: 7300, cyl: 4,
-    tq: [[1000, 150], [2500, 290], [3500, 360], [4500, 360], [5500, 355], [6500, 315], [7300, 265]], na: 0.4, boost: 'turbo', spool: [2700, 4500], lag: 0.5, als: false,
+    tq: [[1000, 150], [2500, 290], [3500, 350], [4800, 373], [5500, 362], [6400, 328], [7300, 275]], na: 0.4, boost: 'turbo', spool: [2700, 4500], lag: 0.5, als: false,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.1, len: 3.975, width: 1.69, tyres: [205, 205], aero: [0.78, -0.05, 0.6],
     susp: { fF: 1.95, fR: 1.9, arbF: 0.11, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.555, bias: 0.63, Ie: 0.15 },
     diff: { f: { pre: 20 }, c: { pre: 30, kv: 40 }, r: { pre: 20, kv: 35 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Viscous limited slip' },
@@ -2346,8 +2364,9 @@ const CARS_F2 = [
 // breathing through the 34 mm intake restrictor, driving all four wheels, at the 1,230 kg minimum weight, on 15-inch gravel
 // wheels. Where no figure was published (most gear ratios and final drives, weight distribution, rev limits, some tracks
 // and heights) it is estimated from the class and the car's own figures and marked est.; gravel gearing (about 200-220
-// km/h at the limiter). A curve that follows a car's published torque can make more than its declared power (the
-// declared figures are round numbers); the torque is kept.
+// km/h at the limiter). A curve that follows a car's published torque can make a little more than its declared power
+// (the declared figures are round numbers); where it would make far more, the torque peak comes earlier instead. Each
+// turbo is on full boost by the car's published torque peak.
 // Fields as for the Group A and F2 cars; lever: 'paddle' for a semi-automatic box shifted by paddles behind the wheel.
 const WRC_SUSP = { fF: 1.9, fR: 1.85, travel: 0.16, droop: 0.15, arbF: 0.1, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.2, camR: -0.8, gainF: -12, gainR: -10, hcg: 0.48, bias: 0.62, Ie: 0.15 };
 // active differentials, as the simulation models them: clamped harder under power, with a viscous term
@@ -2366,10 +2385,10 @@ const CARS_WRC = [
     gears: [3.0, 2.071, 1.526, 1.13, 0.87], final: 5.04, len: 4.005, width: 1.77, aero: [0.86, 0.36, 0.42],
     note: 'The shortest car here, on the shortest wheelbase: it changes direction instantly and darts through hairpins, but it is busy over fast crests. Five close gears and a strong middle from 3,000 rpm.' }, { hcg: 0.485 }),
   // three-door coupe: 4.167 m, wheelbase 2.555 m, 1.77 m, 1.39 m tall; 1,998 cc, about 310 hp at 5,500 rpm and 575 Nm
-  // at only 2,750; a six-speed sequential; active front, centre and rear differentials. Tracks est. (the published
-  // 1.568 m would put the gravel tyres outside the arches), as are the ratios and final drive.
+  // at only 2,750 (its turbo on full boost by then); a six-speed sequential; active front, centre and rear differentials.
+  // Tracks est. (the published 1.568 m would put the gravel tyres outside the arches), as are the ratios and final drive.
   wrcSpec({ id: 'quintel_4t', name: 'Quintel 4T', num: 26, motor: '2.0-litre turbo four, about 310 hp', engine: 'Front transverse inline four, tilted back, 16 valves, belt-driven twin cams, turbocharged and intercooled, 34 mm intake restrictor', litres: 1.998,
-    wf: 0.57, wb: 2.555, track: [1.555, 1.555], yawK: 1.03,
+    wf: 0.57, wb: 2.555, track: [1.555, 1.555], yawK: 1.03, spool: [1600, 2750],
     tq: [[1000, 220], [2000, 450], [2750, 575], [3500, 545], [4500, 470], [5500, 401], [6500, 320], [7500, 255]],
     gears: WRC_GEARS6, final: 4.28, len: 4.167, width: 1.77, aero: [0.88, 0.38, 0.43],
     note: 'The most torque low down of the hatches: it pulls hard from 2,500 rpm, so it can be driven a gear high through tight sections. Long and steady on fast roads.' }, { hcg: 0.5 }),
@@ -2382,13 +2401,14 @@ const CARS_WRC = [
     gears: WRC_GEARS6, final: 4.34, len: 4.152, width: 1.77, aero: [0.92, 0.4, 0.42],
     note: 'The longest wheelbase and the most even weight distribution here: stable at speed and easy to balance on the throttle. It revs highest of these cars, and the paddles shift quickest.' }, { hcg: 0.51 }),
   // four-door saloon in its last form: 4.425 m, wheelbase 2.545 m, 1.80 m, 1.39 m tall; flat four, 1,994 cc (92 x 75 mm), 300 bhp
-  // declared at 5,500 rpm and 590 Nm at 4,000 (which means more than 330 hp, as the curve here makes); a six-speed
-  // sequential shifted by paddles; active front, centre and rear differentials. Tracks, ratios and final drive est.
-  wrcSpec({ id: 'acrobat_4t', name: 'Acrobat 4T', num: 28, motor: '2.0-litre turbo flat four, about 330 hp', engine: 'Front longitudinal flat four, 16 valves, belt-driven twin cams, turbocharged and intercooled, 34 mm intake restrictor', litres: 1.994,
+  // declared at 5,500 rpm and 590 Nm at 4,000, which cannot both hold (590 Nm at 4,000 rpm is 331 hp): the curve keeps
+  // both figures and has its torque peak at 3,500; a six-speed sequential shifted by paddles; active front, centre and
+  // rear differentials. Tracks, ratios and final drive est.
+  wrcSpec({ id: 'acrobat_4t', name: 'Acrobat 4T', num: 28, motor: '2.0-litre turbo flat four, about 300 hp', engine: 'Front longitudinal flat four, 16 valves, belt-driven twin cams, turbocharged and intercooled, 34 mm intake restrictor', litres: 1.994,
     wf: 0.55, wb: 2.545, track: [1.57, 1.57], yawK: 1.02, cyl: 4, flat: true, lever: 'paddle', shiftUp: 0.05, shiftDown: 0.045,
-    tq: [[1000, 210], [2000, 380], [3000, 520], [4000, 590], [4500, 520], [5000, 472], [5500, 431], [6500, 350], [7500, 280]],
+    tq: [[1000, 210], [2000, 380], [3000, 540], [3500, 590], [4000, 534], [4500, 475], [5000, 427], [5500, 388], [6500, 320], [7500, 260]],
     gears: WRC_GEARS6, final: 4.28, len: 4.425, width: 1.8, aero: [0.93, 0.42, 0.42],
-    note: 'The flat four sits low and the saloon is long: it turns in crisply, rolls least and has the most torque of all. The big boot wing keeps the rear planted on fast roads.' }, { hcg: 0.485 }),
+    note: 'The flat four sits low and the saloon is long: it turns in crisply, rolls least and pulls hard from 3,000 rpm. The big boot wing keeps the rear planted on fast roads.' }, { hcg: 0.485 }),
   // four-door saloon: 4.36 m, wheelbase 2.60 m, 1.77 m, tracks 1.55 m; 1,996 cc (85.5 x 86.9 mm), 300 PS at 5,500 rpm,
   // 539 Nm at 3,500; a five-speed sequential by lever; three passive mechanical differentials, an epicyclic centre.
   // Height, ratios and final drive est. (geared for its published 220 km/h).
@@ -2407,10 +2427,11 @@ const CARS_WRC = [
     gears: WRC_GEARS6, final: 3.83, len: 4.002, width: 1.77, aero: [0.92, 0.38, 0.42],
     note: 'A long-stroke engine with the most torque here, all of it low down: short-shift it, because it runs out of breath above 6,500 rpm. Short and tall, quick to turn.' }, { hcg: 0.51 }),
   // three-door coupe: 4.274 m, wheelbase 2.608 m, 1.80 m wide; 1,998 cc (85 x 88 mm), 315 hp at 5,500 rpm, 569 Nm at
-  // 2,750; a six-speed sequential shifted by paddles; mechanical front and rear differentials and an active centre.
-  // Height and tracks est. (the published 1.598 m would put the gravel tyres outside the arches), as are the ratios.
+  // 2,750 (its turbo on full boost by then); a six-speed sequential shifted by paddles; mechanical front and rear
+  // differentials and an active centre. Height and tracks est. (the published 1.598 m would put the gravel tyres outside
+  // the arches), as are the ratios.
   wrcSpec({ id: 'caspen_4t', name: 'Caspen 4T', num: 31, motor: '2.0-litre turbo four, about 315 hp', engine: 'Front transverse inline four, tilted back, 16 valves, belt-driven twin cams, turbocharged and intercooled, 34 mm intake restrictor', litres: 1.998,
-    drive: 'Four-wheel drive, 50:50, active centre differential', wf: 0.56, wb: 2.608, track: [1.585, 1.585], yawK: 1.05, lever: 'paddle', shiftUp: 0.05, shiftDown: 0.045,
+    drive: 'Four-wheel drive, 50:50, active centre differential', wf: 0.56, wb: 2.608, track: [1.585, 1.585], yawK: 1.05, spool: [1600, 2750], lever: 'paddle', shiftUp: 0.05, shiftDown: 0.045,
     tq: [[1000, 230], [2000, 460], [2750, 569], [3500, 548], [4500, 476], [5500, 408], [6500, 330], [7500, 262]],
     gears: WRC_GEARS6, final: 4.17, len: 4.274, width: 1.8, aero: [0.84, 0.42, 0.43],
     diff: { f: { pre: 50, ramp: 0.5 }, c: WRC_ACTIVE.c, r: { pre: 70, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip', c: 'Active multi-plate, 50:50, computer controlled', r: 'Mechanical plate limited slip' },
@@ -4714,7 +4735,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '942F';
+const SR86_BUILD = '1AA4';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -8937,7 +8958,7 @@ const GB_CARS = {
   },
   corbeau_maxi: {
     fit: { L: 3.7, W: 1.77, H: 1.32, lip: 0.075, src: '3,700 x 1,770 x 1,320 mm (rally-car data)' }, 
-    name: 'Corbeau Maxi', layout: 'Mid-engine turbo, rear-wheel drive', track: [1.46, 1.5], flare: 'round', rim: ['spokes', 4, '#c9c9c9'],
+    name: 'Corbeau Maxi', layout: 'Mid-engine turbo, rear-wheel drive', track: [1.39, 1.49], flare: 'round', rim: ['spokes', 4, '#c9c9c9'],
     livery: { base: '#24323a', band: '#e8762d', pin: '#f2f0ea', roof: '#e8762d', hood: '#e8762d' },
     ribs: [
       { z: 1.8, f: 0.28, s: 0.38, ws: 1.54, b: 0.64, wb: 1.5 },
@@ -11405,7 +11426,7 @@ const I4 = [0, 540, 180, 360], I4_TEETH = { cm: 23, teeth: [12, 16, 19, 22, 25, 
 const ENGINE_CFG = {
   // inline five firing 1-2-4-5-3 into a five-into-one manifold and a big turbo; anti-lag; belt-driven twin cams, 20 valves
   ardent_5t: { cyl: 5, fire: [0, 144, 576, 288, 432], prim: [0.42, 0.33, 0.26, 0.31, 0.44], bias: [0.05, -0.04, 0.02, -0.05, 0.03], cov: 0.05, lope: 0.45, rise: 4, decay: 30, flow: 0.3, turbo: 0.5, main: 2.4, mainLoss: 0.5, sil: [4200, 0.7], silMix: 0.55, emph: 0.55, steep: 0.25, als: 13, alsRpm: 3000, pop: 1,
-    intake: { L: 0.32, plenum: 180, boost: 1.1, whistle: [1800, 4300], flutter: 1, tc: { fH: 12, B: 3.6, D: 0.074, als: 0.03, tone: 0.7, sq: [3600, 0.6], wg: [50, 1.1] } }, mech: { vt: 'bucket', lash: 0.3, valve: 0.06, blk: 'iron', knock: 0.09, comp: 1, cam: ['belt', 20, 0.0032], inj: [3300, 0.045], fp: [380, 0.0011], cm: 21, teeth: [12, 16, 19, 22, 25], pinion: 9, whine: 0.9 }, pos: 'front', exit: 'side', trim: [1.22, 2.87, 3.07, 1.72] },
+    intake: { L: 0.32, plenum: 180, boost: 1.1, whistle: [1800, 4300], flutter: 1, tc: { fH: 12, B: 3.6, D: 0.074, als: 0.03, tone: 0.7, sq: [3600, 0.6], wg: [50, 1.1] } }, mech: { vt: 'bucket', lash: 0.3, valve: 0.06, blk: 'iron', knock: 0.09, comp: 1, cam: ['belt', 20, 0.0032], inj: [3300, 0.045], fp: [380, 0.0011], cm: 21, teeth: [12, 16, 19, 22, 25, 27], pinion: 9, whine: 0.9 }, pos: 'front', exit: 'side', trim: [1.22, 2.87, 3.07, 1.72] },
   // four with 4-2-1 headers and a Roots blower (two-lobe rotors, about 1.3 times crank speed) with its relief valve;
   // belt-driven twin cams; dry sump
   vespera_sc: { cyl: 4, fire: I4, prim: [0.78, 0.78, 0.78, 0.78], bank: [0, 1, 1, 0], sec: [0.5, 0.5], bias: [0.02, -0.02, 0.01, -0.01], cov: 0.04, lope: 0.55, rise: 3, decay: 24, flow: 0.25, turbo: 0, main: 1.6, mainLoss: 0.45, sil: [5000, 0.7], silMix: 0.6, emph: 0.6, steep: 0.3, als: 0, pop: 0.8,
