@@ -2733,7 +2733,8 @@ function idleTorque(c, S, thr, dt, fr) {
   h.tt -= dt; if (h.tt <= 0) { h.tt = 0.25 + 0.6 * Math.random(); h.wt = Math.random() * 2 - 1; h.f = 0.75 + 0.5 * Math.random(); }
   h.w += (h.wt - h.w) * Math.min(1, dt / 0.6); h.ph = (h.ph + dt * I.hz * h.f) % 1;
   const tgt = I.rpm * (c.flare || 1) + I.amp * (0.7 * Math.sin(2 * Math.PI * h.ph) + 0.5 * h.w);
-  return Math.max(0, fr + I.k * (tgt - c.rpm)) * (1 - thr / 0.3);
+  // (just after it fires from the starter the engine has only the air its idle passage lets by: catchCap, N m net)
+  const T = Math.max(0, fr + I.k * (tgt - c.rpm)); return (c.catchCap != null ? Math.min(T, fr + c.catchCap) : T) * (1 - thr / 0.3);
 }
 // the rev limiter, by era [share of the torque it cuts, how long each cut lasts (s)]: today's Rally2 engines cut the
 // spark to some cylinders at a time and hover at the limit in a fast stutter; the World Rally engines cut most of them;
@@ -4834,7 +4835,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '177D';
+const SR86_BUILD = '5921';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -11958,7 +11959,7 @@ const ENGINE_SND = {
   vireo_4t: { k0: 4, rough: 0.28, low: 0.4, bright: 0.94, drive: 3.6, pipe: 228, pipeQ: 1.5, rasp: [2300, 0.11], boom: 0.08, whoosh: 0.14, whistle: 0.05, sc: 0, chatter: 1.0, idle: 0.06, bang: [1050, 1.0, 0.6] },
   quintel_4t: { k0: 4, rough: 0.26, low: 0.46, bright: 0.88, drive: 3.5, pipe: 205, pipeQ: 1.45, rasp: [2100, 0.11], boom: 0.1, whoosh: 0.15, whistle: 0.05, sc: 0, chatter: 1.0, idle: 0.06, bang: [950, 1.0, 0.6] },
   brenik_4t: { k0: 4, rough: 0.27, low: 0.38, bright: 0.98, drive: 3.7, pipe: 240, pipeQ: 1.55, rasp: [2450, 0.11], boom: 0.07, whoosh: 0.14, whistle: 0.05, sc: 0, chatter: 1.0, idle: 0.06, bang: [1100, 1.0, 0.6] },
-  acrobat_4t: { k0: 4, rough: 0.28, low: 0.44, bright: 0.88, drive: 3.4, pipe: 210, pipeQ: 1.45, rasp: [2100, 0.11], boom: 0.1, whoosh: 0.13, whistle: 0.04, sc: 0, chatter: 1.0, idle: 0.08, bang: [820, 1.0, 0.6] },
+  acrobat_4t: { k0: 4, burble: 0.45, rough: 0.36, low: 0.78, bright: 0.72, drive: 3.4, pipe: 168, pipeQ: 1.3, rasp: [1600, 0.1], boom: 0.16, whoosh: 0.13, whistle: 0.04, sc: 0, chatter: 1.0, idle: 0.08, bang: [820, 1.0, 0.6] },
   katana_4t: { k0: 4, rough: 0.28, low: 0.4, bright: 0.94, drive: 3.8, pipe: 225, pipeQ: 1.5, rasp: [2250, 0.12], boom: 0.08, whoosh: 0.14, whistle: 0.05, sc: 0, chatter: 1.0, idle: 0.06, bang: [1080, 1.0, 0.6] },
   halvik_4t: { k0: 4, rough: 0.3, low: 0.5, bright: 0.84, drive: 3.5, pipe: 198, pipeQ: 1.4, rasp: [2000, 0.11], boom: 0.11, whoosh: 0.15, whistle: 0.05, sc: 0, chatter: 1.0, idle: 0.065, bang: [920, 1.0, 0.6] },
   caspen_4t: { k0: 4, rough: 0.26, low: 0.42, bright: 0.92, drive: 3.6, pipe: 218, pipeQ: 1.5, rasp: [2200, 0.11], boom: 0.09, whoosh: 0.15, whistle: 0.05, sc: 0, chatter: 1.0, idle: 0.06, bang: [1000, 1.0, 0.6] },
@@ -12312,10 +12313,139 @@ function EngineDSPDef() {
       return (tone * 0.065 + air * 0.5) * this.gW + sg * this.gS + vs * this.gV + sq * 0.2;
     }
   }
+  // ---- the starter ----
+  // By kind (each car's own figures, in its st, take their place): dd, the motor's pinion straight onto the flywheel's
+  // ring gear, a big slow series-wound armature (the engines of the 1970s and early 1980s); red, a small fast
+  // series-wound motor geared down about 3.5 to 1 behind its pinion (the reduction starters of the 1980s and 1990s);
+  // pm, permanent magnets and a planetary gear, about 4.6 to 1 (from 1982); race, the light, high-torque planetary
+  // starters rally cars carry. ring, pin: the teeth of the flywheel's ring gear and of the pinion; red: the gearing
+  // inside (armature turns per pinion turn); Ja: the armature's inertia (kg m2); bars: the commutator's bars; gt: the
+  // teeth of the gear on the armature's shaft; series: a series-wound field (its torque falls away steeply as it speeds
+  // up) or magnets (a straight line); br: the band the brushes hiss in (Hz); modes: the housing's ringing (Hz) that a
+  // knock in it sets off
+  const STARTER = {
+    dd: { ring: 132, pin: 10, red: 1, Ja: 1.0e-3, bars: 30, gt: 0, series: 1, br: 2400, modes: [700, 1550, 2650] },
+    red: { ring: 132, pin: 10, red: 3.5, Ja: 2.8e-4, bars: 22, gt: 10, series: 1, br: 3400, modes: [950, 2100, 3500] },
+    pm: { ring: 132, pin: 10, red: 4.6, Ja: 1.7e-4, bars: 16, gt: 12, series: 0, br: 3800, modes: [1050, 2300, 3800] },
+    race: { ring: 132, pin: 10, red: 4.6, Ja: 1.2e-4, bars: 16, gt: 12, series: 0, br: 4200, modes: [1250, 2700, 4300] }
+  };
+  // The starter turning the engine over. Its armature drives the crank through the pinion's overrunning clutch: the
+  // motor's torque (falling as it speeds up) against each cylinder's air - shut in as its inlet valve closes (later with
+  // a racing cam, so less of it), squeezed to top centre and let out again a little weaker (heat lost into the walls,
+  // air past the rings) - and the engine's friction. The crank slows into each compression and is thrown on after top
+  // centre: with a light flywheel it runs ahead of the starter, the clutch slipping, until the next compression slows
+  // it below the armature, when the clutch takes up its lash and locks with a knock. An engine that has stood has let
+  // the air in its shut cylinders down, so the first compression is a soft one. The solenoid's plunger throws the pinion
+  // into mesh (its pull-in winding turning the motor gently so the teeth find each other) and, about 25 ms on, closes
+  // the motor's contacts with a clack; let go, its spring pulls the pinion back out (a lighter clack) and the armature
+  // runs down. Once the engine fires, a pinion still in mesh is spun by the ring gear far faster than the motor drives
+  // it, its clutch overrunning with a whirr. What is heard: the commutator's whine (its bars times the armature's
+  // speed) and the brushes' hiss, both with the current the motor draws, so loudest as each compression loads it; the
+  // armature's hum; the reduction gear's mesh and the pinion's mesh on the ring gear with the torque through them (with
+  // its lash right, barely there); the clutch's knocks and the solenoid's clacks ringing the housing.
+  class Starter {
+    constructor(sr, K, Tst) {
+      const T = Object.assign({}, STARTER[(K.st && K.st.kind) || 'dd'] || STARTER.dd, K.st || {}), n = K.cyl, L = K.litres || 2, Vd = L / 1000 / n, Vc = Vd / ((T.cr || 9.5) - 1), lam = 0.3;
+      this.T = T; this.sr = sr; this.n = n; this.fire = K.fire; this.kL = 0.86; this.p0 = 1e5;
+      const ivc = T.ivc != null ? T.ivc : 40 + 45 * (K.lope != null ? K.lope : 0.3), evo = 50, nP = 1.2;
+      const Vof = a => { const r = a * Math.PI / 180, s = Math.sin(r); return Vc + Vd / 2 * (1 - Math.cos(r) + (1 - Math.sqrt(1 - lam * lam * s * s)) / lam); };
+      const dVof = a => { const r = a * Math.PI / 180, s = Math.sin(r), c = Math.cos(r); return Vd / 2 * (s + lam * s * c / Math.sqrt(1 - lam * lam * s * s)); };
+      // per half degree of a cylinder's own cycle (from its firing top centre): (V as the inlet valve shuts / V) to the
+      // power 1.2 while its valves are shut (SH: 1 squeezing, 2 letting out), and how fast its volume changes (m3/rad)
+      const Vi = Vof(180 + ivc), N = 1440; this.PR = new Float32Array(N + 2); this.DV = new Float32Array(N + 2); this.SH = new Uint8Array(N + 2);
+      for (let i = 0; i < N + 2; i++) { const a = (i / 2) % 720, sh = a >= 540 + ivc ? 1 : a < 180 - evo ? 2 : 0; this.SH[i] = sh; this.PR[i] = sh ? Math.pow(Vi / Vof(a), nP) : 1; this.DV[i] = dVof(a); }
+      this.G = T.ring / T.pin * T.red; this.Js = T.Ja * this.G * this.G; this.Ie = K.Ie || 0.09; this.Tf0 = 2.0e5 * L / 1000 / (4 * Math.PI); this.wT = (T.rpm || 220) * Math.PI / 30;
+      this.f = new Float32Array(n).fill(1); this.was = new Uint8Array(n);
+      // where an engine comes to rest: where the air in one cylinder pushing back balances the next
+      this.th0 = 0; for (let a = 1; a < 720; a++) if (this.gas(a - 1) > 0 && this.gas(a) <= 0) { this.th0 = a; break; }
+      this.wc = 0; this.wa = 0; this.lock = true; this.d = 0; this.Ttr = 0; this.Tm = 0; this.Tst = Tst || Starter.tst(K);
+      this.Tr = this.motor(this.wT); // (the motor's torque at its cranking speed)
+      this.on = 0; this.tS = 0; this.mesh = 0; this.drive = false; this.busy = false; this.rpmC = 0;
+      this.phC = 0; this.phA = 0; this.phR = 0; this.phG = 0; this.phO = 0; this.kn = 0; this.knD = Math.exp(-1 / (0.0007 * sr)); this.cl = 0; this.clD = Math.exp(-1 / (0.0004 * sr));
+      this.seed = 0x51a7e ^ (n * 131); this.lp = 0; this.aL = 1 - Math.exp(-TAU * 6500 / sr);
+      this.brBP = new BQ().set('bp', T.br, 1.1, sr); this.gwBP = new BQ().set('bp', T.modes[0] * 1.3, 0.9, sr); this.md = T.modes.map((f, k) => new BQ().set('bp', f, 9 + 4 * k, sr)); this.cm = [new BQ().set('bp', 3300, 9, sr), new BQ().set('bp', 5600, 12, sr)];
+    }
+    nz() { let s = this.seed; s ^= s << 13; s ^= s >>> 17; s ^= s << 5; this.seed = s >>> 0; return this.seed / 2147483648 - 1; }
+    motor(w) { return this.T.series ? this.Tst / Math.pow(1 + Math.max(0, w) / (0.69 * this.wT), 2) : this.Tst * Math.max(0, 1 - w / (1.6 * this.wT)); }
+    // the air's torque on the crank at th (crank degrees in the cycle), each cylinder's air by its share f
+    gas(th) {
+      let t = 0; const PR = this.PR, DV = this.DV, SH = this.SH, kL = this.kL;
+      for (let c = 0; c < this.n; c++) { let a = th - this.fire[c]; a -= 720 * Math.floor(a / 720); const x = a * 2, i = x | 0, u = x - i, sh = SH[i]; if (!sh) continue;
+        t += this.p0 * ((PR[i] + (PR[i + 1] - PR[i]) * u) * this.f[c] * (sh === 2 ? kL : 1) - 1) * (DV[i] + (DV[i + 1] - DV[i]) * u); }
+      return t;
+    }
+    // an engine that has stood: the air in each cylinder whose valves are shut is down to the air's pressure
+    rest(th) { for (let c = 0; c < this.n; c++) { let a = th - this.fire[c]; a -= 720 * Math.floor(a / 720); const i = Math.round(a * 2) % 1440, sh = this.SH[i]; this.f[c] = sh ? 1 / (this.PR[i] * (sh === 2 ? this.kL : 1)) : 1; this.was[c] = sh ? 1 : 0; } }
+    // the crank and the armature through dt, the motor given k of its current (the pull-in winding's trickle, or all);
+    // returns the speed a knock locked the clutch at (crank rad/s)
+    phys(dt, th, k) {
+      for (let c = 0; c < this.n; c++) { let a = th - this.fire[c]; a -= 720 * Math.floor(a / 720); const sh = this.SH[(a * 2) | 0] ? 1 : 0; if (sh && !this.was[c] && a >= 540) this.f[c] = 1; this.was[c] = sh; } // (an inlet valve shutting again: a full charge)
+      const Ts = this.motor(this.wa) * k, g = this.gas(th), wc = this.wc, Tf = this.Tf0 * (1 + 0.25 * wc / 25), Ie = this.Ie, Js = this.Js; let v = 0; this.Tm = Ts;
+      if (this.lock) {
+        if (wc < 1e-4 && Math.abs(Ts + g) < this.Tf0 * 1.6) { this.wc = 0; this.wa = 0; this.Ttr = Ts; } // (not yet moving: the friction holding it)
+        else { const acc = (Ts + g - Tf) / (Ie + Js), Ttr = Ts - Js * acc; if (Ttr < 0 && wc > 0.3) { this.lock = false; this.d = 0; } else { this.wc = Math.max(0, wc + acc * dt); this.wa = this.wc; this.Ttr = Ttr; } }
+      }
+      if (!this.lock) {
+        this.Ttr = 0; this.wc = Math.max(0, wc + (g - Tf) / Ie * dt); this.wa += (Ts - 0.02 * this.Tf0) / Js * dt;
+        if (this.wa > this.wc) this.d += (this.wa - this.wc) * dt; else this.d = 0; // (the lash in the rollers and the teeth, about a sixth of a degree)
+        if (this.d >= 0.003) { v = this.wa - this.wc; const e = 0.2, P = Ie * this.wc + Js * this.wa, w2 = (P + Js * e * v) / (Ie + Js); this.wc = w2; this.wa = w2 - e * v; this.d = 0; this.lock = true; }
+      }
+      return v;
+    }
+    // the mean cranking speed (rpm) a stall torque gives, turning the engine over from rest for dur s
+    sim(Tst, dur, dt) {
+      this.Tst = Tst; this.wc = 0; this.wa = 0; this.lock = true; this.d = 0; let th = this.th0; this.rest(th); let sum = 0, cnt = 0;
+      for (let t = 0; t < dur; t += dt) { this.phys(dt, th, t < 0.025 ? 0.06 : 1); th += this.wc * 180 / Math.PI * dt; th -= 720 * Math.floor(th / 720); if (t > dur - 0.5) { sum += this.wc; cnt++; } }
+      return sum / cnt * 30 / Math.PI;
+    }
+    // the stall torque (N m at the crank) that turns this engine over at its cranking speed
+    static tst(K) { const s = new Starter(6000, K, 1), want = s.T.rpm || 220; let lo = 5, hi = 5000; for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (s.sim(m, 1.2, 1 / 6000) < want) lo = m; else hi = m; } return (lo + hi) / 2; }
+    // a knock or a clack (a: its strength; c: the solenoid's own ring as well)
+    hit(a, c) { if (a > this.kn) this.kn = a; if (c && a > this.cl) this.cl = a; }
+    // one sample: st the starter switched on, crank the engine not running (the starter turning it), th the crank's angle
+    // (deg) and rpm its speed as the engine model has them, rpmG the game's (where the crank is when the starter takes it:
+    // below 150 rpm, standing). Returns the starter's sound; while it turns the engine over, rpmC is the crank's speed
+    run(st, crank, th, rpm, rpmG) {
+      const sr = this.sr, dt = 1 / sr, T = this.T;
+      if (st && !this.on) { this.on = 1; this.tS = 0; this.mesh = 0; this.hit(0.1, 1); } // (the plunger moving off)
+      else if (!st && this.on) { this.on = 0; if (this.mesh) this.hit(0.45, 1); this.mesh = 0; } // (let go: the pinion pulled back out)
+      if (this.on) { this.tS += dt; if (!this.mesh && this.tS >= 0.025) { this.mesh = 1; this.hit(0.8, 1); } } // (in mesh, the contacts closed: the clack)
+      const drive = !!(this.on && crank);
+      if (drive && !this.drive) { this.wc = rpmG < 150 ? 0 : rpmG * Math.PI / 30; this.wa = Math.max(this.wa, this.wc); this.lock = true; this.d = 0; if (this.wc < 2) { this.rest(th); this.fresh = true; } else this.f.fill(1); }
+      this.drive = drive; let wr = rpm * Math.PI / 30, over = 0;
+      if (drive) { const v = this.phys(dt, th, this.mesh ? 1 : 0.06); if (v > 0) this.hit(Math.min(1, v / 4) * 0.55, 0); this.rpmC = this.wc * 30 / Math.PI; wr = this.wc; }
+      else if (this.on) { const Ts = this.motor(this.wa) * (this.mesh ? 1 : 0.06); this.wa += (Ts - 0.02 * this.Tf0) / this.Js * dt; this.Tm = Ts; this.Ttr = 0; over = this.mesh ? Math.max(0, wr - this.wa) : 0; } // (the engine running: the armature runs up unloaded, the pinion overruns)
+      else { this.wa = Math.max(0, this.wa - (this.wa * 2.2 + 0.4) * dt); this.Tm = 0; this.Ttr = 0; } // (switched off: the armature runs down)
+      this.busy = this.on || this.wa > 0.05 || this.kn > 1e-4;
+      // ---- what it sounds like ----
+      const fA = this.wa * this.G / TAU, cur = T.series ? Math.sqrt(Math.max(0, this.Tm) / this.Tst) : Math.max(0, this.Tm) / this.Tst + (this.on ? 0.05 : 0);
+      this.phC += fA * T.bars * dt; this.phC -= Math.floor(this.phC); this.phA += fA * dt; this.phA -= Math.floor(this.phA);
+      const ld = this.mesh ? Math.min(2, Math.max(0, this.Ttr) / this.Tr) : 0, fR = (this.mesh ? wr : 0) / TAU * T.ring;
+      this.phR += fR * dt; this.phR -= Math.floor(this.phR);
+      let s = 0; const nz = this.nz(), nz2 = this.nz();
+      // the commutator's whine and the brushes' hiss, with the current; the armature's hum
+      const fw = fA * T.bars, fade = fw < 9000 ? 1 : Math.max(0, (14000 - fw) / 5000);
+      s += (sn(this.phC) + 0.45 * sn(2 * this.phC) + 0.2 * sn(3 * this.phC)) * cur * fade * 0.045;
+      s += this.brBP.run(nz) * cur * (0.6 + 0.4 * sn(this.phC)) * Math.min(1, fA / 30) * 0.12;
+      const hum = Math.min(1, this.wa / this.wT); s += (sn(this.phA) * 0.6 + sn(2 * this.phA) * 0.4) * hum * hum * 0.04;
+      // the load through the gears shaking the starter and the block: a growl that swells into each compression
+      s += this.gwBP.run(nz2) * Math.pow(Math.min(1.5, ld), 0.8) * 0.22;
+      // the reduction gear's mesh
+      if (T.gt) { this.phG += fA * T.gt * (T.series ? 1 : 1 - 1 / T.red) * dt; this.phG -= Math.floor(this.phG); s += (sn(this.phG) + 0.35 * sn(2 * this.phG)) * (0.15 + 0.85 * Math.min(1.5, ld)) * Math.min(1, fA / 40) * 0.03; }
+      // the pinion's mesh on the ring gear, with the torque through it (its lash right, barely there)
+      s += (sn(this.phR) + 0.4 * sn(2 * this.phR) + 0.2 * sn(3 * this.phR)) * Math.pow(ld, 0.8) * (1 + 0.35 * nz) * 0.05;
+      // the clutch overrunning once the engine fires, its rollers whirring
+      if (over > 0) { this.phO += over * (T.ring / T.pin) / TAU * 5 * dt; this.phO -= Math.floor(this.phO); s += (sn(this.phO) * 0.6 + this.brBP.run(nz * 0.5) * 0.5) * Math.min(1, over / 60) * 0.03; }
+      // knocks and clacks ringing the housing (and the solenoid's own ring)
+      if (this.kn > 1e-4) { const x = this.nz() * this.kn; this.kn *= this.knD; s += (this.md[0].run(x) + 0.8 * this.md[1].run(x) + 0.5 * this.md[2].run(x)) * 0.9; }
+      if (this.cl > 1e-4) { const x = this.nz() * this.cl; this.cl *= this.clD; s += (this.cm[0].run(x) + 0.7 * this.cm[1].run(x)) * 0.6; }
+      this.lp += (s - this.lp) * this.aL; return this.lp * 0.16; // (heard from outside, about 8 dB(A) under a rally car's idle)
+    }
+  }
   class EngineDSP {
     constructor(sr, cfg) {
       this.sr = sr; this.cfg = cfg; this.seed = 0x9e3779b9 ^ ((cfg.cyl * 7919) >>> 0); const K = cfg, n = K.cyl, M = K.mech, I = K.intake;
-      this.P = { rpm: 900, thr: 0, load: 0, spool: 0, sc: 0, gear: 0, tq: 0, wheel: 0, cut: 0, on: 1, mis: 0, wet: 0, leak: 0, chip: 0, crack: 0 };
+      this.P = { rpm: 900, thr: 0, load: 0, spool: 0, sc: 0, gear: 0, tq: 0, wheel: 0, cut: 0, on: 1, mis: 0, wet: 0, leak: 0, chip: 0, crack: 0, st: 0, crank: 0 };
       // water: cylinders that failed to fire this cycle (a wet ignition, a charge quenched by water), and the tailpipe under
       // water - the exhaust gurgling out in bubbles (each a burst of low noise, its pitch by its size) and the note muffled
       this.misC = new Uint8Array(cfg.cyl); this.bub = 0; this.bubBP = new BQ().set('bp', 260, 1.2, sr); this.bubD = Math.exp(-1 / (0.035 * sr)); this.wz = 0; this.wz2 = 0; this.wA = 1 - Math.exp(-TAU * 260 / sr);
@@ -12351,6 +12481,7 @@ function EngineDSPDef() {
       this.plen = I.plenum ? new BQ().set('bp', I.plenum, 1.6, sr) : null; this.hiss = new BQ().set('bp', 2200, 0.9, sr);
       this.phS = 0; this.hpI = 0; this.hpIx = 0; this.popBP = new BQ().set('bp', 1900, 0.9, sr);
       // the turbocharger (see Turbo), and its wastegate: how far open, and the hiss of the exhaust through it
+      this.stt = K.st ? new Starter(sr, K, K.st.Tst) : null; // (the starter: see Starter)
       this.tb = I.boost && I.whistle ? new Turbo(sr, K) : null; this.wg = 0; this.wgBP = new BQ().set('bp', 2600, 0.9, sr); this.ckBP = new BQ().set('bp', 2200, 0.7, sr); this.chHP = 0; this.chA = 1 - Math.exp(-TAU * 220 / sr);
       // the wastegate itself: a poppet on its spring and actuator, drawn to where the boost control wants it (flat out,
       // open enough to hold full boost) and blown off its seat by each spike of pressure in the manifold - anti-lag's
@@ -12424,7 +12555,7 @@ function EngineDSPDef() {
       for (let j = 0, m = 2 + (this.rnd() * 3 | 0); j < m; j++) for (let q = 0; q < 8; q++) if (this.rq[q] <= 0) { this.rq[q] = 1e-5 + gap * this.rnd(); this.ra[q] = k * (0.05 + 0.2 * this.rnd() * this.rnd()); this.rqN++; break; }
     }
     // a valve lifting or seating: its tick, louder with revs, scattered by the lash
-    click(a) { const v = a * (0.3 + 0.7 * this.rpm / this.cfg.red) * (1 + (this.cfg.mech.lash || 0.2) * this.nz()); if (v > this.clk) this.clk = v; }
+    click(a) { const v = a * (0.3 + 0.7 * this.rpm / this.cfg.red) * Math.pow(Math.min(1, this.rpm / (0.8 * (this.cfg.idle || 950))), 1.2) * (1 + (this.cfg.mech.lash || 0.2) * this.nz()); if (v > this.clk) this.clk = v; } // (below idle, turned over by the starter, the valves land softly)
     coef() {
       const sr = this.sr, K = this.cfg, I = K.intake, dps = Math.max(300, this.rpm) * 6; // crank degrees per second
       const aR = Math.exp(-1 / (K.rise / dps * sr)), aD = Math.exp(-1 / (K.decay / dps * sr)); this.aR = aR; this.aD = aD;
@@ -12445,7 +12576,8 @@ function EngineDSPDef() {
         const f = 220 + 520 * this.jUm; this.jt1.set('bp', f, 0.7, sr); this.jt2.set('bp', 3.3 * f, 0.6, sr); }
       // the turbo; its wastegate opens to hold full boost, the more the higher the revs (more exhaust than the turbine needs)
       // (off the throttle it sits on its seat: only the manifold's spikes lift it)
-      if (this.tb) { this.tb.ctl(32 / sr, this.spool, this.thr, this.rpm / K.red, this.alsOn, this.P.on, this.P.leak, this.P.chip); this.wgT = Math.max(Math.max(0, Math.min(1, (this.spool - 0.9) / 0.1)) * Math.max(0, Math.min(1, (this.rpm / K.red - 0.45) / 0.45)) * this.thr, 0); }
+      if (this.tb) { this.tb.n0 = this.stt && this.stt.drive ? 0.02 : 0.2; // (an engine being cranked pumps next to no exhaust: the rotor stands)
+        this.tb.ctl(32 / sr, this.spool, this.thr, this.rpm / K.red, this.alsOn, this.P.on, this.P.leak, this.P.chip); this.wgT = Math.max(Math.max(0, Math.min(1, (this.spool - 0.9) / 0.1)) * Math.max(0, Math.min(1, (this.rpm / K.red - 0.45) / 0.45)) * this.thr, 0); }
       // the driveline's slack: when the torque through it turns round (on the throttle after a lift, off it after a pull)
       // the splines, dogs and the differentials' gears close their gaps the other way with a clunk
       const tq = this.P.tqs || 0; if (this.lashT > 0) this.lashT -= 32 / sr;
@@ -12496,7 +12628,11 @@ function EngineDSPDef() {
           // how near idle the engine sits with the throttle shut
           this.iK = this.thr < 0.08 ? Math.max(0, Math.min(1, 1 - (this.rpm - idle) / (idle * 0.6))) : 0;
         }
-        this.rpm += (P.rpm - this.rpm) * kS; this.thr += (P.thr - this.thr) * kT; this.load += (P.load - this.load) * kT; this.spool += (P.spool - this.spool) * kB; this.scB += (P.sc - this.scB) * kT;
+        // (while the starter turns the engine over, the crank's speed is its own: see Starter)
+        let sts = 0; if (this.stt && (P.st || this.stt.busy)) sts = this.stt.run(P.st, P.crank && on, this.th, this.rpm, P.rpm);
+        if (this.stt && this.stt.fresh) { this.stt.fresh = false; if (this.tb) { const t = this.tb; t.n = t.nt = 0.02; t.psi = 0; t.phi = 0.02; } } // (from standing: the turbo's rotor and its air at rest too)
+        if (this.stt && this.stt.drive) this.rpm = this.stt.rpmC; else this.rpm += (P.rpm - this.rpm) * kS;
+        this.thr += (P.thr - this.thr) * kT; this.load += (P.load - this.load) * kT; this.spool += (P.spool - this.spool) * kB; this.scB += (P.sc - this.scB) * kT;
         this.tq += (P.tq - this.tq) * kT; this.wheel += (P.wheel - this.wheel) * kT;
         const rpm = this.rpm, rn = rpm / red;
         // turn the crank and fire whatever events it passes (the revs hunting about idle come from the game's engine, see
@@ -12596,7 +12732,7 @@ function EngineDSPDef() {
           this.phD += this.wheel * (K.final || 4.8) * M.pinion / sr; if (this.phD > 1) this.phD -= 1; gear += sn(this.phD) * 0.25 * M.whine * Math.min(1, this.wheel / 25) * (0.3 + 0.7 * Math.abs(this.tq));
         }
         let fan = 0; if (M.fan) { this.phFan += rpm / 60 * M.fan[0] * M.fan[1] / sr; if (this.phFan > 1) this.phFan -= 1; fan = (sn(this.phFan) * 0.5 + this.fanBP.run(this.nz()) * 1.4) * rn * rn * M.fan[2]; }
-        const mo = click * M.valve * 2.5 + block * M.knock * (0.3 + rn) * 7 + fan * 0.05 + cd + tick + pumps; this.lm += (mo - this.lm) * this.aY; o2[s] = this.lm * K.trim[2] * (on ? 1 : 0.15);
+        const mo = click * M.valve * 2.5 + block * M.knock * (0.3 + rn) * 7 + fan * 0.05 + cd + tick + pumps; this.lm += (mo - this.lm) * this.aY; o2[s] = this.lm * K.trim[2] * (on ? 1 : 0.15) + sts;
         // ---- gearbox and driveline ----
         if (this.dogT > 0 && (this.dogT -= 1 / sr) <= 0) { this.kick(this.dogA * this.box.clack); this.thE = Math.max(this.thE, this.dogA * 0.7); }
         if (this.shCut > 0) this.shCut -= 1 / sr;
@@ -12610,6 +12746,7 @@ function EngineDSPDef() {
       }
     }
   }
+  EngineDSP.Starter = Starter; // (the main thread works out each starter's torque: Starter.tst)
   return EngineDSP;
 }
 
@@ -12739,9 +12876,12 @@ const ENGINE_CFG = {
   // iron block, belt-driven cams, the highest revs of these; paddle-shifted six-speed
   brenik_4t: { cyl: 4, fire: I4, prim: [0.3, 0.24, 0.24, 0.3], bias: [0.03, -0.03, 0.02, -0.02], cov: 0.05, lope: 0.22, rise: 3.9, decay: 28, flow: 0.31, turbo: 0.6, main: 3.4, mainLoss: 0.5, sil: [3100, 0.7], silMix: 0.46, emph: 0.53, steep: 0.21, als: 12, alsRpm: 2600, pop: 1,
     intake: { L: 0.29, plenum: 210, boost: 1, whistle: [2600, 6200], flutter: 0.9, tc: { Z: 5, fH: 27, B: 2.5, D: 0.048, als: 0.035, tone: 1.5, sq: [7600, 1.0] } }, mech: { vt: 'bucket', lash: 0.2, valve: 0.05, blk: 'iron', knock: 0.08, comp: 1, cam: ['belt', 21, 0.0032], inj: [3300, 0.045], fp: [380, 0.0011], cm: 22, teeth: [12, 15, 18, 21, 24, 27], pinion: 10, whine: 1.45 }, pos: 'front', exit: 'rear', trim: [1.90, 2.50, 3.10, 1.73] },
-  // flat four firing 1-3-2-4 through long equal-length headers paired into a twin-scroll turbo (1 with 2, 3 with 4):
-  // the road car's off-beat rumble is gone
-  acrobat_4t: { cyl: 4, fire: [0, 360, 180, 540], prim: [0.62, 0.62, 0.62, 0.62], bank: [0, 0, 1, 1], sec: [0.28, 0.28], bias: [0.03, -0.02, 0.02, -0.03], cov: 0.052, lope: 0.25, rise: 4, decay: 30, flow: 0.3, turbo: 0.6, main: 3.4, mainLoss: 0.5, sil: [2700, 0.7], silMix: 0.42, emph: 0.5, steep: 0.2, als: 13, alsRpm: 2400, pop: 1,
+  // flat four firing 1-3-2-4 (the right bank's two cylinders, then the left bank's two) into a twin-scroll turbo, the
+  // cylinders 360 degrees apart paired in each scroll (1 with 2, 3 with 4) on long near-equal pipes: the two banks'
+  // pipes cannot take the same shape, so the left bank's run a little longer and their pulses come a little softer.
+  // Every other pair of pulses differing makes the half orders, the flat four's rumble: softer than the road car's
+  // unequal headers on the Acrobat 2T, which the works cars' equal-length manifolds took away from 1997
+  acrobat_4t: { cyl: 4, fire: [0, 360, 180, 540], prim: [0.76, 0.96, 0.8, 0.98], primLP: [8000, 2500, 8000, 2300], bank: [0, 0, 1, 1], sec: [0.16, 0.19], gP: -0.45, bias: [0.17, -0.16, 0.16, -0.17], cov: 0.052, lope: 0.25, rise: 4, decay: 30, flow: 0.3, turbo: 0.6, main: 3.4, mainLoss: 0.5, sil: [2700, 0.7], silMix: 0.42, emph: 0.5, steep: 0.2, als: 13, alsRpm: 2400, pop: 1,
     intake: { L: 0.34, plenum: 175, boost: 1, whistle: [2500, 6000], flutter: 0.9, tc: { fH: 19, B: 2.8, D: 0.062, als: 0.04, tone: 0.8, sq: [5800, 0.6] } }, mech: { vt: 'bucket', lash: 0.2, valve: 0.05, blk: 'alloy', knock: 0.08, comp: 1, cam: ['belt', 22, 0.0035], inj: [3300, 0.045], fp: [380, 0.0011], cm: 23, teeth: [12, 16, 19, 22, 25, 27], pinion: 10, whine: 1.35 }, pos: 'front', exit: 'rear', trim: [1.37, 2.45, 3.01, 1.73] },
   // iron block with balance shafts, roller rockers, a single-scroll turbo; a five-speed box
   katana_4t: { cyl: 4, fire: I4, prim: [0.34, 0.27, 0.27, 0.34], bias: [0.03, -0.03, 0.02, -0.02], cov: 0.05, lope: 0.22, rise: 3.8, decay: 28, flow: 0.32, turbo: 0.62, main: 3.1, mainLoss: 0.5, sil: [3300, 0.7], silMix: 0.47, emph: 0.52, steep: 0.22, als: 12, alsRpm: 2400, pop: 1,
@@ -12836,6 +12976,35 @@ function boxOf(S) {
 // Anti-lag by era: the modern cars hold the throttle open and retard the ignition; the older ones pipe air round the
 // engine into the manifold
 const alsKindOf = S => (S.cls === 'R2' ? 'ret' : 'air');
+// The starter each engine is turned over by, and what it needs before it fires: [kind (see STARTER in the engine model),
+// cranking speed (rpm, on average: about 200-250 for a warm engine; a big engine and a heavy flywheel turn slower, a
+// light high-torque starter faster), compression ratio, fuel (efi: electronic injection, firing within a turn or two;
+// kjet: continuous injection; mech: a mechanical pump; carb: carburettors), and the motor's stall torque at the crank
+// (N m) that turns that engine over at that speed, worked out beforehand by Starter.tst (it takes a while to run)]. By era: the 1970s and early-1980s cars
+// direct-drive starters (geared ones only came in during the 1980s), the 1990s cars from Japan reduction starters and
+// those from Europe permanent-magnet planetary ones, the World Rally and Rally2 cars light race starters.
+const STARTER_CFG = {
+  ardent_5t: ['dd', 220, 7.5, 'efi', 280], vespera_sc: ['dd', 230, 7.5, 'mech', 278], petrel_m4: ['dd', 230, 6.5, 'kjet', 238], halberd_x4: ['dd', 230, 7.2, 'efi', 238],
+  mamba_tc: ['dd', 230, 7.0, 'efi', 239], tasman_6r: ['dd', 200, 10.3, 'mech', 396], bantam_6x: ['dd', 200, 12, 'efi', 393], corbeau_maxi: ['dd', 240, 7.0, 'mech', 202],
+  veloce_hr: ['pm', 240, 8.0, 'efi', 120], sentai_gt4: ['red', 240, 8.5, 'efi', 274], acrobat_2t: ['red', 240, 8.0, 'efi', 270], katana_evo: ['red', 240, 8.8, 'efi', 271],
+  bastion_rs: ['pm', 240, 8.0, 'efi', 121], kaiser_3r: ['dd', 220, 11.0, 'efi', 309], ronin_tx: ['red', 240, 8.3, 'efi', 274], hiryu_18t: ['red', 240, 8.2, 'efi', 249],
+  esker_kr: ['pm', 230, 12.5, 'efi', 116], corvid_f2: ['pm', 230, 12.5, 'efi', 116], quintel_20: ['pm', 230, 12.5, 'efi', 116], sorrel_ve: ['pm', 230, 12.5, 'efi', 115],
+  pavane_2s: ['pm', 230, 12.5, 'efi', 114], torvo_20: ['pm', 230, 12.5, 'efi', 116], linnet_20v: ['pm', 230, 12.5, 'efi', 116], rhodon_kx: ['pm', 230, 12.5, 'efi', 116],
+  vireo_4t: ['race', 260, 9.0, 'efi', 120], quintel_4t: ['race', 260, 9.0, 'efi', 121], brenik_4t: ['race', 260, 9.0, 'efi', 121], acrobat_4t: ['race', 260, 9.0, 'efi', 121],
+  katana_4t: ['race', 260, 9.0, 'efi', 121], halvik_4t: ['race', 260, 9.0, 'efi', 121], caspen_4t: ['race', 260, 9.0, 'efi', 121], pellam_4t: ['race', 260, 9.0, 'efi', 121],
+  avocet_16t: ['race', 260, 10.0, 'efi', 98], siskin_16t: ['race', 260, 10.0, 'efi', 97], dunlin_16t: ['race', 260, 10.0, 'efi', 97], jacana_16t: ['race', 260, 10.0, 'efi', 97],
+  pipit_16t: ['race', 260, 10.0, 'efi', 97], ouzel_16t: ['race', 260, 10.0, 'efi', 97],
+  xebec_24v: ['dd', 210, 10.5, 'carb', 322], lugger_18: ['dd', 230, 10.5, 'carb', 240], tartane_16v: ['dd', 220, 10.5, 'mech', 269], pinnace_20: ['dd', 220, 11.5, 'mech', 267],
+  shallop_22: ['dd', 220, 10.0, 'carb', 293], carrack_24: ['dd', 210, 10.8, 'carb', 331], felucca_14t: ['dd', 240, 7.0, 'kjet', 188], barque_21t: ['dd', 220, 7.0, 'kjet', 285],
+  ketch_30: ['dd', 200, 10.3, 'mech', 395], galliot_v8: ['dd', 170, 9.4, 'kjet', 635], yawl_20t: ['dd', 220, 7.2, 'kjet', 267], polacca_v4: ['dd', 240, 10.5, 'carb', 214]
+};
+// what the engine model is told about a car's engine (its starter's stall torque worked out once per car: see Starter)
+const _stTst = {};
+function engineCfg(S) {
+  const K = Object.assign({}, ENGINE_CFG[S.id] || ENGINE_CFG.ardent_5t, { red: S.redline, final: S.final * gearK(S), idle: S.idle || 950, cls: S.cls, box: boxOf(S), alsKind: alsKindOf(S), lag: S.lag, litres: litresOf(S), Ie: carSetup(S).sp.Ie });
+  const sc = STARTER_CFG[S.id] || ['dd', 220, 9.5, 'efi']; K.st = { kind: sc[0], rpm: sc[1], cr: sc[2], fuel: sc[3] };
+  K.st.Tst = sc[4] || _stTst[S.id] || (_stTst[S.id] = EngineDSPDef().Starter.tst(K)); return K;
+}
 // What the driver and the gearbox are doing, made into what the engine model hears each frame (its controls) and the
 // moments it acts on: a gear change (the cut and the dogs), a lift (the bangs of anti-lag or of fuel in a hot exhaust),
 // the rev limiter. (The turbo works out its own surge from the throttle, the revs and its boost.) Kept apart from the
@@ -12850,12 +13019,16 @@ class EngineSoundLogic {
     // the throttle as the engine has it: through a flat upshift the foot stays down (the ignition is cut, not the air); a
     // downshift has its blip; an H-pattern change is made with the throttle shut
     const auto = this.box.kind === 'auto', thr = shifting && !auto ? (c.shiftDn ? (c.blip || 0) : flat ? drv : 0) : drv, fire = !lim && (auto || !(shifting && !c.shiftDn));
-    const load = thr > 0.02 && fire ? clamp(engineTorque(S, rpm, c.boost || 0) * thr / S.tmax, 0, 1) : 0;
+    // (just after it fires from the starter the engine flares on the air its idle control lets by: firmer firings)
+    const load = Math.max(thr > 0.02 && fire ? clamp(engineTorque(S, rpm, c.boost || 0) * thr / S.tmax, 0, 1) : 0, c.flare > 1 ? 0.4 * (c.flare - 1) / 0.7 : 0);
     const spool = S.boost === 'turbo' ? (c.boost || 0) : S.boost === 'twin' ? (c.turboB || 0) : 0;
     const sc = S.boost === 'sc' ? (c.boost || 0) : S.boost === 'twin' ? thr * (1 - smooth(4500, 5500, rpm)) : 0;
     const es = c.es, sp = Math.hypot(c.u || 0, c.v || 0), tcl = c.tcl || 0, D = c.dmg && c.dmg.mode === 'real' ? c.dmg : null;
     const p = { rpm, thr, load, spool, sc, gear: Math.abs(c.gear || 0), tq: clamp(Math.abs(tcl) / S.tmax, 0, 1.5), tqs: clamp(tcl / S.tmax, -1.5, 1.5), wheel: sp / (2 * Math.PI * 0.31), cut: lim ? (c.limK || 1) : 0,
       on: es && es.run === 'lock' ? 0 : 1, mis: es ? (es.run === 'stall' ? 1 : es.mis) : 0, wet: es ? es.wet : 0,
+      // the starter: switched on (the showroom's start, or a stalled engine cranked again before each try), and the
+      // engine not running, so the starter turns it
+      st: c.starter || (es && es.run === 'stall' && es.crank > 0.9) ? 1 : 0, crank: c.cranking || (es && es.run === 'stall') ? 1 : 0,
       // the turbo's damage: a holed intercooler or pipe (the boost lost through it), a chipped compressor wheel, a cracked turbine housing
       leak: D && S.boost !== 'na' && S.boost !== 'sc' ? clamp((1 - D.turbo) / 0.45, 0, 1) : 0, chip: D && D.cwheel ? 1 : 0, crack: D && D.crack ? 1 : 0 };
     for (const e of evs || []) {
@@ -12950,7 +13123,7 @@ const Snd = {
   // where it is (see srcPath, place), straight outside, or through the floor, bulkhead and glass inside, where the
   // exhaust also booms through the body at the lowest frequencies
   dspCar(S) {
-    const C = this.ctx, cfg = Object.assign({}, ENGINE_CFG[S.id] || ENGINE_CFG.ardent_5t, { red: S.redline, final: S.final * gearK(S), idle: S.idle || 950, cls: S.cls, box: boxOf(S), alsKind: alsKindOf(S), lag: S.lag }), N = {};
+    const C = this.ctx, cfg = engineCfg(S), N = {};
     if (this.dsp === 'worklet') { N.node = new AudioWorkletNode(C, 'engine-dsp', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [5] }); const port = N.node.port; port.onmessage = e => { if (e.data && e.data.t === 'pop') this.pops++; }; port.postMessage({ t: 'cfg', cfg }); this.post = m => port.postMessage(m); }
     else { const d = new (EngineDSPDef())(C.sampleRate, cfg); d.onPop = () => { this.pops++; }; let mute = false; N.node = C.createScriptProcessor(2048, 1, 5); N.node.onaudioprocess = e => { const b = e.outputBuffer, ch = [0, 1, 2, 3, 4].map(k => b.getChannelData(k)); if (mute) { for (const c of ch) c.fill(0); return; } d.process(ch[0], ch[1], ch[2], ch[3], b.length, ch[4]); }; this.post = m => { if (m.t === 'p') d.set(m.p); else if (m.t === 'ev') d.event(m.k, m.a); else if (m.t === 'mute') mute = m.v; }; }
     N.split = C.createChannelSplitter(5); N.node.connect(N.split);
@@ -13117,8 +13290,8 @@ const Snd = {
     N.do = this.osc('sine', 300); N.dg = this.gain(0); N.do.connect(N.dg).connect(this.bus);
     this.N = N;
   },
-  engineOn(on) {
-    if (!this.on) return; this.set(this.bus.gain, on ? 1 : 0, on ? 0.15 : 0.08);
+  engineOn(on, fast) {
+    if (!this.on) return; this.set(this.bus.gain, on ? 1 : 0, on ? (fast ? 0.004 : 0.15) : 0.08); // (fast: the showroom's start, its first sound the starter's clack)
     // the model rests while nothing is heard (after the fade)
     if (this.N && this.N.node && this.post) { clearTimeout(this._mt); if (on) this.post({ t: 'mute', v: false }); else this._mt = setTimeout(() => { if (this.post) this.post({ t: 'mute', v: true }); }, 600); }
   },
@@ -13494,19 +13667,19 @@ const Snd = {
     const env = C.createGain(); env.gain.setValueAtTime(0.32 * lv, t); env.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
     s.connect(bp).connect(am).connect(env).connect(this.bus); s.start(t, Math.random(), 0.65); lfo.start(t); lfo.stop(t + 0.65);
   },
-  // the starter (dur s, cyl: the engine's cylinders): its pinion driving the flywheel's ring gear, about 130 teeth, at
-  // cranking speed; the motor's whine and the gears' mesh rise and fall with each compression stroke that slows the
-  // crank (the engine's own sound as it turns over comes from its model, misfiring); the solenoid's clack as it throws
-  // the pinion in, and again as the pinion is thrown out once the engine catches
+  // the simpler voices' starter, standing in only when the engine model cannot run (the model has its own: see Starter)
+  // (dur s, cyl: the engine's cylinders): its pinion's mesh on the ring gear at cranking speed, rising and falling with
+  // each compression stroke that slows the crank; the solenoid's clack as it throws the pinion in, and again as the
+  // pinion is thrown out once the engine catches
   starter(dur, cyl) {
     if (!this.on) return; const C = this.ctx, t = C.currentTime, d = dur || 0.6, rc = 230 / 60, fc = rc * (cyl || 4) / 2;
-    const o = C.createOscillator(); o.type = 'sawtooth'; o.frequency.value = rc * 130;
+    const o = C.createOscillator(); o.type = 'triangle'; o.frequency.value = rc * 130;
     const lfo = C.createOscillator(); lfo.frequency.value = fc; const ld = C.createGain(); ld.gain.value = rc * 130 * 0.22; lfo.connect(ld).connect(o.frequency);
     const am = C.createGain(); am.gain.value = 0.7; const la = C.createGain(); la.gain.value = 0.3; lfo.connect(la).connect(am.gain);
     const bp = C.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 950; bp.Q.value = 0.7; const env = C.createGain();
-    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.16, t + 0.04); env.gain.setValueAtTime(0.16, t + d); env.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.09);
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.05, t + 0.04); env.gain.setValueAtTime(0.05, t + d); env.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.09);
     o.connect(am).connect(bp).connect(env).connect(this.master); o.start(t); o.stop(t + d + 0.12); lfo.start(t); lfo.stop(t + d + 0.12);
-    this.burst(0.03, 2600, 2, 0.22, 'bandpass'); setTimeout(() => this.burst(0.025, 3200, 2, 0.12, 'bandpass'), d * 1000);
+    this.burst(0.03, 2600, 2, 0.08, 'bandpass'); setTimeout(() => this.burst(0.025, 3200, 2, 0.05, 'bandpass'), d * 1000);
   },
   thud(v) { this.burst(0.18, 220, 1, Math.min(1, 0.2 + v * 0.08), 'lowpass'); },
   splash(v) { if (this.CH && this.CH.on) { this.chs('splash', { v }); return; } this.burst(0.7, 1200, 0.5, Math.min(0.8, v), 'bandpass'); },
@@ -14245,25 +14418,33 @@ function updateFlyover(dt) {
   const dc = G.demo ? G.demo.car : { rpm: 0, boost: 0, gear: 0, delta: 0, info: null };
   animateInterior(G.show.mesh, dc, G.spec, dt, false, false);
 }
-// The showroom's run-up: the starter turns the engine over (each compression stroke slowing it), it catches and flares,
-// settles to its idle (wandering and hunting as that engine does), is blipped three times and falls back. The revs are
-// the game's own engine out of gear (engineFree), so each rises and falls at its own rate against its own inertia,
-// friction and rev limiter: the driver's foot comes off once they are well up. Engines with electronic injection catch
-// at once; carburettors and mechanical pumps crank a moment longer
+// The showroom's run-up: the starter turns the engine over (the engine model's own: each compression slowing the
+// crank), it fires and flares on the air its idle control lets by, settles to its idle (wandering and hunting as that
+// engine does), is blipped three times and falls back. The revs are the game's own engine out of gear (engineFree), so
+// each rises and falls at its own rate against its own inertia, friction and rev limiter: the driver's foot comes off
+// once they are well up. How long it cranks before it fires is its fuel system's (START): electronic injection within a
+// turn or two, continuous injection a little longer, a mechanical pump or carburettors longer still, coughing as they
+// catch; the key is let go a moment after it fires (a race car's button at once)
+const START = { efi: [0.5, 0.18, 0.12, 0.25], kjet: [0.7, 0.28, 0.25, 0.4], mech: [0.8, 0.28, 0.3, 0.5], carb: [1.0, 0.3, 0.45, 0.6] }; // [cranking s, key held after it fires s, coughing s, share misfiring as it catches]
 function runDemo(dt) {
   const D = G.demo, S = D.S; D.t += dt; const t = D.t, c = D.car;
-  if (!D.cranked) { D.cranked = true; Snd.starter(D.crank, S.cyl); Snd.engineOn(true); }
+  if (!D.cranked) { D.cranked = true; Snd.engineOn(true, true); if (!Snd.N || !Snd.N.node) Snd.starter(D.crank, S.cyl); } // (the simpler voices have a starter of their own)
   let thr = 0; for (const b of D.blips) if (t > b[0] && t < b[1] && !b.done) { thr = 1; if (c.rpm > S.redline * b[2]) b.done = true; }
-  if (t < D.crank) { c.rpm = 230 * (1 + 0.28 * Math.sin(t * 2 * Math.PI * 230 / 60 * (S.cyl || 4) / 2)); c.es = { run: 'run', mis: 1 }; c.boost = 0; }
-  else { if (!D.caught) { D.caught = true; c.es = null; c.flare = 1.7; c.rpm = Math.max(c.rpm, 600); } c.flare = 1 + (c.flare - 1) * Math.exp(-dt / 0.6); engineFree(c, S, thr, dt); }
+  if (t < D.crank) { c.rpm = D.rc * Math.min(1, t / 0.15) * (1 + 0.25 * Math.sin(t * 2 * Math.PI * D.rc / 60 * (S.cyl || 4) / 2)); c.es = { run: 'run', mis: 1 }; c.boost = 0; c.starter = 1; c.cranking = 1; } // (the rev counter's needle; the sound's crank is the engine model's own)
+  else {
+    if (!D.caught) { D.caught = true; c.cranking = 0; c.flare = 1.7; c.rpm = Math.max(c.rpm, D.rc); }
+    const k = t - D.crank; c.starter = k < D.hold ? 1 : 0; c.es = k < D.cough ? { run: 'run', mis: D.mis * (1 - k / D.cough) } : null;
+    c.catchCap = k < 0.8 ? 16 * litresOf(S) : null; // (just after it fires: only the air through its idle passage, about 2 bar)
+    c.flare = 1 + (c.flare - 1) * Math.exp(-dt / 0.6); engineFree(c, S, thr, dt);
+  }
   c.lastThr = thr; c.gear = 0;
   Snd.update(c, S, 0, 'tarmac', 0, false, 'show', dt, c.ev.slice()); Snd.flame(); c.ev.length = 0; // (the limiter's cuts, for the cracks they leave)
   if (t > D.end) { G.demo = null; Snd.engineOn(false); }
 }
 function startDemo(S) {
   Snd.init(); if (!Snd.on) return; Snd.mute(false); Snd.setCar(S); Snd.engineOn(false);
-  const crank = idleOf(S).ecu ? 0.55 : 0.85;
-  G.demo = { S, t: 0, cranked: false, caught: false, crank, prevThr: 0, end: crank + 4.7, blips: [[crank + 1.2, crank + 1.7, 0.75], [crank + 2.3, crank + 2.9, 0.9], [crank + 3.4, crank + 3.7, 0.6]],
+  const sc = STARTER_CFG[S.id] || ['dd', 220, 9.5, 'efi'], F = START[sc[3]] || START.efi, crank = F[0];
+  G.demo = { S, t: 0, cranked: false, caught: false, crank, rc: sc[1], hold: sc[0] === 'race' ? 0.08 : F[1], cough: F[2], mis: F[3], prevThr: 0, end: crank + 4.7, blips: [[crank + 1.2, crank + 1.7, 0.75], [crank + 2.3, crank + 2.9, 0.9], [crank + 3.4, crank + 3.7, 0.6]],
     car: { rpm: 0, boost: 0, lastThr: 0, gear: 0, grounded: true, slideAmt: 0, delta: 0, info: null, limT: 0, ev: [] } };
 }
 function updateFlyoverOld(dt) {
