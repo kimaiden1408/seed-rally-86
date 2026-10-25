@@ -5736,7 +5736,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = 'E5D4';
+const SR86_BUILD = '7D81';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -6084,62 +6084,7 @@ function signTex(kind) {
   return new THREE.CanvasTexture(c);
 }
 function gameState() { return G; }
-function buildCrowd(Gm, list) {
-  const n = list.length; Gm.crowd = null; if (!n) { CrowdFx.setup(null); return; }
-  const bodyM = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.27, 1.2, 6).translate(0, 0.6, 0), new THREE.MeshLambertMaterial({ color: 0xffffff }), n);
-  const headM = new THREE.InstancedMesh(new THREE.SphereGeometry(0.17, 8, 6), new THREE.MeshLambertMaterial({ color: 0xe2b48f }), n);
-  const armM = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 0.55, 0.08).translate(0, -0.27, 0), new THREE.MeshLambertMaterial({ color: 0xffffff }), n * 2);
-  list.forEach((o, k) => { bodyM.setColorAt(k, o.c); armM.setColorAt(k * 2, o.c); armM.setColorAt(k * 2 + 1, o.c); });
-  for (const m of [bodyM, headM, armM]) { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); stageGroup.add(m); }
-  Gm.crowd = { list, bodyM, headM, armM, t: 0 };
-  for (let k = 0; k < n; k++) placePerson(k, 0);
-  for (const m of [bodyM, headM, armM]) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
-  CrowdFx.setup(Gm.crowd);
-}
-const _d = new THREE.Object3D(); _d.rotation.order = 'YXZ';
-const ARM_REST = [0.15, 0];
-// arms swing out sideways by th and forward by ph (negative ph raises the arm in front), right arm aR, left arm aL
-function placePerson(k, hop, aR, aL) {
-  const C = G.crowd, o = C.list[k]; const x = o.bx + o.ox, z = o.bz + o.oz, y = o.y + hop, s = o.s; aR = aR || ARM_REST; aL = aL || aR; o.hop = hop; o.aR = aR; o.aL = aL;
-  _d.rotation.set(0, o.face, 0); _d.position.set(x, y, z); _d.scale.set(s, s, s); _d.updateMatrix(); C.bodyM.setMatrixAt(k, _d.matrix);
-  _d.position.set(x, y + 1.38 * s, z); _d.scale.set(1, 1.1, 1); _d.updateMatrix(); C.headM.setMatrixAt(k, _d.matrix);
-  const cs = Math.cos(o.face), sn = Math.sin(o.face);
-  for (const sd of [1, -1]) { const A = sd > 0 ? aR : aL, lx = sd * 0.27 * s; _d.position.set(x + cs * lx, y + 1.15 * s, z - sn * lx); _d.rotation.set(A[1], o.face, sd * A[0]); _d.scale.set(s, s, s); _d.updateMatrix(); C.armM.setMatrixAt(k * 2 + (sd > 0 ? 0 : 1), _d.matrix); }
-}
-// where a spectator's hand is (ext reaches past it, to the end of a flare), from the pose placePerson last drew
-function handAt(o, sd, ext, out) {
-  const A = (sd > 0 ? o.aR : o.aL) || ARM_REST, s = o.s, f = o.face, cs = Math.cos(f), sn = Math.sin(f), a = sd * A[0], L = 0.55 * s + ext;
-  const lx = Math.sin(a) * L, ly = -Math.cos(a) * Math.cos(A[1]) * L, lz = -Math.cos(a) * Math.sin(A[1]) * L, sx = sd * 0.27 * s + lx;
-  return out.set(o.bx + o.ox + sx * cs + lz * sn, o.y + (o.hop || 0) + 1.15 * s + ly, o.bz + o.oz - sx * sn + lz * cs);
-}
-function updateCrowd(dt, car, sp) {
-  const C = G.crowd; if (!C) return; C.t += dt; let k0 = C.list.length, k1 = -1; const dk = Atmos.dark;
-  for (let k = 0; k < C.list.length; k++) {
-    const o = C.list[k]; const dx = o.bx + o.ox - car.x, dz = o.bz + o.oz - car.z; const d = Math.hypot(dx, dz);
-    const busy = o.fs === 1 || o.fs === 3;
-    if (d > 90 && !o.active && !busy) continue;
-    o.active = d < 90;
-    const near = d < 50;
-    o.cheer += ((near ? 1 : 0) - o.cheer) * Math.min(1, dt * 3);
-    const dodge = d < 14 && sp > 3;
-    if (dodge) { o.ox += dx / d * 6 * dt; o.oz += dz / d * 6 * dt; const L = Math.hypot(o.ox, o.oz); if (L > 7) { o.ox *= 7 / L; o.oz *= 7 / L; } o.face = Math.atan2(-dx, -dz); }
-    else if (!near) { o.ox *= 1 - dt * 0.4; o.oz *= 1 - dt * 0.4; }
-    // heads turn to follow the car as it comes and goes
-    if (!dodge && d < 120 && d > 1) { const want = Math.atan2(-dx, -dz); let da = want - o.face; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; o.face += da * Math.min(1, dt * 2.2); }
-    let hop = o.cheer * Math.abs(Math.sin(C.t * 8 + o.ph)) * 0.25; const arm = 0.15 + o.cheer * (2.3 + Math.sin(C.t * 10 + o.ph) * 0.4);
-    let aR = o._aR || (o._aR = [0, 0]), aL = o._aL || (o._aL = [0, 0]); aR[0] = aL[0] = arm; aR[1] = aL[1] = 0;
-    if (o.fs === 1 || o.fs === 3) {
-      // a lit flare held out at arm's length, away from the face; raised high and waved as the car comes past
-      const w = o.cheer; aR[0] = 1.05 + w * (1.6 + 0.4 * Math.sin(C.t * 3.1 + o.ph)); aR[1] = -0.5 + 0.25 * w; aL[0] = 0.2 + w * (1.2 + Math.sin(C.t * 9 + o.ph) * 0.4); hop *= 0.35;
-    } else if (o.role === 'cam' && d < 95 && o.shooting) { aR[0] = aL[0] = -0.38; aR[1] = aL[1] = -1.85; hop = 0; } // camera up to the eye
-    else if (o.role === 'phone' && d < 160 && dk > 0.45) { aR[0] = -0.15; aR[1] = -2.0; aL[0] = 0.15; hop *= 0.3; } // phone held up, filming
-    if ((o.ox || o.oz) && G.T) o.y = groundY(G.T, o.bx + o.ox, o.bz + o.oz);
-    placePerson(k, hop, aR, aL); if (k < k0) k0 = k; k1 = k;
-  }
-  // (only the people who moved are sent to the graphics card)
-  if (k1 >= k0) { sendRange(C.bodyM.instanceMatrix, k0, k1 - k0 + 1); sendRange(C.headM.instanceMatrix, k0, k1 - k0 + 1); sendRange(C.armM.instanceMatrix, k0 * 2, (k1 - k0 + 1) * 2); }
-  CrowdFx.update(dt, car);
-}
+// (the spectators: see crowd.js)
 // ---------- palettes ----------
 const ENV = {
   gravel: { sky: 0xc9d6dc, fog: [220, 520], tuft: ['#6f7a3a', '#9a8c55', '#55692f'], ground: ['#55703a', '#3f5a2c', '#6c7f3f'], verge: '#7d6648', shoulder: '#9b8462', ditch: '#5b4d37', cut: '#8b6f4f', rock: '#7c776d', pine: ['#2f4a2a', '#264026', '#3a5530'], leaf: ['#5f7d35', '#6e8a3c', '#7d8f3b'], birch: 0.25 },
@@ -6254,6 +6199,7 @@ const Atmos = {
     Precip.set(T.snowing > 0 && T.surface !== 'snow' ? Object.assign({}, W, { snow: Math.max(W.snow, T.snowing), rain: 0 }) : W, T.snowing > 0 ? 'snow' : T.surface); applyWetRoad(T.lay ? 0 : T.wet, T.surface); // (the layers wet the road where it is wet)
     // how much dust the tyres raise: more in a dry country and where sand and powder lie on the road
     this.dustK = clamp((E.dry ? 1.35 : 1) + 0.6 * ((T.bio && T.bio.gv && T.bio.gv.sand) || 0) + (W.haze && !W.grit ? 0.15 : 0), 0.6, 2);
+    Crowd.cond = { tC: stageAir(T, this.Rg, this.t, W), night: this.night }; if (Crowd.C && Crowd.C.T === T) crowdDress(Crowd.C, Crowd.cond); // (what the spectators wear and carry)
     if (CarLights.flood) { const p = T.pts[T.startIdx]; CarLights.flood.position.set(p.x - Math.cos(p.h) * (p.w / 2 + 3) + Math.sin(p.h) * 4, p.y + 6, p.z + Math.sin(p.h) * (p.w / 2 + 3) + Math.cos(p.h) * 4); }
   },
   clock() { return ((this.t + this.Rg.tz) % 24 + 24) % 24; },
@@ -7309,7 +7255,7 @@ function buildStage(T) {
   const E = T.look = lookOf(T), P = T.pts, N = P.length, X = T.xs; stageLook(E);
   // light, sky, haze and weather are set by Atmos.apply once the stage is built (setConditions)
   buildGround(T); terrainFn = T.fieldAt;
-  const FP = fieldPlan(T, E), LK = findLakes(T, E.lakes || 0); // (the farmed land; the lakes in the hollows)
+  const FP = fieldPlan(T, E), LK = T._lakes = findLakes(T, E.lakes || 0); T._walk = null; // (the farmed land; the lakes in the hollows; the spectators' map of the ground, made afresh)
   const R = mulberry32(strHash('scenery:' + T.seed));
   const rr = (a, b) => a + (b - a) * R();
   const col = new THREE.Color();
@@ -7519,7 +7465,7 @@ function buildStage(T) {
     }
     return { set castShadow(v) { for (const m of meshes) m.castShadow = v; } };
   }
-  const crowd = []; const shirt = ['#c4202f', '#1f4fa0', '#f2c014', '#2b2b2b', '#e8e2d4', '#3f7a3b', '#d96b1c', '#6b4aa0', '#8a5a3a'].map(c => new THREE.Color(c));
+  const crowd = [], RC = mulberry32(strHash('crowd:' + T.seed)); // (the spectators, and their own numbers: see crowd.js)
   const vest = new THREE.Color('#ff7a1a');
   const stakes = [], tapes = [];
   const tapeLine = pts => { for (let k = 0; k < pts.length; k++) { stakes.push(pts[k]); if (k) tapes.push([pts[k - 1], pts[k]]); } };
@@ -7605,8 +7551,9 @@ function buildStage(T) {
       const stand = (x, z, h, sd, L, d0) => { const ux = Math.sin(h), uz = Math.cos(h), lx = Math.cos(h) * sd, lz = -Math.sin(h) * sd, back = d0 + 7 * 0.9;
         for (const [a, d] of [[-L / 2, d0], [L / 2, d0], [-L / 2, back + 1], [L / 2, back + 1], [0, back + 1]]) { const r = T.fieldAt(x + lx * d + ux * a, z + lz * d + uz * a); if (r.np && r.nd < r.np.w / 2 + 1.7) return; }
         const y0 = gY(x + lx * d0, z + lz * d0) - 0.1;
+        walkAddBox(T, Float64Array.from([[-L / 2, d0 - 0.3], [L / 2, d0 - 0.3], [L / 2, back + 1], [-L / 2, back + 1]].flatMap(([a, d]) => [x + lx * d + ux * a, z + lz * d + uz * a])), y0 + 7, y0 - 1); // (no one on foot walks through it)
         for (let r = 0; r < 7; r++) { const d = d0 + r * 0.9, cx = x + lx * d, cz = z + lz * d; box(cx, y0, cz, ux, uz, L, 0.9, 0.5 + r * 0.45, r % 2 ? cSeat : cStep);
-          for (let k = 0; k < Math.round(L * 0.65); k++) { if (R() < 0.12) continue; const a = (k / (Math.round(L * 0.65) - 1) - 0.5) * (L - 1.5) + (R() - 0.5) * 0.5; crowd.push({ bx: cx + ux * a, bz: cz + uz * a, y: y0 + 0.5 + r * 0.45, ox: 0, oz: 0, s: rr(0.92, 1.06), ph: R() * 6.3, c: shirt[Math.floor(R() * shirt.length)], m: false, g: -1, face: Math.atan2(-lx, -lz), cheer: 0 }); } }
+          for (let k = 0; k < Math.round(L * 0.65); k++) { if (R() < 0.12) continue; const a = (k / (Math.round(L * 0.65) - 1) - 0.5) * (L - 1.5) + (R() - 0.5) * 0.5; { const o = crowdPerson(T, cx + ux * a - lx * 0.33, cz + uz * a - lz * 0.33, { R: RC, seat: true, face: Math.atan2(-lx, -lz), kind: 'stand' }); o.y = y0 + 0.5 + r * 0.45; crowd.push(o); } } } // (each seated on the front of the step, feet on the one below)
         for (const a of [-L / 2, 0, L / 2]) box(x + lx * back + ux * a, y0, z + lz * back + uz * a, ux, uz, 0.25, 0.25, 6.6, cPost);
         box(x + lx * (back - 2.4), y0 + 6.6, z + lz * (back - 2.4), ux, uz, L + 1, 5.6, 0.15, cRoof); };
       if (S.C) { const C = S.C; for (const sg of S.stands || []) { const sm = (((sg.s + sg.e) / 2) % S.Lc + S.Lc) % S.Lc, k = Math.round(sm / C.ds) % C.n, x = C.X[k], z = C.Z[k], h = C.H[k]; stand(x, z, h, sg.sd, sg.e - sg.s, S.band + 1.6);
@@ -7653,7 +7600,7 @@ function buildStage(T) {
       const B = sp.blk || 2, q1 = Q[Math.max(0, B - 1)], q3 = Q[Math.min(B + 1, Q.length - 1)], l1x = Math.cos(q1.h), l1z = -Math.sin(q1.h);
       const tp = []; for (const lat of [-hw - 0.5, -hw * 0.33, hw * 0.33, hw + 0.5]) { const x = q1.x + l1x * lat, z = q1.z + l1z * lat; tp.push({ x, z, y: lat * lat > hw * hw ? gY(x, z) : q1.y }); } tapeLine(tp);
       const ms = R() < 0.5 ? 1 : -1, mx = q3.x + Math.cos(q3.h) * ms * (hw + 1.7), mz = q3.z - Math.sin(q3.h) * ms * (hw + 1.7);
-      crowd.push({ bx: mx, bz: mz, y: gY(mx, mz), ox: 0, oz: 0, s: 1, ph: R() * 6.3, c: vest, m: true, g: -1, face: Math.atan2(a.x - mx, a.z - mz), cheer: 0 });
+      crowd.push(crowdPerson(T, mx, mz, { R: RC, m: true, face: Math.atan2(a.x - mx, a.z - mz), kind: 'control', i: sp.a }));
       const q2 = Q[B], bx = q2.x - Math.cos(q2.h) * ms * (hw + 0.9), bz = q2.z + Math.sin(q2.h) * ms * (hw + 0.9);
       sp.sign = { x: bx, z: bz, y: gY(bx, bz), h: q2.h };
     }
@@ -7914,30 +7861,9 @@ function buildStage(T) {
   // chevron boards on the outside of the tightest bends, just beyond the ditch
   const chevMats = { true: new THREE.MeshLambertMaterial({ map: chevTex(true) }), false: new THREE.MeshLambertMaterial({ map: chevTex(false) }) };
   for (const pr of T.props) if (pr.kind === 'chev') { const p0 = P[pr.i]; const q = posAt(pr.i, pr.side * (p0.w / 2 + p0.sh + p0.dw + 1.2)); const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.7, 0.06), [stdMat(0x333333), stdMat(0x333333), stdMat(0x333333), stdMat(0x333333), chevMats[pr.side > 0], stdMat(0x333333)]); b.position.y = 1.15; const l1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.2, 0.08), stdMat(0x444444)); l1.position.set(-1.1, 0.5, -0.05); const l2 = l1.clone(); l2.position.x = 1.1; g.add(b, l1, l2); g.position.set(q.x, gAt(q.x, q.z), q.z); g.rotation.y = P[pr.i0].h + Math.PI; G.add(g); }
-  // spectators: behind tape, on dry ground well back from every road (at a super special's arena, behind its barriers and
-  // a few metres back from them)
-  const ARENA = !!(T.sss && T.sss.kind !== 'street'), backOff = ARENA ? 5.2 : 9;
-  const dry = (x, z) => { const r = terrainFn(x, z); if (r.np && r.nd < r.np.w / 2 + backOff) return null; for (const f of T.feats) { if (f.type === 'roundabout' && Math.hypot(x - f.cx, z - f.cz) < f.Rr + f.W / 2 + 7) return null; if (f.type === 'ford' && Math.hypot(x - f.cx, z - f.cz) < 220 && r.h < f.waterY + 0.3) return null; if (f.type === 'bridge' && Math.hypot(x - f.cx, z - f.cz) < 260 && r.h < f.yc - (f.depth || 8) + 1.0) return null; } return r; };
-  let grp = 0; const addPerson = (x, z, col, i, g) => { const r = dry(x, z); if (!r) return false; const p = P[i]; crowd.push({ bx: x, bz: z, y: gAt(x, z), ox: 0, oz: 0, s: rr(0.9, 1.08), ph: R() * 6.3, c: col, m: col === vest, g: g === undefined ? -1 : g, face: Math.atan2(p.x - x, p.z - z), cheer: 0 }); return true; };
-  for (const pr of T.props) if (pr.kind === 'crowd') {
-    // each spectator picks the best dry spot nearby, preferring a bank above the road for the view
-    for (let k = 0; k < pr.n; k++) {
-      const i = clamp(pr.i + Math.round(rr(-9, 9)), 0, N - 1); let best = null, bs = -1e9;
-      for (let at = 0; at < 6; at++) { const q = posAt(i, pr.side * (P[i].w / 2 + backOff + 0.5 + pr.back + rr(0, 4) + at * 2.5)); if (!dry(q.x, q.z)) continue; const sc = Math.min(gY(q.x, q.z) - P[i].y, 2.5) - at * 0.15; if (sc > bs) { bs = sc; best = q; } }
-      if (best) addPerson(best.x, best.z, shirt[(R() * shirt.length) | 0], i, grp);
-    }
-    grp++;
-    // the tape line in front of them, on stakes beyond the ditch (none at an arena: its barriers)
-    if (ARENA) continue; let run = [];
-    for (let i = clamp(pr.i - 12, 1, N - 2); i <= clamp(pr.i + 12, 1, N - 2); i += 2) {
-      const p = P[i], L = p.w / 2 + Math.max(p.sh + p.dw + 1.6, 6.5), x = p.x + Math.cos(p.h) * pr.side * L, z = p.z - Math.sin(p.h) * pr.side * L, r = T.fieldAt(x, z);
-      let wet = false; for (const f of T.feats) if (f.type === 'ford' && Math.abs(i - (f.s0 + f.s1) / 2) < (f.s1 - f.s0) / 2 + 12 && r.h < f.waterY + 0.15) wet = true;
-      if (p.wall || wet || (r.np && r.nd < r.np.w / 2 + 2.5)) { if (run.length > 1) tapeLine(run); run = []; continue; }
-      run.push({ x, z, y: gY(x, z) });
-    }
-    if (run.length > 1) tapeLine(run);
-  }
-  for (const [i, n] of [[T.startIdx, 3], [T.finishIdx + 3, 3], [T.stopIdx, 3]].concat((T.radio || []).map(i => [i + 2, 1]))) for (let k = 0; k < n; k++) { const q = posAt(Math.min(N - 1, i + k * 2), -(P[i].w / 2 + 9.2 + k * 0.8)); addPerson(q.x, q.z, vest, i); }
+  // the marshals at the controls (the spectators come later, once everything they must keep clear of stands: see below)
+  let grp = 0;
+  for (const [i, n] of [[T.startIdx, 3], [T.finishIdx + 3, 3], [T.stopIdx, 3]].concat((T.radio || []).map(i => [i + 2, 1]))) for (let k = 0; k < n; k++) { const j = Math.min(N - 1, i + k * 2), q = posAt(j, -(P[i].w / 2 + 9.2 + k * 0.8)); crowd.push(crowdPerson(T, q.x, q.z, { R: RC, m: true, face: Math.atan2(P[j].x - q.x, P[j].z - q.z), kind: 'control', i: j })); }
   // a village: lamp posts along its street (at the back of the pavement, by turns on either side), its name board at either
   // end, and its people: thick on the pavements by the junctions and the crossing, behind steel barriers at the kerb
   { const posts = [], heads = [], bars = [], boards = [];
@@ -7951,8 +7877,8 @@ function buildStage(T) {
       for (let i = z.a + 10; i < z.b - 10; i += (T.sss ? 7 : 22) + Math.floor(RV() * (T.sss ? 5 : 20))) spots.push(i); // (a town's super special: the crowd all along its streets)
       for (const i0 of spots) { const sd2 = RV() < 0.5 ? 1 : -1, n = (T.sss ? 5 : 3) + Math.floor(RV() * 6), g = grp++;
         for (let k = 0; k < n; k++) { const i = clamp(i0 + Math.round((RV() - 0.5) * 6), 1, N - 2), p = P[i]; if (!p.kerb || i < T.startIdx + 4 || i > T.stopIdx) continue; const l = T.sss ? p.w / 2 + 1.75 + RV() * Math.max(0.2, p.sh - 1.95) : p.w / 2 + 0.75 + RV() * Math.max(0.2, p.sh - 1.1), q = posAt(i, sd2 * l); // (a town's super special: behind its blocks)
-          crowd.push({ bx: q.x, bz: q.z, y: gY(q.x, q.z), ox: 0, oz: 0, s: rr(0.9, 1.08), ph: R() * 6.3, c: shirt[(R() * shirt.length) | 0], m: false, g, face: Math.atan2(p.x - q.x, p.z - q.z), cheer: 0 }); }
-        if (!T.sss) for (let k = -1; k <= 1; k++) { const i = clamp(i0 + k * 1, 1, N - 2), p = P[i]; if (!p.kerb) continue; const q = posAt(i, sd2 * (p.w / 2 + 0.35)); bars.push({ x: q.x, z: q.z, y: gY(q.x, q.z), h: P[i].h }); } } }
+          crowd.push(crowdPerson(T, q.x, q.z, { R: RC, g, face: Math.atan2(p.x - q.x, p.z - q.z), kind: 'village', i })); }
+        if (!T.sss) for (let k = -1; k <= 1; k++) { const i = clamp(i0 + k * 1, 1, N - 2), p = P[i]; if (!p.kerb) continue; const q = posAt(i, sd2 * (p.w / 2 + 0.35)), fx = Math.sin(P[i].h) * 1.2, fz = Math.cos(P[i].h) * 1.2, by = gY(q.x, q.z); bars.push({ x: q.x, z: q.z, y: by, h: P[i].h }); solidBox(T, segQuad(q.x - fx, q.z - fz, q.x + fx, q.z + fz, 0.06), by + 1.05, by - 1, 'rail'); } } } // (steel: solid, for a car as for anyone)
     // lamp posts: a steel pole, its arm out over the road and the lamp (lit after dark: see Atmos)
     inst(new THREE.CylinderGeometry(0.06, 0.09, 1, 6).translate(0, 0.5, 0), stdMat(0x5c6064), posts, (d, t) => { d.position.set(t.x, t.y - 0.2, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 7.2, 1); });
     inst(new THREE.BoxGeometry(1.5, 0.07, 0.07).translate(-0.75, 0, 0), stdMat(0x5c6064), posts, (d, t) => { d.position.set(t.x, t.y + 6.9, t.z); d.rotation.set(0, t.h + (t.sd > 0 ? Math.PI : 0), 0); d.scale.set(1, 1, 1); });
@@ -7965,15 +7891,6 @@ function buildStage(T) {
     for (const b of boards) { const g = new THREE.Group(), post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 0.08), pm), bd = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.62, 0.04), [pm, pm, pm, pm, bm, pm]); post.position.y = 1.1; bd.position.y = 1.85; g.add(post, bd); g.position.set(b.x, b.y, b.z); g.rotation.y = b.h; G.add(g); }
   }
   if (T.sss) buildArena();
-  buildCrowd(gameState(), crowd);
-  // tape: a red and white ribbon on thin stakes
-  inst(new THREE.BoxGeometry(0.035, 1, 0.035).translate(0, 0.5, 0), stdMat(0xd9d4c8), stakes, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 1.15, 1); });
-  if (tapes.length) {
-    const tp = [], tu = [], ti = [];
-    for (const [a, b] of tapes) { const L = Math.hypot(b.x - a.x, b.z - a.z), o = tp.length / 3, ya = a.y + 0.95, yb = b.y + 0.95, sag = Math.min(0.12, L * 0.012); const n = 4; for (let q = 0; q <= n; q++) { const t = q / n, x = lerp(a.x, b.x, t), z = lerp(a.z, b.z, t), y = lerp(ya, yb, t) - sag * 4 * t * (1 - t); tp.push(x, y + 0.035, z, x, y - 0.035, z); tu.push(t * L / 0.5, 0, t * L / 0.5, 1); if (q) { const k = o + q * 2; ti.push(k - 2, k - 1, k, k, k - 1, k + 1); } } }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(tu, 2)); g.setIndex(ti); g.computeVertexNormals();
-    G.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tapeTex(), side: THREE.DoubleSide })));
-  }
   // timing boards and controls
   const signMats = {}; const signMat = k => signMats[k] || (signMats[k] = new THREE.MeshLambertMaterial({ map: signTex(k), transparent: true, alphaTest: 0.5, side: THREE.DoubleSide }));
   const postMat = stdMat(0x2a2a2a);
@@ -7995,6 +7912,18 @@ function buildStage(T) {
   const PL = plantParts(), pctx = { G, T, E, FP, lakes: LK, A: partAdder(PL), P, N, posAt, gY, poleHash, snowy };
   const PR = buildProps(pctx); pctx.keepAt = PR.keepAt;
   const PS = plantStage(pctx), nParts = flushPlants(PL, inst);
+  // the spectators: each set piece's crowd placed where it is safe and has a view, now that the trees, houses and walls
+  // they must keep out of stand; then all of them (with the marshals and the grandstands' and villages' people) built
+  grp = crowdPlaceProps(T, crowd, { R: RC, g0: grp, tapeLine });
+  buildCrowd(gameState(), crowd, T);
+  // tape: a red and white ribbon on thin stakes
+  inst(new THREE.BoxGeometry(0.035, 1, 0.035).translate(0, 0.5, 0), stdMat(0xd9d4c8), stakes, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 1.15, 1); });
+  if (tapes.length) {
+    const tp = [], tu = [], ti = [];
+    for (const [a, b] of tapes) { const L = Math.hypot(b.x - a.x, b.z - a.z), o = tp.length / 3, ya = a.y + 0.95, yb = b.y + 0.95, sag = Math.min(0.12, L * 0.012); const n = 4; for (let q = 0; q <= n; q++) { const t = q / n, x = lerp(a.x, b.x, t), z = lerp(a.z, b.z, t), y = lerp(ya, yb, t) - sag * 4 * t * (1 - t); tp.push(x, y + 0.035, z, x, y - 0.035, z); tu.push(t * L / 0.5, 0, t * L / 0.5, 1); if (q) { const k = o + q * 2; ti.push(k - 2, k - 1, k, k, k - 1, k + 1); } } }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(tu, 2)); g.setIndex(ti); g.computeVertexNormals();
+    G.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tapeTex(), side: THREE.DoubleSide })));
+  }
   drawLakes(G, T, LK, T.surface === 'snow');
   T.decor = Object.assign({ parts: nParts, lakes: LK.length }, PR.stats, PS);
   // start & finish arches
@@ -13503,10 +13432,10 @@ const CrowdFx = {
   },
   // who does what in a new stage's crowd: marshals get head torches only
   setup(C) {
-    if (!this.gmat) return; this.C = C; if (this.glow) { scene.remove(this.glow.obj); this.glow.geo.dispose(); this.glow = null; }
+    if (!this.gmat) return; this.C = C; this.dayOff = false; if (this.glow) { scene.remove(this.glow.obj); this.glow.geo.dispose(); this.glow = null; }
     this.n = C ? C.list.length : 0; if (this.n) this.glow = this.pts(this.n * 2, 0);
     if (C) C.list.forEach(o => {
-      const r = Math.random(); o.role = o.m ? (r < 0.6 ? 'head' : '') : r < 0.24 ? 'flare' : r < 0.5 ? 'cam' : r < 0.63 ? 'phone' : r < 0.88 ? 'head' : '';
+      // (o.role: what lights they carry, from what they hold - see crowdDress)
       let q = Math.random(), ci = 0; while (ci < FLARE_COLS.length - 1 && q > FLARE_COLS[ci][1]) { q -= FLARE_COLS[ci][1]; ci++; } o.fc = FLARE_COLS[ci][0];
       o.ign = 250 + Math.random() * 420; o.ttl = Math.random() < 0.5; o.fp = new THREE.Vector3(); o.fI = 0;
     });
@@ -13538,8 +13467,12 @@ const CrowdFx = {
     const wx = Atmos.wind.x * Atmos.gust * 0.8, wz = Atmos.wind.y * Atmos.gust * 0.8, rainK = 1 + 1.5 * ((Atmos.W.rain || 0) + (Atmos.W.snow || 0));
     const Gl = this.glow, vis = 0.3 + 0.7 * dk, groups = this.groups; groups.clear();
     let flashBest = null, flashD = 70;
-    if (C && Gl) for (let k = 0; k < this.n; k++) {
-      const o = C.list[k]; o.k = k; const x = o.bx + o.ox, z = o.bz + o.oz, dC = Math.hypot(x - car.x, z - car.z), dCam = Math.hypot(x - cam.x, z - cam.z);
+    // (in daylight, with the air clear, no one's light shows: nothing to work out, once all are put out)
+    const lit = dk > 0.12 || Atmos.vis < 450;
+    if (C && Gl && !lit && !this.dayOff) { this.dayOff = true; Gl.I.fill(0); Gl.geo.attributes.aI.needsUpdate = true; for (const o of C.list) { o.fs = 0; o.relit = 0; o.fI = 0; o.flT = 0; o.pre = 0; o.preT = 0; } }
+    if (lit) this.dayOff = false;
+    if (C && Gl && lit) for (let k = 0; k < this.n; k++) {
+      const o = C.list[k]; o.k = k; const x = o.x, z = o.z, dC = Math.hypot(x - car.x, z - car.z), dCam = Math.hypot(x - cam.x, z - cam.z);
       let gI = 0, gS = 0, gK = 2, fI = 0;
       const fwx = Math.sin(o.face), fwz = Math.cos(o.face);
       if (o.role === 'flare') {
@@ -13561,9 +13494,9 @@ const CrowdFx = {
       } else if (o.role === 'phone' && dk > 0.45 && dC < 160) {
         handAt(o, 1, 0.06, o.fp); const f = this.facing(o.fp, fwx, fwz, cam); gI = (0.12 + 0.95 * f) * vis; gS = 0.55; Gl.col[k * 3] = 0.9; Gl.col[k * 3 + 1] = 0.95; Gl.col[k * 3 + 2] = 1.0;
       } else if (o.role === 'head' && dk > 0.5) {
-        o.fp.set(x + fwx * 0.16 * o.s, o.y + (o.hop || 0) + 1.44 * o.s, z + fwz * 0.16 * o.s); const f = this.facing(o.fp, fwx, fwz, cam); gI = (0.06 + 0.8 * f) * vis; gS = 0.45; Gl.col[k * 3] = 1.0; Gl.col[k * 3 + 1] = 0.96; Gl.col[k * 3 + 2] = 0.9;
+        o.fp.set(o.hdx + fwx * 0.13 * o.s, o.hdy + 0.06 * o.s, o.hdz + fwz * 0.13 * o.s); const f = this.facing(o.fp, fwx, fwz, cam); gI = (0.06 + 0.8 * f) * vis; gS = 0.45; Gl.col[k * 3] = 1.0; Gl.col[k * 3 + 1] = 0.96; Gl.col[k * 3 + 2] = 0.9;
       }
-      Gl.pos.set([o.fp.x, o.fp.y, o.fp.z], k * 3); Gl.I[k] = gI; Gl.S[k] = gS; Gl.K[k] = gK;
+      Gl.pos[k * 3] = o.fp.x; Gl.pos[k * 3 + 1] = o.fp.y; Gl.pos[k * 3 + 2] = o.fp.z; Gl.I[k] = gI; Gl.S[k] = gS; Gl.K[k] = gK;
       // flashguns: fired at the approaching and passing car, a shot every second or two as the flash recharges
       let xI = 0; const j = this.n + k;
       if (o.role === 'cam') {
@@ -13573,15 +13506,15 @@ const CrowdFx = {
         if (o.shooting) { o.shot -= dt; if (o.shot <= 0) { o.shot = 0.8 + Math.random() * 1.9; if (o.ttl) { o.pre = 0.035; o.preT = 0.08; } else o.flT = 0.075; } }
         if (o.flT > 0 || o.pre > 0) {
           const main = o.flT > 0, I = main ? Math.pow(o.flT / 0.075, 0.6) * 1.9 : 0.55;
-          this._v.set(x + fwx * 0.36 * o.s, o.y + 1.4 * o.s, z + fwz * 0.36 * o.s); const f = this.facing(this._v, fwx, fwz, cam);
-          xI = I * (0.25 + 0.75 * f) * (0.15 + 0.85 * dk); Gl.pos.set([this._v.x, this._v.y, this._v.z], j * 3); Gl.col[j * 3] = 0.93; Gl.col[j * 3 + 1] = 0.96; Gl.col[j * 3 + 2] = 1.0; Gl.S[j] = 3.2;
+          this._v.set(o.hdx + fwx * 0.3 * o.s, o.hdy + 0.08 * o.s, o.hdz + fwz * 0.3 * o.s); const f = this.facing(this._v, fwx, fwz, cam);
+          xI = I * (0.25 + 0.75 * f) * (0.15 + 0.85 * dk); Gl.pos[j * 3] = this._v.x; Gl.pos[j * 3 + 1] = this._v.y; Gl.pos[j * 3 + 2] = this._v.z; Gl.col[j * 3] = 0.93; Gl.col[j * 3 + 1] = 0.96; Gl.col[j * 3 + 2] = 1.0; Gl.S[j] = 3.2;
           if (dCam < flashD) { flashD = dCam; flashBest = { x: this._v.x, y: this._v.y, z: this._v.z, I: I * (0.15 + 0.85 * dk) }; }
         }
       }
       Gl.I[j] = xI; Gl.K[j] = 1;
     }
     this.fresh = false;
-    if (Gl) for (const a of ['position', 'aC', 'aI', 'aS', 'aK']) Gl.geo.attributes[a].needsUpdate = true;
+    if (Gl && lit) for (const a of ['position', 'aC', 'aI', 'aS', 'aK']) Gl.geo.attributes[a].needsUpdate = true;
     // the light thrown by each nearby group of flares (centred on them, in their mixed colour), nearest groups first
     const dl = Math.pow(dk, 1.2), gs = [...groups.values()].sort((a, b) => a.d - b.d);
     this.L.forEach((l, i) => { const g = gs[i]; if (!g || g.I <= 0) { l.intensity = 0; return; }
@@ -15007,7 +14940,7 @@ const Snd = {
     const H = G.mesh && G.mesh.dv, br = H ? H.broken : {}, side = sd => Object.keys(br).some(k => k[0] === sd && br[k]) ? 0.45 : 0, open = clamp(side('L') + side('R') + (br.rw ? 0.3 : 0) + (H && H.wsOut ? 0.35 : H ? Math.min(0.2, H.holes.length * 0.06) : 0), 0, 1); this.openK = open; // (a crazed screen still closes the cabin; holes open it a little) // (each side's windows, the doors' own included)
     const sk = c.scrapeKind, hardG = c.surfName === 'tarmac' || c.surfName === 'stone' || c.surfName === 'ice', scrK = !c.scrape ? 0 : sk === 'wall' ? 1 : sk === 'rail' || sk === 'car' ? 2 : sk === 'bank' ? 3 : sk === 'roll' ? (hardG ? 4 : 3) : 5;
     const W = Atmos.W, T = G.T, tC = stageAir(T, Atmos.Rg, Atmos.t, W);
-    const crowdP = crowdAt ? this.panOf(crowdAt.bx + crowdAt.ox, c.y + 1, crowdAt.bz + crowdAt.oz) : 0, cheer = clamp(Math.pow(crowdNear, 0.7) * (0.35 + 0.65 * smooth(4, 22, sp)) * (1 + 0.5 * (c.slideAmt || 0)), 0, 1);
+    const crowdP = crowdAt ? this.panOf(crowdAt.x, c.y + 1, crowdAt.z) : 0, cheer = clamp(Math.pow(crowdNear, 0.7) * (0.35 + 0.65 * smooth(4, 22, sp)) * (1 + 0.5 * (c.slideAmt || 0)), 0, 1);
     // steam boiling off the hot exhaust and engine: how much, and where (over the hot parts)
     const es = c.es; let siz = 0, sizP = 0; if (es && es.steamR > 0.0005) { siz = clamp(es.steamR * 40, 0, 1.5); const EL = engLayout(S), z = EL.hot[0], sn = Math.sin(c.psi), cs = Math.cos(c.psi); sizP = this.panOf(c.x + sn * z, c.y + 0.5, c.z + cs * z) * (inside ? 0.6 : 1); this.panOf(c.x, c.y + 0.5, c.z); }
     CH.post({ t: 'p', p: { siz, sizP, v: sp, view, open, carG: view === 3 ? 1.5 : 1, rough: E.rough, shake: E.shake, scr: c.scrape || 0, scrK, water: c.inWater || 0, wet: T.wet || 0, rain: (T.snowing > 0 && !W.snow ? 0 : W.rain || 0) * Atmos.precipK, wind: (W.wind || 0) * Atmos.gust,
@@ -15414,6 +15347,27 @@ const Snd = {
     const g = C.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(Math.min(0.9, 0.5 * k + 0.15), t + 0.08 + 0.4 * (1 - k)); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     const lfo = C.createOscillator(); lfo.frequency.value = 0.8 + Math.random() * 1.5; const lg = C.createGain(); lg.gain.value = 0.25 * (0.5 * k + 0.15); lfo.connect(lg).connect(g.gain);
     s.connect(lp).connect(g).connect(this.master); s.start(t, Math.random()); s.stop(t + dur + 0.1); lfo.start(t); lfo.stop(t + dur + 0.1);
+  },
+  // a spectator's air horn: their run of blasts (pat: each one's start and end, seconds from now), heard from where they
+  // stand (louder the nearer); a marshal's pea whistle the same way
+  crowdHorn(x, y, z, pat, f, f2) {
+    if (!this.on || !pat || !pat.length) return; const pan = this.panOf(x, y, z), g = 0.16 * Math.min(1, 14 / Math.max(this.d, 1)) * (G.camMode === 2 ? 0.5 : 1); if (g < 0.003) return;
+    if (this.CH && this.CH.on) { this.CH.post({ t: 'ev', k: 'horn2', a: { pat, f, f2, g, pan } }); return; }
+    // (no audio worker: a buzzing tone, through the trumpet's band, switched on and off)
+    const C = this.ctx, t0 = C.currentTime + 0.01, end = t0 + pat[pat.length - 1] + 0.1, os = [f, f2].filter(v => v > 0).map(v => { const o = C.createOscillator(); o.type = 'sawtooth'; o.frequency.value = v; return o; });
+    const sh = C.createWaveShaper(); sh.curve = this.curve(3); const bp = C.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1900; bp.Q.value = 1.1; const gn = C.createGain(); gn.gain.setValueAtTime(0, t0);
+    for (let k = 0; k < pat.length; k += 2) { const a = t0 + pat[k], b = t0 + pat[k + 1]; gn.gain.setValueAtTime(0, a); gn.gain.linearRampToValueAtTime(g, a + 0.015); gn.gain.setValueAtTime(g, Math.max(a + 0.015, b - 0.035)); gn.gain.linearRampToValueAtTime(0, b); }
+    const pn = C.createStereoPanner ? C.createStereoPanner() : null; if (pn) pn.pan.value = -pan; const out = this.E ? this.E.out : this.master;
+    for (const o of os) o.connect(sh); sh.connect(bp); bp.connect(gn); sh.connect(gn); if (pn) gn.connect(pn).connect(out); else gn.connect(out); for (const o of os) { o.start(t0); o.stop(end); }
+  },
+  crowdWhistle(x, y, z, pat) {
+    if (!this.on || !pat || !pat.length) return; const pan = this.panOf(x, y, z), g = 0.045 * Math.min(1, 20 / Math.max(this.d, 1)) * (G.camMode === 2 ? 0.5 : 1); if (g < 0.002) return;
+    if (this.CH && this.CH.on) { this.CH.post({ t: 'ev', k: 'mwh', a: { pat, g, pan } }); return; }
+    const C = this.ctx, t0 = C.currentTime + 0.01, end = t0 + pat[pat.length - 1] + 0.1, o = C.createOscillator(), lfo = C.createOscillator(), lg = C.createGain(), gn = C.createGain();
+    o.frequency.value = 3000 + Math.random() * 400; lfo.frequency.value = 34; lg.gain.value = 110; lfo.connect(lg).connect(o.frequency); gn.gain.setValueAtTime(0, t0);
+    for (let k = 0; k < pat.length; k += 2) { const a = t0 + pat[k], b = t0 + pat[k + 1]; gn.gain.setValueAtTime(0, a); gn.gain.linearRampToValueAtTime(g, a + 0.012); gn.gain.setValueAtTime(g, Math.max(a + 0.012, b - 0.03)); gn.gain.linearRampToValueAtTime(0, b); }
+    const pn = C.createStereoPanner ? C.createStereoPanner() : null; if (pn) pn.pan.value = -pan; const out = this.E ? this.E.out : this.master;
+    o.connect(gn); if (pn) gn.connect(pn).connect(out); else gn.connect(out); o.start(t0); lfo.start(t0); o.stop(end); lfo.stop(end);
   },
   whistle() {
     if (!this.on) return; const C = this.ctx, t = C.currentTime, f = 2400 + Math.random() * 900; const o = C.createOscillator(); o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * 1.12, t + 0.15); o.frequency.linearRampToValueAtTime(f * 0.95, t + 0.45);
@@ -15917,7 +15871,7 @@ function startRun() {
   placeCar(G.T.startIdx); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
-  Particles.clear(); CrowdFx.reset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1;
+  Particles.clear(); CrowdFx.reset(); crowdReset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1;
   if (assistOn() && !G.helpTold) { G.helpTold = true; setTimeout(() => { if (G.state === 'countdown' || G.state === 'run') flash('Assists: ' + assistLabel() + (window.matchMedia && matchMedia('(pointer:coarse)').matches ? ' · tap Asst to change' : ' · H to change')); }, 900); }
   showScreen('hud'); $('#count').textContent = ''; $('#delta').textContent = ''; $('#split').textContent = '';
   Atmos.apply(G.T, stageCond(G.T)); Wipers.phase = 0; Wipers.rest = 0; Wipers.extra = 0; Wipers.pos = Wipers.prev = 0; ScreenFx.reset();
@@ -16452,9 +16406,10 @@ function updateRun(dt) {
   const sp = Math.hypot(c.u, c.v);
   CarLights.update(dt, G.mesh, c); const wpos = Wipers.update(dt, sp); G.mesh.sync({ wipers: wpos }); ScreenFx.update(dt, screenState(c, sp, wpos));
   Snd.update(c, S, sp, c.surfName, c.inWater, G.camMode === 2, ['chase', 'far', 'cockpit', 'bonnet'][G.camMode], dt, G.engEv);
-  let crowdNear = 0, crowdAt = null; if (G.crowd) for (const o of G.crowd.list) { const d = Math.hypot(o.bx + o.ox - c.x, o.bz + o.oz - c.z); if (d < 70 && 1 - d / 70 > crowdNear) { crowdNear = 1 - d / 70; crowdAt = o; } }
+  updateCrowd(dt, crowdCars()); // (the spectators: see crowd.js)
+  const crowdNear = G.crowd ? G.crowd.near : 0, crowdAt = G.crowd && crowdNear > 0.01 ? G.crowd.at : null;
   Snd.env(c, S, dt, G.camMode === 2, crowdNear, crowdAt);
-  emit(dt); engineFx(dt); Particles.update(dt); updateCrowd(dt, c, sp);
+  emit(dt); engineFx(dt); Particles.update(dt);
   // pace notes
   const dist = (c.info ? c.info.dist : G.prog * STEP); const ahead = 45 + sp * 2.6;
   // going back down the road rewinds the notes, so they are read again on the way forward (only while on the road,
@@ -17370,10 +17325,12 @@ function leafTex() {
 }
 // a solid box by the road for the physics (where a car can reach it): its plan quad, its top and foot
 function solidBox(T, q, top, bot, kind) {
+  walkAddBox(T, q, top, bot); // (solid for the spectators on foot wherever it is: see walkMap)
   let cx = 0, cz = 0; for (let k = 0; k < 4; k++) { cx += q[k * 2] / 4; cz += q[k * 2 + 1] / 4; }
   const r = T.fieldAt(cx, cz); if (!r.np || r.np.i == null || r.np.i < 0 || r.nd > r.np.w / 2 + STAGE_EDGE + 3) return false;
   const b = { i: r.np.i, q, top, bot, kind }, N = T.pts.length; T.boxes.push(b);
   for (let k = Math.max(0, b.i - 5); k <= Math.min(N - 1, b.i + 5); k++) (T.boxAt[k] || (T.boxAt[k] = [])).push(b);
+  T._barQs = null; // (the car's list of what stands near each road point, made again with this in it)
   return true;
 }
 // the plan quad of a segment from (ax, az) to (bx, bz), t thick
@@ -17518,6 +17475,7 @@ function bakeLine(B, T, path, kind, col, R, solid, hgt) {
   const hedge = kind === 'hedge' || kind === 'vine', vine = kind === 'vine', H0 = hgt || (vine ? 0.95 : hedge ? 1.8 + 0.7 * R() : 0.95 + 0.35 * R()), T0 = vine ? 0.36 : hedge ? 1.3 + 0.4 * R() : 0.62;
   const sec = path.map((p, k) => { const a = path[Math.max(0, k - 1)], b = path[Math.min(n - 1, k + 1)], dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
     const lump = hedge ? 0.82 + 0.36 * vnoise(p.s / 3.1, 1.7, 911) : 0.92 + 0.16 * vnoise(p.s / 1.7, 2.3, 917); return { x: p.x, y: p.y, z: p.z, nx: -dz / L, nz: dx / L, h: H0 * lump, t: T0 * (hedge ? 0.85 + 0.3 * vnoise(p.s / 4.3, 5.1, 919) : 1) }; });
+  for (let k = 0; k < n - 1; k++) walkAddSeg(T, sec[k].x, sec[k].z, sec[k + 1].x, sec[k + 1].z, sec[k].t, sec[k].h); // (no one walks through it: see walkMap)
   const prof = hedge ? (q, s) => [[-0.42, -0.25], [-0.5, 0.45], [-0.3, 1], [0.3, 1], [0.5, 0.45], [0.42, -0.25]] : () => [[-0.5, -0.3], [-0.36, 1], [0.36, 1], [0.5, -0.3]];
   const P = (q, f) => [q.x + q.nx * f[0] * q.t, q.y + (f[1] < 0 ? f[1] : f[1] * q.h), q.z + q.nz * f[0] * q.t];
   // (the texture's scale: a dry stone wall's courses about 1.3 m to its height; leaves finer)
@@ -17544,7 +17502,7 @@ function buildProps(ctx) {
   const wallC = new THREE.Color(E.masonry), hedgeC = new THREE.Color(E.hedgeC || (E.season === 'lateautumn' ? '#5e6c3a' : E.season === 'winter' ? '#5e6040' : '#4e6a34'));
   const lineAlong = (pts, kind, col, solid) => { const path = []; let s = 0; for (let k = 0; k < pts.length; k++) { if (k) s += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z); path.push({ x: pts[k].x, z: pts[k].z, y: gY(pts[k].x, pts[k].z), s }); } bakeLine(kind === 'wall' ? BS : BL, T, path, kind, col, R, solid); };
   const fence = (pts, rail) => { for (let k = 0; k < pts.length; k++) { const p = pts[k], y = gY(p.x, p.z); A('trunk', p.x, y - 0.3, p.z, 0.06, rail ? 1.5 : 1.55, 0.06, 0, (R() - 0.5) * 0.05, 0, pc(rail ? '#8a7a64' : '#6e6252', R)); p.y = y; }
-    for (let k = 0; k + 1 < pts.length; k++) { const a = pts[k], b = pts[k + 1]; if (rail) { for (const hh of [0.55, 1.05]) B.quad([a.x, a.y + hh, a.z], [b.x, b.y + hh, b.z], [b.x, b.y + hh + 0.12, b.z], [a.x, a.y + hh + 0.12, a.z], new THREE.Color('#9a8a72'), null); }
+    for (let k = 0; k + 1 < pts.length; k++) { const a = pts[k], b = pts[k + 1]; walkAddSeg(T, a.x, a.z, b.x, b.z, 0.1, rail ? 1.15 : 1.2); if (rail) { for (const hh of [0.55, 1.05]) B.quad([a.x, a.y + hh, a.z], [b.x, b.y + hh, b.z], [b.x, b.y + hh + 0.12, b.z], [a.x, a.y + hh + 0.12, a.z], new THREE.Color('#9a8a72'), null); }
       else for (const hh of [0.45, 0.8, 1.15]) wires.push(a.x, a.y + hh, a.z, b.x, b.y + hh, b.z); } };
   // (a line kept where it may stand: on farmed land, clear of the road and its verge, of water and of houses)
   const runs = (pts, okFn) => { const out = []; let cur = []; for (const p of pts) { if (okFn(p)) cur.push(p); else { if (cur.length > 1) out.push(cur); cur = []; } } if (cur.length > 1) out.push(cur); return out; };
@@ -17654,6 +17612,7 @@ function buildProps(ctx) {
   for (const g of fieldGates(T)) { const p = P[g.i], L = p.w / 2 + p.sh + p.dw + 1.5, q = posAt(g.i, g.sd * L), fx = Math.sin(p.h), fz = Math.cos(p.h), y = gY(q.x, q.z), gc = new THREE.Color(E.id === 'hedges' || E.id === 'lanes' ? '#8a8e90' : '#7a6650'), mud = new THREE.Color(E.mud || '#5e4c36');
     for (const s of [-1.9, 1.9]) A('trunk', q.x + fx * s, y - 0.3, q.z + fz * s, 0.09, 1.6, 0.09, 0, 0, 0, pc('#5e5246', R));
     const ax = Math.cos(p.h) * g.sd, az = -Math.sin(p.h) * g.sd, hx = q.x + fx * 1.85, hz = q.z + fz * 1.85; // (swung open, into the field)
+    walkAddSeg(T, hx, hz, hx + ax * 3.5, hz + az * 3.5, 0.1, 1.2); for (const s0 of [-1.9, 1.9]) walkAddTree(T, q.x + fx * s0, q.z + fz * s0, 0.12);
     for (const hh of [0.25, 0.48, 0.71, 0.94, 1.17]) for (const sg of [1, -1]) B.quad([hx, y + hh, hz], [hx + ax * 3.5, y + hh, hz + az * 3.5], [hx + ax * 3.5, y + hh + 0.07, hz + az * 3.5], [hx, y + hh + 0.07, hz], gc, [fx * sg, 0, fz * sg]); // (seen from either side)
     const m0 = posAt(g.i, g.sd * (p.w / 2 + 0.2)); for (const s of [-1.1, 1.1]) { const a0x = m0.x + fx * s, a0z = m0.z + fz * s, a1x = q.x + fx * s * 0.8, a1z = q.z + fz * s * 0.8; B.quad([a0x - fx * 0.3, gY(a0x, a0z) + 0.03, a0z - fz * 0.3], [a0x + fx * 0.3, gY(a0x, a0z) + 0.03, a0z + fz * 0.3], [a1x + fx * 0.3, gY(a1x, a1z) + 0.03, a1z + fz * 0.3], [a1x - fx * 0.3, gY(a1x, a1z) + 0.03, a1z - fz * 0.3], mud, [0, 1, 0]); }
     keep.add(q.x, q.z, { x: q.x, z: q.z, r: 3.5 }); }
@@ -17718,7 +17677,7 @@ function buildProps(ctx) {
   if (E.mounds) { const n = Math.round(E.mounds * T.length / 1000 * 6), MC = new THREE.Color(E.soil || '#9a6a4a');
     for (let k = 0; k < n; k++) { const i = T.startIdx + Math.floor(R() * (T.finishIdx - T.startIdx)), sd = R() < 0.5 ? 1 : -1, q = posAt(i, sd * (P[i].w / 2 + rr(5, 60))); if (roadGap(q.x, q.z) < 4 || inLake(T, lakes, q.x, q.z) || keepAt(q.x, q.z, 2)) continue;
       const y = gY(q.x, q.z), hgt = rr(0.8, 2.6), r = hgt * rr(0.25, 0.4); A('column', q.x, y - 0.2, q.z, r, hgt, r, R() * 6.3, (R() - 0.5) * 0.1, 0, MC.clone().multiplyScalar(0.85 + 0.25 * R())); A('blob', q.x, y + 0.1, q.z, r * 1.7, hgt * 0.22, r * 1.7, R() * 6.3, 0, 0, MC.clone().multiplyScalar(0.8 + 0.2 * R()));
-      const r2 = T.fieldAt(q.x, q.z); if (r2.np && r2.np.i >= 0 && r2.nd < r2.np.w / 2 + 12) (T.colAt[r2.np.i] || (T.colAt[r2.np.i] = [])).push({ i: r2.np.i, x: q.x, z: q.z, r: r * 1.2, kind: 'tree' }); } }
+      const r2 = T.fieldAt(q.x, q.z); if (r2.np && r2.np.i >= 0 && r2.nd < r2.np.w / 2 + 12) (T.colAt[r2.np.i] || (T.colAt[r2.np.i] = [])).push({ i: r2.np.i, x: q.x, z: q.z, r: r * 1.2, kind: 'tree' }); walkAddTree(T, q.x, q.z, r * 1.2); } }
   // wild animals out on the open ground, in herds, grazing well beyond where a car can reach (and out of the fields,
   // unless they graze there)
   stats.wild = 0;
@@ -17835,9 +17794,11 @@ function plantStage(ctx) {
     const c = coverAt(x, z), p = (c < 0 ? F.openDens * 0.25 : c * F.dens + (1 - c) * F.openDens) * _sl.trees; if (R() > p) return;
     if (c > 0.5 && rowsAt(x, z)) { const u = x * ca + z * sa, v = -x * sa + z * ca, sp = 4.6, uu = Math.round(u / sp) * sp, vv = Math.round(v / sp) * sp; x = uu * ca - vv * sa; z = uu * sa + vv * ca; } // (a plantation: in rows)
     const r = clearOf(x, z, min); if (!r) return;
-    const sp = pickW(c > 0.5 ? F.forest : F.open, R); if (!sp || !SPECIES[sp]) return; const y = gY(x, z);
-    const reach = growTree(sp, A, { x, y, z, H: rr(7, 17), R, E, snow: snowy(x, y, z) }); st.trees++;
+    const sp = pickW(c > 0.5 ? F.forest : F.open, R); if (!sp || !SPECIES[sp]) return; const y = gY(x, z), Ht = rr(7, 17);
+    const reach = growTree(sp, A, { x, y, z, H: Ht, R, E, snow: snowy(x, y, z) }); st.trees++;
     if (reach > 0 && r.np && !r.np.spur && r.nd < r.np.w / 2 + 11.5) { const i = r.np.i; (T.colAt[i] || (T.colAt[i] = [])).push({ i, x, z, r: Math.max(0.2, reach * 1.1), kind: 'tree' }); }
+    // (for the spectators on foot: the trunks further out, and a spruce's or larch's skirt of branches down to the ground)
+    if (reach > 0 && r.np && r.nd < r.np.w / 2 + 70) { const sk = sp === 'spruce' ? 0.16 * Ht : sp === 'larch' ? 0.12 * Ht : 0; if (sk || r.nd >= r.np.w / 2 + 11.5) walkAddTree(T, x, z, Math.max(0.2, reach * 1.1, sk)); }
   };
   // (a dense forest: more tries; fewer trees in all on a modest graphics chip). The woods stand thick out to about 60 m
   // from the road, where they are seen; beyond, thinner, the haze closing over them.
@@ -17875,6 +17836,797 @@ function stageLook(E) {
   if (E.skid) { SKIDC.gravel = E.skid.slice(); SKIDC.loose = E.skid.map(v => v * 1.08); SKIDC.hard = E.skid.map(v => v * 0.92); SKIDC.dirt = E.skid.map(v => v * 0.75); }
   MUDC.set(E.mud || '#6b5638');
   ROAD_LAY.uLooseC.value.set(E.loose || '#998569'); ROAD_LAY.uDirtC.value.set(E.dirt || '#664f38'); ROAD_LAY.uDustC.value.set(E.dust || '#cbb592'); DUST.powder.set(E.dust || '#d2bc96');
+}
+
+// ==== SPECTATORS ====
+// What the people watching a rally do, and the ground they do it on.
+//   Where they stand: where the stage is worth watching (its hairpins, junctions, jumps, splashes and bridges, a
+//   village's street) and where they are safe from a car that goes off: high on a bank above the road, on the inside of
+//   a bend, or well back on the level; never on the outside of a bend unless high up a steep bank (the organisers' own
+//   rule, kept by the marshals with tape and whistles). They come in twos and threes, families with children (now and
+//   then one on a parent's shoulders), with camping chairs, and umbrellas in the rain.
+//   While they wait they talk, sit, look about. A marshal in a bright vest blows a whistle as soon as a car is heard
+//   (a rally car carries a long way through quiet country) and waves people back off the road. Then everyone gets up and
+//   looks up the road: phones come up to film, cameras go to the eye, flags are waved and air horns blown in quick
+//   blasts and a long one as it passes; people cheer, clap, wave and jump, turn to follow the car and film it going away.
+//   The bold ones stand out in the road itself to film it coming straight at them, and leave the road only at the last
+//   moment, running for the verge on either side; then they step back out behind it to watch it go.
+//   Anyone a car comes at runs, across the line it is on, the shortest way out of its path the ground allows. When a car
+//   goes off, those nearby run to it and push it back onto its wheels or the road, and a marshal runs on up the road to
+//   warn the next car. Showered with gravel or snow, those close turn their backs.
+//   On foot they go only where a person can: round walls, hedges, fences, houses, rails, rocks and trees, not through
+//   them; up and down slopes no steeper than about one in one, never off a drop; never into water.
+
+// ---- where a person can walk ----
+// The walk map: the stage's ground in half-metre cells, each worked out the first time someone needs it: its height (the
+// road's surface on the road, a bridge's deck, the roadside strip, the land) and whether a person can be there - not
+// inside a wall, hedge, fence, house, guard rail or parapet, a rock, a tree's trunk, a post or a bale, nor in water over
+// their ankles. Between neighbouring cells, the climb or drop decides whether a step can be taken.
+// (a distance in the plane: quicker than Math.hypot, which the crowd's every moment asks for thousands of times)
+const hyp = (a, b) => Math.sqrt(a * a + b * b);
+const WK = { C: 0.5, R: 0.28, SOLID: 1, WATER: 2, ROAD: 4, TALL: 8, NEAR: 16, CAP: 1 << 17 };
+const WK_SOLID = { bale: 1, block: 1, tree: 1, pole: 1, post: 1 };
+function walkMap(T) {
+  if (T._walk) return T._walk;
+  return T._walk = { T, m: new Map(), n: 0, gen: 1, y: new Float32Array(WK.CAP), f: new Uint8Array(WK.CAP), ri: new Int32Array(WK.CAP), ri2: new Int32Array(WK.CAP), lat: new Float32Array(WK.CAP), bq: {} };
+}
+// the cell under (x, z): its slot in the map's tables (hint: a road point near it)
+function walkCell(W, x, z, hint) {
+  const ix = Math.floor(x / WK.C), iz = Math.floor(z / WK.C), key = ix * 100003 + iz; let k = W.m.get(key);
+  if (k !== undefined) return k;
+  if (W.n >= WK.CAP) { W.m.clear(); W.n = 0; W.gen++; } // (full: start again)
+  k = W.n++; W.m.set(key, k); walkEval(W, k, (ix + 0.5) * WK.C, (iz + 0.5) * WK.C, hint || 0); return k;
+}
+// the distance from (x, z) to a quad's edge (less than nothing inside it)
+function quadDist(x, z, q) { let dm = Infinity; for (let e = 0; e < 8; e += 2) { const ax = q[e], az = q[e + 1], ex = q[(e + 2) % 8] - ax, ez = q[(e + 3) % 8] - az, L2 = ex * ex + ez * ez || 1e-12, t = clamp(((x - ax) * ex + (z - az) * ez) / L2, 0, 1), d = hyp(x - ax - ex * t, z - az - ez * t); if (d < dm) dm = d; } return inQuad(x, z, q) ? -dm : dm; }
+// the nearest solid thing to (x, z) within reach for someone standing at height y (info: the road beside it): how far its
+// surface is (d, less than nothing inside it) and how high it stands over the ground (h: a guard rail's 0.76 m, a wall's
+// top, a house or a tree out of reach). The guard rails, walls and parapets along the road (on a twin course, the mirror-
+// image lane's too); houses, walls, hedges, log stacks and piers; rocks a person can't step over, bales, blocks, trunks,
+// posts and poles; the trees further out, and the lines of walls, hedges, fences and barriers (see walkAdd)
+const _wo = { d: 0, h: 0 };
+function walkObst(W, x, z, info, y, reach, i2) {
+  const T = W.T, P = T.pts, N = P.length, i = info.i; let dm = reach, hm = 0; const take = (d, h) => { if (d < dm) { dm = d; hm = h; } };
+  const bars = (qx, qz, I) => { const sd = I.lat >= 0 ? 0 : 1; for (let s = I.s - 1; s <= I.s + 1; s++) { const b = barrierQuad(T, s, sd, W.bq); if (b && b.top > y + 0.2 && b.bot < y + 1.6) take(quadDist(qx, qz, b.q), b.top - y); } };
+  bars(x, z, info);
+  if (i2 >= 0) { const I2 = locate(T, x, z, i2); if (Math.abs(I2.y - y) < 2.5) bars(x, z, I2); } // (another stretch of the course beside this one: its barriers too)
+  const S = T.sss; if (S && S.lane) { const d = (x - S.ox) * S.rx + (z - S.oz) * S.rz, mx = x - 2 * d * S.rx, mz = z - 2 * d * S.rz, I2 = locate(T, mx, mz, i); _wo.lane = Math.abs(I2.lat) <= I2.w / 2; bars(mx, mz, I2); } else _wo.lane = false;
+  const BA = T.boxAt[i]; if (BA) for (const b of BA) if (b.top > y + 0.25 && b.bot < y + 1.6) take(quadDist(x, z, b.q), b.top - y);
+  if (T.wkBox) T.wkBox.query(x, z, 0, b => { if (b.top > y + 0.25 && b.bot < y + 1.6) take(quadDist(x, z, b.q), b.top - y); });
+  for (let j = Math.max(0, i - 4); j <= Math.min(N - 1, i + 4); j++) { const L = T.colAt[j]; if (!L) continue;
+    for (const c of L) { const k = c.kind; if (k === 'rock') { if (c.H > 0.4) take(hyp(x - c.x, z - c.z) - Math.max(c.a || c.r || 0.4, c.b || 0), c.H); } else if (WK_SOLID[k]) take(hyp(x - c.x, z - c.z) - c.r, k === 'bale' ? 1.0 : k === 'block' ? c.H || 1 : 99); } }
+  if (T.wkTree) T.wkTree.query(x, z, 0, t => take(hyp(x - t.x, z - t.z) - t.r, t.r > 0.6 ? 98 : 99));
+  if (T.wkSeg) T.wkSeg.query(x, z, 0, s => { const ex = s.bx - s.ax, ez = s.bz - s.az, L2 = ex * ex + ez * ez || 1e-9, u = clamp(((x - s.ax) * ex + (z - s.az) * ez) / L2, 0, 1); take(hyp(x - s.ax - ex * u, z - s.az - ez * u) - s.t / 2, s.h); });
+  _wo.d = dm; _wo.h = hm; return _wo;
+}
+// a cell: its ground, and whether a person can stand at its middle (SOLID: something within reach; TALL: higher than the
+// eyes, so the road can't be seen past it; NEAR: something a step away), water, the road
+function walkEval(W, k, x, z, hint) {
+  const T = W.T, info = locate(T, x, z, hint), y = surfaceY(T, info, x, z); let f = Math.abs(info.lat) <= info.w / 2 ? WK.ROAD : 0;
+  const i2 = walkOther(T, x, z, info.i); if (i2 >= 0) { const I2 = locate(T, x, z, i2); if (Math.abs(I2.lat) <= I2.w / 2 + 0.3 && Math.abs(I2.y - y) < 1.5) f |= WK.ROAD; }
+  const o = walkObst(W, x, z, info, y, 1.0, i2); if (o.lane) f |= WK.ROAD;
+  if (o.d < WK.R) f |= WK.SOLID | (o.h > 1.4 && o.h !== 99 ? WK.TALL : 0); if (o.d < WK.R + 0.62) f |= WK.NEAR;
+  const lv = waterLevelAt(T, x, z); if (lv !== null && lv > y + 0.1) f |= WK.WATER;
+  if (T._lakes) for (const L of T._lakes) if (x >= L.x0 && x <= L.x1 && z >= L.z0 && z <= L.z1 && y < L.level + 0.1) f |= WK.WATER;
+  W.y[k] = y; W.f[k] = f; W.ri[k] = info.i; W.ri2[k] = i2; W.lat[k] = info.lat;
+}
+// another stretch of the course beside (x, z), far along it from road point i (a loop's other lane, a stage that comes
+// back past itself): its nearest point, or -1 (the next arm of a hairpin is found by locate itself)
+function walkOther(T, x, z, i) {
+  const G2 = T.grid; if (!G2) return -1; let best = -1, bd = 196;
+  G2.query(x, z, 14, o => { if (o.r || o.i == null || o.i < 0 || Math.abs(o.i - i) < 100) return; const d = (o.x - x) * (o.x - x) + (o.z - z) * (o.z - z); if (d < bd) { bd = d; best = o.i; } });
+  return best;
+}
+// can a person step from cell a to its neighbour b? (hurry: running from a car, a little steeper); solid things are for
+// walkFreeAt to say, exactly where they are
+function walkStep(W, a, b, hurry) { if (W.f[b] & WK.WATER) return false; const dy = W.y[b] - W.y[a]; return dy < (hurry ? 0.5 : 0.42) && dy > (hurry ? -0.62 : -0.48); }
+// is (x, z) itself clear for a person (a body 0.2 m round)? 0 if so, else how high what is in the way stands
+function walkFreeAt(W, x, z, k, hint) { if (!(W.f[k] & (WK.SOLID | WK.NEAR))) return 0; const o = walkObst(W, x, z, locate(W.T, x, z, hint), W.y[k], 0.5, W.ri2[k]); return o.d < 0.2 ? Math.max(0.01, o.h) : 0; }
+// can a person stand at (x, z)? null if not, else its cell; the ground round it no steeper than about 35 degrees
+function walkStand(W, x, z, hint, road, steep) {
+  const k = walkCell(W, x, z, hint); if (W.f[k] & WK.WATER || (!road && (W.f[k] & WK.ROAD)) || walkFreeAt(W, x, z, k, hint)) return null; const y = W.y[k], st = steep || 0.36;
+  for (const [dx, dz] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) { const q = walkCell(W, x + dx, z + dz, hint); if (Math.abs(W.y[q] - y) > st || (W.f[q] & WK.WATER)) return null; }
+  return k;
+}
+// how far a person can get from (x, z) heading (ux, uz), up to len, a half metre at a time (in a hurry, over what is low
+// enough to jump, as walkStepTo does; off: not onto the road - no one off it runs onto it from a car)
+function walkReach(W, x, z, ux, uz, len, hint, hurry, off) {
+  let a = walkCell(W, x, z, hint), d = 0;
+  while (d < len) { const n = Math.min(0.5, len - d), qx = x + ux * (d + n), qz = z + uz * (d + n), b = walkCell(W, qx, qz, W.ri[a]);
+    if (off && (W.f[b] & WK.ROAD)) break;
+    if ((b !== a && !walkStep(W, a, b, hurry)) || walkFreeAt(W, qx, qz, b, W.ri[a])) {
+      if (hurry && walkStep(W, a, b, true) && d + 1.5 <= len) { const o = walkObst(W, x + ux * (d + n), z + uz * (d + n), locate(W.T, x + ux * (d + n), z + uz * (d + n), W.ri[a]), W.y[b], 0.5, W.ri2[b]); // (low enough to jump, and clear beyond?)
+        const c = walkCell(W, x + ux * (d + 1.5), z + uz * (d + 1.5), W.ri[a]); if (o.h <= 1.12 && !(W.f[c] & (WK.SOLID | WK.WATER)) && !(off && (W.f[c] & WK.ROAD)) && W.y[c] > W.y[a] - 0.7 && W.y[c] < W.y[a] + 0.5) { a = c; d += 1.5; continue; } }
+      break; }
+    a = b; d += n; }
+  return d;
+}
+// a step of up to len toward (tx, tz): straight if it can, else round what is in the way (wider and wider turns, first
+// on the side it last went round); in a hurry, over a guard rail, a crowd barrier, a low wall or a fence no higher than the
+// waist rather than round it, as people fleeing a car do (o.vlt: the jump, see crowdVault). 2 arrived, 0 straight, 1 round
+// something, 3 over it, -1 nowhere to go
+const WK_TURNS = [0, 0.45, -0.45, 0.9, -0.9, 1.35, -1.35, 1.8, -1.8];
+function walkStepTo(W, o, tx, tz, len, hurry) {
+  const dx = tx - o.x, dz = tz - o.z, d = hyp(dx, dz); if (d < 0.03) return 2;
+  const L = Math.min(len, d), ux = dx / d, uz = dz / d, a = walkCell(W, o.x, o.z, o.ri), sg = o.wsd || 1;
+  for (let q = 0; q < WK_TURNS.length; q++) { const ang = WK_TURNS[q] * sg, c = Math.cos(ang), s = Math.sin(ang), vx = ux * c - uz * s, vz = ux * s + uz * c, nx = o.x + vx * L, nz = o.z + vz * L, b = walkCell(W, nx, nz, o.ri);
+    if (b !== a && !walkStep(W, a, b, hurry)) continue;
+    const h = walkFreeAt(W, nx, nz, b, o.ri);
+    if (h) { if (q === 0 && d < 0.45) return 2; if (q === 0 && hurry && h <= 1.12 && crowdVault(W, o, ux, uz, h)) return 3; continue; } // (close enough: the last bit is up against something)
+    const I = locate(W.T, nx, nz, o.ri), ny = surfaceY(W.T, I, nx, nz), dy = ny - o.y; // (the ground where the foot lands: no step off a drop inside a cell)
+    if (dy > (hurry ? 0.45 : 0.3) + L * 0.9 || dy < -((hurry ? 0.55 : 0.33) + L * 1.1)) continue;
+    o.x = nx; o.z = nz; o.y = ny; o.ri = I.i; if (q) o.wsd = ang > 0 ? 1 : -1; o.mvx = vx; o.mvz = vz; return q ? 1 : 0; }
+  return -1;
+}
+// over a low obstacle in the way: a hand on it and over, landing a metre or so beyond (on ground no more than a long
+// step lower: never over a rail with a drop behind it)
+function crowdVault(W, o, ux, uz, h) {
+  const a = walkCell(W, o.x, o.z, o.ri), off = !(W.f[a] & WK.ROAD); // (never over a barrier into the road)
+  for (const L of [0.9, 1.2, 1.5]) { const x = o.x + ux * L, z = o.z + uz * L, b = walkCell(W, x, z, o.ri); if ((W.f[b] & WK.WATER) || (off && (W.f[b] & WK.ROAD)) || W.y[b] < W.y[a] - 0.7 || W.y[b] > W.y[a] + 0.5 || walkFreeAt(W, x, z, b, o.ri)) continue;
+    o.vlt = { x0: o.x, z0: o.z, y0: o.y, x1: x, z1: z, y1: W.y[b], t: 0, d: 0.45 + 0.25 * h, h: h + 0.2 }; o.mvx = ux; o.mvz = uz; return true; }
+  return false;
+}
+// solid things the scenery builds, for the walk map (cells of 8 m; each kept in every cell it reaches into)
+function walkAdd(T, key, x0, z0, x1, z1, v) {
+  const H = T[key] || (T[key] = new SHash(8)), c = 8;
+  for (let ix = Math.floor((x0 - 1.1) / c); ix <= Math.floor((x1 + 1.1) / c); ix++) for (let iz = Math.floor((z0 - 1.1) / c); iz <= Math.floor((z1 + 1.1) / c); iz++) { const k = ix * 1e6 + iz; let a = H.m.get(k); if (!a) H.m.set(k, a = []); a.push(v); }
+}
+function walkAddBox(T, q, top, bot) { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (let k = 0; k < 4; k++) { x0 = Math.min(x0, q[k * 2]); x1 = Math.max(x1, q[k * 2]); z0 = Math.min(z0, q[k * 2 + 1]); z1 = Math.max(z1, q[k * 2 + 1]); } walkAdd(T, 'wkBox', x0, z0, x1, z1, { q, top, bot }); }
+function walkAddSeg(T, ax, az, bx, bz, t, h) { const r = t / 2; walkAdd(T, 'wkSeg', Math.min(ax, bx) - r, Math.min(az, bz) - r, Math.max(ax, bx) + r, Math.max(az, bz) + r, { ax, az, bx, bz, t, h }); }
+function walkAddTree(T, x, z, r) { walkAdd(T, 'wkTree', x - r, z - r, x + r, z + r, { x, z, r }); }
+
+// ---- what a spectator looks like ----
+// A person in a few simple solids, about life size: each leg in two parts (thigh and shin, so they can sit, kneel and
+// run), a torso tapering to the waist, a head, two arms; each limb a box, all of them drawn together in the colours of
+// their clothes. What they hold is drawn with the limbs: a phone, a camera, an air horn's can and trumpet, a flag's pole
+// (the flag itself waves in the wind), an umbrella's stick (its canopy). Only those near enough to be seen are drawn:
+// each takes a slot in the drawing when it comes into view and gives it back when it goes out of it.
+const BODY = { thigh: 0.45, shin: 0.46, hip: 0.91, torso: 0.57, sho: 0.52, shoW: 0.19, hipW: 0.09, neck: 0.165, arm: 0.62 };
+// a pose: [0] hips' height, [1] lean, [2] hop, [3-5] right arm's swing forward (negative raises it in front), out to the
+// side, reach (1 straight, less with the elbow bent), [6-8] the left arm's, [9-10] right thigh's swing and knee's bend,
+// [11-12] the left's, [13] legs apart, [14] what they hold, turned (a flag waved), [15] spare
+const PZN = 16;
+class SlotMesh {
+  constructor(geo, mat, cap, per, group) {
+    this.per = per; const n = Math.max(1, cap * per); this.m = new THREE.InstancedMesh(geo, mat, n); this.m.count = 0; this.m.frustumCulled = false;
+    this.m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); this.m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3); this.m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    this.A = this.m.instanceMatrix.array; this.Cl = this.m.instanceColor.array; this.free = []; this.top = 0; this.lo = 1e9; this.hi = -1; this.clo = 1e9; this.chi = -1; group.add(this.m);
+  }
+  take() { const s = this.free.length ? this.free.pop() : this.top++; this.m.count = this.top * this.per; return s; }
+  drop(s) { for (let j = 0; j < this.per; j++) this.zero(s * this.per + j); this.free.push(s); }
+  zero(i) { this.A.fill(0, i * 16, i * 16 + 16); this.dirty(i); }
+  dirty(i) { if (i < this.lo) this.lo = i; if (i > this.hi) this.hi = i; }
+  color(i, c) { const o = i * 3; this.Cl[o] = c.r; this.Cl[o + 1] = c.g; this.Cl[o + 2] = c.b; if (i < this.clo) this.clo = i; if (i > this.chi) this.chi = i; }
+  flush() { if (this.hi >= this.lo) { sendRange(this.m.instanceMatrix, this.lo, this.hi - this.lo + 1); this.lo = 1e9; this.hi = -1; } if (this.chi >= this.clo) { sendRange(this.m.instanceColor, this.clo, this.chi - this.clo + 1); this.clo = 1e9; this.chi = -1; } }
+}
+// one part's matrix: at (px, py, pz), turned by heading f, then pitched by a (about its own x), then rolled by b (about
+// its own z) - the order of a 'YXZ' Euler - and scaled. Columns: its x, y and z axes
+const _pm = new Float64Array(9);
+function partMat(A, i, px, py, pz, f, a, b, sx, sy, sz) {
+  const ca = Math.cos(f), sa = Math.sin(f), cb = Math.cos(a), sb = Math.sin(a), cc = Math.cos(b), sc = Math.sin(b), o = i * 16;
+  const r0 = ca * cc + sa * sb * sc, r1 = cb * sc, r2 = -sa * cc + ca * sb * sc, r4 = -ca * sc + sa * sb * cc, r5 = cb * cc, r6 = sa * sc + ca * sb * cc, r8 = sa * cb, r9 = -sb, r10 = ca * cb;
+  A[o] = r0 * sx; A[o + 1] = r1 * sx; A[o + 2] = r2 * sx; A[o + 3] = 0; A[o + 4] = r4 * sy; A[o + 5] = r5 * sy; A[o + 6] = r6 * sy; A[o + 7] = 0;
+  A[o + 8] = r8 * sz; A[o + 9] = r9 * sz; A[o + 10] = r10 * sz; A[o + 11] = 0; A[o + 12] = px; A[o + 13] = py; A[o + 14] = pz; A[o + 15] = 1;
+  _pm[0] = r0; _pm[1] = r1; _pm[2] = r2; _pm[3] = r4; _pm[4] = r5; _pm[5] = r6; _pm[6] = r8; _pm[7] = r9; _pm[8] = r10;
+}
+// a point offset (ox, oy, oz) in a frame turned by heading f and pitched by a
+function frameOff(out, f, a, ox, oy, oz) { const ca = Math.cos(f), sa = Math.sin(f), cb = Math.cos(a), sb = Math.sin(a), Y = oy * cb - oz * sb, Z = oy * sb + oz * cb; out[0] = ca * ox + sa * Z; out[1] = Y; out[2] = -sa * ox + ca * Z; return out; }
+const _po = [0, 0, 0];
+// the geometry: a torso (elliptic, tapering to the waist, from the hips up), a head, a unit box hung from its top (each
+// limb and handheld thing is one, scaled), a flag's cloth (pole side at x = 0, top at y = 0), an umbrella's canopy
+function crowdGeos() {
+  if (crowdGeos.g) return crowdGeos.g;
+  const torso = new THREE.CylinderGeometry(0.205, 0.165, BODY.torso, 7, 1).translate(0, BODY.torso / 2, 0); torso.scale(1, 1, 0.62);
+  const head = new THREE.SphereGeometry(0.115, 8, 6); head.scale(1, 1.13, 1.05);
+  const box = new THREE.BoxGeometry(1, 1, 1).translate(0, -0.5, 0);
+  const cloth = new THREE.PlaneGeometry(1.1, 0.72, 6, 3).translate(0.55, -0.36, 0);
+  const canopy = new THREE.ConeGeometry(0.56, 0.24, 8, 1, true).translate(0, -0.12, 0);
+  return crowdGeos.g = { torso, head, box, cloth, canopy };
+}
+// flags: eight of the kinds fans wave (bands of colour, a cross, a chequered racing flag), in one texture, two rows of four
+function flagTex() {
+  if (TEX.flags) return TEX.flags; const [c, g] = cnv(512, 170), W = 128, H = 85;
+  const D = [['h', '#c4202f', '#f4f2ec'], ['h3', '#1f4fa0', '#f4f2ec', '#c4202f'], ['v3', '#2a8a3a', '#f4f2ec', '#d42a2a'], ['chq'], ['h3', '#f2c014', '#2a7a3a', '#c4202f'], ['x', '#1f4fa0', '#f4f2ec'], ['v', '#f2c014', '#1f4fa0'], ['h3', '#f4f2ec', '#1f4fa0', '#c4202f']];
+  D.forEach((d, k) => { const x0 = (k % 4) * W, y0 = Math.floor(k / 4) * H; g.save(); g.beginPath(); g.rect(x0, y0, W, H); g.clip();
+    if (d[0] === 'h') { g.fillStyle = d[1]; g.fillRect(x0, y0, W, H / 2); g.fillStyle = d[2]; g.fillRect(x0, y0 + H / 2, W, H / 2); }
+    else if (d[0] === 'h3') for (let q = 0; q < 3; q++) { g.fillStyle = d[q + 1]; g.fillRect(x0, y0 + q * H / 3, W, H / 3 + 1); }
+    else if (d[0] === 'v3') for (let q = 0; q < 3; q++) { g.fillStyle = d[q + 1]; g.fillRect(x0 + q * W / 3, y0, W / 3 + 1, H); }
+    else if (d[0] === 'v') { g.fillStyle = d[1]; g.fillRect(x0, y0, W / 2, H); g.fillStyle = d[2]; g.fillRect(x0 + W / 2, y0, W / 2, H); }
+    else if (d[0] === 'x') { g.fillStyle = d[1]; g.fillRect(x0, y0, W, H); g.fillStyle = d[2]; g.fillRect(x0 + W * 0.3, y0, W * 0.14, H); g.fillRect(x0, y0 + H * 0.43, W, H * 0.14); }
+    else { const s = W / 8; for (let a = 0; a < 8; a++) for (let b = 0; b < 6; b++) { g.fillStyle = (a + b) % 2 ? '#141414' : '#f4f2ec'; g.fillRect(x0 + a * s, y0 + b * s, s, s); } }
+    g.restore(); });
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return TEX.flags = t;
+}
+// the flag's cloth flutters: a wave running out along it from the pole, bigger toward its free end, each flag its own
+const CROWD_T = { value: 0 };
+function clothShader(sh) {
+  sh.uniforms.uT = CROWD_T;
+  sh.vertexShader = 'uniform float uT; attribute float aDes;\n' + sh.vertexShader
+    .replace('#include <uv_vertex>', '#include <uv_vertex>\n#ifdef USE_UV\nvUv = vec2((mod(aDes, 4.0) + vUv.x) * 0.25, (1.0 - floor(aDes / 4.0) + vUv.y) * 0.5);\n#endif')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nfloat fph = dot(instanceMatrix[3].xz, vec2(0.37, 0.71)); float fu = position.x / 1.1;\ntransformed.z += (sin(position.x * 5.2 - uT * 7.5 + fph) * 0.1 + sin(position.x * 9.0 + position.y * 4.0 - uT * 11.0 + fph) * 0.035) * fu;\ntransformed.y += sin(position.x * 3.0 - uT * 5.0 + fph) * 0.03 * fu;');
+}
+
+// ---- who they are ----
+// clothes: tops for warm days and for cold ones, trousers and jeans, skin; a marshal's orange vest
+const CR_TOP = ['#c4202f', '#1f4fa0', '#f2c014', '#2b2b2b', '#e8e2d4', '#3f7a3b', '#d96b1c', '#6b4aa0', '#8a5a3a', '#5a6a7a', '#9a2a4a', '#2a6a8a', '#d8d4cc', '#4a4a4a', '#e6e6e0', '#7a8a3a'].map(c => new THREE.Color(c));
+const CR_COAT = ['#1f2a3a', '#3a3f45', '#b8202a', '#1f4fa0', '#2e5a3a', '#e8a020', '#6a6a6a', '#202020', '#7a2a2a', '#3a5a7a', '#5a4a3a', '#c8c8c0'].map(c => new THREE.Color(c));
+const CR_LEGS = ['#2a3550', '#1e2a44', '#2b2b2b', '#4a4a48', '#6b5a44', '#3a4a3a', '#5a5a62', '#30384a'].map(c => new THREE.Color(c));
+const CR_SKIN = ['#f0c8a8', '#e2b48f', '#d4a27c', '#c99470', '#a8754f', '#8a5a3a', '#6a4430'].map(c => new THREE.Color(c));
+const CR_VEST = new THREE.Color('#ff7a1a'), CR_DARK = new THREE.Color('#1c1c1e'), CR_HORN = new THREE.Color('#e8e4dc'), CR_TRUMP = new THREE.Color('#d42a20'), CR_POLE = new THREE.Color('#d8d4c8'), CR_FLARE = new THREE.Color('#b0201a');
+const CR_WHITE = new THREE.Color(1, 1, 1);
+const CR_UMB = ['#1c1c1e', '#1f3a6a', '#7a1a22', '#2e4a2e', '#e8c020', '#5a5a5a'].map(c => new THREE.Color(c));
+// a new spectator at (x, z); o: { g: group, face, m: marshal, seat: in a grandstand, kid, R: the stage's own numbers }
+// (every field a spectator will ever have is made here, in one order: so that all of them are alike to the script engine,
+// which keeps the moment-to-moment work on hundreds of them quick)
+function crowdPerson(T, x, z, o) {
+  const R = o.R || Math.random, pick = L => L[Math.floor(R() * L.length) % L.length];
+  const p = { x, z, y: groundY(T, x, z), g: o.g == null ? -1 : o.g, face: o.face || 0, m: !!o.m, seat: !!o.seat, kid: !!o.kid, s: o.kid ? 0.58 + 0.17 * R() : 0.93 + 0.13 * R(), kind: o.kind || '',
+    skin: pick(CR_SKIN), c: o.m ? CR_VEST : pick(CR_TOP), c2: pick(CR_LEGS), coat: pick(CR_COAT), ph: R() * 6.283, r1: R(), r2: R(), r3: R(), ri: o.i != null ? o.i : 0,
+    // where they stand, who they are with
+    sd: 0, bold: null, carry: null, ride: null, out: false, k: 0, grp: null, mate: null, lat: 0, hx: 0, hz: 0, hy: 0, hf: 0, atBar: false, guard: false,
+    // what they wear and hold (crowdDress)
+    ca: null, top: null, c3: null, item: '', torch: false, role: '', sit: 0, stay: false, kneel: false, fls: 1, des: 0,
+    // their drawing
+    sl: -1, vis: false, sf: -1, su: -1, drawn: -1, pb: null, pz: null, Q: null, gw: 0, gph: 0,
+    hRx: 0, hRy: 0, hRz: 0, hLx: 0, hLy: 0, hLz: 0, hdx: 0, hdy: 0, hdz: 0, adx: 0, ady: 0, adz: 0,
+    // what they are doing
+    st: 'idle', act: '', devUp: false, v: 0, cheer: 0, react: 0, cheerK: 0, done: null, dn: 0, tdt: 0, calm: 0, wT: 0, wander: 0, idleA: '', idleT: 0,
+    go: false, hurry: false, spd: 0, tx: 0, tz: 0, wait: 0, t0: null, aftGo: false, cower: 0, cowerAt: false, brace: 0, thd: 0, dive: false, vlt: null, stk: 0,
+    gd: null, gT: 0, gtx: 0, gtz: 0, mvx: 0, mvz: 0, wsd: 0, shieldT: 0, happy: 0, lookX: 0, lookZ: 0,
+    hornPat: null, hornT0: 0, hornF: 0, hornF2: 0, whT: null,
+    // their lights after dark (CrowdFx)
+    fc: null, ign: 0, ttl: false, fp: null, fI: 0, fs: 0, ft: 0, fd: 0, relit: 0, flT: 0, preT: 0, pre: 0, shot: 0, shooting: false, se: 0, ke: 0, rl: 0 };
+  return p;
+}
+
+// ---- where they stand ----
+// a place beside road point j on side sd, u m out from the road's edge: null if a person can't stand there or can't see
+// the road from it (a bank's crest, a house, hedge or wall higher than the eyes in between); else its cell, its ground
+// and how high it stands above the road's edge
+function crowdSpot(W, T, j, sd, u, lv) {
+  const p = T.pts[j], L = p.w / 2 + u, lx = Math.cos(p.h) * sd, lz = -Math.sin(p.h) * sd, x = p.x + lx * L, z = p.z + lz * L, k = walkStand(W, x, z, j, false, lv ? 0.44 : 0.36); if (k === null) return null;
+  const y = W.y[k], e = y - (sd > 0 ? p.eL : p.eR);
+  if (lv < 2) for (let v = 0.75; v < u - 0.6; v += 0.75) { const q = walkCell(W, p.x + lx * (p.w / 2 + v), p.z + lz * (p.w / 2 + v), j); if (W.y[q] > y + 1.25 || (W.f[q] & WK.TALL)) return null; }
+  return { x, z, y, e, k, j, sd, u };
+}
+// how far back from the road a spectator must stand (the organisers' rules): on the inside of a bend or by a straight,
+// close if high above the road, further back the lower the ground; on the outside of a bend only high up a steep bank
+// (3 m or more), else well back
+const crowdMinU = (e, outside) => outside ? (e >= 3 ? 1.2 : e >= 1.8 ? 10 : 18) : (e >= 2.4 ? 0.9 : e >= 1.2 ? 2.6 : e >= 0.5 ? 5 : 7.5);
+// the bend at road point j: its curvature (+ left), so which side is its outside
+function crowdBend(T, j) { const P = T.pts, N = P.length, a = P[clamp(j - 4, 0, N - 1)], b = P[clamp(j + 4, 0, N - 1)]; return wrapAngle(b.h - a.h) / (8 * STEP); }
+// the best place for a group of spectators at road point j on side sd (or null): from just past the minimum distance
+// out to 26 m, preferring height above the road (the view, and safety), then nearness
+function crowdBest(W, T, j, sd, back, R, lv) {
+  const kap = crowdBend(T, j), out = Math.abs(kap) > 1 / 90 && Math.sign(kap) === -sd; let best = null, bs = -1e9, first = -1;
+  for (let u = 0.9; u < (lv ? 34 : 26); u += 0.7) {
+    if (first >= 0 && u > first + 7) break;
+    const s = crowdSpot(W, T, j, sd, u, lv); if (!s || u < crowdMinU(s.e, out) + back) continue; if (first < 0) first = u;
+    const sc = Math.min(s.e, 4) * 0.9 - u * 0.12 + R() * 0.6; if (sc > bs) { bs = sc; best = s; } }
+  return best;
+}
+// a jump's landing, and the 100 m after it: no one stands there (cars land long, or crooked)
+function crowdSterile(T, j) { for (const f of T.feats) if (f.type === 'jump' && j > f.s0 + 8 && j < f.s1 + 50) return true; return false; }
+// the spectators of each place the stage puts a crowd (T.props), in groups of one to five, a few with children, now and
+// then a child on a parent's shoulders; a marshal for each place; the tape in front of them, a metre short of where the
+// nearest stand (along the top of a bank, a metre back from its edge). Returns the people
+function crowdPlaceProps(T, list, ctx) {
+  const W = walkMap(T), P = T.pts, N = P.length, R = ctx.R, ARENA = !!(T.sss && T.sss.kind !== 'street'); let grp = ctx.g0 || 0;
+  const sizes = [[1, 0.15], [2, 0.35], [3, 0.25], [4, 0.15], [5, 0.1]], gsize = () => { let x = R(); for (const [n, w] of sizes) { x -= w; if (x <= 0) return n; } return 2; };
+  for (const pr of T.props) if (pr.kind === 'crowd') {
+    if (P[clamp(pr.i, 0, N - 1)].kerb) continue; // (in a village's or a town's street the crowd is on its pavements: see buildStage)
+    const g = grp++, made = [], back = ARENA ? 0 : pr.back * 0.35;
+    let left = pr.n;
+    for (let tries = 0, lv = 0; left > 0 && lv < 3; tries++) {
+      if (tries >= pr.n * 2) { lv++; tries = 0; continue; } // (the best ground first; then further along and back, steeper ground; then anywhere a person can stand)
+      const j = clamp(pr.i + Math.round((R() - 0.5) * [22, 36, 52][lv]), T.startIdx - 6, N - 2); if (crowdSterile(T, j)) continue;
+      // (each group's side: the place's own side mostly; the other if it has the better ground)
+      const s1 = crowdBest(W, T, j, pr.side, back, R, lv), s2 = !T.sss && R() < (lv ? 0.6 : 0.4) ? crowdBest(W, T, j, -pr.side, back, R, lv) : null, s = s1 && s2 ? (s2.e > s1.e + 1 ? s2 : s1) : s1 || s2; if (!s) continue;
+      const n = Math.min(left, gsize()), p = P[j], fx = Math.sin(p.h), fz = Math.cos(p.h), lx = Math.cos(p.h) * s.sd, lz = -Math.sin(p.h) * s.sd, face = Math.atan2(-lx, -lz);
+      let kidIn = n >= 3 && R() < 0.3;
+      for (let m = 0; m < n; m++) {
+        let q = null;
+        for (let t2 = 0; t2 < 6 && !q; t2++) { const a = m === 0 && t2 === 0 ? 0 : (m + t2 * 0.7) * (R() < 0.5 ? -1 : 1) * (0.7 + 0.4 * R()), b = (R() - 0.5) * 1.0, x = s.x + fx * a + lx * b, z = s.z + fz * a + lz * b, k = walkStand(W, x, z, j, false, lv ? 0.44 : 0.36);
+          if (k !== null && W.y[k] > s.y - 0.9 && Math.abs(W.lat[k]) - p.w / 2 > crowdMinU(W.y[k] - (s.sd > 0 ? p.eL : p.eR), false) * 0.8 && !list.some(o => hyp(o.x - x, o.z - z) < 0.62)) q = { x, z }; }
+        if (!q) continue;
+        const kid = kidIn && m === n - 1; const o = crowdPerson(T, q.x, q.z, { g, face: face + (R() - 0.5) * 0.5, kid, R, i: j, kind: 'fan' }); o.sd = s.sd; list.push(o); made.push(o); left--;
+        // (a small child on a parent's shoulders)
+        if (!kid && n >= 2 && R() < 0.07) { const c = crowdPerson(T, q.x, q.z, { g, face: o.face, kid: true, R, i: j, kind: 'fan' }); c.ride = o; o.carry = c; c.s = 0.55 + 0.1 * R(); list.push(c); made.push(c); }
+      }
+    }
+    if (!made.length) continue;
+    // the marshal: by the road on the crowd's side, just past the ditch, facing across it
+    if (pr.n >= 6 && !ARENA) { const sd = made[0].sd, p = P[pr.i]; let q = null;
+      for (let u = (p.sh || 0.6) + (p.dw || 1.5) + 0.9; u < 8 && !q; u += 0.6) { const L = p.w / 2 + u, x = p.x + Math.cos(p.h) * sd * L, z = p.z - Math.sin(p.h) * sd * L; if (walkStand(W, x, z, pr.i, false) !== null) q = { x, z }; }
+      if (q) { const o = crowdPerson(T, q.x, q.z, { g, face: Math.atan2(p.x - q.x, p.z - q.z), m: true, R, i: pr.i, kind: 'marshal' }); o.sd = sd; list.push(o); made.push(o); } }
+    // the tape: along the road between them and it, a metre short of the nearest of them, each stretch on its own side
+    if (!ARENA) for (const sd of [1, -1]) { const mine = made.filter(o => o.sd === sd && !o.m && !o.ride); if (!mine.length) continue;
+      let j0 = 1e9, j1 = -1e9, umin = 1e9; for (const o of mine) { const I = locate(T, o.x, o.z, o.ri); j0 = Math.min(j0, I.i); j1 = Math.max(j1, I.i); umin = Math.min(umin, Math.abs(I.lat) - I.w / 2); }
+      let run = [];
+      for (let i = clamp(j0 - 5, 1, N - 2); i <= clamp(j1 + 5, 1, N - 2); i += 2) { const p = P[i], u = Math.max((p.sh || 0.6) + (p.dw || 1.5) * 0.7 + 0.3, umin - 1.0), L = p.w / 2 + u, x = p.x + Math.cos(p.h) * sd * L, z = p.z - Math.sin(p.h) * sd * L, k = walkCell(W, x, z, i);
+        if (p.wall || (W.f[k] & (WK.SOLID | WK.WATER | WK.ROAD))) { if (run.length > 1) ctx.tapeLine(run); run = []; continue; }
+        run.push({ x, z, y: W.y[k] }); }
+      if (run.length > 1) ctx.tapeLine(run); }
+  }
+  // the bold ones: out in the road itself to film the cars coming straight at them, on the straight out of a hairpin or a
+  // square bend (where the cars come slowest), with the verge on at least one side to run for
+  if (!T.sss) { const SNOW = T.surface === 'snow';
+    for (let i = T.startIdx + 30; i < T.finishIdx - 30; i++) {
+      const p = P[i]; if (!(p.tag === 'hairpin' || p.tag === 'square') || P[i + 1].tag === p.tag) continue;
+      if (R() > (SNOW ? 0.25 : 0.5)) continue;
+      const j = i + 6 + Math.floor(R() * 6); if (j > T.finishIdx - 20) continue; let ok = Math.abs(wrapAngle(P[j + 10].h - P[j - 4].h)) < 0.35;
+      for (let k = j - 6; k <= j + 14 && ok; k++) if (P[k].tag || P[k].wall || P[k].nb || P[k].kerb) ok = false;
+      if (!ok || crowdSterile(T, j)) continue;
+      // (each side's way off the road: as far as a person can run from its edge, to 3.5 m)
+      const esc = [1, -1].map(sd => { const q = P[j], lx = Math.cos(q.h) * sd, lz = -Math.sin(q.h) * sd, x0 = q.x + lx * (q.w / 2 - 0.2), z0 = q.z + lz * (q.w / 2 - 0.2), d = walkReach(W, x0, z0, lx, lz, 4.2, j, true);
+        return d >= 3.1 ? { sd, x: x0 + lx * (d - 0.4), z: z0 + lz * (d - 0.4) } : null; }).filter(Boolean);
+      if (!esc.length) continue;
+      const g = grp++, n = 3 + Math.floor(R() * 5);
+      for (let m = 0; m < n; m++) {
+        const rj = clamp(j + Math.round((R() - 0.5) * 10), 2, N - 3), q = P[rj], ek = Math.floor(R() * esc.length) % esc.length, hw = q.w / 2;
+        // (their places on the verge, on each side that has a way off: the first their own, where they wait)
+        const E = []; for (let a = 0; a < esc.length; a++) { const e = esc[(ek + a) % esc.length], x = e.x + Math.sin(q.h) * (rj - j) * STEP + (R() - 0.5) * 0.8, z = e.z + Math.cos(q.h) * (rj - j) * STEP + (R() - 0.5) * 0.8; if (walkStand(W, x, z, rj, false) !== null) E.push({ x, z, sd: e.sd }); }
+        if (!E.length) continue; const e = E[0], rlat = R() < 0.4 ? (R() - 0.5) * 1.6 : e.sd * (0.5 + R() * (hw - 1.0));
+        const o = crowdPerson(T, e.x, e.z, { g, face: q.h + Math.PI, R, i: rj, kind: 'bold' }); o.sd = e.sd;
+        o.bold = { rj, rlat, esc: E, nerve: 1.5 + 0.9 * R() }; list.push(o);
+      }
+    } }
+  return grp;
+}
+
+// ---- the crowd of a stage ----
+const Crowd = { C: null, cars: [] };
+function buildCrowd(Gm, list, T) {
+  Crowd.C = Gm.crowd = null; if (!list.length) { CrowdFx.setup(null); return; }
+  T = T || G.T; const W = walkMap(T), geo = crowdGeos(), lam = () => new THREE.MeshLambertMaterial({ color: 0xffffff }), grp = stageGroup;
+  // (each one's place made good first - out of anything they can't stand in, onto the nearest place they can - and only
+  // then their home; anyone with nowhere to stand within 3 m left out, and a child on their shoulders with them)
+  for (const o of list) { if (o.seat || o.ride) continue; o.ri = locate(T, o.x, o.z, o.ri || 0).i; if (walkStand(W, o.x, o.z, o.ri, !!o.bold) === null && !crowdNudge(W, o)) o.out = true; else o.y = walkY(W, o.x, o.z, o.ri); }
+  const left = {}; for (const o of list) if (o.out || (o.ride && o.ride.out)) left[o.kind] = (left[o.kind] || 0) + 1; // (who was left out, for the record)
+  list = list.filter(o => !o.out && !(o.ride && o.ride.out)); for (const o of list) if (o.carry && o.carry.out) o.carry = null; if (!list.length) { CrowdFx.setup(null); return; }
+  for (const o of list) if (o.bold) { o.bold.esc[0] = { x: o.x, z: o.z, sd: o.bold.esc[0].sd }; }
+  const n = list.length;
+  const C = { T, list, n, left, t: 0, frame: 0, top: 0, free: [], visT: 0, crash: null, horns: 0, whistles: 0, near: 0, at: { x: 0, y: 0, z: 0 },
+    torso: new SlotMesh(geo.torso, lam(), n, 1, grp), head: new SlotMesh(geo.head, lam(), n, 1, grp), box: new SlotMesh(geo.box, lam(), n, 8, grp), cloth: null, canopy: null };
+  // (each person's group: the people of one place; anyone on their own a group of one)
+  const groups = new Map(); let solo = 1e6;
+  for (const o of list) { if (o.y == null || !Number.isFinite(o.y)) o.y = groundY(T, o.x, o.z); const k = o.g >= 0 ? o.g : solo++; let g = groups.get(k); if (!g) groups.set(k, g = { m: [], x: 0, z: 0, ri: 0, d: 1e9, car: null, awake: false }); g.m.push(o); o.grp = g; }
+  for (const g of groups.values()) { for (const o of g.m) { g.x += o.x / g.m.length; g.z += o.z / g.m.length; } g.ri = locate(T, g.x, g.z, g.m[0].ri || 0).i; }
+  C.groups = [...groups.values()];
+  list.forEach((o, k) => {
+    o.k = k; o.hx = o.x; o.hz = o.z; o.hy = o.y; o.hf = o.face; o.st = o.seat ? 'seat' : 'idle'; o.sl = -1; o.vis = false; o.sf = -1; o.su = -1;
+    const I = locate(T, o.x, o.z, o.ri || o.grp.ri); o.ri = I.i; o.lat = I.lat;
+    o.pb = new Float32Array(PZN); o.pz = new Float32Array(PZN); o.Q = new Float32Array(PZN); crowdPoseOf(o, o.seat ? 'seat' : 'stand', 0, o.pb); o.pz.set(o.pb);
+    o.gw = 0; o.gph = o.ph; o.v = 0; o.cheer = 0; o.react = 0.18 + 0.35 * o.r1; o.cheerK = o.m ? 0 : [0, 0, 1, 1, 2, 3, 3, 4, 5][Math.floor(o.r2 * 9)];
+    o.hRx = o.x; o.hRy = o.y + 1.2; o.hRz = o.z; o.hLx = o.x; o.hLy = o.y + 1.2; o.hLz = o.z; o.hdx = o.x; o.hdy = o.y + 1.63 * o.s; o.hdz = o.z; o.adx = 0; o.ady = -1; o.adz = 0;
+    o.done = {}; o.mate = null; const gd = o.seat || o.ride ? -1 : crowdGuarded(W, o); o.guard = gd >= 0; o.atBar = gd >= 0 && gd < 0.75 && !o.m; // (behind a barrier, a rail or a low wall: an arm's length from it, they lean on it)
+  });
+  // (who each one talks to while they wait: the nearest of their group)
+  for (const g of C.groups) for (const o of g.m) { let bd = 3; for (const q of g.m) { if (q === o || q.ride) continue; const d = hyp(q.x - o.x, q.z - o.z); if (d < bd) { bd = d; o.mate = q; } } }
+  Gm.crowd = Crowd.C = C;
+  crowdDress(C, Crowd.cond);
+}
+// is there a barrier, a rail, a wall or a parapet between this person and the road, between knee and head high? (behind
+// one, a car passing close is no reason to run) How far it is in front of them, or -1
+function crowdGuarded(W, o) {
+  const T = W.T, I = locate(T, o.x, o.z, o.ri), sd = I.lat >= 0 ? 1 : -1, u = Math.abs(I.lat) - I.w / 2; if (u < 0.3 || u > 12) return -1;
+  for (let v = 0.25; v < u; v += 0.25) { const x = o.x - I.lx * sd * v, z = o.z - I.lz * sd * v, k = walkCell(W, x, z, o.ri); if (!(W.f[k] & (WK.SOLID | WK.NEAR))) continue; const ob = walkObst(W, x, z, locate(T, x, z, o.ri), W.y[k], 0.3, W.ri2[k]); if (ob.d < 0.12 && ob.h > 0.6 && ob.h < 3) return v; }
+  return -1;
+}
+// out of a place a person can't stand in (a slope too steep, a trunk): the nearest place they can, within 3 m
+const P0w = (T, i) => T.pts[clamp(i, 0, T.pts.length - 1)].w;
+function crowdNudge(W, o) {
+  for (let r = 0.5; r <= 3; r += 0.5) for (let a = 0; a < 6.28; a += 0.7) { const x = o.x + Math.cos(a) * r, z = o.z + Math.sin(a) * r; if (walkStand(W, x, z, o.ri, false) !== null) { o.x = x; o.z = z; return true; } }
+  return false;
+}
+// the height a person's feet are at, standing at (x, z)
+function walkY(W, x, z, hint) { return surfaceY(W.T, locate(W.T, x, z, hint), x, z); }
+// what each spectator wears and holds for the day: coats when it is cold, short sleeves and shorts when it is hot, an
+// umbrella in the rain; phones, cameras, flags and air horns by day; after dark hand flares, phones with their lamps on,
+// photographers' flashguns and head torches; whether they sit while they wait (in a camping chair or on the grass)
+function crowdDress(C, cond) {
+  const T = C.T, W = Atmos.W || {}, tC = cond && cond.tC != null ? cond.tC : 14, rain = (W.rain || 0) > 0.15 && !(W.snow > 0.3), night = !!(cond && cond.night), hot = tC > 23, cold = tC < 9;
+  let flags = 0, umbs = 0;
+  for (const o of C.list) {
+    const r = o.r3, q = (o.r1 * 7.31 + o.r2 * 3.17) % 1;
+    o.ca = cold ? o.coat : hot && q < 0.65 ? o.skin : q < 0.35 ? o.skin : o.c; o.top = cold && !o.m ? o.coat : o.c; o.c3 = hot && r < 0.35 && !o.m ? o.skin : o.c2;
+    let it = ''; if (!o.m && !o.seat && !o.ride) {
+      if (night) it = o.bold ? (r < 0.5 ? 'phone' : r < 0.75 ? 'cam' : '') : r < 0.22 ? 'flare' : r < 0.42 ? 'cam' : r < 0.57 ? 'phone' : '';
+      else it = o.bold ? (r < 0.55 ? 'phone' : r < 0.75 ? 'cam' : r < 0.85 ? 'horn' : '') : r < 0.3 ? 'phone' : r < 0.38 ? 'cam' : r < 0.45 ? 'horn' : r < 0.5 && !rain ? 'flag' : ''; // (out in the road it is mostly to film it)
+      if (rain && !it && q < 0.45) it = 'umb'; if (o.kid && it !== 'phone' && it !== 'flag') it = ''; }
+    else if (o.seat && !night) it = r < 0.25 ? 'phone' : r < 0.3 ? 'flag' : '';
+    o.item = it; o.torch = night && !it && q < 0.55; if (it === 'flag') flags++; if (it === 'umb') umbs++;
+    o.role = it === 'flare' ? 'flare' : it === 'cam' ? 'cam' : it === 'phone' ? 'phone' : o.torch || (o.m && night) ? 'head' : '';
+    o.sit = o.m || o.seat || o.ride || o.bold || o.kid || cold || rain ? 0 : r > 0.86 ? 1 : r > 0.78 ? 2 : 0; o.stay = o.sit && q < 0.25; o.kneel = it === 'cam' && q < 0.5;
+    o.fls = o.r2 < 0.5 ? 1 : -1; o.des = Math.floor(o.r1 * 8) % 8;
+    if (o.sl >= 0) crowdSlotOut(C, o); }
+  // (the flags' cloths and the umbrellas' canopies, as many as there are)
+  for (const k of ['cloth', 'canopy']) if (C[k]) { const m = C[k].m; if (m.parent) m.parent.remove(m); if (k === 'cloth') { m.geometry.dispose(); m.material.dispose(); } C[k] = null; }
+  if (flags) { const g = crowdGeos().cloth.clone(); g.setAttribute('aDes', new THREE.InstancedBufferAttribute(new Float32Array(flags), 1)); const m = new THREE.MeshLambertMaterial({ map: flagTex(), side: THREE.DoubleSide }); m.onBeforeCompile = clothShader; C.cloth = new SlotMesh(g, m, flags, 1, stageGroup); }
+  if (umbs) C.canopy = new SlotMesh(crowdGeos().canopy, new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), umbs, 1, stageGroup);
+  // (and the camping chairs, left where their owners sat)
+  if (C.chairs) { C.chairs.parent && C.chairs.parent.remove(C.chairs); C.chairs = null; }
+  const sitters = C.list.filter(o => o.sit === 1);
+  if (sitters.length) { const m = new THREE.InstancedMesh(chairGeo(), new THREE.MeshLambertMaterial({ color: 0xffffff }), sitters.length); m.frustumCulled = false; const d = new THREE.Object3D(), cols = ['#1f3a6a', '#2e4a2e', '#7a1a22', '#3a3a3e', '#1f5a6a'].map(c => new THREE.Color(c));
+    sitters.forEach((o, k) => { d.position.set(o.hx, o.hy, o.hz); d.rotation.set(0, o.hf, 0); d.updateMatrix(); m.setMatrixAt(k, d.matrix); m.setColorAt(k, cols[Math.floor(o.r1 * 5) % 5]); }); stageGroup.add(m); C.chairs = m; }
+  C.visT = 0; CrowdFx.setup(C);
+}
+// a camping chair: a seat and a back of cloth on a folding frame, its seat 45 cm up
+function chairGeo() {
+  if (chairGeo.g) return chairGeo.g; const pos = [], nor = [], idx = [];
+  const box = (cx, cy, cz, w, h, d, rx) => { const g = new THREE.BoxGeometry(w, h, d); if (rx) g.rotateX(rx); g.translate(cx, cy, cz); const p = g.attributes.position.array, n = g.attributes.normal.array, o = pos.length / 3; for (const v of p) pos.push(v); for (const v of n) nor.push(v); for (const i of g.index.array) idx.push(i + o); };
+  box(0, 0.44, 0.02, 0.5, 0.03, 0.46); box(0, 0.72, -0.24, 0.5, 0.52, 0.03, -0.18); for (const sx of [-0.24, 0.24]) { box(sx, 0.22, 0.2, 0.03, 0.46, 0.03); box(sx, 0.22, -0.2, 0.03, 0.46, 0.03); box(sx, 0.62, 0.02, 0.04, 0.03, 0.44); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setIndex(idx); return chairGeo.g = g;
+}
+// ---- drawing ----
+// a person comes into view: a slot in the drawing, its colours; out of view: its slot back
+function crowdSlotIn(C, o) {
+  const s = C.free.length ? C.free.pop() : C.top++; o.sl = s; C.torso.m.count = C.top; C.head.m.count = C.top; C.box.m.count = C.top * 8;
+  C.torso.color(s, o.top || o.c); C.head.color(s, o.skin); const b = s * 8, B = C.box; B.color(b, o.ca || o.c); B.color(b + 1, o.ca || o.c); B.color(b + 2, o.c2); B.color(b + 3, o.c2); B.color(b + 4, o.c3 || o.c2); B.color(b + 5, o.c3 || o.c2);
+  const it = o.item; B.color(b + 6, it === 'horn' ? CR_HORN : it === 'flag' ? CR_POLE : it === 'umb' ? CR_DARK : it === 'flare' ? CR_FLARE : CR_DARK); B.color(b + 7, it === 'horn' ? CR_TRUMP : CR_DARK);
+  if (!it || it === 'flare') { B.zero(b + 7); if (!it) B.zero(b + 6); } else if (it !== 'horn') B.zero(b + 7);
+  if (it === 'flag' && C.cloth) { o.sf = C.cloth.take(); C.cloth.color(o.sf, CR_WHITE); const A = C.cloth.m.geometry.attributes.aDes; A.array[o.sf] = o.des; sendRange(A, o.sf, 1); }
+  if (it === 'umb' && C.canopy) { o.su = C.canopy.take(); C.canopy.color(o.su, CR_UMB[Math.floor(o.r2 * 6) % 6]); }
+  o.vis = true; o.drawn = -1;
+}
+function crowdSlotOut(C, o) {
+  if (o.sl < 0) return; C.torso.zero(o.sl); C.head.zero(o.sl); for (let j = 0; j < 8; j++) C.box.zero(o.sl * 8 + j); C.free.push(o.sl); o.sl = -1; o.vis = false;
+  if (o.sf >= 0 && C.cloth) { C.cloth.drop(o.sf); o.sf = -1; } if (o.su >= 0 && C.canopy) { C.canopy.drop(o.su); o.su = -1; }
+}
+// the person in their pose: each part's matrix
+function crowdDraw(C, o) {
+  const p = o.pz, s = o.s, f = o.face, sl = o.sl, Bx = C.box.A, b8 = sl * 8, lean = p[1], x0 = o.x, z0 = o.z, y0 = o.y + (p[0] + p[2]) * s;
+  partMat(C.torso.A, sl, x0, y0, z0, f, lean, 0, s, s, s); C.torso.dirty(sl);
+  frameOff(_po, f, lean, 0, (BODY.torso + BODY.neck) * s, 0); o.hdx = x0 + _po[0]; o.hdy = y0 + _po[1]; o.hdz = z0 + _po[2];
+  partMat(C.head.A, sl, o.hdx, o.hdy, o.hdz, f, lean * 0.6, 0, s, s, s); C.head.dirty(sl);
+  for (let j = 0; j < 2; j++) { // (the arms: right, at the person's -x, then left)
+    const sd = j ? 1 : -1, q = 3 + j * 3, L = BODY.arm * s * p[q + 2]; frameOff(_po, f, lean, sd * BODY.shoW * s, BODY.sho * s, 0);
+    const sx = x0 + _po[0], sy = y0 + _po[1], sz = z0 + _po[2]; partMat(Bx, b8 + j, sx, sy, sz, f, lean + p[q], sd * p[q + 1], 0.085 * s, L, 0.085 * s);
+    const hx = sx - _pm[3] * L, hy = sy - _pm[4] * L, hz = sz - _pm[5] * L; if (j) { o.hLx = hx; o.hLy = hy; o.hLz = hz; } else { o.hRx = hx; o.hRy = hy; o.hRz = hz; o.adx = -_pm[3]; o.ady = -_pm[4]; o.adz = -_pm[5]; } }
+  for (let j = 0; j < 2; j++) { // (the legs: thigh from the hip, shin from the knee)
+    const sd = j ? 1 : -1, q = 9 + j * 2, tp = p[q], kn = p[q + 1], sp = sd * p[13], Lt = BODY.thigh * s, Ls = BODY.shin * s; frameOff(_po, f, 0, sd * BODY.hipW * s, 0, 0);
+    const hx = x0 + _po[0], hz = z0 + _po[2]; partMat(Bx, b8 + 2 + j, hx, y0, hz, f, tp, sp, 0.15 * s, Lt, 0.16 * s);
+    partMat(Bx, b8 + 4 + j, hx - _pm[3] * Lt, y0 - _pm[4] * Lt, hz - _pm[5] * Lt, f, tp + kn, sp, 0.12 * s, Ls, 0.13 * s); }
+  // what they hold
+  const it = o.item, cs = Math.cos(f), sn = Math.sin(f);
+  if (it === 'phone') { const up = o.act === 'film', mx = up ? (o.hRx + o.hLx) / 2 : o.hRx, my = up ? (o.hRy + o.hLy) / 2 : o.hRy, mz = up ? (o.hRz + o.hLz) / 2 : o.hRz, w = up ? 0.15 : 0.075, h = up ? 0.075 : 0.15;
+    partMat(Bx, b8 + 6, mx + sn * 0.03, my + h / 2 + 0.01, mz + cs * 0.03, f, up ? -0.15 : 0.5, 0, w, h, 0.012); }
+  else if (it === 'cam') { const up = o.act === 'photo'; if (up) partMat(Bx, b8 + 6, o.hdx + sn * 0.15, o.hdy + 0.03, o.hdz + cs * 0.15, f, 0, 0, 0.14, 0.1, 0.13); else { frameOff(_po, f, lean, 0, BODY.torso * s * 0.62, 0.13 * s); partMat(Bx, b8 + 6, x0 + _po[0], y0 + _po[1] + 0.05, z0 + _po[2], f, 0, 0, 0.13, 0.1, 0.11); } }
+  else if (it === 'horn') { partMat(Bx, b8 + 6, o.hRx, o.hRy + 0.1, o.hRz, f, 0, 0, 0.066, 0.17, 0.066); partMat(Bx, b8 + 7, o.hRx + sn * 0.04, o.hRy + 0.21, o.hRz + cs * 0.04, f, 0.5, 0, 0.055, 0.11, 0.055); }
+  else if (it === 'flare') partMat(Bx, b8 + 6, o.hRx + o.adx * 0.12, o.hRy + o.ady * 0.12 + 0.02, o.hRz + o.adz * 0.12, f, 0, 0, 0.035, 0.26, 0.035);
+  else if (it === 'flag') { const th = p[14], mx = (o.hRx + o.hLx) / 2, my = (o.hRy + o.hLy) / 2, mz = (o.hRz + o.hLz) / 2, dx = Math.sin(th) * cs, dz = -Math.sin(th) * sn, dy = Math.cos(th), L = 1.75 * Math.min(1, s * 1.05);
+    const tx = mx + dx * L, ty = my + dy * L, tz = mz + dz * L; partMat(Bx, b8 + 6, tx, ty, tz, f, 0, -th, 0.028, L + 0.5, 0.028);
+    if (o.sf >= 0 && C.cloth) { partMat(C.cloth.A, o.sf, tx, ty, tz, f + (o.fls > 0 ? 0 : Math.PI), 0, (o.fls > 0 ? -1 : 1) * th * 0.6, 1, 1, 1); C.cloth.dirty(o.sf); } }
+  else if (it === 'umb') { const tx = o.hRx, ty = o.hRy + 0.78 * s, tz = o.hRz; partMat(Bx, b8 + 6, tx, ty, tz, f, 0, 0, 0.022, 0.85 * s, 0.022); if (o.su >= 0 && C.canopy) { partMat(C.canopy.A, o.su, tx, ty + 0.02, tz, f, 0, 0, s, s, s); C.canopy.dirty(o.su); } }
+  C.box.dirty(b8); C.box.dirty(b8 + 7);
+}
+// where a spectator's hand is (ext reaches on past it along the arm, to the end of a flare): the right hand (sd > 0)
+function handAt(o, sd, ext, out) {
+  if (sd > 0) return out.set(o.hRx + o.adx * ext, o.hRy + o.ady * ext, o.hRz + o.adz * ext);
+  return out.set(o.hLx, o.hLy, o.hLz);
+}
+
+// ---- poses ----
+const POSE0 = [0.91, 0.02, 0, 0.06, 0.07, 1, 0.06, 0.07, 1, 0, 0.04, 0, 0.04, 0.04, 0, 0];
+const pzArm = (Q, j, pitch, out, len) => { const q = 3 + j * 3; Q[q] = pitch; Q[q + 1] = out; Q[q + 2] = len; };
+const pzLeg = (Q, j, th, kn) => { const q = 9 + j * 2; Q[q] = th; Q[q + 1] = kn; };
+// what each thing a spectator does looks like (Q: the pose to ease toward; t: the time, for what repeats)
+function crowdPoseOf(o, act, t, Q) {
+  for (let i = 0; i < PZN; i++) Q[i] = POSE0[i];
+  const ph = o.ph, S = Math.sin, up = x => Math.max(0, x); Q[1] = 0.02 + 0.012 * S(t * 0.6 + ph); // (no one stands quite still)
+  switch (act) {
+    case 'pockets': pzArm(Q, 0, 0.18, 0.16, 0.72); pzArm(Q, 1, 0.18, 0.16, 0.72); break;
+    case 'cross': pzArm(Q, 0, -0.95, -0.62, 0.55); pzArm(Q, 1, -0.95, -0.62, 0.55); break;
+    case 'hips': pzArm(Q, 0, 0.3, 0.75, 0.5); pzArm(Q, 1, 0.3, 0.75, 0.5); break;
+    case 'chat': { const gk = up(S(t * 1.3 + ph)); pzArm(Q, 0, -0.3 - 0.55 * gk * gk, 0.18 + 0.15 * gk, 0.72); pzArm(Q, 1, 0.12, 0.12, 0.8); break; }
+    case 'look': if (o.r2 < 0.3) pzArm(Q, 0, -2.45, -0.55, 0.5); Q[1] = 0.05; break; // (a hand shading the eyes, peering up the road)
+    case 'point': pzArm(Q, 0, -1.78 - 0.06 * S(t * 2.2 + ph), -0.12, 1); pzArm(Q, 1, 0.1, 0.12, 0.85); Q[1] = 0.06; break; // (there: up the road, where it will come from)
+    case 'film': pzArm(Q, 0, -1.62, -0.32, 0.9); pzArm(Q, 1, -1.62, -0.32, 0.9); Q[1] = -0.03; break;
+    case 'photo': pzArm(Q, 0, -2.2, -0.45, 0.52); pzArm(Q, 1, -2.05, -0.5, 0.5); Q[1] = 0.04; break;
+    case 'kphoto': pzArm(Q, 0, -2.2, -0.45, 0.52); pzArm(Q, 1, -2.05, -0.5, 0.5); Q[0] = 0.53; Q[1] = 0.12; pzLeg(Q, 0, 0.12, 1.62); pzLeg(Q, 1, -1.45, 1.42); break;
+    case 'horn': { const b = o.hornPat ? crowdBlast(o, t) : 0; pzArm(Q, 0, -2.95 - 0.12 * b, 0.12, 1); if (o.cheerK >= 2) pzArm(Q, 1, -2.6, 0.35 + 0.35 * S(t * 8 + ph), 1); break; }
+    case 'flagw': pzArm(Q, 0, -2.25, -0.12, 0.85); pzArm(Q, 1, -2.0, -0.2, 0.75); Q[14] = 0.9 * S(t * 4.2 + ph); break;
+    case 'flagr': pzArm(Q, 0, -0.9, -0.2, 0.7); Q[14] = 0.42 * o.fls; break;
+    case 'umb': pzArm(Q, 0, -1.2, -0.12, 0.62); if (o.cheer > 0.6 && o.cheerK) pzArm(Q, 1, -2.6, 0.35 + 0.35 * S(t * 8 + ph), 1); break;
+    case 'flare': { const w = o.cheer; pzArm(Q, 0, -1.1 - w * (1.5 + 0.35 * S(t * 3.1 + ph)), 0.75 - 0.35 * w, 1); pzArm(Q, 1, 0.1 - w * 1.2, 0.2, 0.8); break; }
+    case 'clap': pzArm(Q, 0, -1.12, 0.06 + 0.2 * (0.5 + 0.5 * S(t * 15 + ph)), 0.8); pzArm(Q, 1, -1.12, 0.06 + 0.2 * (0.5 + 0.5 * S(t * 15 + ph)), 0.8); break;
+    case 'wave': pzArm(Q, 0, -2.75, 0.3 + 0.4 * S(t * 8.5 + ph), 1); break;
+    case 'both': pzArm(Q, 0, -2.85 + 0.2 * S(t * 7.5 + ph), 0.32, 1); pzArm(Q, 1, -2.85 + 0.2 * S(t * 7.5 + ph + 0.4), 0.32, 1); Q[2] = 0.05 * Math.abs(S(t * 7.5 + ph)); break;
+    case 'fist': pzArm(Q, 0, -1.95 - 0.85 * up(S(t * 6.5 + ph)), 0.18, 0.8); pzArm(Q, 1, 0.3, 0.75, 0.5); break;
+    case 'jump': { const hj = Math.abs(S(t * 6 + ph)); pzArm(Q, 0, -2.8, 0.35, 1); pzArm(Q, 1, -2.8, 0.35, 1); Q[2] = 0.24 * hj; const kb = 0.35 * (1 - hj); pzLeg(Q, 0, -kb * 0.5, kb); pzLeg(Q, 1, -kb * 0.5, kb); Q[0] = 0.91 - 0.06 * (1 - hj); break; }
+    case 'whistle': pzArm(Q, 0, -2.3, -0.55, 0.42); pzArm(Q, 1, -1.45, 1.0 + 0.45 * S(t * 5.5 + ph), 1); break;
+    case 'back': pzArm(Q, 0, -1.5, 0.85 + 0.4 * S(t * 4.5 + ph), 1); pzArm(Q, 1, -1.5, 0.85 + 0.4 * S(t * 4.5 + ph + 1), 1); break; // (waving people back)
+    case 'warn': pzArm(Q, 0, -2.9, 0.25 + 0.55 * S(t * 6.5), 1); pzArm(Q, 1, -2.9, 0.25 + 0.55 * S(t * 6.5 + 3.1), 1); break;
+    case 'push': Q[0] = 0.86; Q[1] = 0.45; pzArm(Q, 0, -1.4, -0.1, 0.95); pzArm(Q, 1, -1.4, -0.1, 0.95); pzLeg(Q, 0, -0.55, 0.55); pzLeg(Q, 1, 0.3, 0.15); break;
+    case 'shield': Q[0] = 0.8; Q[1] = 0.4; pzArm(Q, 0, -2.5, -0.55, 0.45); pzArm(Q, 1, -2.5, -0.55, 0.45); pzLeg(Q, 0, -0.35, 0.7); pzLeg(Q, 1, -0.35, 0.7); break;
+    case 'dive': Q[0] = 0.75; Q[1] = 0.85; pzArm(Q, 0, -2.6, 0.25, 1); pzArm(Q, 1, -2.6, 0.25, 1); break;
+    case 'vault': Q[0] = 0.7; Q[1] = 0.4; pzArm(Q, 0, -0.9, 0.25, 0.9); pzArm(Q, 1, -0.9, 0.25, 0.9); pzLeg(Q, 0, -1.4, 1.9); pzLeg(Q, 1, -1.2, 1.7); Q[13] = 0.15; break; // (hands on it, knees up, over)
+    case 'chair': Q[0] = 0.47; Q[1] = -0.15; pzArm(Q, 0, -0.45, 0.22, 0.75); pzArm(Q, 1, -0.45, 0.22, 0.75); pzLeg(Q, 0, -1.5, 1.48); pzLeg(Q, 1, -1.5, 1.48); Q[13] = 0.12; break;
+    case 'ground': Q[0] = 0.12; Q[1] = -0.18; pzArm(Q, 0, 0.55, 0.28, 0.95); pzArm(Q, 1, 0.55, 0.28, 0.95); pzLeg(Q, 0, -1.85, 2.4); pzLeg(Q, 1, -1.85, 2.4); Q[13] = 0.2; break;
+    case 'seat': Q[0] = 0.04; Q[1] = -0.05; pzArm(Q, 0, -0.5, 0.2, 0.75); pzArm(Q, 1, -0.5, 0.2, 0.75); pzLeg(Q, 0, -1.5, 1.5); pzLeg(Q, 1, -1.5, 1.5); break;
+    case 'ride': Q[0] = 0; Q[1] = 0.05; pzLeg(Q, 0, -1.3, 1.35); pzLeg(Q, 1, -1.3, 1.35); Q[13] = 0.5; if (o.cheer > 0.5) { pzArm(Q, 0, -2.7, 0.3 + 0.4 * S(t * 8 + ph), 1); pzArm(Q, 1, -1.0, -0.15, 0.55); } else { pzArm(Q, 0, -1.0, -0.15, 0.55); pzArm(Q, 1, -1.0, -0.15, 0.55); } break;
+    case 'bar': Q[1] = 0.22; pzArm(Q, 0, -1.0, -0.08, 0.62); pzArm(Q, 1, -1.0, -0.08, 0.62); break; // (leaning on a crowd barrier)
+  }
+}
+// an air horn's blast going now? (its pattern of blasts from o.hornT0)
+function crowdBlast(o, t) { const P = o.hornPat, u = t - o.hornT0; if (!P || u < 0 || u > P[P.length - 1]) return 0; for (let k = 0; k < P.length; k += 2) if (u >= P[k] && u <= P[k + 1]) return 1; return 0; }
+// walking and running: the legs' stride, the arms swinging against them, the body leaning into a run; laid over the
+// pose as the person gets going (o.gw)
+function crowdGait(o, dt) {
+  const v = o.v, run = v > 2.4, k = o.gw, z = o.pz; o.gph += v / (run ? 3.1 : 1.4) * 6.283 * dt;
+  const s = Math.sin(o.gph), c = Math.cos(o.gph), A = run ? 0.72 : 0.36 * clamp(v / 1.3, 0.6, 1.3), B = run ? 1.45 : 0.55, mix = (i, val) => { z[i] += (val - z[i]) * k; };
+  mix(9, -A * s); mix(10, 0.06 + B * Math.pow(Math.max(0, c), 1.4)); mix(11, A * s); mix(12, 0.06 + B * Math.pow(Math.max(0, -c), 1.4)); mix(13, 0.04);
+  mix(0, (run ? 0.86 : 0.9) + (run ? 0.045 : 0.012) * Math.abs(c)); mix(1, run ? 0.2 + 0.025 * Math.min(v, 7) : 0.05); z[2] *= 1 - k;
+  if (run || !o.devUp) { const aA = run ? 0.85 : 0.3; mix(3, aA * s); mix(4, 0.12); mix(5, run ? 0.78 : 0.95); mix(6, -aA * s); mix(7, 0.12); mix(8, run ? 0.78 : 0.95); }
+}
+
+// ---- what they do ----
+// the cars' next two and a half seconds: where each will be. A driver follows the road: so at first where the car is
+// going now, turning as it is turning, then more and more along the road at the same distance from its middle - soon if
+// the car is in hand, later the more it is sliding, off the road or pointing off it (a car in a slide goes where it is
+// going, not where the road does)
+function crowdPath(c, T) {
+  const n = 18, A = c.path || (c.path = { x: new Float32Array(n), z: new Float32Array(n), n, dt: 0.15 }), v = c.sp, r = clamp(c.r || 0, -1.2, 1.2), P = T && T.pts, N = P ? P.length : 0;
+  let x = c.x, z = c.z, h = v > 0.5 ? Math.atan2(c.vx, c.vz) : c.h || 0, I = null, s = 0, lat = 0, va = 0, tau = 1;
+  if (N > 2 && v > 0.5) { I = locate(T, c.x, c.z, c.hint || 0); const fx = Math.sin(I.h), fz = Math.cos(I.h); va = c.vx * fx + c.vz * fz; s = I.s + I.t; lat = clamp(I.lat, -I.w / 2 - 0.4, I.w / 2 + 0.4);
+    const dev = Math.abs(wrapAngle(h - (va >= 0 ? I.h : I.h + Math.PI))), off = c.lane ? 1 : clamp((Math.abs(I.lat) - I.w / 2 - 0.5) / 2, 0, 1); c.offK = off;
+    tau = 0.35 + 1.1 * clamp(c.slide || 0, 0, 1) + 6 * off + 1.4 * clamp((dev - 0.3) / 0.6, 0, 1); }
+  for (let k = 0; k < A.n; k++) { let px = x, pz = z;
+    if (I) { const tk = k * A.dt, w = Math.exp(-tk / tau), si = clamp(s + va * tk / STEP, 0, N - 1.001), i0 = Math.floor(si), f = si - i0, a = P[i0], b = P[i0 + 1], hh = a.h + wrapAngle(b.h - a.h) * f;
+      px = x * w + (a.x + (b.x - a.x) * f + Math.cos(hh) * lat) * (1 - w); pz = z * w + (a.z + (b.z - a.z) * f - Math.sin(hh) * lat) * (1 - w); }
+    A.x[k] = px; A.z[k] = pz; h += r * A.dt; x += Math.sin(h) * v * A.dt; z += Math.cos(h) * v * A.dt; }
+}
+// which side of where a car is going (x, z) is, and how far: + to its left
+function crowdSide(A, x, z) { let m = 1e9, sd = 1; for (let k = 0; k < A.n - 1; k++) { const ax = A.x[k], az = A.z[k], ex = A.x[k + 1] - ax, ez = A.z[k + 1] - az, L2 = ex * ex + ez * ez || 1e-9, u = clamp(((x - ax) * ex + (z - az) * ez) / L2, 0, 1), dx = x - ax - ex * u, dz = z - az - ez * u, d = hyp(dx, dz); if (d < m) { m = d; sd = ez * dx - ex * dz >= 0 ? 1 : -1; } } return m * sd; }
+// is this person out on the road itself?
+function crowdOnRoad(W, o) { const k = walkCell(W, o.x, o.z, o.ri); return !!(W.f[k] & WK.ROAD) || Math.abs(W.lat[k]) <= P0w(W.T, W.ri[k]) / 2 + 0.2; }
+// a bold one leaves the road: for the verge on the side away from where the car is going (across in front of it only if
+// that side has no way off, or there is time)
+function crowdBoldOff(o, car, late) {
+  const B = o.bold, E = B.esc, A = car && car.path; let e = E[0];
+  if (E.length > 1 && A) { const so = crowdSide(A, o.x, o.z); let bs = -1e9; for (const q of E) { const sq = crowdSide(A, q.x, q.z), cross = Math.sign(sq) !== Math.sign(so) && Math.abs(so) > 0.4, sc = Math.min(Math.abs(sq), 6) - (cross ? (late ? 9 : 2.5) : 0) - hyp(q.x - o.x, q.z - o.z) * 0.35; if (sc > bs) { bs = sc; e = q; } } }
+  o.st = 'off'; o.go = true; o.hurry = true; o.spd = (late ? 6.2 : 5.4) + 1.2 * o.r1; o.tx = e.x; o.tz = e.z; o.wait = 0; o.aftGo = false;
+}
+// how far (x, z) is from where a car is going (its path, from piece k0 on): the nearest any part of its line comes
+function crowdClear(A, x, z, k0) { let m = 1e9; for (let k = k0 || 0; k < A.n - 1; k++) { const ax = A.x[k], az = A.z[k], ex = A.x[k + 1] - ax, ez = A.z[k + 1] - az, L2 = ex * ex + ez * ez || 1e-9, u = clamp(((x - ax) * ex + (z - az) * ez) / L2, 0, 1), d = hyp(x - ax - ex * u, z - az - ez * u); if (d < m) m = d; } return m; }
+// is a car coming at this person? The soonest of the cars whose next moments bring it close: within 2.4 m of their line
+// (its side would brush them; more if it is sliding, its tail swinging wide) they run; a little further off they step
+// back. Not a car passing below a bank they stand high on
+function crowdThreat(o, lead) {
+  let best = null;
+  for (const c of Crowd.cars) { if (c.sp < 2.5 || !c.path) continue; const dx = o.x - c.x, dz = o.z - c.z; if (dx * dx + dz * dz > 6400 || o.y - c.y > 1.6) continue;
+    const A = c.path, wide = (o.guard ? 1.2 : 2.4) + (c.slide || 0) + (c.offK || 0); for (let k = 0; k < A.n - 1; k++) { const tk = k * A.dt; if (tk > lead) break;
+      const ax = A.x[k], az = A.z[k], ex = A.x[k + 1] - ax, ez = A.z[k + 1] - az, L2 = ex * ex + ez * ez || 1e-9, u = clamp(((o.x - ax) * ex + (o.z - az) * ez) / L2, 0, 1), d = hyp(o.x - ax - ex * u, o.z - az - ez * u);
+      if (d < wide + 1.0) { const t2 = tk + u * A.dt; if (!best || t2 < best.t) best = { c, k: u > 0.5 ? k + 1 : k, t: t2, d, run: d < wide }; break; } } }
+  return best;
+}
+// run from it (or, if it will only pass close, step back): across its line, away from it, the shortest way the ground allows
+// that gets clear of where it is going - never across the road in front of it, unless they stand right on its line; if
+// no way gets clear, as far as one goes, and there they turn their backs; with nowhere to go at all, they cower where
+// they are (but never in the road itself: from there, for the verge whatever)
+function crowdFlee(C, o, th, W) {
+  if (C.fleeN-- <= 0) return; const road = crowdOnRoad(W, o), A = th.c.path, k = Math.min(th.k, A.n - 1), k0 = Math.max(0, k - 1), k1 = Math.min(A.n - 1, k + 1); let hx = A.x[k1] - A.x[k0], hz = A.z[k1] - A.z[k0]; const hl = hyp(hx, hz) || 1; hx /= hl; hz /= hl;
+  const px = -hz, pz = hx, ax = o.x - A.x[k], az = o.z - A.z[k], off = ax * px + az * pz, side = off >= 0 ? 1 : -1, need = th.run ? 3.6 : th.d + 1.3, onLine = Math.abs(off) < 0.6;
+  let best = null, bs = -1e9;
+  for (const [ang, other] of [[0, 0], [0.5, 0], [-0.5, 0], [1.0, 0], [-1.0, 0], [0, 1], [0.5, 1], [-0.5, 1]]) {
+    if (other && !onLine) continue; const sd = other ? -side : side, ux0 = px * sd - hx * 0.15, uz0 = pz * sd - hz * 0.15, c = Math.cos(ang), s = Math.sin(ang), ux = ux0 * c - uz0 * s, uz = ux0 * s + uz0 * c, ul = hyp(ux, uz);
+    const len = walkReach(W, o.x, o.z, ux / ul, uz / ul, th.run ? 7 : 2.5, o.ri, th.run, !road); let use = len, clr = crowdClear(A, o.x + ux / ul * len, o.z + uz / ul * len);
+    for (let d = 0.5; d <= len; d += 0.5) { const cl = crowdClear(A, o.x + ux / ul * d, o.z + uz / ul * d); if (cl >= need) { use = d; clr = cl; break; } }
+    const sc = (clr >= need ? 100 - use * 2 : clr * 12) - Math.abs(ang) * 3; if (sc > bs) { bs = sc; best = { x: o.x + ux / ul * use, z: o.z + uz / ul * use, clr, use }; } }
+  const full = best && best.use > 0.3 && best.clr > th.d + 0.3, part = !full && best && best.use > 0.2 && (best.clr > th.d + 0.1 || road);
+  if (!full && !part && !road) { if (th.run) { o.go = false; o.cower = 1.6; } else o.brace = 0.9; return; } // (nowhere to go: if it is coming at them they cower; if it will only pass close, they stand and watch it by)
+  const alert = o.st === 'flee' && o.go; // (already on the move from it: no time lost taking it in)
+  o.st = 'flee'; o.go = true; o.hurry = th.run; o.wait = th.t < 0.6 || alert ? 0 : o.react * (th.run ? 1 : 1.5); o.spd = !th.run ? 2.2 : th.t < 0.55 ? 7.2 : (o.kid ? 4.2 : 5.2 + 1.4 * o.r1); o.dive = th.run && th.t < 0.55; o.t0 = C.t; o.cowerAt = false;
+  if (full) { o.tx = best.x; o.tz = best.z; }
+  else if (part) { o.tx = best.x; o.tz = best.z; o.cowerAt = th.run; } // (as far as they can: there, if it is coming at them, they turn their backs)
+  else { // (in the road with no way clear: for the verge on their side of the car's line, whatever)
+    const I = locate(W.T, o.x, o.z, o.ri); let km = 0, dm = 1e9; for (let q = 0; q < A.n; q++) { const d = hyp(A.x[q] - o.x, A.z[q] - o.z); if (d < dm) { dm = d; km = q; } }
+    const J = locate(W.T, A.x[km], A.z[km], I.i), sd = I.lat >= J.lat ? 1 : -1, L = sd * (I.w / 2 + 1.6) - I.lat; o.tx = o.x + I.lx * L; o.tz = o.z + I.lz * L; o.hurry = true; o.spd = Math.max(o.spd, 5.6); }
+}
+// the spectators near a car that has gone off (on its side or roof, or stopped off the road): they run to it; a marshal
+// runs on up the road to warn the next car; when it is back on the road or on its way, they cheer and go back
+function crowdCrash(C, W) {
+  const c = Crowd.cars.find(q => q.me); if (!c) return; const T = C.T, P = T.pts, N = P.length;
+  const down = c.stuck || (c.sp < 1.2 && (c.over || c.off)); c.downT = down ? (c.downT || 0) + C.dt : 0;
+  if (!C.crash && c.downT > 1.2) {
+    const X = C.crash = { x: c.x, z: c.z, h: c.h || 0, help: [], hint: c.hint };
+    const near = C.list.filter(o => !o.seat && !o.ride && !o.kid && o.kind !== 'control' && o.st !== 'flee' && hyp(o.x - c.x, o.z - c.z) < 45 && Math.abs(o.y - c.y) < 6).sort((a, b) => hyp(a.x - c.x, a.z - c.z) - hyp(b.x - c.x, b.z - c.z));
+    let marshal = null, slot = 0;
+    for (const o of near) {
+      if (o.m && !marshal && !T.sss) { marshal = o; const j = clamp(c.hint - 30, 1, N - 2), p = P[j], sd = o.lat >= 0 ? 1 : -1; o.st = 'warn'; o.go = true; o.hurry = false; o.spd = 3.4; o.tx = p.x + Math.cos(p.h) * sd * (p.w / 2 + 1.0); o.tz = p.z - Math.sin(p.h) * sd * (p.w / 2 + 1.0); o.lookX = P[clamp(j - 20, 0, N - 1)].x; o.lookZ = P[clamp(j - 20, 0, N - 1)].z; continue; }
+      if (X.help.length >= 8) continue;
+      for (let tr = 0; tr < 8; tr++) { const a = c.h + (slot + tr) * 0.785 + 0.3, r = 2.6 + 0.3 * ((slot + tr) % 2), x = c.x + Math.sin(a) * r, z = c.z + Math.cos(a) * r;
+        if (walkStand(W, x, z, c.hint, true) !== null) { o.st = 'help'; o.go = true; o.hurry = true; o.spd = 3.6 + 1.2 * o.r1; o.tx = x; o.tz = z; o.wait = 0.2 + 0.6 * o.r2; o.t0 = C.t; X.help.push(o); slot += tr + 1; break; } } }
+  }
+  if (C.crash && (c.sp > 2.5 || hyp(c.x - C.crash.x, c.z - C.crash.z) > 6)) { // (righted and put back, or driven off)
+    for (const o of C.list) if (o.st === 'help' || o.st === 'warn') { o.st = 'home'; o.go = true; o.hurry = false; o.spd = 1.3; o.tx = o.hx; o.tz = o.hz; o.happy = 1.8; }
+    C.crash = null; }
+}
+// a horn's blasts: quick ones as the car comes, a long one as it passes, a few more after it (s: seconds till it passes)
+function crowdHornPat(s, R) {
+  const P = []; let u = 0; const end = Math.max(0.6, s - 0.25);
+  while (u < end) { const b = 0.11 + 0.12 * R(); P.push(u, Math.min(end, u + b)); u += b + 0.07 + 0.09 * R(); }
+  u = Math.max(u, end); P.push(u, u + 0.8 + 0.6 * R()); u += P[P.length - 1] - u + 0.25;
+  for (let k = 0, n = 2 + Math.floor(R() * 3); k < n; k++) { const b = 0.12 + 0.1 * R(); P.push(u, u + b); u += b + 0.1 + 0.1 * R(); }
+  return P;
+}
+// each spectator, each moment: what is happening round them, what they do about it, where they face, their pose
+function crowdTick(C, o, dt, t, W) {
+  const g = o.grp, car = g.car, T = C.T, P = T.pts, N = P.length, cr = C.crash;
+  if (o.ride) { const a = o.ride; o.x = a.x; o.z = a.z; o.face = a.face; o.cheer = a.cheer; o.y = a.y + (a.pz[0] + a.pz[2] + BODY.torso * 1.02) * a.s - 0.04; crowdPoseOf(o, 'ride', t, o.Q); crowdEase(o, dt); return; }
+  const d = car ? hyp(car.x - o.x, car.z - o.z) : 1e9, app = !!(car && g.app);
+  o.cheer += ((car && d < (app ? 90 : 60) && car.sp > 3 ? 1 : 0) - o.cheer) * Math.min(1, dt * 2.5);
+  if (o.st === 'seat') { const ex = car && d < 80; if (ex) o.calm = 0; else if ((o.calm = (o.calm || 0) + dt) > 2.5) return; // (sitting still, settled: nothing changes)
+    const a = ex ? (o.item === 'phone' ? 'film' : o.cheerK ? ['both', 'clap', 'wave', 'both', 'fist', 'jump'][o.cheerK] : 'clap') : 'seat';
+    crowdPoseOf(o, a, t, o.Q); if (ex) o.Q[0] = 0.91; crowdFace(o, car && d < 160 ? Math.atan2(car.x - o.x, car.z - o.z) : o.hf, dt, 3); crowdEase(o, dt); return; }
+  // a car coming at them (one out in the road leaves it for the verge)
+  const B = o.bold, pt = B && car ? (B.rj - car.hint) * STEP / Math.max(car.sp, 5) : 1e9; // (a bold one's own time till it reaches them)
+  if (o.brace > 0) o.brace = Math.max(0, o.brace - dt);
+  if (car && !(o.cower > 0) && !(o.go && (o.st === 'off' || (o.st === 'flee' && o.hurry)))) { const th = crowdThreat(o, o.st === 'road' || o.st === 'after' ? 1.0 : o.react + 1.35);
+    if (th && !(o.go && o.st === 'flee' && !th.run && th.d > o.thd - 0.6) && !(o.brace > 0 && !th.run)) { // (one already stepping back goes on doing so, unless it now comes at them)
+      if (B && o.st !== 'off' && crowdOnRoad(W, o)) crowdBoldOff(o, car, true); else { crowdFlee(C, o, th, W); o.thd = th.d; } } }
+  if (o.cower > 0) o.cower = Math.max(0, o.cower - dt);
+  // their part in what is going on
+  let look = null, act = null;
+  switch (o.st) {
+    case 'idle':
+      // (while nothing is coming some wander a few steps about their place, and come back to it - those in view; at the
+      // sound of a car they stop where they are)
+      if (!B && !o.m && !o.sit && o.sl >= 0 && !(car && g.heard)) { if (!o.go && t > (o.wT || (o.wT = t + 8 + 25 * o.r3))) { o.wT = t + 12 + 30 * Math.random(); const a = Math.random() * 6.283, r = 0.8 + 2.2 * Math.random(), x = o.hx + Math.cos(a) * r, z = o.hz + Math.sin(a) * r;
+        const k = walkStand(W, x, z, o.ri, false); if (k !== null && Math.abs(W.y[k] - o.hy) < 1.2) { o.go = true; o.hurry = false; o.spd = 0.8 + 0.5 * o.r2; o.tx = Math.random() < 0.5 ? x : o.hx; o.tz = o.tx === x ? z : o.hz; o.wander = 1; } } }
+      else if (o.wander && o.go && car && g.heard) { o.go = false; o.wander = 0; }
+      if (o.wander && !o.go) o.wander = 0;
+      if (B && car && g.heard && app && car.sp > 3 && pt > B.nerve + 3.5 && !cr) { const q = P[B.rj]; o.st = 'road'; o.go = true; o.hurry = false; o.spd = 1.6 + 0.8 * o.r2; o.tx = q.x + Math.cos(q.h) * B.rlat; o.tz = q.z - Math.sin(q.h) * B.rlat; }
+      break;
+    case 'road': // (out in the road, filming it come; off it at the last moment)
+      if (car && app && car.sp > 3 && pt < B.nerve) crowdBoldOff(o, car, false);
+      else if (!car || !g.heard || cr) { o.st = 'home'; o.go = true; o.hurry = false; o.spd = 1.3; o.tx = o.hx; o.tz = o.hz; }
+      else if (car && car.hint > B.rj + 2) { o.st = 'after'; o.t0 = t; o.wait = 0; }
+      if (!o.go) look = car && d < 300 ? car : P[clamp(B.rj - 30, 0, N - 1)];
+      break;
+    case 'off': if (!o.go && car && (car.hint > B.rj + 3 || !app)) { o.st = 'after'; o.wait = 0.3 + 0.9 * o.r2; o.t0 = t; } break;
+    case 'after': // (back out into the road behind it, to watch it go)
+      if (!o.go && o.t0 != null && t - o.t0 > o.wait && !o.aftGo) { const q = P[clamp(B.rj - 1, 1, N - 2)]; o.aftGo = true; o.go = true; o.hurry = false; o.spd = 1.8 + 0.8 * o.r1; o.tx = q.x + Math.cos(q.h) * B.rlat * 0.7; o.tz = q.z - Math.sin(q.h) * B.rlat * 0.7; }
+      if (car && app && car.sp > 3 && pt > 0 && pt < B.nerve + 2.5 && car.hint < B.rj) crowdBoldOff(o, car, false); // (another car coming)
+      else if (o.t0 != null && (t - o.t0 > 9 + 5 * o.r3 || !car || d > 280)) { o.st = 'home'; o.go = true; o.spd = 1.3; o.hurry = false; o.tx = o.hx; o.tz = o.hz; o.aftGo = false; }
+      look = car; break;
+    case 'flee': if (!o.go) { o.st = 'safe'; o.t0 = t; if (o.cowerAt) { o.cower = 1.3; o.cowerAt = false; } } look = car; break;
+    case 'safe': look = car; if (t - o.t0 > 1.2 && (!car || (!app && d > 12) || car.sp < 0.5) && !crowdThreat(o, 2)) { if (B) { o.st = 'after'; o.t0 = t; o.wait = 0.5; } else { o.st = 'home'; o.go = true; o.hurry = false; o.spd = 1.2 + 0.3 * o.r2; o.tx = o.hx; o.tz = o.hz; } } break;
+    case 'home': if (!o.go) { o.st = 'idle'; } break;
+    case 'help': look = cr; if (!o.go && cr) { const c0 = Crowd.cars.find(q => q.me); act = c0 && (c0.stuck || c0.over) ? 'push' : 'cross'; } break;
+    case 'warn': if (!o.go) { act = 'warn'; look = { x: o.lookX, z: o.lookZ }; } break;
+  }
+  if (o.happy > 0) o.happy -= dt;
+  // what they do with their hands
+  const excite = car && car.sp > 0.5 ? (app ? smooth(340, 50, d) : smooth(170, 25, d)) * (g.heard ? 1 : 0) : 0;
+  if (!act) {
+    if (o.cower > 0 || (o.shieldT > 0)) act = 'shield';
+    else if (o.go && o.dive && o.st === 'flee') act = 'dive';
+    else if (o.m) act = o.whT != null && t - o.whT < 2.4 ? 'whistle' : app && d < 420 && d > 25 ? 'back' : o.idleA || 'stand';
+    else if (o.happy > 0) act = 'both';
+    else if (cr && hyp(cr.x - o.x, cr.z - o.z) < 120) { act = o.r2 < 0.5 ? 'cross' : 'hips'; look = cr; }
+    else { const it = o.item;
+      act = it === 'phone' ? (excite > 0.2 ? 'film' : null) : it === 'cam' ? (excite > 0.3 ? (o.kneel && !o.go ? 'kphoto' : 'photo') : null) : it === 'horn' ? (excite > 0.25 ? 'horn' : null) : it === 'flag' ? (excite > 0.25 ? 'flagw' : 'flagr') : it === 'umb' ? 'umb' : it === 'flare' ? (excite > 0.05 && o.fs === 1 ? 'flare' : null) : null;
+      if (!act) act = excite > 0.6 && o.cheerK ? ['clap', 'clap', 'wave', 'both', 'fist', 'jump'][o.cheerK] : excite > 0.12 ? (o.r3 < 0.18 && app && d > 220 ? 'point' : 'look') : null;
+      if (!act) { // waiting: sitting, talking, hands in pockets...
+        if (o.sit && !o.go && (!g.heard || o.stay) && o.st === 'idle') act = o.sit === 1 ? 'chair' : 'ground';
+        else { if (!o.idleA || t > (o.idleT || 0)) { o.idleA = ['stand', 'pockets', 'cross', 'chat', 'chat', 'hips', 'stand'][Math.floor(Math.random() * 7)]; o.idleT = t + 6 + 14 * Math.random(); } act = o.idleA === 'chat' && !o.mate ? 'stand' : o.idleA; if (o.atBar && o.r3 < 0.6 && !o.go && hyp(o.x - o.hx, o.z - o.hz) < 0.3) act = 'bar'; } } }
+  }
+  o.act = act; o.devUp = act === 'film' || act === 'photo' || act === 'horn' || act === 'flagw' || act === 'kphoto';
+  if (o.shieldT > 0) o.shieldT -= dt;
+  // showered with gravel or snow: backs turned
+  if (car && car.loose && car.sp > 11 && d < 7.5 && !o.go && !(o.shieldT > 0)) o.shieldT = 0.8 + 0.4 * o.r3;
+  // the sounds they make: the marshal's whistle as soon as a car is heard (and again as it comes close), the horns
+  if (car && car.sp > 2) {
+    if (o.m && g.heard && app && !o.done['w' + car.id]) { o.done['w' + car.id] = 1; o.dn = 1; crowdWhistle(C, o, 0); }
+    if (o.m && app && d < 240 && !o.done['v' + car.id]) { o.done['v' + car.id] = 1; o.dn = 1; crowdWhistle(C, o, 1); }
+    if (o.item === 'horn' && app && d < 150 && d > 15 && !o.done['h' + car.id]) { o.done['h' + car.id] = 1; o.dn = 1; crowdHorn(C, o, d / Math.max(car.sp, 4)); } }
+  if (o.dn && (!car || d > 1300)) { o.done = {}; o.dn = 0; }
+  // where they face: the car once it is near (they follow it by), up the road toward it while it is still only heard,
+  // the way they are going when on the move, away from a shower of stones; else their own way (or toward whoever they
+  // are talking to)
+  let fy = o.hf, rate = 1.6;
+  if (o.go && o.v > 0.3 && !(o.st === 'off' && o.v < 1)) { fy = Math.atan2(o.mvx || 0, o.mvz || 1); rate = 7; }
+  else if (o.shieldT > 0 && car) { fy = Math.atan2(o.x - car.x, o.z - car.z); rate = 6; }
+  else if (look) { fy = Math.atan2(look.x - o.x, look.z - o.z); rate = 4; }
+  else if (car && g.heard && excite > 0.01) { if (d < 300 || !app || T.sss) { fy = Math.atan2(car.x - o.x, car.z - o.z); rate = 4.5; } else { const L = P[clamp(g.ri - 28, 0, N - 1)]; fy = Math.atan2(L.x - o.x, L.z - o.z); rate = 2; } }
+  else if (act === 'chat' && o.mate) fy = o.hf + 0.6 * wrapAngle(Math.atan2(o.mate.x - o.x, o.mate.z - o.z) - o.hf);
+  crowdFace(o, fy, dt, rate);
+  // on the move: toward where they are going, round what is in the way
+  o.v = 0;
+  if (o.vlt) { const V = o.vlt; V.t += dt; const u = Math.min(1, V.t / V.d); o.x = V.x0 + (V.x1 - V.x0) * u; o.z = V.z0 + (V.z1 - V.z0) * u; o.y = V.y0 + (V.y1 - V.y0) * u + 4 * V.h * u * (1 - u) * 0.75; o.v = hyp(V.x1 - V.x0, V.z1 - V.z0) / V.d; act = 'vault';
+    if (u >= 1) { o.vlt = null; const I = locate(T, o.x, o.z, o.ri); o.ri = I.i; o.y = surfaceY(T, I, o.x, o.z); } }
+  else if (o.go) {
+    if (o.wait > 0) o.wait -= dt;
+    else { if (o.gtx !== o.tx || o.gtz !== o.tz) { o.gtx = o.tx; o.gtz = o.tz; o.gd = null; o.gT = 0; } // (a new place to go)
+      const x0 = o.x, z0 = o.z, r = walkStepTo(W, o, o.tx, o.tz, o.spd * dt, o.hurry), dl = hyp(o.tx - o.x, o.tz - o.z);
+      // (stopping: there; or stuck; or no nearer for a while, going round something they can't get past)
+      if (o.gd == null || dl < o.gd - 0.15) { o.gd = dl; o.gT = 0; } else o.gT = (o.gT || 0) + dt;
+      if (r === 2 || (r === -1 && (o.stk = (o.stk || 0) + dt) > 0.6) || o.gT > 1.6) { o.go = false; o.stk = 0; o.dive = false; o.gd = null; o.gT = 0; } else if (r >= 0) o.stk = 0;
+      const mv = hyp(o.x - x0, o.z - z0); o.v = mv / Math.max(dt, 1e-3); } }
+  crowdPoseOf(o, act, t, o.Q); crowdEase(o, dt);
+}
+function crowdFace(o, fy, dt, rate) { o.face += wrapAngle(fy - o.face) * Math.min(1, dt * rate); }
+// the pose eased toward what they are doing (the arms quicker), then their stride over it while they walk or run
+function crowdEase(o, dt) {
+  const b = o.pb, Q = o.Q, k = 1 - Math.exp(-dt * 8), ka = 1 - Math.exp(-dt * 15);
+  for (let i = 0; i < PZN; i++) b[i] += (Q[i] - b[i]) * (i >= 3 && i <= 8 || i === 14 ? ka : k);
+  o.gw += ((o.v > 0.15 && !o.vlt ? 1 : 0) - o.gw) * Math.min(1, dt * 9); o.pz.set(b); if (o.gw > 0.01) crowdGait(o, dt);
+}
+// the whistle (n 0: the first warning, blasts; 1: the car close, one long one) and the horns, heard from where they are
+function crowdWhistle(C, o, n) {
+  o.whT = C.t; if (C.whistles >= 2) return; C.whistles++; setTimeout(() => { C.whistles = Math.max(0, C.whistles - 1); }, 2200);
+  const pat = n ? [0, 1.1] : [0, 0.32, 0.45, 0.77, 0.9, 1.6]; if (Snd.crowdWhistle) Snd.crowdWhistle(o.x, o.y + 1.6 * o.s, o.z, pat);
+}
+function crowdHorn(C, o, s) {
+  const pat = crowdHornPat(Math.min(s, 3.2), Math.random); o.hornPat = pat; o.hornT0 = C.t; if (C.horns >= 4) return; C.horns++; const dur = pat[pat.length - 1];
+  setTimeout(() => { C.horns = Math.max(0, C.horns - 1); }, dur * 1000 + 100);
+  if (!o.hornF) { o.hornF = 380 + 230 * o.r1; o.hornF2 = o.r2 < 0.35 ? o.hornF * (o.r3 < 0.5 ? 1.26 : 1.5) : 0; }
+  if (Snd.crowdHorn) Snd.crowdHorn(o.hRx, o.hRy + 0.2, o.hRz, pat, o.hornF, o.hornF2);
+}
+// the ground round the people a car is coming to, worked out ahead of it a little each moment (each of them, 5 m all
+// round), so that no one moment has to work out much of it when they run
+function crowdWarm(C, W) {
+  const Q = C.warmQ || (C.warmQ = []);
+  if (C.frame % 15 === 0) for (const g of C.groups) if (g.warm !== W.gen && g.car && g.app && g.d < (C.T.sss ? 250 : 600) && !g.m[0].seat) { g.warm = W.gen; g.wi = 0; g.wc = -1; Q.push(g); }
+  const t0 = performance.now(), R = 10; let left = 15; // (cells: 5 m; at most 15 x 24 cells a moment, however coarse the clock)
+  while (Q.length && left-- > 0) {
+    const g = Q[0]; if (g.wi >= g.m.length) { Q.shift(); continue; }
+    const o = g.m[g.wi]; if (o.ride) { g.wi++; continue; }
+    const cx = Math.floor(o.hx / WK.C), cz = Math.floor(o.hz / WK.C);
+    for (let n = 0; n < 24; n++) { const c = ++g.wc, ix = c % (2 * R + 1) - R, iz = Math.floor(c / (2 * R + 1)) - R; if (iz > R) { g.wi++; g.wc = -1; break; } if (ix * ix + iz * iz <= R * R) walkCell(W, (cx + ix + 0.5) * WK.C, (cz + iz + 0.5) * WK.C, o.ri); }
+    if (performance.now() - t0 > 1.0) break;
+  }
+}
+// every moment of a stage (and in the service park, round the car at the start)
+function updateCrowd(dt, cars) {
+  const C = Crowd.C; if (!C) return; if (!Array.isArray(cars)) cars = crowdCarsFrom(cars); Crowd.cars = cars;
+  dt = Math.min(dt, 0.05); C.dt = dt; C.t += dt; C.frame++; CROWD_T.value = C.t; const t = C.t, T = C.T, W = walkMap(T), cam = camera.position, sss = !!T.sss;
+  for (const c of cars) crowdPath(c, T); C.fleeN = 6;
+  // each group's car: the nearest, how far along the road it has to come, whether it is coming their way and heard yet
+  for (const g of C.groups) {
+    let best = null, bd = 1e9; for (const c of cars) { const dd = hyp(c.x - g.x, c.z - g.z); if (dd < bd) { bd = dd; best = c; } }
+    g.car = best; g.d = bd; g.awake = bd < 1300 || hyp(cam.x - g.x, cam.z - g.z) < 260;
+    if (best) { const rd = (g.ri - best.hint) * STEP; g.rd = rd; g.app = sss ? (g.x - best.x) * best.vx + (g.z - best.z) * best.vz > 0 || bd < 20 : rd > -12 && rd < 2400;
+      g.tta = rd > 0 ? rd / Math.max(best.sp, 5) : 0; g.heard = best.sp > 0.5 && (bd < 650 || (g.app && rd < 1100 && bd < 950)); } else { g.app = false; g.heard = false; }
+  }
+  crowdCrash(C, W); crowdWarm(C, W);
+  // who is in view (looked at every fifth of a second): within sight and not far behind the camera
+  if ((C.visT -= dt) <= 0) { C.visT = 0.2; const R = Math.min(260, (Atmos.fogFar || 400) * 0.95), fx = -camera.matrixWorld.elements[8], fz = -camera.matrixWorld.elements[10];
+    for (const o of C.list) { const dx = o.x - cam.x, dz = o.z - cam.z, d2 = dx * dx + dz * dz, in_ = d2 < R * R && (d2 < 900 || dx * fx + dz * fz > -12);
+      if (in_ && o.sl < 0) crowdSlotIn(C, o); else if (!in_ && o.sl >= 0) crowdSlotOut(C, o); } }
+  // what each one awake does (those near a car or the camera every moment, the rest now and then: anyone on the move
+  // every moment), and the drawing of those in view (the nearest every moment, the further now and then)
+  let near = 0, ax = 0, ay = 0, az = 0; const me = cars.find(c => c.me) || cars[0];
+  for (const o of C.list) {
+    const g = o.grp; o.tdt = (o.tdt || 0) + dt;
+    if (g.awake || o.go || o.ride) { const dc = Math.abs(o.x - cam.x) + Math.abs(o.z - cam.z), every = o.go || o.vlt || (o.ride && o.ride.go) ? 1 : o.seat || o.ride ? (dc < 60 ? 1 : dc < 150 ? 3 : 6) : g.d < 60 ? 1 : g.d < 160 ? 2 : g.d < 500 || dc < 120 ? 3 : 8;
+      if (every === 1 || (C.frame + o.k) % every === 0) { crowdTick(C, o, Math.min(o.tdt, 0.2), t, W); o.tdt = 0; } }
+    else o.tdt = 0;
+    if (o.sl >= 0) { const dc = hyp(o.x - cam.x, o.z - cam.z), every = dc < 80 || o.go ? 1 : dc < 160 ? 3 : 8; if (o.drawn < 0 || ((C.frame + o.k) % every === 0 && !(o.calm > 2.6))) { crowdDraw(C, o); o.drawn = C.frame; } }
+    else { o.hRx = o.x; o.hRy = o.y + 1.5 * o.s; o.hRz = o.z; o.hdx = o.x; o.hdy = o.y + 1.63 * o.s; o.hdz = o.z; }
+    if (me) { const dd = hyp(o.x - me.x, o.z - me.z); if (dd < 80) { const w = (1 - dd / 80) * (1 - dd / 80); near += w; ax += o.x * w; ay += o.y * w; az += o.z * w; } }
+  }
+  C.near = 1 - Math.exp(-near / 3.5); if (near > 0) { C.at.x = ax / near; C.at.y = ay / near; C.at.z = az / near; }
+  C.torso.flush(); C.head.flush(); C.box.flush(); if (C.cloth) C.cloth.flush(); if (C.canopy) C.canopy.flush();
+  CrowdFx.update(dt, me || { x: cam.x, z: cam.z });
+}
+// (the service park: a car standing at the start)
+function crowdCarsFrom(c) { return c && c.x != null ? [{ id: 'park', x: c.x, z: c.z, y: c.y || 0, vx: 0, vz: 0, sp: 0, r: 0, hint: T0hint(c) }] : []; }
+const T0hint = c => (G.T ? G.T.startIdx : 0);
+// the cars on the stage, for the crowd: this one, the other car on a super special's other lane, the friends racing it
+function crowdCars() {
+  const L = Crowd.cars = [], T = G.T, mk = (id) => { const m = crowdCars.o || (crowdCars.o = {}); return m[id] || (m[id] = { id }); };
+  if (G.car && G.state !== 'menu') { const c = G.car, o = mk('me'), I = c.info; Object.assign(o, { me: true, x: c.x, z: c.z, y: c.y, vx: c.V ? c.V[0] : 0, vz: c.V ? c.V[2] : 0, sp: hyp(c.u, c.v), r: c.Wv ? c.Wv[1] : c.r || 0, h: c.psi, hint: c.hint,
+    stuck: !!c.stuck, over: !!c.over, off: !!(I && Math.abs(I.lat) > I.w / 2 + 1), slide: c.V && hyp(c.u, c.v) > 3 ? Math.min(1.2, 2 * Math.abs(wrapAngle(Math.atan2(c.V[0], c.V[2]) - c.psi))) : 0, loose: c.surfName === 'gravel' || c.surfName === 'snow' || c.surfName === 'loose' || c.surfName === 'dirt' || c.surfName === 'snowbank' }); L.push(o); }
+  if (Duel.on && Duel.prevP && G.state === 'run') { const p = Duel.prevP, o = mk('duel'), v = Duel.v || 0, h = Duel.h != null ? Duel.h : p.h; o.hint = T ? locate(T, p.x, p.z, o.hint || 0).i : 0; Object.assign(o, { x: p.x, z: p.z, y: Duel.y != null ? Duel.y : p.y, vx: Math.sin(h) * v, vz: Math.cos(h) * v, sp: v, r: 0, h, loose: false }); L.push(o); }
+  if (MP.game && MP.rivals) for (const [k, r] of MP.rivals) { if (!r.st || r.x == null || r.ph === 'lobby' || r.ph === 'out') continue; const o = mk('mp' + k), V = r.V || [0, 0, 0]; o.hint = T ? locate(T, r.x, r.z, o.hint || 0).i : 0; Object.assign(o, { x: r.x, z: r.z, y: r.yb, vx: V[0], vz: V[2], sp: hyp(V[0], V[2]), r: r.W ? r.W[1] : 0, h: Math.atan2(V[0], V[2]), loose: false }); L.push(o); }
+  return L;
+}
+// a new run: everyone back where they stand, waiting
+function crowdReset() {
+  const C = Crowd.C; if (!C) return; C.crash = null; C.horns = 0; C.whistles = 0;
+  for (const o of C.list) { o.x = o.hx; o.z = o.hz; o.y = o.hy; o.face = o.hf; o.st = o.seat ? 'seat' : 'idle'; o.calm = 0; o.go = false; o.wait = 0; o.v = 0; o.gw = 0; o.cheer = 0; o.done = {}; o.hornPat = null; o.whT = null; o.cower = 0; o.brace = 0; o.shieldT = 0; o.happy = 0; o.aftGo = false; o.t0 = null; o.drawn = -1; }
 }
 
 
@@ -19406,7 +20158,7 @@ function ChassisDSPDef() {
     [155, 'bump', { i: 0, v: 3 }], [160, 'top', { i: 2, v: 2 }], [165, 'knock', { i: 1, v: 1 }], [170, 'rockwheel', { i: 3, v: 8 }], [175, 'glass', { type: 'pane', big: true, pan: 0.5 }], [180, 'glass', { type: 'ws' }],
     [185, 'glass', { type: 'lamp' }], [190, 'rip', { kind: 'metal' }], [195, 'rip', { kind: 'plastic' }], [200, 'rip', { kind: 'light' }], [205, 'debris', { kind: 'metal', v: 5, g: 0.5 }], [210, 'debris', { kind: 'tyre', v: 4 }],
     [215, 'debris', { kind: 'plastic', v: 3 }], [220, 'splash', { v: 0.8 }], [225, 'wiper', {}], [230, 'lever', {}], [240, 'horn', null], [245, 'whistle', null], [250, 'bird', null], [255, 'owl', null],
-    [258, 'steam', { v: 30, pan: 0.2 }], [262, 'hydro', { sev: 2 }], [266, 'hydro', { sev: 0 }]]) WARME[k] = [n, a];
+    [258, 'steam', { v: 30, pan: 0.2 }], [262, 'hydro', { sev: 2 }], [266, 'hydro', { sev: 0 }], [270, 'horn2', { pat: [0, 0.15, 0.25, 0.4, 0.5, 1.2], f: 450, f2: 560, g: 0.05, pan: 0.3 }], [276, 'mwh', { pat: [0, 0.3, 0.4, 0.9], g: 0.02, pan: -0.2 }]]) WARME[k] = [n, a];
   const EASE = ['wind', 'rain', 'water', 'wet', 'crowd', 'cheer', 'warm', 'day', 'woods', 'snow'];
   // what a blow is against (see impact()): [the contact's rise s, the crush's time s (base, and per 12 m/s), the shell's
   // level, how bright its crush]
@@ -19438,9 +20190,11 @@ function ChassisDSPDef() {
     constructor() { this.b1 = new BQ(); this.b2 = new BQ(); this.on = false; this.t = 0; this.N = 0; this.rate = 0; this.rd = 1; this.amp = 0; this.mix = 0; this.ka = 1; this.ks = 0; this.gl = 0.7; this.gr = 0.7; this.g = 0; this.gd = 0; this.gn = 1; }
   }
   // a voice from the stage: a bird's call, an owl, a whistle (notes: [start s, end s, from Hz, to Hz, level])
-  class Song { constructor() { this.on = false; this.notes = null; this.t = 0; this.k = 0; this.ph = 0; this.g = 0; this.gl = 0.7; this.gr = 0.7; this.vib = 0; this.vibF = 0; } }
-  // a spectator's air horn: a compressed-air reed blaring one note (or two), buzzing with overtones through the trumpet
-  class Horn { constructor() { this.on = false; this.t = 0; this.dur = 0; this.f = 330; this.f2 = 0; this.p1 = 0; this.p2 = 0; this.bp = new BQ(); this.g = 0; this.gl = 0.7; this.gr = 0.7; } }
+  // (flat: a blast that starts and stops sharply, as a whistle's does; am: how much it trills, as a pea whistle's pea does)
+  class Song { constructor() { this.on = false; this.notes = null; this.t = 0; this.k = 0; this.ph = 0; this.g = 0; this.gl = 0.7; this.gr = 0.7; this.vib = 0; this.vibF = 0; this.flat = 0; this.am = 0; } }
+  // a spectator's air horn: a compressed-air reed blaring one note (or two), buzzing with overtones through the trumpet;
+  // one blast, or a spectator's run of them (pat: each blast's start and end, seconds)
+  class Horn { constructor() { this.on = false; this.t = 0; this.dur = 0; this.f = 330; this.f2 = 0; this.p1 = 0; this.p2 = 0; this.bp = new BQ(); this.g = 0; this.gl = 0.7; this.gr = 0.7; this.pat = null; this.pk = 0; } }
   // a tick: a stone on the floor, a rattle, a raindrop - a short burst of noise through a narrow band, never a ringing note
   class Tick { constructor() { this.bp = new BQ(); this.on = false; this.t = 0; this.n = 0; this.atk = 1; this.pk = 0; this.e = 0; this.d = 1; this.ka = 1; this.ks = 0; this.gl = 0.7; this.gr = 0.7; } }
   class Wheel {
@@ -19465,7 +20219,7 @@ function ChassisDSPDef() {
       // that follows the note
       this.react = 0; this.sqA = 0; this.sqG = 0; this.sqTF = 820; this.sqF = 820; this.sqVF = 5; this.sqP1 = 0; this.sqP2 = 0; this.sqL = 0; this.sqS = 0; this.sqK = 0; this.sqBP = new BQ(); this.sqNB = new BQ().set('bp', 1000, 3, sr);
       this.K = []; for (let i = 0; i < 16; i++) this.K.push(new Crackle()); this.ki = 0;
-      this.Sg = [new Song(), new Song(), new Song()]; this.Hn = [new Horn(), new Horn()];
+      this.Sg = [new Song(), new Song(), new Song(), new Song()]; this.Hn = [new Horn(), new Horn(), new Horn(), new Horn()];
       this.e = { ins: 0, op: 0, wind: 0, rain: 0, water: 0, wet: 0, scr: 0, crowd: 0, cheer: 0, v: 0, rough: 0, shake: 0, far: 0, carG: 1, warm: 0, day: 1, woods: 0, snow: 0, siz: 0, on: 1 };
       // steam: the sizzle's band, its crackle (how strong the hiss is this moment, a burst at each drop) and where it is
       this.sizF = new BQ().set('bp', 4300, 0.55, sr); this.sizG = 0; this.sizR = 700 / sr; this.sizD = Math.exp(-1 / (0.004 * sr)); this.sizL = 0.7; this.sizRt = 0.7;
@@ -19529,8 +20283,8 @@ function ChassisDSPDef() {
       c.b1.set('bp', f1 | 0, q1, sr); c.b2.set('bp', f2 | 0, q2, sr); c.b1.z1 = c.b1.z2 = c.b2.z1 = c.b2.z2 = 0; c.ka = ka; c.ks = ks;
       const p = clamp(pan || 0, -1, 1); c.gl = Math.sqrt((1 + p) / 2); c.gr = Math.sqrt((1 - p) / 2); return c;
     }
-    sing(notes, gain, pan, vib, vibF) {
-      const s = this.Sg.find(q => !q.on); if (!s) return; s.on = true; s.notes = notes; s.t = 0; s.k = 0; s.g = gain; s.vib = vib || 0; s.vibF = vibF || 0;
+    sing(notes, gain, pan, vib, vibF, flat, am) {
+      const s = this.Sg.find(q => !q.on); if (!s) return; s.on = true; s.notes = notes; s.t = 0; s.k = 0; s.g = gain; s.vib = vib || 0; s.vibF = vibF || 0; s.flat = flat || 0; s.am = am || 0;
       const p = clamp(pan || 0, -1, 1); s.gl = Math.sqrt((1 + p) / 2); s.gr = Math.sqrt((1 - p) / 2);
     }
     // a stone thrown up by tyre w against the floor or its arch: a sharp tick, each a little different, now and then a
@@ -19565,6 +20319,12 @@ function ChassisDSPDef() {
     }
     event0(k, a) {
       const pan = a.pan || 0, r = () => this.rnd();
+      if (k === 'horn2') { // a spectator's air horn, from where they stand: their run of blasts
+        const h = this.Hn.find(q => !q.on) || this.Hn[0], P = a.pat || [0, 0.5]; h.on = true; h.t = 0; h.pat = P; h.pk = 0; h.dur = P[P.length - 1]; h.f = a.f || 450; h.f2 = a.f2 || 0; h.g = a.g || 0.1;
+        h.bp.set('bp', (1650 + 600 * r()) | 0, 1.3, this.sr); const p = clamp(pan, -1, 1); h.gl = Math.sqrt((1 + p) / 2); h.gr = Math.sqrt((1 - p) / 2); return; }
+      if (k === 'mwh') { // a marshal's pea whistle: shrill, its pea trilling, in sharp blasts
+        const P = a.pat || [0, 0.5], f = 2950 + 420 * r(), N = []; for (let q = 0; q < P.length; q += 2) N.push([P[q], P[q + 1], f, f * 1.012, 1]);
+        this.sing(N, a.g || 0.03, pan, 0.03, 31 + 8 * r(), 1, 0.45); return; }
       if (k === 'land') { // the car coming down: a deep thud as the tyres and stops take it, the suspension's clunk; loose ground flies
         const s = clamp((a.v || 0) / 6, 0.1, 1.6);
         this.thump(80, 42, 0.008, 0.07 + 0.03 * Math.min(1, s), 0.4 * s, 0, 0.3, 1); this.burst('lp', 120 + 30 * r(), 0.7, 0.006, 0.05, 0.2 * s, 0, 0.35, 1); this.burst('bp', 240 + 80 * r(), 1, 0.003, 0.03, 0.1 * s, 0, 0.3, 1);
@@ -19778,7 +20538,6 @@ function ChassisDSPDef() {
       const e = this.e, nx = this.next, tt = this.tt, amb = e.on * (1 - 0.8 * Math.min(Math.max(e.rain, 0), 1));
       if (tt > nx.bird) { nx.bird = tt + 1.2 + 5 * this.rnd() / Math.max(0.15, e.day * e.woods * (1 - e.snow * 0.6)); if (e.day > 0.3 && e.woods > 0.15 && amb > 0.2) this.bird(); }
       if (tt > nx.owl) { nx.owl = tt + 14 + 25 * this.rnd(); if (e.day < 0.15 && e.woods > 0.4 && amb > 0.3) this.owl(); }
-      if (tt > nx.horn) { nx.horn = tt + 1.5 + 7 * this.rnd() / Math.max(0.2, ch); if (e.crowd > 0.25 && ch > 0.2) this.horn(); }
       if (tt > nx.whistle) { nx.whistle = tt + 0.7 + 3 * this.rnd() / Math.max(0.2, ch); if (e.crowd > 0.2 && ch > 0.15) this.whistle(); }
     }
     pendCtl(n) { const dt = n / this.sr; for (let i = this.pend.length - 1; i >= 0; i--) { this.pend[i][0] -= dt; if (this.pend[i][0] <= 0) { const f = this.pend[i][1]; this.pend.splice(i, 1); f(); } } }
@@ -19835,7 +20594,7 @@ function ChassisDSPDef() {
     whistle() { const r = () => this.rnd(), f = 2100 + 1100 * r(), c = this.crowdPan(); const two = r() < 0.5; this.sing(two ? [[0, 0.22, f, f * 1.15, 1], [0.32, 0.75, f * 1.15, f * 0.9, 1]] : [[0, 0.5, f * 0.9, f * 1.2, 1]], 0.02 * this.e.crowd, c, 0.006, 9); }
     horn() {
       const h = this.Hn.find(q => !q.on); if (!h) return; const r = () => this.rnd();
-      h.on = true; h.t = 0; h.dur = 0.45 + 1.2 * r(); h.f = 420 + 170 * r(); h.f2 = r() < 0.5 ? h.f * (r() < 0.5 ? 1.26 : 1.5) : 0; h.g = 0.15 * this.e.crowd;
+      h.on = true; h.t = 0; h.pat = null; h.dur = 0.45 + 1.2 * r(); h.f = 420 + 170 * r(); h.f2 = r() < 0.5 ? h.f * (r() < 0.5 ? 1.26 : 1.5) : 0; h.g = 0.15 * this.e.crowd;
       h.bp.set('bp', (1700 + 900 * r()) | 0, 1.3, this.sr); const p = clamp(this.crowdPan() + (r() - 0.5) * 0.5, -1, 1); h.gl = Math.sqrt((1 + p) / 2); h.gr = Math.sqrt((1 - p) / 2);
     }
     crowdPan() { return clamp(this.P.crowdP || 0, -1, 1); }
@@ -20081,12 +20840,12 @@ function ChassisDSPDef() {
     // birds, an owl, the spectators' whistles: each a gliding note
     songs(m) {
       const sr = this.sr, ML = this.ML, MR = this.MR;
-      for (let q = 0; q < 3; q++) {
+      for (let q = 0; q < this.Sg.length; q++) {
         const sg = this.Sg[q]; if (!sg.on) continue;
         for (let j = 0; j < m; j++) {
           sg.t += 1 / sr; let nt = sg.notes[sg.k]; while (nt && sg.t > nt[1]) { sg.k++; nt = sg.notes[sg.k]; } if (!nt) { sg.on = false; break; } if (sg.t < nt[0]) continue;
-          const x = (sg.t - nt[0]) / (nt[1] - nt[0]), f = nt[2] + (nt[3] - nt[2]) * x, env = Math.sin(Math.PI * x) * nt[4]; sg.ph += f * (1 + sg.vib * sn(sg.t * sg.vibF)) / sr;
-          const y = sn(sg.ph) * env * sg.g; ML[j] += y * sg.gl; MR[j] += y * sg.gr;
+          const x = (sg.t - nt[0]) / (nt[1] - nt[0]), f = nt[2] + (nt[3] - nt[2]) * x, env = (sg.flat ? Math.min(1, (sg.t - nt[0]) / 0.012) * Math.min(1, (nt[1] - sg.t) / 0.03) : Math.sin(Math.PI * x)) * nt[4]; sg.ph += f * (1 + sg.vib * sn(sg.t * sg.vibF)) / sr;
+          const y = sn(sg.ph) * env * sg.g * (sg.am ? 1 - sg.am * (0.5 + 0.5 * sn(sg.t * sg.vibF + 0.25)) : 1); ML[j] += y * sg.gl; MR[j] += y * sg.gr;
         }
         sg.ph -= Math.floor(sg.ph);
       }
@@ -20112,15 +20871,19 @@ function ChassisDSPDef() {
         this.clapE = ce; this.clapF.add(X, Y, m, lv.crowd * 0.15);
         const p = this.crowdPan(), gl = Math.sqrt((1 + p) / 2), gr = Math.sqrt((1 - p) / 2); for (let j = 0; j < m; j++) { ML[j] += Y[j] * gl; MR[j] += Y[j] * gr; }
       }
-      for (let q = 0; q < 2; q++) { // air horns: a narrow pulse (a reed slapping shut) buzzing with overtones, driven hard
-        const h = this.Hn[q]; if (!h.on) continue; let p1 = h.p1, p2 = h.p2;
+      for (let q = 0; q < this.Hn.length; q++) { // air horns: a narrow pulse (a reed slapping shut) buzzing with overtones, driven hard
+        const h = this.Hn[q]; if (!h.on) continue; let p1 = h.p1, p2 = h.p2; const PT = h.pat;
         for (let j = 0; j < m; j++) {
-          h.t += 1 / sr; const t = h.t; if (t > h.dur) { h.on = false; X[j] = 0; continue; }
+          h.t += 1 / sr; const t = h.t; if (t > h.dur) { h.on = false; h.pat = null; X[j] = 0; continue; }
+          // (a run of blasts: in one, or between them)
+          let env, tb = t, end = h.dur;
+          if (PT) { while (h.pk < PT.length - 2 && t > PT[h.pk + 1]) h.pk += 2; const a = PT[h.pk], b = PT[h.pk + 1]; if (t < a || t > b) { X[j] = 0; continue; } tb = t - a; end = b; env = Math.min(1, tb / 0.014) * Math.min(1, (b - t) / 0.035); }
+          else env = Math.min(1, t / 0.018) * Math.min(1, (h.dur - t) / 0.06);
           // the reed comes up to pitch, holds, and sags as the can's pressure falls at the end
-          const bend = (1 - 0.06 * Math.exp(-t / 0.035)) * (1 - 0.04 * Math.max(0, (t - h.dur + 0.18) / 0.18)), i1 = h.f * bend / sr, i2 = h.f2 * bend / sr;
+          const bend = (1 - 0.06 * Math.exp(-tb / 0.035)) * (1 - 0.04 * Math.max(0, (t - end + 0.18) / 0.18)), i1 = h.f * bend / sr, i2 = h.f2 * bend / sr;
           p1 += i1; if (p1 >= 1) p1 -= 1; let x = pulse(p1, i1);
           if (h.f2 > 0) { p2 += i2; if (p2 >= 1) p2 -= 1; x += 0.8 * pulse(p2, i2); }
-          X[j] = Math.tanh(x * 1.4) * Math.min(1, t / 0.018) * Math.min(1, (h.dur - t) / 0.06) * h.g;
+          X[j] = Math.tanh(x * 1.4) * env * h.g;
         }
         h.p1 = p1; h.p2 = p2; Y.fill(0); h.bp.add(X, Y, m, 1.2); for (let j = 0; j < m; j++) { const y = Y[j] + X[j] * 0.5; ML[j] += y * h.gl; MR[j] += y * h.gr; }
       }
