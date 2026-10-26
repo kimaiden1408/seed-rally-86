@@ -1028,12 +1028,12 @@ const STAGE_TYPES = {
 // and what stands beside it (trees, fields, houses, walls, the crowd: see buildProps and plantStage).
 const SETTINGS = {
   forest:   { name: 'Forest', len: [1400, 3600], mix: { crest: 1.3, jump: 1.4, kink: 1.2, square: 0.5, narrows: 0, roundabout: 0, chicane: 0.4 }, str: 1, w: 1, xs: { dd: 0.38, dw: 1.9 } },
-  farm:     { name: 'Farmland', len: [900, 2600], mix: { straight: 1.8, square: 2, crest: 1.3, jump: 0.8, switchback: 0.2, esses: 0.7, ford: 1.2, bridge: 0.35, chicane: 1.2, narrows: 0.6 }, add: { squares: 0.7, grid: 0.12, hump: 0.4 }, str: 1.5, w: 0.95, xs: { dd: 0.95, dw: 2.9, sh: 0.6, kf: 0.5 } },
-  village:  { name: 'Village', len: [280, 700], mix: { straight: 0.7, kink: 0.6, curve: 1, tightens: 0.5, opens: 0.4, crest: 0.3, esses: 0.6, square: 3.2, switchback: 0, jump: 0, ford: 0, bridge: 0, chicane: 0, narrows: 0, roundabout: 2.5 }, add: { hump: 0.35 }, str: 0.35, w: 0.9, bends: 'village', xs: { dd: 0, dw: 0.6, sh: 0.05, kc: 1.5, kf: 1.2 }, surf: 'sealed' },
-  mountain: { name: 'Mountain', len: [1600, 4200], mix: { switchback: 2.6, esses: 1.3, tightens: 1.2, curve: 1.1, straight: 0.5, kink: 0.7, crest: 0.3, jump: 0.12, square: 0.3, ford: 0.2, bridge: 1.2, chicane: 0, narrows: 0.15, roundabout: 0 }, str: 0.6, w: 1, bends: 'twisty', xs: { sh: 0.45, dd: 0.28, dw: 0.9, kc: 1.2, kcS: { gravel: 0.95, snow: 0.9 }, kf: 0.75, kf2: 1.2 }, gT: 'plan', tol: 0.04 },
-  coast:    { name: 'Coast', len: [1200, 3200], mix: { esses: 1.3, curve: 1.2, switchback: 0.8, straight: 0.6, crest: 0.6, jump: 0.1, square: 0.2, ford: 0, bridge: 0.8, chicane: 0, roundabout: 0 }, str: 0.6, w: 0.95, xs: { sh: 0.4, dd: 0.22, dw: 1.0, kc: 1.1, kcS: { gravel: 0.9 }, kf: 0.75, kf2: 1.15 }, gT: 0, tol: 0.035 },
-  open:     { name: 'Open country', len: [1400, 3600], mix: { straight: 1.3, kink: 1.4, crest: 1.3, jump: 1.2, ford: 1.5, square: 0.5, switchback: 0.3, narrows: 0.2 }, add: { grid: 0.35 }, str: 1.3, w: 1.03, xs: { dd: 0.3, dw: 2.0 } },
-  vineyard: { name: 'Vineyards', len: [700, 1800], mix: { switchback: 3, square: 2, straight: 0.7, esses: 1, crest: 0.4, jump: 0.15, chicane: 0, roundabout: 0, ford: 0 }, str: 0.6, w: 0.8, bends: 'twisty', xs: { sh: 0.3, dd: 0.1, dw: 0.8, kc: 1.3, kf: 0.9, kf2: 1.3 }, gT: 'plan', tol: 0.05, surf: 'sealed' },
+  farm:     { name: 'Farmland', len: [900, 2600], mix: { straight: 1.8, square: 2, crest: 1.3, jump: 0.8, switchback: 0.2, esses: 0.7, ford: 1.2, bridge: 0.35, chicane: 1.2, narrows: 0.6 }, add: { squares: 0.7, grid: 0.12, hump: 0.4 }, str: 1.5, w: 0.95, xs: { dd: 0.7, dw: 2.9, sh: 0.6 } },
+  village:  { name: 'Village', len: [280, 700], mix: { straight: 0.7, kink: 0.6, curve: 1, tightens: 0.5, opens: 0.4, crest: 0.3, esses: 0.6, square: 3.2, switchback: 0, jump: 0, ford: 0, bridge: 0, chicane: 0, narrows: 0, roundabout: 2.5 }, add: { hump: 0.35 }, str: 0.35, w: 0.9, bends: 'village', xs: { dd: 0, dw: 0.6, sh: 0.05, kc: 1.5, kcm: 4, kf: 0.5, fv: 0.3, kf2: 0.67, kfm: 0.75 }, surf: 'sealed' },
+  mountain: { name: 'Mountain', len: [1600, 4200], mix: { switchback: 2.6, esses: 1.3, tightens: 1.2, curve: 1.1, straight: 0.5, kink: 0.7, crest: 0.3, jump: 0.12, square: 0.3, ford: 0.2, bridge: 1.2, chicane: 0, narrows: 0.15, roundabout: 0 }, str: 0.6, w: 1, bends: 'twisty', xs: { sh: 0.45, dd: 0.28, dw: 0.9, kc: 1.2, kcS: { gravel: 0.95, snow: 0.9 }, kcm: 4, kf: 0.4, fv: 0.3, kf2: 0.67, kfm: 0.75 }, gT: 'plan', tol: 0.04 },
+  coast:    { name: 'Coast', len: [1200, 3200], mix: { esses: 1.3, curve: 1.2, switchback: 0.8, straight: 0.6, crest: 0.6, jump: 0.1, square: 0.2, ford: 0, bridge: 0.8, chicane: 0, roundabout: 0 }, str: 0.6, w: 0.95, xs: { sh: 0.4, dd: 0.22, dw: 1.0, kc: 1.1, kcS: { gravel: 0.9 }, kcm: 4, kf: 0.4, fv: 0.3, kf2: 0.67, kfm: 0.75 }, gT: 0, tol: 0.035 },
+  open:     { name: 'Open country', len: [1400, 3600], mix: { straight: 1.3, kink: 1.4, crest: 1.3, jump: 1.2, ford: 1.5, square: 0.5, switchback: 0.3, narrows: 0.2 }, add: { grid: 0.35 }, str: 1.3, w: 1.03, xs: { dd: 0.3, dw: 2.0, kf2: 0.4 } },
+  vineyard: { name: 'Vineyards', len: [700, 1800], mix: { switchback: 3, square: 2, straight: 0.7, esses: 1, crest: 0.4, jump: 0.15, chicane: 0, roundabout: 0, ford: 0 }, str: 0.6, w: 0.8, bends: 'twisty', xs: { sh: 0.3, dd: 0.1, dw: 0.8, kc: 1.3, kcm: 4, kf: 0.4, fv: 0.3, kf2: 0.67, kfm: 0.75 }, gT: 'plan', tol: 0.05, surf: 'sealed' },
   range:    { name: 'Army range', len: [2400, 6000], mix: { straight: 1.8, square: 2.8, kink: 1.2, crest: 1.4, jump: 1.0, esses: 0.6, switchback: 0.2, narrows: 0, roundabout: 0, ford: 0.5 }, str: 1.4, w: 1.2, xs: { sh: 1.2, dd: 0.7, dw: 2.4 }, surf: 'concrete' }
 };
 // how open each setting is to the wind (a share of the day's wind at the road): a coast road on the cliff tops and the
@@ -2061,25 +2061,30 @@ function generateStage(seedStr, force) {
   if (LOOP) pts[0].y = pts[N - 1].y = (pts[0].y + pts[N - 1].y) / 2; // (a loop's last point is its first)
   feats.forEach((f, k) => { for (let i = f.s0; i <= f.s1; i++) if (pts[i].fi < 0 || f.type === 'ford' || f.type === 'bridge' || f.type === 'roundabout') pts[i].fi = k; });
 
-  // roadside cross-section (shaped in buildGround): sh shoulder width, shS its fall, dd/dw ditch depth and width,
-  // kc cut-slope and kf fill-slope gradients, bu/bw snowbank position and width, ext the detailed roadside strip
-  const XS = surface === 'tarmac' ? { sh: 0.9, shS: 0.05, dd: 0.3, dw: 2.0, kc: 0.85, kf: 0.32, ext: 14, railU: 0.55, bank: 1 }
-    : surface === 'snow' ? { sh: 0.55, shS: 0.04, dd: 0.22, dw: 2.0, kc: 0.62, kf: 0.32, ext: 14, railU: 0.45, bank: 0.8, bu: 1.4, bw: 0.95 }
-    : { sh: 0.8, shS: 0.06, dd: 0.42, dw: 2.6, kc: 0.7, kf: 0.32, ext: 14, railU: 0.5, bank: 0.35 };
+  // roadside cross-section (shaped in buildGround), as roads are built: sh shoulder width, shS its fall (about 6 %, a little
+  // more than the road's 4 % crown), dd/dw ditch depth and width (its bottom some 0.4 m under the shoulder);
+  // kc the cut's slope above the ditch for its first few metres of rise (in earth 1 in 1.5; in rock steeper), kcm the
+  // steepest a cut is dug where the hillside above rises steeply (firm earth and broken rock stand at about 4 in 3, sound
+  // rock at 4 in 1); kf the fill's slope over its first fv metres of fall (the verge, rounded off), kf2 its embankment's
+  // slope below that (1 in 2 in earth; a mountain road's rock fill 1 in 1.5) and kfm the steepest fill its material stands
+  // at (1 in 1.5 in earth, 1 in 1.33 in broken rock: past that a fill would slide; see buildGround); bu/bw snowbank
+  // position and width, ext the detailed roadside strip
+  const XS = surface === 'tarmac' ? { sh: 0.9, shS: 0.05, dd: 0.3, dw: 2.0, kc: 0.67, kcm: 1.33, kf: 0.33, fv: 0.4, kf2: 0.5, kfm: 0.67, ext: 14, railU: 0.55, bank: 1 }
+    : surface === 'snow' ? { sh: 0.55, shS: 0.04, dd: 0.22, dw: 2.0, kc: 0.6, kcm: 1.33, kf: 0.33, fv: 0.4, kf2: 0.5, kfm: 0.67, ext: 14, railU: 0.45, bank: 0.8, bu: 1.4, bw: 0.95 }
+    : { sh: 0.8, shS: 0.06, dd: 0.42, dw: 2.6, kc: 0.67, kcm: 1.33, kf: 0.33, fv: 0.4, kf2: 0.5, kfm: 0.67, ext: 14, railU: 0.5, bank: 0.35 };
   if (TY.xs) Object.assign(XS, TY.xs); // (the country's own roadside)
-  if (LOOP) Object.assign(XS, { sh: 1.0, shS: 0.02, dd: 0, dw: 0.6, kc: 0.4, kf: 0.4, bank: 0 }); // (an arena: a level shoulder to the barriers)
+  if (LOOP) Object.assign(XS, { sh: 1.0, shS: 0.02, dd: 0, dw: 0.6, kc: 0.4, kf: 0.4, kf2: 0.4, bank: 0 }); // (an arena: a level shoulder to the barriers)
   // and each zone's own over it (a farm road's deep ditches; a mountain road's cut above it, about 50 degrees into the rock
-  // of a tarmac pass and 45 into the earth and stones of a gravel road, and its fill below at 1 in 1.3 for the first 3 m
-  // of fall, then a steeper slope of rock and spoil, as road builders lay them; a village
+  // of a tarmac pass and 45 into the earth and stones of a gravel road, its rock fill below at 1 in 1.5; a village
   // street's kerbs), blended over 30 m where one zone gives way to the next: each point's own sh, shS, dd, dw, kc, kf
-  const XZ = zones.map(z => { const o = Object.assign({}, XS, LOOP ? {} : SETTINGS[z.set].xs || {}); if (o.kcS && o.kcS[surface] != null) o.kc = o.kcS[surface]; if (o.kf2 == null) o.kf2 = o.kf; return o; }), XV = {};
-  for (const key of ['sh', 'shS', 'dd', 'dw', 'kc', 'kf', 'kf2']) { const raw = new Float64Array(N + 1), o = new Float64Array(N); for (let i = 0; i < N; i++) raw[i + 1] = raw[i] + XZ[pts[i].zone][key];
+  const XZ = zones.map(z => { const o = Object.assign({}, XS, LOOP ? {} : SETTINGS[z.set].xs || {}); if (o.kcS && o.kcS[surface] != null) o.kc = o.kcS[surface]; o.kf2 = Math.max(o.kf2 == null ? o.kf : o.kf2, o.kf); o.kfm = Math.max(o.kfm || o.kf2, o.kf2); o.kcm = Math.max(o.kcm || 1.33, o.kc); return o; }), XV = {};
+  for (const key of ['sh', 'shS', 'dd', 'dw', 'kc', 'kf', 'kf2', 'fv', 'kfm', 'kcm']) { const raw = new Float64Array(N + 1), o = new Float64Array(N); for (let i = 0; i < N; i++) raw[i + 1] = raw[i] + XZ[pts[i].zone][key];
     for (let i = 0; i < N; i++) { const a = Math.max(0, i - 15), b = Math.min(N - 1, i + 15); o[i] = (raw[b + 1] - raw[a]) / (b - a + 1); } XV[key] = o; }
   const noDitch = new Set(['bridge', 'ford', 'ring', 'rbt', 'narrows', 'square', 'grid', 'deck']);
   for (let i = 0; i < N; i++) {
     const p = pts[i], s = i * STEP;
-    p.sh = XV.sh[i] * (0.75 + 0.5 * vnoise(s / 140, 8.1, nseed + 61)); p.shS = XV.shS[i]; p.dw = XV.dw[i]; const kv = vnoise(s / 55, 9.3, nseed + 77); p.kc = XV.kc[i] * (0.75 + 0.45 * kv); p.kf = XV.kf[i] * (0.85 + 0.3 * kv); p.kf2 = XV.kf2[i] * (0.8 + 0.4 * kv); // (as dug, and as the ground lets them stand: steeper here, gentler there)
-    p.dd = noDitch.has(p.tag) ? 0 : XV.dd[i] * clamp(0.35 + 1.1 * vnoise(s / 90, 3.3, nseed + 51), 0, 1.3);
+    p.sh = XV.sh[i] * (0.75 + 0.5 * vnoise(s / 140, 8.1, nseed + 61)); p.shS = XV.shS[i]; p.dw = XV.dw[i]; const kv = vnoise(s / 55, 9.3, nseed + 77); p.kc = XV.kc[i] * (0.8 + 0.35 * kv); p.kf = XV.kf[i] * (0.85 + 0.3 * kv); p.kfm = XV.kfm[i]; p.kf2 = Math.min(p.kfm, XV.kf2[i] * (0.8 + 0.4 * kv)); p.fv = XV.fv[i]; p.kcm = XV.kcm[i]; // (as dug, and as the ground lets them stand: steeper here, gentler there)
+    p.dd = noDitch.has(p.tag) ? 0 : XV.dd[i] * clamp(0.35 + 1.1 * vnoise(s / 90, 3.3, nseed + 51), 0, 1.15);
     p.bh = surface === 'snow' && p.tag !== 'square' && p.tag !== 'ring' && p.tag !== 'rbt' ? (0.3 + 0.32 * vnoise(s / 60, 1.9, nseed + 71)) * (0.7 + 0.6 * vnoise(s / 4.5, 6.2, nseed + 73)) * (TY.bankH || 1) : 0; /* ploughed banks: lumpy at the scale of a blade's push */
     p.nb = p.tag === 'bridge' || (p.tag === 'deck' && p.dh > 0.6) ? 1 : 0; // a bridge deck does not hold up the ground under it (nor a crossover's, but at the foot of its ramps)
     // a village street: kerbs 12 cm high, a pavement behind them (its width: the shoulder, flat), no ditch
@@ -2417,7 +2422,7 @@ function groundAt(T, x, z) {
 // roadside strip: per road point and side, SIDE_COLS lateral offsets from the centre line with their heights.
 // Each cell (rows i, i+1; columns c, c+1) is two triangles split on the same diagonal as the drawn mesh, so the
 // ground the wheels find is exactly the ground on screen.
-const SIDE_COLS = 9, STRIP_CELL = 4, SPUR_SH = 1.1; // (SPUR_SH: the width of a junction side road's shoulders, falling 0.45 m from its edges)
+const SIDE_COLS = 9, STRIP_CELL = 4, SPUR_SH = 1.1, CUT_LOW = 2.5; // (SPUR_SH: the width of a junction side road's shoulders, falling 0.45 m from its edges)
 function stripTriY(X, Z, Y, a, b, c, x, z) {
   const x0 = X[a], z0 = Z[a], e1x = X[b] - x0, e1z = Z[b] - z0, e2x = X[c] - x0, e2z = Z[c] - z0, px = x - x0, pz = z - z0;
   const det = e1x * e2z - e1z * e2x; if (Math.abs(det) < 1e-9) return null;
@@ -2649,10 +2654,11 @@ function ptQuad(x, z, q, rad) {
 const _barQ = {}, _tumQ = {};
 
 // ---- ground: landform, roadside cross-sections, terrain grid and roadside strip ----
-// The final ground is the natural land, reshaped toward the road (a broad correction so the road sits in the
-// land rather than on stilts or in trenches), then clamped by every nearby road point into a real road profile:
-// shoulder, ditch, then a cut slope up to higher ground or a fill slope down to lower ground. Bridges, fords and
-// roundabouts carve their own ground. Physics and meshes both read the grid and strip built here.
+// The final ground is the natural land, brought to the road the way a real road lies in its land (the road follows
+// it: on a shelf of a hillside, through a saddle of a rise, a little proud of flat ground), then clamped by every nearby
+// road point into a real road's cross-section: shoulder, ditch, then a cut up to the land or a fill down to it, each at
+// the slope its material stands at and each ending where it meets the land. Bridges, fords and roundabouts carve their
+// own ground. Physics and meshes both read the grid and strip built here.
 function buildGround(T) {
   if (T.terrain) return T;
   const P = T.pts, N = P.length, X = T.xs, spurs = T.spurs || [];
@@ -2663,22 +2669,104 @@ function buildGround(T) {
   let bx0 = 1e9, bx1 = -1e9, bz0 = 1e9, bz1 = -1e9;
   for (const p of all) { p.res = p.y - natAt(T, p.x, p.z); dense.add(p.x, p.z, p); bx0 = Math.min(bx0, p.x); bx1 = Math.max(bx1, p.x); bz0 = Math.min(bz0, p.z); bz1 = Math.max(bz1, p.z); }
   bx0 -= 240; bz0 -= 240; bx1 += 240; bz1 += 240;
-  // broad correction toward the road: inverse-distance blend of (road height - natural land) from every fifth road
-  // point within 135 m, fading out 40..130 m from the road; smooth, so it is splatted once onto a 20 m lattice
-  const RC = 20, rnx = Math.ceil((bx1 - bx0) / RC) + 1, rnz = Math.ceil((bz1 - bz0) / RC) + 1, RES = new Float32Array(rnx * rnz), NDS = new Float32Array(rnx * rnz);
+  // The road follows the land, as the roads rallies are run on were laid: the land under it is brought to it, so a road
+  // climbing a valley's side at its own grade runs on a shelf of the hillside, not on a bank across the valley, and one
+  // over a rise goes through a saddle in it, not a trench. Where the hillside across the road is gentle the road sits a
+  // little proud of the land for its drainage (RAISE), cut on its high side and filled on its low about equally (a
+  // balanced section); the steeper the hillside, the further the road is set into it, so the fill on its low side stays one
+  // that meets the land within some 10 m at the steepest slope its material stands at; where the hillside is as steep as
+  // that, its outer shoulder sits on the land (a full bench, all cut, as roads are built where a fill would not stand: past
+  // 50 to 65 % of slope). Only the road's longer swells against the land are taken up so: the land's bumps shorter than
+  // some 30 m stay as the small cuts and fills a real road has
+  const RAISE = 0.3, NAL = all.length, BEN = new Float64Array(NAL), BAL = new Float64Array(N), BCH = new Float64Array(N), FB = new Float64Array(N);
+  for (let k = 0; k < NAL; k++) { const o = all[k]; BEN[k] = o.res; if (k >= N) continue; BAL[k] = o.res; BCH[k] = o.res; if (o.spur || o.nb) continue;
+    const lx = Math.cos(o.h), lz = -Math.sin(o.h), sh = o.sh != null ? o.sh : X.sh, a = o.w / 2 + sh, A = a + 4;
+    const sg = (natAt(T, o.x + lx * A, o.z + lz * A) - natAt(T, o.x - lx * A, o.z - lz * A)) / (2 * A), lo = sg < 0 ? 1 : -1, hinge = (lo > 0 ? o.eL : o.eR) - (o.shS != null ? o.shS : X.shS) * sh;
+    // (a balanced section leaves the low shoulder some s a + RAISE over the land; a fill of slope kfm on land of slope s
+    // closes that within 10 m if it is under (kfm - s) 10)
+    const s = Math.abs(sg), dBal = s * a + RAISE, dOk = Math.max(0, ((o.kfm || X.kfm || 0.67) - s) * 10);
+    FB[k] = clamp(1 - dOk / dBal, 0, 1); BAL[k] = o.res - (o.kerb ? 0 : RAISE); BCH[k] = hinge - natAt(T, o.x + lx * lo * a, o.z + lz * lo * a); }
+  // (along the stage's road: the balanced section's swells, three passes of an 11-point mean; the full bench's, the most
+  // any point within 8 m needs, so no stretch of its outer edge is left standing out over the hillside, eased a little)
+  const mean = (A, r) => { const c = new Float64Array(N + 1); for (let i = 0; i < N; i++) c[i + 1] = c[i] + A[i]; for (let i = 0; i < N; i++) { const a = Math.max(0, i - r), b = Math.min(N - 1, i + r); A[i] = (c[b + 1] - c[a]) / (b - a + 1); } };
+  for (let pass = 0; pass < 3; pass++) mean(BAL, 5);
+  { const src = BCH.slice(); for (let i = 0; i < N; i++) { let m = -1e9; for (let j = Math.max(0, i - 4); j <= Math.min(N - 1, i + 4); j++) m = Math.max(m, src[j]); BCH[i] = m; } mean(BCH, 3); mean(FB, 3); }
+  for (let i = 0; i < N; i++) BEN[i] = (1 - FB[i]) * BAL[i] + FB[i] * BCH[i];
+  // that shift of the land, spread from every second point of the road (and every point of a side road) onto a 10 m
+  // lattice: within 30 m of the road its nearest points' own (the weights fall off with the fourth power of the distance,
+  // so another part of the road a hairpin away hardly counts), the road's cross-section and the land beside it moved
+  // together, so the hillside keeps its own slope across the road; further out the shift dies away at 1 in 7 (a hillside
+  // bent to the road steepens or eases by no more than about 8 degrees), so the further the land moves the further out
+  // the change reaches, and where the shifts of two parts of the road meet it runs evenly between them. Where two parts
+  // of the road close together want the land between them moved very differently, the roads' own cuts and fills take up
+  // the difference, as they do in a real hairpin
+  const RC = 10, RR = 46, PIN2 = 30 * 30, rnx = Math.ceil((bx1 - bx0) / RC) + 1, rnz = Math.ceil((bz1 - bz0) / RC) + 1, RES = new Float32Array(rnx * rnz), NDS = new Float32Array(rnx * rnz);
   {
-    const WS = new Float64Array(rnx * rnz), WR = new Float64Array(rnx * rnz), D2 = new Float64Array(rnx * rnz).fill(1e18);
-    for (const o of all) {
-      if (!(o.spur || o.i % 5 === 0)) continue;
-      const i0 = Math.max(0, Math.floor((o.x - 135 - bx0) / RC)), i1 = Math.min(rnx - 1, Math.ceil((o.x + 135 - bx0) / RC)), j0 = Math.max(0, Math.floor((o.z - 135 - bz0) / RC)), j1 = Math.min(rnz - 1, Math.ceil((o.z + 135 - bz0) / RC));
-      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const dx = bx0 + i * RC - o.x, dz = bz0 + j * RC - o.z, d2 = dx * dx + dz * dz; if (d2 > 18225) continue; const k = j * rnx + i, w = 1 / (d2 + 500); WS[k] += w; WR[k] += w * o.res; if (d2 < D2[k]) D2[k] = d2; }
-    }
-    for (let k = 0; k < RES.length; k++) { const nd = Math.sqrt(D2[k]); RES[k] = WS[k] > 0 ? WR[k] / WS[k] * (1 - smooth(40, 130, nd)) : 0; NDS[k] = Math.min(nd, 400); }
+    const NQ = rnx * rnz, WS = new Float64Array(NQ), WR = new Float64Array(NQ), D2 = new Float64Array(NQ).fill(1e18), RR2 = RR * RR;
+    for (let k = 0; k < NAL; k++) { const o = all[k]; if (!o.spur && (o.i & 1)) continue; const b = BEN[k];
+      const i0 = Math.max(0, Math.floor((o.x - RR - bx0) / RC)), i1 = Math.min(rnx - 1, Math.ceil((o.x + RR - bx0) / RC)), j0 = Math.max(0, Math.floor((o.z - RR - bz0) / RC)), j1 = Math.min(rnz - 1, Math.ceil((o.z + RR - bz0) / RC));
+      for (let j = j0; j <= j1; j++) { const dz = bz0 + j * RC - o.z, dz2 = dz * dz; if (dz2 > RR2) continue;
+        for (let i = i0; i <= i1; i++) { const dx = bx0 + i * RC - o.x, d2 = dx * dx + dz2; if (d2 > RR2) continue; const q = j * rnx + i, w0 = 1 / (d2 + 30), w = w0 * w0; WS[q] += w; WR[q] += w * b; if (d2 < D2[q]) D2[q] = d2; } } }
+    // (the nodes within 30 m: their blend. Every other node is held within GS of its neighbours a lattice step away, GD
+    // diagonally, from all of those: the bounds that sets, found in one sweep each way across the lattice; and it takes
+    // the least shift they allow - where two parts of the road ask for more than that, half way between them)
+    const GS = RC / 7, GD = GS * Math.SQRT2, LB = new Float32Array(NQ), UB = new Float32Array(NQ);
+    for (let q = 0; q < NQ; q++) { NDS[q] = Math.min(Math.sqrt(D2[q]), 400); if (D2[q] < PIN2) { RES[q] = LB[q] = UB[q] = WR[q] / WS[q]; } else { LB[q] = -1e9; UB[q] = 1e9; } }
+    const take = (q, n, g) => { const l = LB[n] - g, u = UB[n] + g; if (l > LB[q]) LB[q] = l; if (u < UB[q]) UB[q] = u; };
+    for (let j = 0; j < rnz; j++) for (let i = 0; i < rnx; i++) { const q = j * rnx + i;
+      if (i > 0) take(q, q - 1, GS); if (j > 0) { take(q, q - rnx, GS); if (i > 0) take(q, q - rnx - 1, GD); if (i < rnx - 1) take(q, q - rnx + 1, GD); } }
+    for (let j = rnz - 1; j >= 0; j--) for (let i = rnx - 1; i >= 0; i--) { const q = j * rnx + i;
+      if (i < rnx - 1) take(q, q + 1, GS); if (j < rnz - 1) { take(q, q + rnx, GS); if (i < rnx - 1) take(q, q + rnx + 1, GD); if (i > 0) take(q, q + rnx - 1, GD); } }
+    for (let q = 0; q < NQ; q++) { if (D2[q] < PIN2) continue; const lb = LB[q], ub = UB[q]; RES[q] = lb > ub ? (lb + ub) / 2 : lb > 0 ? lb : ub < 0 ? ub : 0; }
   }
+  // (that shift at lattice cell rk, u and v of the way across it; and the land with it, before the road's own
+  // cross-sections clamp it)
+  const resAt = (rk, ru, rv) => (RES[rk] + (RES[rk + 1] - RES[rk]) * ru) * (1 - rv) + (RES[rk + rnx] + (RES[rk + rnx + 1] - RES[rk + rnx]) * ru) * rv;
+  const h0At = (x, z) => { const rfx = clamp((x - bx0) / RC, 0, rnx - 1.001), rfz = clamp((z - bz0) / RC, 0, rnz - 1.001), ri = Math.floor(rfx), rj = Math.floor(rfz); return natAt(T, x, z) + resAt(rj * rnx + ri, rfx - ri, rfz - rj); };
   // nearby road points as flat arrays in a static 16 m grid, for the per-sample cross-section clamps
   const NA = all.length, AX = new Float64Array(NA), AZ = new Float64Array(NA), AHW = new Float64Array(NA), AEL = new Float64Array(NA), AER = new Float64Array(NA), ASH = new Float64Array(NA), ADD = new Float64Array(NA), ABH = new Float64Array(NA), ALX = new Float64Array(NA), ALZ = new Float64Array(NA), AY = new Float64Array(NA), AI = new Int32Array(NA), AF = new Uint8Array(NA);
-  const AKC = new Float64Array(NA), AKF = new Float64Array(NA), ADW = new Float64Array(NA), ASS = new Float64Array(NA), AKB = new Float64Array(NA), AKF2 = new Float64Array(NA); // (each point's own cut and fill slopes, the fill's below its first 3 m, ditch width, shoulder fall and kerb)
+  const AKC = new Float64Array(NA), AKF = new Float64Array(NA), ADW = new Float64Array(NA), ASS = new Float64Array(NA), AKB = new Float64Array(NA), AKF2 = new Float64Array(NA); // (each point's own cut and fill slopes, the fill's embankment below its verge, ditch width, shoulder fall and kerb)
   all.forEach((o, k) => { AX[k] = o.x; AZ[k] = o.z; AHW[k] = o.w / 2; AEL[k] = o.eL; AER[k] = o.eR; ASH[k] = o.sh; ADD[k] = o.dd; ABH[k] = o.bh || 0; AKC[k] = o.kc || X.kc; AKF[k] = o.kf || X.kf; ADW[k] = o.dw || X.dw; ASS[k] = o.shS != null ? o.shS : X.shS; AKB[k] = o.kerb || 0; ALX[k] = Math.cos(o.h); ALZ[k] = -Math.sin(o.h); AY[k] = o.y; AI[k] = o.spur ? -1 : o.i; AF[k] = (o.spur ? 1 : 0) | (o.nb ? 2 : 0); AKF2[k] = o.kf2 || AKF[k]; });
+  // Where each cut and each fill meets the land (its catch point), staked out across the road from every point on each
+  // side as a road builder sets them out: a fill from the shoulder's outer edge (the hinge) down at its slope to the land,
+  // a cut from the ditch's far side up at its slope to the land, and the land beyond either left as it lies. A fill is laid
+  // at the point's own slope (1 in 2 in earth, 1 in 1.5 for a mountain road's rock fill), or steeper only as far as its
+  // material stands (kfm) to meet a steeper fall below; where even that would not reach the land, the road is set into the
+  // hillside instead (the land under its edge lifted to the foot of the verge, and the hillside falling away from there as
+  // it lies, as a full bench leaves it), never a bank steeper than fill stands. A cut rises at the point's own gentle
+  // slope for its first CUT_LOW metres (the bank seen from the road) and above that at the gentlest slope that meets the
+  // hillside: as steep as rock stands (kcm) where the land demands it
+  const AFV = new Float64Array(NA), AKFM = new Float64Array(NA), AKCM = new Float64Array(NA), FSL = new Float64Array(NA * 2), FTO = new Float64Array(NA * 2), CSL = new Float64Array(NA * 2), CTO = new Float64Array(NA * 2), RAI = new Float64Array(NA * 2);
+  const REACH = 24, DS = [0.5, 1, 1.5, 2, 2.75, 3.5, 4.5, 5.5, 7, 8.5, 10.5, 13, 16, 19.5, 23.5], LD = new Float64Array(DS.length), BU = X.bu || 0, BW = X.bw || 1;
+  // (how far a slope of a rises d past where it turns into a steeper one, b: the turn eased over BEND_R metres)
+  const BEND_R = 1.2, bend2 = (d, a, b) => d < BEND_R ? a * d + (b - a) * d * d / (2 * BEND_R) : b * d - (b - a) * BEND_R / 2;
+  for (let k = 0; k < NA; k++) { const o = all[k]; AFV[k] = o.fv || X.fv || 0.4; AKFM[k] = Math.max(o.kfm || X.kfm || 0.67, AKF2[k]); AKCM[k] = Math.max(o.kcm || X.kcm || 1.33, AKC[k]);
+    // (every other point of the stage's road takes the one before's: 2 m along, the land across it is the same)
+    if (k < N && (k & 1) && !AF[k] && !AF[k - 1]) { for (let s2 = 0; s2 < 2; s2++) { const j = k * 2 + s2, q = j - 2; FSL[j] = FSL[q]; FTO[j] = FTO[q]; CSL[j] = CSL[q]; CTO[j] = CTO[q]; RAI[j] = RAI[q]; } continue; }
+    for (let s2 = 0; s2 < 2; s2++) { const j = k * 2 + s2; FSL[j] = AKF2[k]; CSL[j] = AKC[k]; FTO[j] = CTO[j] = REACH; if (AF[k]) continue;
+      const sd = s2 ? -1 : 1, sh = ASH[k], base = (s2 ? AER[k] : AEL[k]) - ASS[k] * sh, dw = ADW[k], kf = AKF[k], fv = AFV[k], v1 = fv / kf, kc = AKC[k], qg = CUT_LOW / kc + 0.8;
+      // (the land before the road's cross-section shapes it, DS metres out from the hinge)
+      for (let q = 0; q < DS.length; q++) { const L = AHW[k] + sh + DS[q]; LD[q] = h0At(AX[k] + ALX[k] * sd * L, AZ[k] + ALZ[k] * sd * L); }
+      // the fill: where its line, at slope s below the verge, first comes down to the land (0: the land stands at or over
+      // it from the hinge, no fill; -1: it never does)
+      const bank = d => { if (!ABH[k]) return 0; const g = (sh + d - BU) / BW; return ABH[k] * Math.exp(-g * g); }; // (a ploughed snowbank on the shoulder, as in fieldAt)
+      const fillY = (d, s) => base + bank(d) - (d <= v1 ? kf * d : fv + bend2(d - v1, kf, s));
+      const toe = s => { let pd = 0, pe = 0; for (let q = 0; q < DS.length; q++) { const e = fillY(DS[q], s) - LD[q]; if (e <= 0) return q === 0 ? 0 : pd + (DS[q] - pd) * pe / (pe - e); pd = DS[q]; pe = e; } return -1; };
+      let s = AKF2[k], t = toe(s);
+      if (t < 0) { let need = 1e9; for (let q = 0; q < DS.length; q++) { const x = DS[q] - v1; if (x > BEND_R + 0.3) need = Math.min(need, (base - fv - LD[q] - 0.5 * BEND_R * kf) / (x - 0.5 * BEND_R)); }
+        if (need * 1.03 <= AKFM[k]) { s = Math.max(s, need * 1.03); t = toe(s); }
+        // (still none: the land falls away as steeply as a fill would. The road's edge is set into the hillside instead,
+        // the land there lifted to the foot of the verge and easing back to its own lie over 12 to 22 m - see fieldAt)
+        if (t < 0) { t = v1; let q = 1; while (q < DS.length - 1 && DS[q] < v1) q++; const lv = LD[q - 1] + (LD[q] - LD[q - 1]) * clamp((v1 - DS[q - 1]) / (DS[q] - DS[q - 1]), 0, 1); RAI[j] = Math.max(0, base - fv - lv); } }
+      FSL[j] = s; FTO[j] = Math.min(t, REACH);
+      // the cut: where its line, rising from the ditch's far side, first comes up to the land (the ditch: wherever the
+      // land stands over its line, as on flat land)
+      const cutY = (d, c) => { const qb = d - dw; return base + bank(d) + (qb < 1.6 ? kc * qb * qb / 3.2 : qb <= qg ? kc * (qb - 0.8) : CUT_LOW + bend2(qb - qg, kc, c)); };
+      const top = c => { let pd = dw, pe = -1; for (let q = 0; q < DS.length; q++) { if (DS[q] <= dw) continue; const e = LD[q] - cutY(DS[q], c); if (e <= 0) return pe < 0 ? dw : pd + (DS[q] - pd) * pe / (pe - e); pd = DS[q]; pe = e; } return -1; };
+      let c = AKC[k], tc = top(c);
+      if (tc < 0) { let need = 1e9; for (let q = 0; q < DS.length; q++) { const x = DS[q] - dw - qg; if (x > BEND_R + 0.3) need = Math.min(need, (LD[q] - base - CUT_LOW - 0.5 * BEND_R * kc) / (x - 0.5 * BEND_R)); }
+        if (need < 1e9) { c = clamp(need * 1.04, kc, AKCM[k]); tc = top(c); } if (tc < 0) tc = REACH; }
+      CSL[j] = c; CTO[j] = clamp(tc, dw + 0.5, REACH); } }
   const GC = 16, gnx = Math.ceil((bx1 - bx0) / GC) + 1, gnz = Math.ceil((bz1 - bz0) / GC) + 1, GS = new Int32Array(gnx * gnz + 1), GI = new Int32Array(NA);
   { const cellOf = k => Math.floor((AZ[k] - bz0) / GC) * gnx + Math.floor((AX[k] - bx0) / GC); for (let k = 0; k < NA; k++) GS[cellOf(k) + 1]++; for (let c = 0; c < gnx * gnz; c++) GS[c + 1] += GS[c]; const fill = GS.slice(0, gnx * gnz); for (let k = 0; k < NA; k++) GI[fill[cellOf(k)]++] = k; }
   const NK = new Int32Array(512), ND = new Float64Array(512);
@@ -2693,11 +2781,11 @@ function buildGround(T) {
   const fieldAt = (x, z) => {
     const nat = natAt(T, x, z);
     const rfx = clamp((x - bx0) / RC, 0, rnx - 1.001), rfz = clamp((z - bz0) / RC, 0, rnz - 1.001), ri = Math.floor(rfx), rj = Math.floor(rfz), ru = rfx - ri, rv = rfz - rj, rk = rj * rnx + ri;
-    let h = nat + (RES[rk] + (RES[rk + 1] - RES[rk]) * ru) * (1 - rv) + (RES[rk + rnx] + (RES[rk + rnx + 1] - RES[rk + rnx]) * ru) * rv;
+    let h = nat + resAt(rk, ru, rv);
     // every nearby road point bounds the ground between its fill slope (lo) and its cut slope (hi); where two
     // parts of the road disagree (a hairpin's arms, a jump's lip) the ground runs between them, each bound
     // holding near its own road
-    let LO = -1e9, HI = 1e9, HIr = 1e9, ulo = 0, uhi = 0, spurY = null, spW = 0, spS = 0, nd2 = 1e18, npk = -1, nn = 0;
+    let LO = -1e9, HI = 1e9, HIr = 1e9, ulo = 0, uhi = 0, spurY = null, spW = 0, spS = 0, nd2 = 1e18, npk = -1, nn = 0, lift = 0;
     const ndsHere = (NDS[rk] + (NDS[rk + 1] - NDS[rk]) * ru) * (1 - rv) + (NDS[rk + rnx] + (NDS[rk + rnx + 1] - NDS[rk + rnx]) * ru) * rv;
     const ci0 = ndsHere > 75 ? gnx : Math.max(0, Math.floor((x - 32 - bx0) / GC)), /* nothing within reach: skip the search */ ci1 = Math.min(gnx - 1, Math.floor((x + 32 - bx0) / GC)), cj0 = Math.max(0, Math.floor((z - 32 - bz0) / GC)), cj1 = Math.min(gnz - 1, Math.floor((z + 32 - bz0) / GC));
     for (let cj = cj0; cj <= cj1; cj++) for (let ci = ci0; ci <= ci1; ci++) {
@@ -2708,12 +2796,17 @@ function buildGround(T) {
         const fl = AF[k]; if (fl & 2) continue;
         const u = Math.sqrt(d2) - AHW[k];
         if (u < 0) { if (fl & 1) { const wq = 1 / (Math.sqrt(d2) + 0.05); spW += wq; spS += wq * AY[k]; spurY = 1; } else { const v = Math.min(AEL[k], AER[k]) - 0.25; if (v < HI) { HI = v; uhi = 0; } if (v < HIr) HIr = v; } continue; }
-        const e = dx * ALX[k] + dz * ALZ[k] >= 0 ? AEL[k] : AER[k], sh = ASH[k], bh = ABH[k];
+        const s2 = dx * ALX[k] + dz * ALZ[k] >= 0 ? 0 : 1, e = s2 ? AER[k] : AEL[k], sh = ASH[k], bh = ABH[k];
         const dw = ADW[k]; let base = e - ASS[k] * Math.min(u, sh) + AKB[k] * smooth(0, 0.04, u); if (bh) { const g = (u - bu) / bw; base += bh * Math.exp(-g * g); }
-        const t = (u - sh) / dw, dit = t <= 0 || t >= 1 ? 0 : ADD[k] * (t < 0.42 ? t / 0.42 : (1 - t) / 0.58);
-        // (the back slope rises out of the ditch on a curve; and well out from the road both bounds give way, more and
-        // more, so the land shaped by the road meets the land beyond it without a step)
-        const qb = Math.max(0, u - sh - dw), fd = u > 14 ? 0.3 * (u - 14) * (u - 14) : 0, vf = Math.max(0, u - sh), v1 = 3 / AKF[k], lo = base - (vf <= v1 ? AKF[k] * vf : 3 + AKF2[k] * (vf - v1)) - fd, hi = Math.max(lo, base - dit + AKC[k] * (qb < 1.6 ? qb * qb / 3.2 : qb - 0.8) + fd);
+        const t = (u - sh) / dw, dit = t <= 0 || t >= 1 ? 0 : ADD[k] * (t < 0.55 ? t / 0.55 : (1 - t) / 0.45); // (its bottom 55 % of the way across: the side by the road the gentler, about 1 in 3)
+        // (the back slope rises out of the ditch on a curve, each slope turning into the next over a metre or so, not at
+        // a crease; past its toe a fill, past its top a cut, gives way, the land beyond left as it lies; and none reaches
+        // past 24 m, so every bound is gone well inside the 32 m looked at)
+        const j = k * 2 + s2, qb = Math.max(0, u - sh - dw), vf = Math.max(0, u - sh), fv = AFV[k], kf = AKF[k], v1 = fv / kf, kc = AKC[k], qg = CUT_LOW / kc + 0.8;
+        const xf = vf - FTO[j], xc = vf - CTO[j], far = u > 24 ? 2 * (u - 24) * (u - 24) : 0;
+        const lo = base - (vf <= v1 ? kf * vf : fv + bend2(vf - v1, kf, FSL[j])) - (xf > 0 ? xf * (1.5 + 4 * xf) : 0) - far;
+        if (RAI[j] > 0) { const lf = RAI[j] * (1 - smooth(v1, v1 + clamp(7 * RAI[j], 12, 22), vf)); if (lf > lift) lift = lf; } // (the land lifted under a road set into a steep hillside: see above)
+        const hi = Math.max(lo, base - dit + (qb < 1.6 ? kc * qb * qb / 3.2 : qb <= qg ? kc * (qb - 0.8) : CUT_LOW + bend2(qb - qg, kc, CSL[j])) + (xc > 0 ? xc * (1.5 + 4 * xc) : 0) + far);
         if (lo > LO) { LO = lo; ulo = u; } if (hi < HI) { HI = hi; uhi = u; }
       }
     }
@@ -2721,8 +2814,10 @@ function buildGround(T) {
     // (under a closed side road the ground is the side road's, just under its surface between its points, and under the
     // stage's road where the two meet: the side road's own shoulders and ditches, reached from its points ahead and behind
     // as well as from the one beside, would otherwise dig a ditch along its middle and leave it standing on nothing)
+    h += lift;
     if (spurY !== null) h = Math.min(spS / spW - 0.06, HIr);
-    else if (LO <= HI) h = clamp(h, LO, HI);
+    else if (LO <= HI) { // (where the land meets the top of a cut or the foot of a fill, rounded off, as the builders leave it)
+      const kr = Math.min(0.7, (HI - LO) * 0.45); if (kr > 0.02) { let g = Math.max(kr - Math.abs(h - HI), 0); h = Math.min(h, HI) - g * g / (4 * kr); g = Math.max(kr - Math.abs(h - LO), 0); h = Math.max(h, LO) + g * g / (4 * kr); } else h = clamp(h, LO, HI); }
     else h = (LO * uhi + HI * ulo) / (ulo + uhi + 1e-6);
     for (const f of rbts) { const d = Math.hypot(x - f.cx, z - f.cz), lim = f.Rr + f.W / 2; if (d < lim + 10) h = lerp(f.yc - 0.14, h, smooth(lim + 2, lim + 10, d)); }
     // a bridge's gorge and a ford's stream run across the stage; they give way to any other part of the road nearby
@@ -2800,7 +2895,7 @@ function buildGround(T) {
     for (const sd of [1, -1]) {
       const k = i * 2 + (sd > 0 ? 0 : 1), o = k * C, e = sd > 0 ? p.eL : p.eR, ext = EXT[k];
       // (a village street's kerb: its face 4 cm wide, then the pavement out to the back of it)
-      const sh = p.sh, dw = p.dw, us = p.nb ? [-hw, -hw * 0.5, 0, sh, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : p.kerb ? [-0.25, 0, 0.04, sh, sh + 0.35, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : [-0.25, 0, sh, sh + dw * 0.42, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext];
+      const sh = p.sh, dw = p.dw, us = p.nb ? [-hw, -hw * 0.5, 0, sh, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : p.kerb ? [-0.25, 0, 0.04, sh, sh + 0.35, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : [-0.25, 0, sh, sh + dw * 0.55, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext];
       for (let c = 5; c < C - 1; c++) us[c] = clamp(us[c], us[4] + 0.3 * (c - 4), ext - 0.3 * (C - 1 - c));
       for (let c = 1; c < C; c++) us[c] = Math.min(us[c], ext - 0.03 * (C - 1 - c)); for (let c = 1; c < C; c++) us[c] = Math.max(us[c], us[c - 1] + 0.01);
       for (let c = 0; c < C; c++) {
@@ -2859,14 +2954,17 @@ function buildGround(T) {
   // change that clears the sample); each corner then drops once, by the largest share asked (capped), so nothing
   // accumulates into a trench and corners far from the road barely move.
   const need = new Float32Array(nx * nz);
-  const push = (x, z, y, cap) => {
+  // (a grid corner the roadside strip itself covers is out of sight under it: it may go down as far as it must for the
+  // strip to show, rather than the strip being lifted onto it - see below)
+  const under = new Uint8Array(nx * nz); for (let k = 0; k < nx * nz; k++) if (near[k] && stripCovers(T, x0 + (k % nx) * cell, z0 + Math.floor(k / nx) * cell)) under[k] = 1;
+  const push = (x, z, y, cap, capU) => {
     const fx = clamp((x - x0) / cell, 0, nx - 1.001), fz = clamp((z - z0) / cell, 0, nz - 1.001), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;
     const lower = u + v <= 1; if (hole[(j * (nx - 1) + i) * 2 + (lower ? 0 : 1)]) return;
     const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1;
     const vs = lower ? [a, b, c] : [d, c, b], ws = lower ? [1 - u - v, u, v] : [u + v - 1, 1 - u, 1 - v];
     const g = H[vs[0]] * ws[0] + H[vs[1]] * ws[1] + H[vs[2]] * ws[2]; if (g <= y) return;
     const s2 = ws[0] * ws[0] + ws[1] * ws[1] + ws[2] * ws[2], dl = (g - y) / s2;
-    for (let k = 0; k < 3; k++) { const q = Math.min(cap, dl * ws[k]); if (need[vs[k]] < q) need[vs[k]] = q; }
+    for (let k = 0; k < 3; k++) { const q = Math.min(capU && under[vs[k]] ? capU : cap, dl * ws[k]); if (need[vs[k]] < q) need[vs[k]] = q; }
   };
   for (let k = 0; k <= 4 * (N - 1); k++) {
     const i0 = Math.min(Math.floor(k / 4), N - 2), t = k / 4 - i0, A = P[i0], B = P[i0 + 1]; if (A.nb && B.nb) continue; /* a bridge deck is far above its gorge; a walled gate is not */
@@ -2878,7 +2976,7 @@ function buildGround(T) {
     for (let d = 2; d <= dEnd; d += 1) for (const f of [-1.25, -1, -0.5, 0, 0.5, 1, 1.25]) { const l = clamp(f, -0.999, 0.999) * hw, x = a.x + hx * d + hz * l, z = a.z + hz * d - hx * l, sv = spurSurf(T, x, z); if (!sv || sv.on) continue;
       push(a.x + hx * d + hz * f * hw, a.z + hz * d - hx * f * hw, sv.y - (Math.abs(f) > 1 ? 0.12 : 0.06), cap); } } };
   spurPush(1.2);
-  for (let i = 0; i < N; i++) { for (let sd = 0; sd < 2; sd++) { const o = (i * 2 + sd) * C; for (let c = 1; c < C - 1; c++) push(SX[o + c], SZ[o + c], SY[o + c] - 0.04, 0.15); } }
+  for (let i = 0; i < N; i++) { for (let sd = 0; sd < 2; sd++) { const o = (i * 2 + sd) * C; for (let c = 1; c < C - 1; c++) push(SX[o + c], SZ[o + c], SY[o + c] - 0.04, 0.15, 3); } }
   for (let k = 0; k < H.length; k++) if (need[k] > 0) { H[k] -= need[k]; REL[k] -= need[k]; }
   // where a grid triangle the strip only partly covers is left standing (so not cut out) and stands over the strip, the
   // strip is lifted onto it: each strip triangle is sampled, and its corners raised by as much as the grid stands over it
@@ -5736,7 +5834,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '7D81';
+const SR86_BUILD = '2B89';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
