@@ -32,7 +32,8 @@ const depth = (v, d = 0) => { if (d > 8 || !v || typeof v !== 'object') return d
 
 // ---- the board of stage times, and the names of the players on it, kept on disk ----
 // (on a host whose disk is wiped when it restarts, each player's page sends its own times back when it next connects)
-// A player's times as the game writes them: { runs: { stage key: { t: seconds, car: car id, at: when } } }. A record
+// A player's times as the game writes them: { runs: { stage key: { t: seconds, car: car id, at: when, lv: the assists
+// preset driven with } } }. A record
 // grown too big keeps its latest times
 function checkTimes(x) {
   if (!x || typeof x !== 'object' || Array.isArray(x) || !x.runs || typeof x.runs !== 'object' || Array.isArray(x.runs)) return null;
@@ -41,7 +42,9 @@ function checkTimes(x) {
     if (++k > 2000 || !/^[0-9A-Za-z_.~@-]{1,64}$/.test(key) || key === '__proto__' || !r || typeof r !== 'object') return null;
     const t = r.t, car = r.car, at = r.at;
     if (typeof t !== 'number' || !(t >= 5 && t < 1e5) || typeof car !== 'string' || !/^[a-z0-9_]{1,24}$/.test(car) || typeof at !== 'number' || !(at >= 0 && at < 1e14)) return null;
-    list.push([key, { t: Math.round(t * 1000) / 1000, car, at: Math.round(at) }]);
+    // (the difficulty level the time was driven on, when the game says: kept as it is if it is a plain word)
+    const lv = typeof r.lv === 'string' && /^[a-z]{1,12}$/.test(r.lv) ? r.lv : null;
+    list.push([key, lv ? { t: Math.round(t * 1000) / 1000, car, at: Math.round(at), lv } : { t: Math.round(t * 1000) / 1000, car, at: Math.round(at) }]);
   }
   list.sort((a, b) => b[1].at - a[1].at);
   const runs = {}; let n = 10, last = 0;
