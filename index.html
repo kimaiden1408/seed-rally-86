@@ -6186,7 +6186,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '834D';
+const SR86_BUILD = '1CE0';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -10246,25 +10246,25 @@ class RallyCarKit {
       // theirs with wings for the shoulders and the helmet; clear of the door bars beside them and, where a seat reaches
       // back over a rear wheel arch, of the arch's liner: their outer sides come in where they would meet them (u: across
       // from the car's centre line, outward)
-      const ST = CR.seat, ca = Math.cos(ST.a), sa = Math.sin(ST.a), yc = ST.cushion, zb = ST.back, zf = ST.front;
-      const backTop = Math.min(topAt(zb - 0.3) - 0.12, floorY + 0.97), Lb = (backTop - (yc - 0.04)) / ca, zBk = zb - Lb * sa - 0.08;
+      const ST = CR.seat, ca = Math.cos(ST.a), sa = Math.sin(ST.a), yc = ST.cushion, sZb = ST.back, sZf = ST.front;
+      const backTop = Math.min(topAt(sZb - 0.3) - 0.12, floorY + 0.97), Lb = (backTop - (yc - 0.04)) / ca, zBk = sZb - Lb * sa - 0.08;
       const barU = (z, sd) => { const dF = F[sd].doorF, t = (z - dF[2]) / (N.doorR[2] - dF[2] || 1); return dF[0] + (N.doorR[0] - dF[0]) * Math.max(0, Math.min(1, t)); };
       const overArch = zBk < zRA + Ra, archU = overArch ? axles[1][1] / 2 - 0.172 : 9;
       const sbox = (sd, u0, u1, y, z, h, dz, k, rot) => ckBox(cab, [sd * (u0 + u1) / 2, y, z], [u1 - u0, h, dz], k, rot);
       // (along the back: v up it from the cushion, f out in front of it)
-      const onBack = (v, f) => [yc - 0.04 + v * ca + f * sa, zb - v * sa + f * ca];
+      const onBack = (v, f) => [yc - 0.04 + v * ca + f * sa, sZb - v * sa + f * ca];
       for (const x of [xd, xc]) { const sd = Math.sign(x), u = Math.abs(x);
         // (and of a roof rail running down the side glass beside the back's top)
-        let railU = 9; for (const [A, B] of rails(F[sd])) for (let k = 0; k <= 20; k++) { const p = A.map((v, j) => v + (B[j] - v) * k / 20); if (p[2] > zBk - 0.05 && p[2] < zb + 0.05 && p[1] < backTop + 0.03) railU = Math.min(railU, p[0] - 0.035); }
-        const sideU = Math.min(archU, barU(zb + 0.05, sd) - 0.03, barU(zb - 0.27, sd) - 0.03, railU), rot = [-ST.a, 0, 0];
-        sbox(sd, u - 0.23, Math.min(u + 0.23, archU), (floorY + 0.04 + yc) / 2, (zb + zf) / 2, yc - floorY - 0.04, zf - zb, IN.seat);
+        let railU = 9; for (const [A, B] of rails(F[sd])) for (let k = 0; k <= 20; k++) { const p = A.map((v, j) => v + (B[j] - v) * k / 20); if (p[2] > zBk - 0.05 && p[2] < sZb + 0.05 && p[1] < backTop + 0.03) railU = Math.min(railU, p[0] - 0.035); }
+        const sideU = Math.min(archU, barU(sZb + 0.05, sd) - 0.03, barU(sZb - 0.27, sd) - 0.03, railU), rot = [-ST.a, 0, 0];
+        sbox(sd, u - 0.23, Math.min(u + 0.23, archU), (floorY + 0.04 + yc) / 2, (sZb + sZf) / 2, yc - floorY - 0.04, sZf - sZb, IN.seat);
         { const [y, z] = onBack(Lb / 2, -0.04); sbox(sd, u - 0.24, Math.min(u + 0.24, sideU), y, z, Lb, 0.08, IN.shell, rot); }
         // (the wings: beside the thighs, the ribs and shoulders, the helmet)
         for (const o of [u - 0.28 + 0.06, Math.min(u + 0.28, sideU)]) { const [y, z] = onBack(0.26, 0.06); sbox(sd, o - 0.06, o, y, z, 0.42, 0.18, IN.shell, rot);
         }
         for (const [a, c] of [[u - 0.205, u - 0.165], [Math.min(u + 0.165, sideU - 0.04), Math.min(u + 0.205, sideU)]]) { const [y2, z2] = onBack(Lb - 0.1, 0.05); if (Lb > 0.62) sbox(sd, a, c, y2, z2, 0.18, 0.12, IN.shell, rot); }
-        sbox(sd, u - 0.26, u - 0.2, yc + 0.025, (zb + zf) / 2 + 0.02, 0.07, zf - zb - 0.08, IN.shell);
-        sbox(sd, Math.min(u + 0.2, archU - 0.06), Math.min(u + 0.26, archU), yc + 0.025, (zb + zf) / 2 + 0.02, 0.07, zf - zb - 0.08, IN.shell);
+        sbox(sd, u - 0.26, u - 0.2, yc + 0.025, (sZb + sZf) / 2 + 0.02, 0.07, sZf - sZb - 0.08, IN.shell);
+        sbox(sd, Math.min(u + 0.2, archU - 0.06), Math.min(u + 0.26, archU), yc + 0.025, (sZb + sZf) / 2 + 0.02, 0.07, sZf - sZb - 0.08, IN.shell);
       }
       const at = (p, sd) => [sd * p[0], p[1], p[2]], csH = cs > 4 ? 4 : 3;
       cab.tag = 'cage';
