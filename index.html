@@ -1216,15 +1216,20 @@ function zoneField(T) {
   for (let i = 0; i < N; i += 2) { const p = P[i], ci = Math.round((p.x - x0) / C), cj = Math.round((p.z - z0) / C);
     for (let j = Math.max(0, cj - r); j <= Math.min(nz - 1, cj + r); j++) { const dz = z0 + j * C - p.z, dz2 = dz * dz; if (dz2 > R2) continue;
       for (let q = Math.max(0, ci - r); q <= Math.min(nx - 1, ci + r); q++) { const dx = x0 + q * C - p.x, e = dx * dx + dz2, k = j * nx + q; if (e < d2[k]) { d2[k] = e; near[k] = i; } } } }
-  return T.zf = { W, K, x0, z0, C, nx, nz, near, d2 };
+  // (and the stage's own mix of settings, its share of road in each: the country out past the reach, seen from afar)
+  const avg = new Float32Array(K); for (let s = 0; s < K; s++) avg[s] = raw[N * K + s] / N;
+  return T.zf = { W, K, x0, z0, C, nx, nz, near, d2, avg };
 }
-// the shares of each setting at (x, z) into out (length SET_IDS.length); returns how far the nearest road point is (m)
-function zoneW(T, x, z, out) {
+// the shares of each setting at (x, z) into out (length SET_IDS.length); returns how far the nearest road point is (m).
+// Out past the reach the land is the first setting's; or, for what is seen from afar (far), the stage's own mix of
+// settings, eased into across the reach's last cell
+function zoneW(T, x, z, out, far) {
   const F = T.zf || zoneField(T), fx = clamp((x - F.x0) / F.C, 0, F.nx - 1.001), fz = clamp((z - F.z0) / F.C, 0, F.nz - 1.001), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j, K = F.K;
-  out.fill(0); let tw = 0, dd = 0;
-  for (let c = 0; c < 4; c++) { const k = (j + (c >> 1)) * F.nx + i + (c & 1), w = (c & 1 ? u : 1 - u) * (c >> 1 ? v : 1 - v), n = F.near[k]; if (n < 0 || w <= 0) continue; tw += w; dd += w * Math.sqrt(F.d2[k]); for (let s = 0; s < K; s++) out[s] += w * F.W[n * K + s]; }
-  if (tw > 0) { for (let s = 0; s < K; s++) out[s] /= tw; return dd / tw; }
-  out[0] = 1; return 1e9;
+  out.fill(0); let tw = 0, dd = 0, miss = false;
+  for (let c = 0; c < 4; c++) { const k = (j + (c >> 1)) * F.nx + i + (c & 1), w = (c & 1 ? u : 1 - u) * (c >> 1 ? v : 1 - v), n = F.near[k]; if (w <= 0) continue; if (n < 0) { miss = true; continue; } tw += w; dd += w * Math.sqrt(F.d2[k]); for (let s = 0; s < K; s++) out[s] += w * F.W[n * K + s]; }
+  if (!miss || !far) { if (tw > 0) { for (let s = 0; s < K; s++) out[s] /= tw; return dd / tw; } out[0] = 1; return 1e9; }
+  for (let s = 0; s < K; s++) out[s] += (1 - tw) * F.avg[s];
+  return tw > 0 ? dd / tw : 1e9;
 }
 // how each country builds its villages along the street: gap, the share of the street left as yards, alleys and gardens
 // between the houses (and how long those are, m); wall, the share as garden walls; sb, how far the houses stand back from
@@ -6186,7 +6191,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = 'B941';
+const SR86_BUILD = '4825';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -6212,6 +6217,47 @@ const saveGhost = (key, v) => {
 const fmtT = t => { if (t == null || !isFinite(t)) return '–'; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2); };
 const fmtD = d => (d < 0 ? '−' : '+') + Math.abs(d).toFixed(2);
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Mist lying in the low ground: on still mornings and evenings in damp country the cold air fills the valleys and
+// hollows with a layer of mist, thick at the bottom and thinning upward over some metres, and a road that dips into it
+// runs into the murk while the hills stand clear above. Every material's haze is worked out with it: how much mist a
+// line of sight passes through, from the eye's height to the point's (the layer's density integrated between the two
+// heights: exp(-h/H) above its floor), over its length. MIST: strength (0-1), the layer's floor (y, m), how quickly it
+// thins upward (H, m) and the distance (m) through its thickest part that hides most of what lies behind; MIST_C its
+// colour (lit by the day); MIST_EYE the eye's place (x, y, z: three.js gives its own only to some kinds of material, so
+// every material has it from here). Shared with every material, set by Atmos.update and render. Each point's height is
+// worked out from its place in the world (the instance's too, for the many drawn as one).
+const MIST = new Float32Array([0, -1e4, 10, 150]), MIST_C = new Float32Array([0.8, 0.82, 0.84]), MIST_EYE = new Float32Array([0, 0, 0]);
+{ const C = THREE.ShaderChunk;
+  C.fog_pars_vertex += '\n#ifdef USE_FOG\nvarying float vMistY;\n#endif\n';
+  C.fog_vertex += '\n#ifdef USE_FOG\n#ifdef USE_INSTANCING\nvMistY = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).y;\n#else\nvMistY = (modelMatrix * vec4(transformed, 1.0)).y;\n#endif\n#endif\n';
+  C.fog_pars_fragment += '\n#ifdef USE_FOG\nvarying float vMistY; uniform vec4 uMist; uniform vec3 uMistC, uMistEye;\n#endif\n';
+  C.fog_fragment += `
+#ifdef USE_FOG
+#ifndef FOG_EXP2
+  if (uMist.x > 0.0) { float ma = max(uMistEye.y - uMist.y, 0.0), mb = max(vMistY - uMist.y, 0.0), mdh = mb - ma;
+    float mav = abs(mdh) > 0.25 ? uMist.z * (exp(-ma / uMist.z) - exp(-mb / uMist.z)) / mdh : exp(-ma / uMist.z);
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, uMistC, uMist.x * (1.0 - exp(-fogDepth * mav / uMist.w)) * (1.0 - smoothstep(fogNear, fogFar, fogDepth))); }
+#endif
+#endif
+`;
+  const add = U => { if (U && U.fogColor && !U.uMist) { U.uMist = { value: MIST }; U.uMistC = { value: MIST_C }; U.uMistEye = { value: MIST_EYE }; } };
+  add(THREE.UniformsLib.fog); for (const k in THREE.ShaderLib) add(THREE.ShaderLib[k].uniforms); }
+// The last of the haze takes the colour of what lies behind it. The view ends where the haze has everything (past it
+// nothing is drawn), and the far country is drawn on the sky beyond: a hill nearly lost in the haze at the view's end
+// would otherwise stand in front of the far hills as a pale cut-out, and the line where the land stops would show across
+// them. So the sky and the far country are first drawn into a small picture of the view (a quarter of its size each way:
+// cheap, and soft enough), and every material's haze, over its last stretch (the nearly lost), turns from the haze's
+// own colour to the colour there in that picture (see renderBg).
+const BG_RT = new THREE.WebGLRenderTarget(64, 36, { depthBuffer: false, stencilBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+BG_RT.texture.isTexture = false; // (so that every material's copy of the uniforms keeps this one picture: see three.js's cloneUniforms)
+const BG_ON = new Float32Array([0, 1 / 64, 1 / 36]); // on (1) or off; one over the drawing surface's width and height
+{ const C = THREE.ShaderChunk, line = 'gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );';
+  if (C.fog_fragment.includes(line)) {
+    C.fog_pars_fragment += '\n#ifdef USE_FOG\nuniform sampler2D uBgTex; uniform vec3 uBgOn;\n#endif\n';
+    C.fog_fragment = C.fog_fragment.replace(line, 'vec3 fogC = fogColor;\n\tif (uBgOn.x > 0.5 && fogFactor > 0.85) fogC = mix(fogColor, texture2D(uBgTex, gl_FragCoord.xy * uBgOn.yz).rgb, smoothstep(0.85, 1.0, fogFactor));\n\tgl_FragColor.rgb = mix( gl_FragColor.rgb, fogC, fogFactor );');
+    const add = U => { if (U && U.fogColor && !U.uBgTex) { U.uBgTex = { value: BG_RT.texture }; U.uBgOn = { value: BG_ON }; } };
+    add(THREE.UniformsLib.fog); for (const k in THREE.ShaderLib) add(THREE.ShaderLib[k].uniforms); } }
 
 // three.js's vertex normals (computeVertexNormals), worked straight on the arrays: the same sums, in the same order,
 // each stored as it goes just as three.js stores it (so bit for bit what it gives), without the calls through vectors
@@ -6304,7 +6350,9 @@ const Gfx = {
   warmSteps(rig) {
     const S = [];
     if (rig && rig.screen && ScreenFx.dTex) S.push(() => { if (ScreenFx.rig !== rig) ScreenFx.attach(rig); }); // (the glass's layers, inside and out, on this car)
-    S.push(() => renderer.compile(scene, camera));
+    // (the sky and the far country made ready as the haze's picture has them, and kept so: see renderBg)
+    S.push(() => { const d = Atmos.dome, par = d && d.parent; if (par) par.remove(d); try { renderer.compile(scene, camera); } finally { if (par) par.add(d); } });
+    S.push(() => renderBg(true));
     if (rig && rig.root) S.push(() => { const par = rig.root.parent; carScene.add(rig.root); renderer.compile(carScene, cockCam); if (par) par.add(rig.root); else carScene.remove(rig.root); });
     S.push(() => { if (ScreenFx.wScene) { renderer.compile(ScreenFx.wScene, ScreenFx.oCam); renderer.compile(ScreenFx.sScene, ScreenFx.oCam); renderer.compile(ScreenFx.scene, cockCam); } });
     if (rig && rig.dv) S.push(() => { const tmp = new THREE.Group(), g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.1, 0, 0, 0, 0.1, 0], 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0], 3)); g.setAttribute('color', new THREE.Float32BufferAttribute([1, 1, 1, 1, 1, 1, 1, 1, 1], 3));
@@ -6572,7 +6620,7 @@ const ENV = {
 // sky's colours, the sunlight and skylight and the haze all follow the sun's elevation through day, golden hour,
 // civil, nautical and astronomical twilight and night, with moonlight by the moon's phase and height; cloud, mist,
 // fog, rain and snow then change them as they do outdoors. During a run the clock keeps real time.
-const hexC = h => new THREE.Color(h);
+const hexC = h => new THREE.Color(h), _c1 = new THREE.Color();
 //   sun elevation (deg): zenith, horizon toward the sun, horizon away from it, sun glow, sunlight colour, skylight
 //   colour, skylight strength, sunlight strength
 const SKY_KEYS = [
@@ -6587,6 +6635,23 @@ const SKY_KEYS = [
   [25, '#3f74bb', '#c6daec', '#b8cfe6', '#ffeccc', '#fff1dc', '#dfe9f3', 0.74, 0.95],
   [60, '#376db6', '#bad4ea', '#b4cce6', '#fff4e2', '#fff6ea', '#e3ecf5', 0.78, 1.0]
 ].map(k => ({ el: k[0], zen: hexC(k[1]), horS: hexC(k[2]), horA: hexC(k[3]), glow: hexC(k[4]), sunC: hexC(k[5]), skyC: hexC(k[6]), sky: k[7], sun: k[8] }));
+// how far the far country can be seen through each weather (km, in air of usual clearness: see FAR_LAND's air): far on a
+// clear day and between showers, a little way in haze, drizzle and falling snow, not at all in fog or a downpour
+const WX_FAR = { clear: 90, partly: 70, overcast: 35, haze: 14, windy: 80, dust: 2, mist: 4, fog: 0.5, icefog: 0.5, showers: 30, drizzle: 7, rain: 4.5, downpour: 1.5, gale: 8,
+  storm: 10, sleet: 5, flurries: 16, snow: 3, drift: 12, blizzard: 0.5, crystals: 60 };
+// how heaped the clouds are in each weather (fair-weather cumulus, shower clouds), and how often high thin streaks show
+const WX_PUFF = { clear: 0.6, partly: 0.85, windy: 0.7, haze: 0.4, showers: 1, flurries: 0.75, dust: 0.3, mist: 0.2, drift: 0.5, crystals: 0.3, storm: 0.6 };
+const WX_CIRRUS = { clear: 1, partly: 0.8, windy: 0.6, haze: 0.7, crystals: 0.6, drift: 0.4, showers: 0.3 };
+// how readily mist lies in the low ground in each weather (clear, still nights make the most; rain and wind the least)
+const WX_MIST = { clear: 1, partly: 0.9, overcast: 0.5, haze: 0.6, mist: 1.3, fog: 0.4, icefog: 0.5, crystals: 0.8, drizzle: 0.45, showers: 0.35, rain: 0.25, flurries: 0.4, snow: 0.3,
+  windy: 0, gale: 0, storm: 0.15, dust: 0, drift: 0, blizzard: 0, downpour: 0.1, sleet: 0.3 };
+const _v3c = new THREE.Color();
+// (and never clearer than this, nearest layer first: the near land is lost in its haze a kilometre out, and the far
+// country stands beyond it as the hills do on a hazy day)
+const BK_HAZE = [0.3, 0.45, 0.6];
+// (and no layer's foot higher in the sky than this, radians; and the land between, below the lowest, shown down to so far
+// under it)
+const BK_FOOT = 0.01, BK_BELOW = 0.03;
 //   cloud, lit side and shadowed side, by sun elevation
 const CLOUD_KEYS = [[-18, '#06070a', '#030405'], [-9, '#181b27', '#0c0e15'], [-3, '#62586a', '#353645'], [0, '#a8857a', '#585664'], [5, '#d3c6b8', '#7a7e88'], [20, '#e9ecef', '#9aa0a8'], [60, '#f6f7f8', '#a6acb3']].map(k => ({ el: k[0], lit: hexC(k[1]), dark: hexC(k[2]) }));
 function keyAt(K, el) { const n = K.length; if (el <= K[0].el) return [K[0], K[0], 0]; if (el >= K[n - 1].el) return [K[n - 1], K[n - 1], 0]; let i = 0; while (K[i + 1].el < el) i++; return [K[i], K[i + 1], (el - K[i].el) / (K[i + 1].el - K[i].el)]; }
@@ -6598,6 +6663,7 @@ varying vec3 vDir;
 uniform vec3 uZen, uHorS, uHorA, uGlow, uSunC, uFog, uCloudLit, uCloudDark, uMoonC, uSun, uMoon;
 uniform float uSunVis, uMoonLit, uMoonVis, uStars, uCloud, uFogSky, uTime, uFlash, uNight;
 uniform vec2 uWind;
+uniform float uCloudSc, uPuff, uCirrus; uniform vec2 uCloudOff, uCirrusOff;
 float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float h31(vec3 p){ p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -6622,16 +6688,88 @@ void main(){
     vec3 mc = mix(mix(col, vec3(1.0), 0.55), uMoonC * (0.18 + 1.3 * lit), uNight);
     col = mix(col, mc, disc * uMoonVis * mix(lit * 0.85, 1.0, uNight)); }
   col += uMoonC * pow(max(cm, 0.0), 260.0) * 0.22 * uMoonVis * uMoonLit;
+  // high thin cloud on some fair days: streaks drawn out along the wind, far above the rest (built into the shader only
+  // on the stages that have it, since a branch alone does not spare the work on every graphics card)
+#ifdef CIRRUS
+  if (y > 0.02) {
+    vec2 q = d.xz / (y + 0.06) * 0.2, wd = uWind / max(length(uWind), 1e-6), r = vec2(dot(q, wd), dot(q, vec2(-wd.y, wd.x)));
+    // (in patches drawn out along the wind, the more of them the more cirrus the day has, each a sheaf of fine wavy
+    // strands that run together toward the horizon; the strands worked out only within a patch)
+    float pm = smoothstep(0.78 - 0.3 * uCirrus, 0.98 - 0.25 * uCirrus, vn(r * vec2(2.0, 4.0) + uCirrusOff.yx));
+    if (pm > 0.0) {
+      r = r * vec2(1.6, 16.0) + uCirrusOff + vec2(uTime * 0.0015, 0.0); r.y += vn(r * vec2(0.9, 0.12)) * 2.4;
+      float c = vn(r) * 0.6 + vn(r * vec2(2.1, 2.7) + 3.1) * 0.4;
+      col = mix(col, uCloudLit * 1.04 + uGlow * pow(cs, 8.0) * 0.3 * uSunVis, smoothstep(0.45, 0.85, c) * pm * 0.6 * smoothstep(0.02, 0.16, y)); }
+  }
+#endif
+  // the cloud: soft and even under an overcast, heaped up with dark flat bases and bright tops in fair weather and
+  // showers (each stage's sky its own: its pattern, and how big the clouds are)
   if (uCloud > 0.0 && y > 0.0) {
-    vec2 p = d.xz / (y + 0.09) * 0.55 + uWind * uTime;
-    float n = fbm(p), dens = smoothstep(1.0 - uCloud - 0.06, 1.0 - uCloud + 0.32, n);
-    vec3 cc = mix(uCloudDark, uCloudLit, clamp(0.35 + (n - 0.5) * 1.2 + 0.25 * toward, 0.0, 1.0));
+    vec2 p = d.xz / (y + 0.09) * uCloudSc + uCloudOff + uWind * uTime;
+    float n = fbm(p), dens = smoothstep(1.0 - uCloud - 0.06, 1.0 - uCloud + 0.32 - 0.2 * uPuff, n);
+    vec3 cc = mix(uCloudDark, uCloudLit, clamp(0.35 + (n - 0.5) * (1.2 + 1.6 * uPuff) + 0.25 * toward, 0.0, 1.0));
     cc += uGlow * pow(cs, 10.0) * 0.5 * (1.0 - dens) * uSunVis;
     col = mix(col, cc, dens * smoothstep(0.0, 0.1, y));
   }
   col = mix(col, uFog, max(uFogSky, smoothstep(0.12, 0.0, y)));
   col += uFlash * vec3(0.75, 0.8, 0.95);
   gl_FragColor = vec4(col, 1.0);
+}`;
+// The far country is drawn on a band of its own, a ring round the eye just inside the sky's dome, from a little below
+// the horizon to the highest crest (both following the eye's height), over the sky: its work is done only where it can
+// show, not over the whole sky (a graphics chip that cannot skip a branch for some of its pixels would otherwise do it
+// all for every one). Each pixel: which layers' land it is on, their colours, laid over the sky as seen through the air.
+const BK_VS = 'uniform float uBkTop, uBkBot; varying vec3 vDir; void main(){ float yy = mix(uBkBot, uBkTop, position.y), r = sqrt(max(1.0 - yy * yy, 0.0)); vDir = vec3(position.x * r, yy, position.z * r); gl_Position = projectionMatrix * modelViewMatrix * vec4(vDir * 900.0, 1.0); gl_Position.z = gl_Position.w; }';
+const BK_FS = `
+varying vec3 vDir;
+uniform vec3 uFog, uSun; uniform float uSunVis, uFlash;
+uniform sampler2D uBkTex, uBkNoise; uniform float uBkOn, uBkQ, uPx, uBkOpenK, uBkLow, uBkBot; uniform vec3 uBkOpen;
+uniform vec3 uBkA, uBkB, uBkD, uBkC1, uBkC2, uBkC3, uBkRock, uBkSnowC, uBkTree, uBkSnow, uBkHz, uBkAmb, uBkSunL;
+// a layer of the far country at this point: its woods (its own colour) and the open land among them in patches (the
+// country's ground colour, or the snow's where snow lies), bare rock above its tree line and snow above its snow line
+// (each edge ragged; in the woods only a little of the snow shows through), lit by the sky and by the sun (the more the
+// sun is behind the viewer, and near the crests the more on the flank turned to it), and paled by the air between - the
+// more the lower it lies, where the haze gathers in the bottom few hundred metres of the air (a plain far off is lost in
+// it, a peak stands clear of it; less so in clear, dry air). Far off nothing finer than this shows through the air.
+// y: this point's height; yb: the layer's foot, yt: its crest here; D: how far off (m); sl: the crest's rise round the
+// horizon
+vec3 bkLand(vec3 base, float y, float yb, float yt, float D, float ytr, float ysn, float sl, float side, float front, float hz, float az, float o){
+  // (both from one look into a small tiling noise: its red a smooth noise, its green one four times as fine; on the
+  // lowest graphics setting none, the land in plain bands)
+  vec2 nz = vec2(0.5, 0.3); if (uBkQ > 0.5) nz = texture2D(uBkNoise, vec2(az * 0.8125 + o * 0.13, (y - yb) * 1.1875 + o * 0.071)).rg;
+  float zs = (y - yb) * D, z = max(zs, 0.0), n = nz.r, m = nz.g * 0.55 + n * 0.45;
+  float rock = smoothstep(ytr - 90.0 / D, ytr + 90.0 / D, y + (n - 0.5) * 300.0 / D), snow = smoothstep(ysn - 60.0 / D, ysn + 60.0 / D, y + (n - 0.5) * 260.0 / D);
+  float open = smoothstep(0.62 - 0.3 * uBkOpenK, 0.74 - 0.3 * uBkOpenK, m);
+  vec3 c = mix(base * (0.88 + 0.24 * n), mix(uBkOpen, uBkSnowC, snow), open * 0.7);
+  c = mix(c, uBkRock * (0.9 + 0.2 * n), rock);
+  c = mix(c, uBkSnowC, snow * mix(0.25, 1.0, max(rock, open)));
+  float kc = exp(-max(yt - y, 0.0) * D / 300.0), sunF = max(0.0, 0.35 + 0.45 * front + 0.35 * kc * clamp(-sl * side, -1.0, 1.0));
+  vec3 lit = c * (uBkAmb + uBkSunL * sunF);
+  // (and below its foot the land between, nearer and lower, sinking into the haze that has the near land's far end: the
+  // layer's own colour fading into it down to the band's lower edge, so that no layer floats over a strip of haze; and
+  // whatever land reaches that edge lost in the haze before it, so that the edge never shows)
+  float sink = max(smoothstep(0.0, max(yb - uBkBot, 0.006), yb - y), 1.0 - smoothstep(uBkBot + 0.002, uBkBot + 0.016, y));
+  return mix(lit, uFog, mix(hz + (1.0 - hz) * uBkLow * exp(-z / 450.0), 1.0, sink));
+}
+void main(){
+  vec3 d = normalize(vDir); float y = d.y;
+  float az = atan(d.z, d.x), e = uPx * 0.8;
+  vec4 tx = texture2D(uBkTex, vec2(az * 0.15915494 + 0.5, 0.5)); vec3 yt = uBkA * tx.rgb + uBkB;
+  if (y > max(max(yt.x, yt.y), yt.z) + e) discard;
+  vec2 sh = uSun.xz / max(length(uSun.xz), 1e-4), dh = d.xz / max(length(d.xz), 1e-4);
+  float toward = clamp(dot(dh, sh) * 0.5 + 0.5, 0.0, 1.0), side = sh.y * dh.x - sh.x * dh.y, front = 1.0 - toward;
+  // (the nearest layer's crest's rise round the horizon, for the light on its flanks; the farther ones too hazy to show it)
+  vec3 sl = vec3((tx.a - 0.5) * 4.0, 0.0, 0.0);
+  // (toward the sun the haze glows and the land in it is paler)
+  vec3 hz = uBkHz + (1.0 - uBkHz) * 0.35 * pow(toward, 3.0) * uSunVis;
+  float a3 = smoothstep(yt.z + e, yt.z - e, y), a2 = smoothstep(yt.y + e, yt.y - e, y), a1 = smoothstep(yt.x + e, yt.x - e, y);
+  // (farthest first, each nearer one over it: the colour carried with its cover, as the sky's own is under it)
+  vec3 pc = vec3(0.0); float pa = 0.0;
+  if (a3 > 0.0) { pc = bkLand(uBkC3, y, uBkB.z, yt.z, uBkD.z, uBkTree.z, uBkSnow.z, sl.z, side, front, hz.z, az, 31.0) * a3; pa = a3; }
+  if (a2 > 0.0) { pc = bkLand(uBkC2, y, uBkB.y, yt.y, uBkD.y, uBkTree.y, uBkSnow.y, sl.y, side, front, hz.y, az, 17.0) * a2 + pc * (1.0 - a2); pa = a2 + pa * (1.0 - a2); }
+  if (a1 > 0.0) { pc = bkLand(uBkC1, y, uBkB.x, yt.x, uBkD.x, uBkTree.x, uBkSnow.x, sl.x, side, front, hz.x, az, 5.0) * a1 + pc * (1.0 - a1); pa = a1 + pa * (1.0 - a1); }
+  pc += uFlash * vec3(0.75, 0.8, 0.95) * pa;
+  gl_FragColor = vec4(pc * uBkOn, pa * uBkOn);
 }`;
 // light from the car's lamps, for anything drawn without scene lights (rain, snow, dust): two cones, the headlamps and
 // the fog lamps, each with its source, axis, cut-off, reach and strength
@@ -6649,11 +6787,34 @@ const Atmos = {
     const u = this.u = { uZen: { value: hexC('#3f74bb') }, uHorS: { value: hexC('#c6daec') }, uHorA: { value: hexC('#b8cfe6') }, uGlow: { value: hexC('#ffeccc') }, uSunC: { value: hexC('#fff1dc') }, uFog: { value: hexC('#c9d6dc') },
       uCloudLit: { value: hexC('#ffffff') }, uCloudDark: { value: hexC('#a0a0a0') }, uMoonC: { value: hexC('#dfe6f2') }, uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, -1, 0) },
       uSunVis: { value: 1 }, uNight: { value: 0 }, uMoonLit: { value: 0.5 }, uMoonVis: { value: 0 }, uStars: { value: 0 }, uCloud: { value: 0 }, uFogSky: { value: 0 }, uTime: { value: 0 }, uFlash: { value: 0 }, uWind: { value: new THREE.Vector2(0.002, 0.001) } };
+    // (the far country: its profiles as a strip round the horizon, see farLandOf)
+    const BN = Math.min(FAR_N, renderer.capabilities.maxTextureSize || 4096);
+    this.bkTex = new THREE.DataTexture(new Uint8Array(BN * 4), BN, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
+    Object.assign(this.bkTex, { wrapS: THREE.RepeatWrapping, wrapT: THREE.ClampToEdgeWrapping, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter, generateMipmaps: false });
+    const v3 = () => ({ value: new THREE.Vector3() }), c3 = () => ({ value: new THREE.Color() });
+    // (and a tiling noise for its patches, cheaper to look up than to work out for every point of the sky: red a smooth
+    // value noise sixteen cells across, green one eight times as fine)
+    { const N = 256, nd = new Uint8Array(N * N * 4), R = mulberry32(9157), sm = t => t * t * (3 - 2 * t);
+      const grid = n => { const c = Array.from({ length: n * n }, () => R()); return (fx, fz) => { const x0 = Math.floor(fx), z0 = Math.floor(fz), u = sm(fx - x0), v = sm(fz - z0), at = (a, b) => c[(((b % n) + n) % n) * n + (((a % n) + n) % n)];
+        return (at(x0, z0) * (1 - u) + at(x0 + 1, z0) * u) * (1 - v) + (at(x0, z0 + 1) * (1 - u) + at(x0 + 1, z0 + 1) * u) * v; }; };
+      const big = grid(16), fine = grid(128);
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const k = (j * N + i) * 4; nd[k] = Math.round(big(i / 16, j / 16) * 255); nd[k + 1] = Math.round(fine(i / 2, j / 2) * 255); nd[k + 2] = 0; nd[k + 3] = 255; }
+      this.bkNoise = new THREE.DataTexture(nd, N, N, THREE.RGBAFormat, THREE.UnsignedByteType);
+      Object.assign(this.bkNoise, { wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter, generateMipmaps: false, needsUpdate: true }); }
+    Object.assign(u, { uBkTex: { value: this.bkTex }, uBkNoise: { value: this.bkNoise }, uBkOn: { value: 0 }, uBkTop: { value: -1 }, uBkBot: { value: 1 }, uBkQ: { value: 1 }, uPx: { value: 0.001 }, uBkA: v3(), uBkB: v3(), uBkD: v3(), uBkTree: v3(), uBkSnow: v3(), uBkHz: v3(),
+      uBkC1: c3(), uBkC2: c3(), uBkC3: c3(), uBkRock: c3(), uBkSnowC: { value: hexC('#eef2f6') }, uBkAmb: c3(), uBkSunL: c3(), uBkOpen: c3(), uBkOpenK: { value: 0.4 }, uBkLow: { value: 0.42 },
+      uCloudSc: { value: 0.55 }, uPuff: { value: 0 }, uCirrus: { value: 0 }, uCloudOff: { value: new THREE.Vector2() }, uCirrusOff: { value: new THREE.Vector2() } });
     // the sphere's seam vertices come out a rounding error apart, which can leave a hairline crack down the sky: snap
     // every vertex to the millimetre so the seam closes exactly
     const dg = new THREE.SphereGeometry(1000, 48, 24), dp = dg.attributes.position.array; for (let k = 0; k < dp.length; k++) dp[k] = Math.round(dp[k] * 1000) / 1000;
     this.dome = new THREE.Mesh(dg, new THREE.ShaderMaterial({ uniforms: u, vertexShader: SKY_VS, fragmentShader: SKY_FS, side: THREE.BackSide, depthWrite: false, depthTest: true, fog: false }));
     this.dome.renderOrder = 1e6; this.dome.frustumCulled = false; scene.add(this.dome);
+    // (the far country's band: a ring of 128 sides, its foot and top set by BK_VS; on the dome, so it goes with it; drawn
+    // over it, first of all that is see-through)
+    { const pos = [], idx = [], n = 128; for (let k = 0; k <= n; k++) { const a = k / n * Math.PI * 2; pos.push(Math.cos(a), 0, Math.sin(a), Math.cos(a), 1, Math.sin(a)); if (k < n) { const o = k * 2; idx.push(o, o + 1, o + 2, o + 1, o + 3, o + 2); } }
+      const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); rg.setIndex(idx);
+      this.ring = new THREE.Mesh(rg, new THREE.ShaderMaterial({ uniforms: u, vertexShader: BK_VS, fragmentShader: BK_FS, side: THREE.DoubleSide, transparent: true, premultipliedAlpha: true, depthWrite: false, depthTest: true, fog: false }));
+      this.ring.renderOrder = -1e6; this.ring.frustumCulled = false; this.ring.visible = false; this.dome.add(this.ring); }
     scene.fog = new THREE.Fog(0xc9d6dc, 200, 520); scene.background = new THREE.Color(0xc9d6dc);
   },
   // the stage's light and weather: the clock is set to the chosen time of day, the road wetted, the rain or snow set up
@@ -6662,11 +6823,37 @@ const Atmos = {
     this.P = periodHours(this.Rg); this.t = cond.hour != null ? cond.hour : this.P[cond.time]; this.moonAge = cond.moonAge; this.flash = 0; this.bolt = 4 + Math.random() * 10;
     const a = cond.windDir, W = this.W; this.wind.set(Math.cos(a), Math.sin(a)).multiplyScalar(W.wind); this.u.uWind.value.set(Math.cos(a), Math.sin(a)).multiplyScalar(0.0012 + 0.0006 * W.wind);
     dressRoad(T, cond, this.Rg, this.t); paintLayers(T); // (how wet, the air, the snow, ice, dirt and stones on the road: see makeLayers)
+    const E = T.look || (T.look = lookOf(T));
+    // (the colour the land throws back up into the shade: its own colours, the snow's where snow lies over it)
+    { const g = E.ground || ['#7a7a6a'], c = this.gAlb || (this.gAlb = new THREE.Color()); c.setRGB(0, 0, 0); for (const h of g) c.add(_c1.set(h)); c.multiplyScalar(1 / g.length);
+      const Wn = stageWinter(T); if (Wn && !E.snowy) c.lerp(_c1.set('#e6ecf2'), clamp(Wn.snow || 0, 0, 1) * 0.6); }
+    // the far country: this stage's own skyline, into the sky's strip (each texel the highest of those it stands for, where
+    // the graphics chip takes a shorter strip), with its colours; and how far off the air lets it be seen today (km)
+    { const FL = this.FL = farLandOf(T), tx = this.bkTex, BN = tx.image.width, src = FL.data, dst = tx.image.data, k = FAR_N / BN;
+      if (k === 1) dst.set(src); else for (let i = 0; i < BN; i++) for (let c = 0; c < 4; c++) { let m = 0; for (let j = 0; j < k; j++) m = c < 3 ? Math.max(m, src[(i * k + j) * 4 + c]) : m + src[(i * k + j) * 4 + c] / k; dst[i * 4 + c] = Math.round(m); }
+      tx.needsUpdate = true; const u = this.u; u.uBkC1.value.set(FL.layers[0].c); u.uBkC2.value.set(FL.layers[1].c); u.uBkC3.value.set(FL.layers[2].c); u.uBkRock.value.set(FL.rock);
+      // (the open land among the far woods: the country's own ground; how much of it there is; how thick the low haze)
+      u.uBkOpen.value.copy(this.gAlb); u.uBkOpenK.value = FL.F.open != null ? FL.F.open : 0.4; u.uBkLow.value = Math.min(0.6, 0.42 / Math.pow(FL.F.air || 1, 1.5));
+      this.farVis = (WX_FAR[cond.wx] != null ? WX_FAR[cond.wx] : 40) * (FL.F.air || 1);
+      // the stage's own sky: where its clouds lie and how big they are; how heaped (fair-weather and shower clouds, more
+      // so in warm country); and on some fair days high streaks of thin cloud
+      const R = mulberry32(strHash(T.seed + ':sky')), F = FL.F; u.uCloudOff.value.set(R() * 200, R() * 200); u.uCloudSc.value = 0.38 + 0.36 * R();
+      u.uPuff.value = (WX_PUFF[cond.wx] || 0) * (F.puff != null ? F.puff : 0.8); u.uCirrusOff.value.set(R() * 100, R() * 100);
+      this.cirrus = WX_CIRRUS[cond.wx] && R() < (F.ci != null ? F.ci : 0.45) * WX_CIRRUS[cond.wx] ? 0.45 + 0.55 * R() : 0;
+      // (the sky's shader is built with them or without them now, before the stage's materials are made ready, and kept
+      // so through the run: never rebuilt while driving; and without them in the dead of night, when they cannot be seen)
+      { const deep = skyAt(this.Rg, this.t, this.moonAge).sunEl / D2R < -8 && skyAt(this.Rg, this.t + 0.42, this.moonAge).sunEl / D2R < -8;
+        const on = this.cirrus > 0 && Gfx.level !== 'low' && !deep, m = this.dome.material;
+        if (!!m.defines.CIRRUS !== on) { if (on) m.defines.CIRRUS = 1; else delete m.defines.CIRRUS; m.needsUpdate = true; } }
+      // the mist in the low ground, on some stages of damp country: how thick, lying how high (from below the road's
+      // lowest stretches to over its low quarter) and how deep its layer
+      const M = mulberry32(strHash(T.seed + ':mist')), mc = F.mist || [0.3, 0.6], ys = T.pts.slice(T.startIdx, T.finishIdx + 1).map(p => p.y).sort((p, q) => p - q);
+      this.mistK = M() < mc[0] ? mc[1] * (0.55 + 0.45 * M()) : 0; this.mistY = lerp(ys[0] - 25, ys[Math.floor(ys.length * 0.25)], M()); this.mistH = 7 + 15 * M(); }
     // daylight all through the stage (the sun well up now and in 25 minutes): no lamp lights needed
     this.night = skyAt(this.Rg, this.t, this.moonAge).sunEl / D2R < 7 || skyAt(this.Rg, this.t + 0.42, this.moonAge).sunEl / D2R < 7; Gfx.nightLights(this.night);
     // (how far the land shows through the air: the country's own haze, seen further on a stronger chip when the air is
     // clear (fair weather), so a mountain or coast road's views open out)
-    const E = T.look || (T.look = lookOf(T)), vk = W.vis >= 700 ? (Gfx.L.view || 1) : 1; this.fogFar = Math.min(1250, E.fog[1] * vk, W.vis * 1.08 * vk); this.fogNear = Math.min(E.fog[0], this.fogFar * (W.vis < 300 ? 0.12 : 0.4));
+    const vk = W.vis >= 700 ? (Gfx.L.view || 1) : 1; this.fogFar = Math.min(1250, E.fog[1] * vk, W.vis * 1.08 * vk); this.fogNear = Math.min(E.fog[0], this.fogFar * (W.vis < 300 ? 0.12 : 0.4));
     if (W.haze && !W.grit) this.fogNear = Math.min(this.fogNear, 40); // (a haze greys the land from close by, more and more with distance)
     // (rain falling as snow where it is cold enough: up on a winter mountain, and sleet below freezing)
     Precip.set(T.snowing > 0 && T.surface !== 'snow' ? Object.assign({}, W, { snow: Math.max(W.snow, T.snowing), rain: 0 }) : W, T.snowing > 0 ? 'snow' : T.surface); applyWetRoad(T.lay ? 0 : T.wet, T.surface); // (the layers wet the road where it is wet)
@@ -6684,7 +6871,8 @@ const Atmos = {
     if (W.shower) { const raw = 0.5 + 0.5 * Math.sin(this.tSim * 2 * Math.PI / 230 + this.shPh) * (0.75 + 0.25 * Math.sin(this.tSim * 0.031 + 1.7)); this.showerOn = smooth(1 - W.shower - 0.1, 1 - W.shower + 0.1, raw); this.precipK = this.showerOn * (0.85 + 0.15 * Math.sin(this.tSim * 0.17)); }
     else { this.showerOn = 1; this.precipK = 0.75 + 0.25 * Math.sin(this.tSim * 0.05 + 1.3) + 0.12 * Math.sin(this.tSim * 0.17); }
     this.gust = 0.75 + 0.35 * Math.sin(this.tSim * 0.6) * Math.sin(this.tSim * 0.23 + 2) * (W.wind > 9 ? 1.4 : 1);
-    const S = skyAt(this.Rg, this.t, this.moonAge), el = S.sunEl / D2R, cloud = W.shower ? W.cloud + (0.97 - W.cloud) * this.showerOn : W.cloud, snowK = this.T.surface === 'snow' ? 0.82 : 1; this.sunEl = el;
+    // (on a snow stage the light is held back a little in sunshine, or the snow would glare white; under cloud it is not)
+    const S = skyAt(this.Rg, this.t, this.moonAge), el = S.sunEl / D2R, cloud = W.shower ? W.cloud + (0.97 - W.cloud) * this.showerOn : W.cloud, snowK = this.T.surface === 'snow' ? 0.82 + 0.16 * cloud : 1; this.sunEl = el;
     const [a, b, k] = keyAt(SKY_KEYS, el), L = (x, y) => x.clone().lerp(y, k), [ca, cb, ck] = keyAt(CLOUD_KEYS, el);
     const cLit = ca.lit.clone().lerp(cb.lit, ck), cDark = ca.dark.clone().lerp(cb.dark, ck);
     // sunlight through the cloud, moonlight by phase and height, skylight dimmed by heavy cloud at night
@@ -6693,12 +6881,17 @@ const Atmos = {
     const moonUp = smooth(0, 0.22, S.moonEl), moonI = 0.1 * S.moonLit * moonUp * (1 - 0.9 * cloud) * smooth(-2, -8, el);
     const skyI0 = a.sky + (b.sky - a.sky) * k, night = smooth(-2, -10, el);
     const skyI = (skyI0 * (1 - 0.18 * cloud * (1 - night) - 0.45 * cloud * night) + 0.04 * S.moonLit * moonUp * (1 - 0.9 * cloud)) * snowK;
-    hemi.color.copy(L(a.skyC, b.skyC)).lerp(cLit, cloud * 0.8); hemi.groundColor.copy(hemi.color).multiplyScalar(0.35).lerp(hexC('#4a4030'), 0.3);
+    hemi.color.copy(L(a.skyC, b.skyC)).lerp(cLit, cloud * 0.8);
     this.flash = Math.max(0, this.flash - dt * 4.5);
     PLANT_U.uSwayT.value = this.tSim; PLANT_U.uSway.value = clamp((W.wind * this.gust - 2.5) / 14, 0, 1.1); // (the plants in the wind)
+    lmAnimate(this.T.landmarks, dt, this.tSim, W.wind * this.gust, Math.atan2(this.wind.x, this.wind.y), this.dark || 0, camera.position); // (the turbines and pumps turning, the lamps)
     if (W.lightning) { this.bolt -= dt; if (this.bolt <= 0) { this.bolt = 5 + Math.random() * 18; this.strike(); } }
     const fl = this.flash > 0 ? this.flash * (0.55 + 0.45 * Math.sin(this.tSim * 70)) : 0;
     hemi.intensity = skyI + fl * 1.4;
+    // the light thrown back up from the land into the shade: the land's own colour (green off grass, red off red earth,
+    // white off snow), lit by the sky and by the sun on it
+    { const up = 1 + (sunI * Math.max(0, Math.sin(S.sunEl))) / Math.max(skyI, 0.02), gA = this.gAlb || _c1.set('#7a7a6a');
+      hemi.groundColor.copy(hemi.color).multiply(gA).multiplyScalar(0.36 * up).lerp(hemi.color, 0.06); }
     const useMoon = moonI > sunI && el < -1;
     const dir = useMoon ? S.moon : S.sun; this.lightDir.set(dir[0], Math.max(0.06, dir[1]), dir[2]).normalize(); this.moonLight = useMoon;
     if (useMoon) { sun.color.set('#a9bbdd'); sun.intensity = moonI; } else { sun.color.copy(L(a.sunC, b.sunC)); sun.intensity = sunI; }
@@ -6709,18 +6902,51 @@ const Atmos = {
     // haze: toward the sun the horizon glows; cloud greys it; mist and fog close it in
     _v1.set(0, 0, -1).applyQuaternion(camera.quaternion); const sh = Math.hypot(S.sun[0], S.sun[2]) || 1, vh = Math.hypot(_v1.x, _v1.z) || 1;
     const toward = ((S.sun[0] * _v1.x + S.sun[2] * _v1.z) / (sh * vh)) * 0.5 + 0.5;
-    const horS = L(a.horS, b.horS), horA = L(a.horA, b.horA), hor = horA.clone().lerp(horS, Math.pow(toward, 1.5));
+    const horS = L(a.horS, b.horS), horA = L(a.horA, b.horA), FA = this.FL && this.FL.F;
+    // (the country's own air: damp air whitens the horizon, dust or smoke in it gives it a warm haze)
+    if (FA && (FA.milk || FA.dust)) for (const h of [horS, horA]) { const lum = (h.r + h.g + h.b) / 3;
+      if (FA.milk) h.lerp(_c1.setRGB(lum * 1.03, lum * 1.04, lum * 1.07), FA.milk * 0.55); if (FA.dust) h.lerp(_c1.set(FA.tint).multiplyScalar(lum / 0.78), Math.min(1, FA.dust * 1.4)); }
+    const hor = horA.clone().lerp(horS, Math.pow(toward, 1.5));
     const fogTint = cDark.clone().lerp(cLit, 0.55), murk = W.vis < 400 ? clamp((400 - W.vis) / 320, 0, 1) : 0;
     const fogC = hor.lerp(fogTint, cloud * 0.85).lerp(cLit.clone().multiplyScalar(0.92), murk * 0.85);
     // (the air's own colour: dust, haze, freezing fog, blown snow, lit as the day is)
     if (W.tint) { (this._tc || (this._tc = new THREE.Color())).set(W.tint).multiplyScalar(clamp(this.amb * 1.2, 0.03, 1.05)); fogC.lerp(this._tc, W.haze != null ? W.haze : 0.6); }
     if (fl > 0) fogC.lerp(hexC('#b8c2d8'), fl * 0.5);
     scene.fog.color.copy(fogC); scene.background.copy(fogC); scene.fog.near = this.fogNear; scene.fog.far = this.fogFar; this.vis = W.vis;
-    u.uZen.value.copy(L(a.zen, b.zen)); u.uHorS.value.copy(horS); u.uHorA.value.copy(horA); u.uGlow.value.copy(L(a.glow, b.glow)); u.uSunC.value.copy(L(a.sunC, b.sunC));
+    u.uZen.value.copy(L(a.zen, b.zen)); if (FA && FA.deep) { const dp = FA.deep * smooth(-6, 8, el); u.uZen.value.multiply(_c1.setRGB(1 - 0.38 * dp, 1 - 0.24 * dp, 1 - 0.04 * dp)); } // (high, dry air: a deeper blue overhead)
+    u.uHorS.value.copy(horS); u.uHorA.value.copy(horA); u.uGlow.value.copy(L(a.glow, b.glow)); u.uSunC.value.copy(L(a.sunC, b.sunC));
     u.uFog.value.copy(fogC); u.uCloudLit.value.copy(cLit); u.uCloudDark.value.copy(cDark); u.uSun.value.set(S.sun[0], S.sun[1], S.sun[2]); u.uMoon.value.set(S.moon[0], S.moon[1], S.moon[2]);
     u.uSunVis.value = (1 - cloud * 0.9) * smooth(-2, 1, el); u.uMoonLit.value = S.moonLit; u.uNight.value = night; u.uMoonVis.value = moonUp * (0.35 + 0.65 * night) * (1 - murk);
     u.uStars.value = smooth(-7, -15, el) * (1 - cloud) * (1 - 0.6 * S.moonLit * moonUp) * (1 - murk); u.uCloud.value = cloud; u.uFogSky.value = Math.max(murk * 0.92, (W.haze || 0) * 0.5); u.uTime.value = this.tSim; u.uFlash.value = fl * 0.6;
     this.dome.position.copy(camera.position);
+    // the far country from here: where each layer's foot and crest stand in the sky (from the camera's height above the
+    // sea; the earth's curve, less the air's bending of the light, drops the farther ones a little), where its woods give
+    // out and its snow begins; how it is lit; how pale the air makes it (never clearer than the haze over the near land
+    // allows); and none of it at all in mist, fog, heavy rain and snow
+    if (this.FL) { const FL = this.FL, T = this.T, alt = (T.alt || 0) + camera.position.y - (T.yRef || 0), Re = 7.43e6, vis = this.farVis * 1000;
+      const A = u.uBkA.value, B = u.uBkB.value, TR = u.uBkTree.value, SN = u.uBkSnow.value, HZ = u.uBkHz.value; let top = -1;
+      for (let i = 0; i < 3; i++) { const L = FL.layers[i], D = L.D, cv = D / (2 * Re); let a = (L.hi - L.lo) / D, b = (L.lo - alt) / D - cv;
+        // (a layer whose foot would stand well up off the horizon - high country seen from below it - is let down to
+        // near it, its crests where they were: the land rising to it shows, and it does not float over the haze)
+        if (b > BK_FOOT) { a += b - BK_FOOT; b = BK_FOOT; }
+        A.setComponent(i, a); B.setComponent(i, b); u.uBkD.value.setComponent(i, D); top = Math.max(top, a + b); TR.setComponent(i, (FL.tree - alt) / D - cv); SN.setComponent(i, (FL.snow - alt) / D - cv);
+        HZ.setComponent(i, Math.max(BK_HAZE[i], 1 - Math.exp(-3 * D / Math.max(vis, 1)))); }
+      // (and nothing to work out lower than the land between can show, below the lowest foot, nor more than a degree and a
+      // half below the horizon: there the near land, lost in its haze, stands in front, and past its end the haze is all
+      // there is)
+      u.uBkTop.value = top + 0.003; u.uBkBot.value = Math.max(Math.min(B.x, B.y, B.z) - BK_BELOW, -0.027); u.uBkOn.value = (1 - murk) * smooth(2, 7, this.farVis);
+      this.ring.visible = u.uBkOn.value > 0.002 && u.uBkTop.value > u.uBkBot.value;
+      u.uBkAmb.value.copy(hemi.color).multiplyScalar(hemi.intensity * 0.9); u.uBkSunL.value.copy(sun.color).multiplyScalar(this.moonLight ? 0 : sun.intensity);
+      u.uPx.value = 2 * Math.tan(camera.fov * Math.PI / 360) / Math.max(200, (renderer.domElement.height || 720)); }
+    // (on the lowest graphics setting the sky is kept plainer: no high streaks, the far country without its patches)
+    u.uBkQ.value = Gfx.level === 'low' ? 0 : 1; u.uCirrus.value = this.cirrus || 0;
+    // the mist in the low ground: thickest before and just after sunrise, burnt off as the sun climbs, forming again in
+    // the evening and lying through the night; still air only (a wind stirs it away), thinned by cloud and rain, thicker
+    // on a misty day; lit by the day, whiter in the sun
+    { const morn = ((this.t % 24) + 24) % 24 < 12, tk = morn ? smooth(24, 4, el) : 0.75 * smooth(8, -6, el), wk = WX_MIST[this.cond && this.cond.wx] != null ? WX_MIST[this.cond.wx] : 0.5;
+      MIST[0] = clamp((this.mistK || 0) * tk * wk * smooth(7, 2.5, W.wind * this.gust), 0, 0.95); MIST[1] = this.mistY || -1e4; MIST[2] = this.mistH || 10; MIST[3] = 140;
+      if (MIST[0] > 0) { _c1.copy(hemi.color).multiplyScalar(hemi.intensity * 0.95).add(_v3c.copy(sun.color).multiplyScalar(this.moonLight ? 0 : sun.intensity * 0.45)).lerp(fogC, 0.25);
+        MIST_C[0] = Math.min(1, _c1.r); MIST_C[1] = Math.min(1, _c1.g); MIST_C[2] = Math.min(1, _c1.b); } }
     carHemi.color.copy(hemi.color); carHemi.groundColor.copy(hemi.groundColor); carHemi.intensity = hemi.intensity; carSun.color.copy(sun.color); carSun.intensity = sun.intensity;
     // particles drawn without scene lights take the light around them
     const amb = hemi.color.clone().multiplyScalar(hemi.intensity * 0.9).add(sun.color.clone().multiplyScalar(sun.intensity * 0.45));
@@ -7851,7 +8077,7 @@ function buildStage(T) {
     // (a field: its crop's colour, each field a shade of its own; bare earth showing through in patches)
     // (the cover noise once: in a field, its crop; in the woods, their floor in their shade)
     // (with the settings along the road leaning it toward woods or fields; a field left unfarmed is open ground)
-    const cn = coverNoise(T, E, x, z), f = FP && cn < FP.lim ? FP.at(x, z) : null;
+    const cn = coverNoise(T, E, x, z, true), f = FP && cn < FP.lim ? FP.at(x, z) : null; // (out past the zones, the stage's own mix of country)
     if (f && FP.keep(f)) { fcol.copy(f.crop.col).multiplyScalar(0.9 + 0.2 * f.h); out.lerp(fcol, 0.78); }
     else { const cv = smooth(cvr[1], cvr[2], cn); if (cv > 0) out.lerp(floorC, cv * 0.45); }
     if (soilC) out.lerp(soilC, smooth(0.58, 0.78, fbm(x / 22, z / 22, T.nseed + 27)) * 0.55);
@@ -8505,8 +8731,10 @@ function buildStage(T) {
   // its trees, shrubs and tall grasses (plantStage), all their parts drawn instanced (flushPlants); the lakes
   const snowy = (x, y, z) => E.snowy ? 1 : snowLand ? snowCover(T, x, y, z) : 0;
   const PL = plantParts(), pctx = { G, T, E, FP, lakes: LK, A: partAdder(PL), P, N, posAt, gY, poleHash, snowy };
-  const PR = buildProps(pctx); pctx.keepAt = PR.keepAt;
-  const PS = plantStage(pctx), nParts = flushPlants(PL, inst);
+  const PR = buildProps(pctx); pctx.keepAt = PR.keepAt; pctx.PL = PL;
+  // (and the things the stage is remembered by, on the high ground: landmarks; no tree grows through one, near or far)
+  const PS = plantStage(pctx), LMK = T.landmarks = landmarks(pctx); pctx.lmKeep = LMK.keep;
+  const nParts = flushPlants(PL, inst), FW = farWoods(pctx, inst); // (and the country on out into the haze: farWoods)
   // the spectators: each set piece's crowd placed where it is safe and has a view, now that the trees, houses and walls
   // they must keep out of stand; then all of them (with the marshals and the grandstands' and villages' people) built
   grp = crowdPlaceProps(T, crowd, { R: RC, g0: grp, tapeLine });
@@ -8520,7 +8748,7 @@ function buildStage(T) {
     G.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tapeTex(), side: THREE.DoubleSide })));
   }
   drawLakes(G, T, LK, T.surface === 'snow');
-  T.decor = Object.assign({ parts: nParts, lakes: LK.length }, PR.stats, PS);
+  T.decor = Object.assign({ parts: nParts, lakes: LK.length, far: FW, landmarks: LMK.built, lmTris: LMK.tris || 0 }, PR.stats, PS);
   // start & finish arches
   // (a super special's gantry spans both lanes, over the pair of barriers between them: the twin courses' mirror image,
   // or a loop's other lane, a lap on)
@@ -17723,11 +17951,24 @@ function glassLook(inCar) {
   const g = carFactoryB.mats.glass; if (g.userData.inCar === inCar) return; const L = GLASS_LOOK[inCar ? 'in' : 'out'];
   g.userData.inCar = inCar; g.color.setHex(L.color); g.metalness = L.metalness; g.roughness = L.roughness; g.opacity = L.opacity;
 }
+// the sky and the far country alone, into the small picture the last of the haze takes its colour from (see BG_RT): only
+// while the far country shows (otherwise the haze's own colour is the sky's at the horizon, as ever)
+const bgScene = new THREE.Scene();
+// (warm: drawn now whatever the far country, so that the sky's and the far country's shaders are made ready as this pass
+// has them - a scene without the world's lights has its own - before the run rather than in its first frame)
+function renderBg(warm) {
+  const d = Atmos.dome, ring = Atmos.ring, cv = renderer.domElement, W = cv.width, H = cv.height;
+  if (!d || !d.parent || !ring || !scene.fog || !W || !H || (!warm && !ring.visible)) { BG_ON[0] = 0; return; }
+  const w = Math.max(16, Math.round(W / 4)), h = Math.max(16, Math.round(H / 4)); if (BG_RT.width !== w || BG_RT.height !== h) BG_RT.setSize(w, h);
+  const par = d.parent, rt = renderer.getRenderTarget(), rv = ring.visible; bgScene.add(d); d.updateMatrixWorld(); if (warm) ring.visible = true;
+  renderer.setRenderTarget(BG_RT); renderer.render(bgScene, camera); renderer.setRenderTarget(rt); par.add(d); ring.visible = rv;
+  BG_ON[0] = warm ? 0 : 1; BG_ON[1] = 1 / W; BG_ON[2] = 1 / H;
+}
 function render() {
   // the view's far plane at the haze's end (and a little more): nothing past it could be seen, and three.js leaves out
   // whatever lies beyond (the sky is drawn at the far plane itself, see SKY_VS)
   { const f = clamp((scene.fog ? scene.fog.far : 1400) * 1.06 + 40, 260, 1400); if (Math.abs(camera.far - f) > 4) { camera.far = f; camera.updateProjectionMatrix(); } }
-  cullChunks(); camera.updateMatrixWorld(); ROAD_LAY.uCamW.value.copy(camera.matrixWorld);
+  cullChunks(); camera.updateMatrixWorld(); ROAD_LAY.uCamW.value.copy(camera.matrixWorld); MIST_EYE.set(camera.matrixWorld.elements.slice(12, 15));
   if (RaceLine.mesh && RaceLine.mesh.visible && G.state !== 'run' && G.state !== 'countdown') RaceLine.hide(); // (the racing line belongs to a stage run)
   const crewShot = crewShotOn(), inCar = !crewShot && G.state !== 'menu' && G.state !== 'rally' && G.camMode === 2 && G.mesh && G.mesh.eye; glassLook(!!inCar);
   // (on the bonnet the bonnet lies closer than the world's near plane: the car stays in the world, where it casts its
@@ -17739,8 +17980,9 @@ function render() {
   // water and dirt, drawn before the frame
   if (ScreenFx.on && G.T) { const el = Atmos.sunEl == null ? 30 : Atmos.sunEl, sf = G.T.surface;
     ScreenFx.light(camera, Atmos.u.uSun.value, Atmos.moonLight ? 0 : Atmos.u.uSunVis.value * smooth(-2, 5, el), 0.05 + 0.95 * (1 - Atmos.dark), SCREEN_MUD[sf] || SCREEN_MUD.gravel, DUST[sf] || DUST.gravel); ScreenFx.prepare(renderer); }
-  if (!close) { renderer.render(scene, camera); return; }
-  renderer.render(scene, camera);
+  renderBg();
+  if (!close) { renderer.render(scene, camera); BG_ON[0] = 0; return; }
+  renderer.render(scene, camera); BG_ON[0] = 0;
   carSun.position.copy(sun.position); carSun.target.position.copy(sun.target.position);
   cockCam.position.copy(camera.position); cockCam.quaternion.copy(camera.quaternion);
   if (cockCam.fov !== camera.fov || cockCam.aspect !== camera.aspect) { cockCam.fov = camera.fov; cockCam.aspect = camera.aspect; cockCam.updateProjectionMatrix(); }
@@ -18344,13 +18586,13 @@ const SET_LOOK = {
 };
 const _slw = new Float32Array(SET_IDS.length), _sl = { cover: 0, trees: 1, near: 7, fields: 1, houses: 1, d: 0, w: _slw };
 // the settings' look at (x, z), blended where zones meet (d: how far off the road; w: each setting's share)
-function setLook(T, x, z) {
-  const w = _slw, d = zoneW(T, x, z, w); let cover = 0, trees = 0, near = 0, fields = 0, houses = 0;
+function setLook(T, x, z, far) {
+  const w = _slw, d = zoneW(T, x, z, w, far); let cover = 0, trees = 0, near = 0, fields = 0, houses = 0;
   for (let k = 0; k < SET_IDS.length; k++) { const a = w[k]; if (!a) continue; const L = SET_LOOK[SET_IDS[k]]; cover += a * L.cover; trees += a * L.trees; near += a * L.near; fields += a * L.fields; houses += a * L.houses; }
   _sl.cover = cover; _sl.trees = trees; _sl.near = near; _sl.fields = fields; _sl.houses = houses; _sl.d = d; return _sl;
 }
 // the cover noise at (x, z) with the settings' own leaning (the country's woods and fields, as its zones have them)
-const coverNoise = (T, E, x, z) => fbm(x / E.flora.cover[0], z / E.flora.cover[0], T.nseed + 301) + setLook(T, x, z).cover;
+const coverNoise = (T, E, x, z, far) => fbm(x / E.flora.cover[0], z / E.flora.cover[0], T.nseed + 301) + setLook(T, x, z, far).cover;
 
 // ---------- plants ----------
 // Every plant is put together from a few shared low-poly parts, each drawn instanced (one draw call per part and 200 m
@@ -19200,7 +19442,7 @@ function partAdder(PL) { return (k, x, y, z, sx, sy, sz, ry, rx, rz, c) => PL[k]
 // how wooded the country is at a point (0-1), or -1 in a field
 // (with the settings along the road leaning it toward woods or fields: see SET_LOOK; setLook's figures for the point are
 // left in _sl)
-function coverFn(T, E, FP) { const cv = E.flora.cover, ns = T.nseed; return (x, z) => { const n = fbm(x / cv[0], z / cv[0], ns + 301) + setLook(T, x, z).cover; return FP && n < FP.lim && FP.keep(FP.at(x, z)) ? -1 : smooth(cv[1], cv[2], n); }; }
+function coverFn(T, E, FP, far) { const cv = E.flora.cover, ns = T.nseed; return (x, z) => { const n = fbm(x / cv[0], z / cv[0], ns + 301) + setLook(T, x, z, far).cover; return FP && n < FP.lim && FP.keep(FP.at(x, z)) ? -1 : smooth(cv[1], cv[2], n); }; }
 function plantStage(ctx) {
   const { T, E, FP, lakes, A, P, N, posAt, gY, poleHash, keepAt, snowy } = ctx, F = E.flora, R = mulberry32(strHash('trees:' + T.seed)), rr = (a, b) => a + (b - a) * R(), ns = T.nseed;
   const coverAt = coverFn(T, E, FP);
@@ -19242,6 +19484,576 @@ function plantStage(ctx) {
     for (let k = 0; k < 2500 * Math.min(2, dens); k++) { const i = (R() * N) | 0, a = R() * Math.PI * 2, d = rr(25, 140); shrub(P[i].x + Math.cos(a) * d, P[i].z + Math.sin(a) * d, 9, list, dens * 0.5); } }
   return st;
 }
+// ---------- the far woods ----------
+// Past the trees by the road (thick to some 60 m from it, thinning out by 190 m) the country goes on into the haze as it
+// is near the road: where the cover noise says woods, stands of the country's own trees in its woods' mix of kinds; out
+// in the open and in the fields, its lone trees; along the bounds of its fields that are hedges, the hedgerows. Each is
+// drawn very simply (a spruce a spire of two skirts, a crown a ball of twenty flat faces, a trunk a square tube where it
+// shows), a stand of a few trees one instance of a shape made for the stage: one draw for each shape, and the stands
+// lost in the haze or too small to see are not drawn at all (InstPool).
+// (each kind of tree far off: its shape and its usual height, m; a pine's crown where it sits on the trunk, how wide and
+// how deep, all as shares of the height: high and narrow on a tall pine of the north, deep on a plantation pine, low
+// and wide on a pine of the dry coasts)
+const FAR_TREE = { spruce: ['spire', 19], larch: ['needle', 20], cedar: ['needle', 25], cypress: ['flame', 13], poplar: ['flame', 21],
+  scots: ['pine', 20, 0.8, 0.14, 0.15], maritime: ['pine', 18, 0.74, 0.17, 0.19], radiata: ['pine', 25, 0.68, 0.16, 0.25], aleppo: ['pine', 11, 0.76, 0.21, 0.15],
+  pine: ['pine', 21, 0.79, 0.15, 0.16], umbrella: ['parasol', 13],
+  acacia: ['parasol', 7.5], fever: ['parasol', 10], gum: ['gum', 27], gumwhite: ['gum', 25], broadleaf: ['round', 16], birch: ['round', 15],
+  holm: ['round', 10], chestnut: ['round', 15], maple: ['round', 10], fruit: ['round', 5], olive: ['round', 6], corkoak: ['round', 9],
+  molle: ['round', 6.5], mesquite: ['round', 5], bamboo: ['round', 11], fern: ['round', 5], cabbage: ['round', 7] };
+// where the trees give out going up a mountain (m above the sea), where the country's woods climb no higher
+const FAR_TREELINE = { alpine: 2050, mountain: 2100, rocky: 2000, pampas: 1900, maquis: 1600, coast: 1700, cedar: 2300 };
+// the colours a kind of tree has here (its crown's, its bark's; under snow; bare), as the trees by the road have them
+function farLook(sp, E, snow, seed) {
+  const R = mulberry32(seed), parts = []; SPECIES[sp]((...p) => parts.push(p), { x: 0, y: 0, z: 0, H: 14, R, E, snow });
+  let crown = null, cv = -1, bark = null, white = false, bare = false;
+  for (const p of parts) { const k = p[0], c = p[10]; if (!c) continue;
+    if (k === 'trunk') { if (!bark) bark = c; continue; }
+    if (k === 'twig' || k === 'twigCone') bare = true;
+    if (c.r > 0.82 && c.g > 0.82 && c.b > 0.82) { white = true; continue; } // (the snow on it)
+    const v = Math.abs(p[4] * p[5] * p[6]); if (v > cv) { cv = v; crown = c; } }
+  return { crown: crown || new THREE.Color('#3a5030'), bark: bark || new THREE.Color('#5a4a3c'), white, bare };
+}
+// a far stand's shape, built for the stage: trees (each { sp, x, z, H }) as triangles with their colours worked in
+// (a spire's skirts darker at their foot and lighter at their tips, snow lying on them in a white winter; a crown darker
+// underneath). Out to some 500 m a spire has two skirts of six sides, a crown is a double pyramid on a ring of six and a
+// trunk a square tube; further off (lo) a spire is one skirt of five sides, a crown a double pyramid on a ring of four,
+// a trunk three-sided, and the trunks of trees that hide theirs in their woods are left out
+const FAR_BASE = (() => {
+  const cone = k => { const L = []; for (let i = 0; i < k; i++) { const a0 = i / k * Math.PI * 2, a1 = (i + 1) / k * Math.PI * 2; L.push([Math.cos(a0), 0, Math.sin(a0), a0, 0], [0, 1, 0, (a0 + a1) / 2, 1], [Math.cos(a1), 0, Math.sin(a1), a1, 0]); } return L; };
+  const crown = k => { const L = []; for (let i = 0; i < k; i++) { const a0 = i / k * Math.PI * 2, a1 = (i + 1) / k * Math.PI * 2, c0 = [Math.cos(a0), 0, Math.sin(a0)], c1 = [Math.cos(a1), 0, Math.sin(a1)]; L.push(c0, [0, 1, 0], c1, c1, [0, -1, 0], c0); } return L; };
+  const tube = k => { const L = []; for (let i = 0; i < k; i++) { const a0 = (i + 0.5) / k * Math.PI * 2, a1 = (i + 1.5) / k * Math.PI * 2, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+    L.push([c0, 0, s0], [c0, 1, s0], [c1, 0, s1], [c1, 0, s1], [c0, 1, s0], [c1, 1, s1]); } return L; };
+  return { hi: { cone: cone(6), crown: crown(6), tube: tube(4) }, lo: { cone: cone(5), crown: crown(4), tube: tube(3) } };
+})();
+function farStandGeo(trees, look, snowy, R, lo) {
+  const pos = [], nrm = [], col = [], c = new THREE.Color(), SNOW = new THREE.Color(SNOWC), B = lo ? FAR_BASE.lo : FAR_BASE.hi, R2 = mulberry32((R() * 4294967296) >>> 0);
+  // (a cone from y0 up h, radius r, at x, z: its sides' normals as the cone's own)
+  const cone = (x, y0, z, r, h, ry, f) => { const sl = r / h, L = Math.hypot(1, sl); for (const q of B.cone) { const a = q[3] + ry, up = q[4];
+    pos.push(x + (up ? 0 : Math.cos(a) * r), y0 + q[1] * h, z + (up ? 0 : Math.sin(a) * r)); nrm.push(Math.cos(a) / L, sl / L, Math.sin(a) / L); f(up, c); col.push(c.r, c.g, c.b); } };
+  // (a crown: a double pyramid, its normals as a ball's)
+  const crown = (x, y, z, rx, ry2, rz, rot, f) => { const cs = Math.cos(rot), sn = Math.sin(rot); for (const q of B.crown) { const lx = q[0] * cs - q[2] * sn, lz = q[0] * sn + q[2] * cs;
+    pos.push(x + lx * rx, y + q[1] * ry2, z + lz * rz); const nx = lx / rx, ny = q[1] / ry2, nz = lz / rz, L = Math.hypot(nx, ny, nz); nrm.push(nx / L, ny / L, nz / L); f((q[1] + 1) / 2, c); col.push(c.r, c.g, c.b); } };
+  const tube = (x, y0, z, r, h, cc) => { for (const q of B.tube) { pos.push(x + q[0] * r, y0 + q[1] * h, z + q[2] * r); nrm.push(q[0], 0, q[2]); col.push(cc.r * 0.85, cc.g * 0.85, cc.b * 0.85); } };
+  for (const t of trees) { const L = look[t.sp], kind = FAR_TREE[t.sp][0], H = t.H, j = 0.92 + 0.16 * R2(), base = L.crown, ry = R2() * 6.3;
+    const shade = (k, out) => out.copy(base).multiplyScalar(j * (0.7 + 0.42 * k));
+    const top = (k, out) => { shade(k, out); if (snowy && L.white && k > 0.62) out.lerp(SNOW, 0.75); };
+    if (kind === 'spire') { const r = H * 0.23, wh = snowy && L.white;
+      const skirt = (up, out) => { if (wh) { if (up) out.copy(SNOW).multiplyScalar(0.97 * j); else out.copy(base).multiplyScalar(0.85 * j).lerp(SNOW, 0.5); } else shade(up ? 1 : 0, out); };
+      if (lo) cone(t.x, t.y + H * 0.04, t.z, r, H * 0.96, ry, skirt); else { cone(t.x, t.y + H * 0.04, t.z, r, H * 0.62, ry, skirt); cone(t.x, t.y + H * 0.4, t.z, r * 0.7, H * 0.6, ry + 0.5, skirt); } continue; }
+    if (kind === 'needle') { if (!lo) tube(t.x, t.y - 0.3, t.z, H * 0.012 + 0.08, H * 0.4, L.bark); const sk = (up, out) => { if (snowy && L.white && up) out.copy(SNOW).multiplyScalar(0.95 * j); else shade(up ? 0.9 : 0.05, out); };
+      cone(t.x, t.y + H * 0.3, t.z, H * 0.14, H * 0.7, ry, sk); continue; }
+    if (kind === 'flame') { crown(t.x, t.y + H * 0.52, t.z, H * 0.1, H * 0.47, H * 0.1, ry, shade); continue; }
+    if (kind === 'pine') { const [, , cy, cr, ch] = FAR_TREE[t.sp]; if (!lo || t.trunk) tube(t.x, t.y - 0.3, t.z, H * 0.014 + 0.06, H * (cy - ch * 0.4), L.bark);
+      crown(t.x, t.y + H * cy, t.z, H * cr, H * ch, H * cr * 0.85, ry, top); continue; }
+    if (kind === 'parasol') { tube(t.x, t.y - 0.3, t.z, H * 0.028 + 0.05, H * 0.8, L.bark); crown(t.x, t.y + H * 0.84, t.z, H * 0.44, H * 0.08, H * 0.44, ry, top); continue; }
+    if (kind === 'gum') { tube(t.x, t.y - 0.3, t.z, H * 0.017 + 0.05, H * 0.7, L.bark); for (let k = 0; k < (lo ? 1 : 2); k++) { const a = k * 2.6 + ry, d = lo ? 0 : H * 0.09; crown(t.x + Math.cos(a) * d, t.y + H * (0.74 + 0.1 * k), t.z + Math.sin(a) * d, H * (lo ? 0.17 : 0.13), H * 0.1, H * (lo ? 0.17 : 0.13), a, top); } continue; }
+    // (a round crown: a trunk under it where the tree stands alone; a bare one a haze of twigs, its colour half the air's)
+    if (t.trunk) tube(t.x, t.y - 0.3, t.z, H * 0.022 + 0.05, H * 0.45, L.bark);
+    if (L.bare) { crown(t.x, t.y + H * 0.6, t.z, H * 0.2, H * 0.34, H * 0.2, ry, (k, out) => out.copy(base).lerp(FAR_HAZE, 0.8).multiplyScalar(j * (1.05 + 0.12 * k))); continue; }
+    crown(t.x, t.y + H * 0.62, t.z, H * 0.31, H * 0.28, H * 0.31, ry, top); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeBoundingSphere();
+  return g;
+}
+const FAR_HAZE = new THREE.Color('#a49c96'); // (the grey a bare wood takes far off, its twigs against the air)
+function farWoods(ctx, inst) {
+  const { T, E, FP, lakes } = ctx, F = E.flora, R = mulberry32(strHash(T.seed + ':farwoods')), rr = (a, b) => a + (b - a) * R(), P = T.pts, N = P.length, g = T.terrain;
+  const out = { stands: 0, lone: 0, hedges: 0 }; if (!g || T.sss) return out;
+  const coverAt = coverFn(T, E, FP, true), lvl = Gfx.level, view = (Gfx.L && Gfx.L.view) || 1, lmk = ctx.lmKeep || [];
+  // (how far out: as far as the haze lets the country be seen on a clear day, on this graphics setting)
+  const D0 = 115, D1 = Math.min(1350, (E.fog ? E.fog[1] : 560) * view + 60), CS = lvl === 'low' ? 30 : lvl === 'medium' ? 25 : 22;
+  // how far each point of the land is from the road: a coarse field of distances (25 m apart), from the cells the road
+  // runs through outward (two sweeps, each cell from its neighbours across and corner to corner)
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of P) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+  const C = 25, M = D1 + 2 * C; x0 -= M; z0 -= M; x1 += M; z1 += M; const nx = Math.ceil((x1 - x0) / C) + 1, nz = Math.ceil((z1 - z0) / C) + 1, D = new Float32Array(nx * nz).fill(1e9), d1 = C, d2 = C * Math.SQRT2;
+  for (let i = 0; i < N; i += 2) { const q = Math.round((P[i].x - x0) / C), r = Math.round((P[i].z - z0) / C); D[r * nx + q] = 0; }
+  for (let j = 1; j < nz; j++) for (let i = 1; i < nx - 1; i++) { const k = j * nx + i; D[k] = Math.min(D[k], D[k - 1] + d1, D[k - nx] + d1, D[k - nx - 1] + d2, D[k - nx + 1] + d2); }
+  for (let j = nz - 2; j >= 0; j--) for (let i = nx - 2; i >= 1; i--) { const k = j * nx + i; D[k] = Math.min(D[k], D[k + 1] + d1, D[k + nx] + d1, D[k + nx + 1] + d2, D[k + nx - 1] + d2); }
+  const distAt = (x, z) => { const fx = clamp((x - x0) / C, 0, nx - 1.001), fz = clamp((z - z0) / C, 0, nz - 1.001), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j, k = j * nx + i;
+    return (D[k] * (1 - u) + D[k + 1] * u) * (1 - v) + (D[k + nx] * (1 - u) + D[k + nx + 1] * u) * v; };
+  // the land's height there (the stage's own ground where it reaches, the land beyond it out past that), and no tree
+  // in the water, on a cliff or above the trees' line
+  const gx1 = g.x0 + (g.nx - 1) * g.cell, gz1 = g.z0 + (g.nz - 1) * g.cell, inG = (x, z) => x > g.x0 + 1 && x < gx1 - 1 && z > g.z0 + 1 && z < gz1 - 1;
+  const hAt = (x, z) => { if (inG(x, z)) { const y = groundAt(T, x, z); if (y != null) return y; } return natAt(T, x, z); };
+  const sea = T.land && T.land.sea ? T.land.sea.y : null, tl = FAR_TREELINE[E.id], alt = y => (T.alt || 0) + y - (T.yRef || 0);
+  const Wn = stageWinter(T), snowLand = !!(Wn && Wn.line != null);
+  const ground = (x, z) => { const y = hAt(x, z); if (sea != null && y < sea + 1.2) return null;
+    if (inG(x, z)) { for (const L of lakes) if (x > L.x0 && x < L.x1 && z > L.z0 && z < L.z1 && y < L.level + 0.4) return null; const wl = waterLevelAt(T, x, z); if (wl !== null && y < wl + 0.5) return null; }
+    const sx = hAt(x + 7, z) - y, sz = hAt(x, z + 7) - y; if (Math.hypot(sx, sz) / 7 > 1.15) return null; // (a cliff)
+    if (tl && alt(y) > tl + 220 * (R() - 0.5)) return null; return y; };
+  // the kinds of tree: the woods' own mix, the open country's, the hedgerows' (broadleaf where the country has them)
+  const usable = L => L.filter(e => FAR_TREE[e[0]] && SPECIES[e[0]]);
+  const woods = usable(F.forest), open = usable(F.open), hedgeTrees = usable(F.open.some(e => e[0] === 'broadleaf') ? [['broadleaf', 1]] : F.open);
+  const looks = {}, lookFor = (sp, snow) => { const key = sp + (snow ? '*' : ''); return looks[key] || (looks[key] = farLook(sp, E, snow ? 1 : 0, strHash(T.seed + ':farlook:' + key))); };
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true }); mat.userData.far = true;
+  const place = (d, t) => { d.position.set(t.x, t.y, t.z); d.rotation.set(0, t.ry, 0); d.scale.set(t.s * t.m, t.s * t.v, t.s); };
+  // the shapes: a stand (some 18 m across) of trees of the woods' mix, three of them so the woods do not repeat; a lone
+  // tree of the open country's (two); a stretch of hedge (10 m) - each made white-topped too where snow lies above a line
+  const makeStands = snow => { if (!woods.length) return [];
+    const kinds = woods.map(e => FAR_TREE[e[0]][0]), spires = kinds.filter(k => k === 'spire' || k === 'needle').length / kinds.length, n = Math.round(3 + 3 * spires), list = [];
+    for (let v = 0; v < 3; v++) { const trees = [];
+      for (let t = 0, tries = 0; t < n && tries < 80; tries++) { const a = R() * 6.283, r = 10.5 * Math.sqrt(R()), x = Math.cos(a) * r, z = Math.sin(a) * r; if (trees.some(q => Math.hypot(q.x - x, q.z - z) < 3.4 + 2.5 * (1 - spires))) continue;
+        const sp = pickW(woods, R), sc = FAR_TREE[sp][0] === 'spire' || FAR_TREE[sp][0] === 'needle' ? 1 : 1.25; trees.push({ sp, x, z, y: 0, H: FAR_TREE[sp][1] * rr(0.75, 1.15) * sc }); t++; }
+      const looks2 = Object.fromEntries(trees.map(t => [t.sp, lookFor(t.sp, snow)])), sd = (R() * 4294967296) >>> 0;
+      list.push([farStandGeo(trees, looks2, snow, mulberry32(sd), false), farStandGeo(trees, looks2, snow, mulberry32(sd), true)]); }
+    return list; };
+  const makeLone = snow => { const L = open.length ? open : woods; if (!L.length) return []; const list = [];
+    for (let v = 0; v < 2; v++) { const sp = pickW(L, R), t = { sp, x: 0, z: 0, y: 0, H: FAR_TREE[sp][1] * rr(0.85, 1.1), trunk: true }, lk = { [sp]: lookFor(sp, snow) }, sd = (R() * 4294967296) >>> 0;
+      list.push([farStandGeo([t], lk, snow, mulberry32(sd), false), farStandGeo([t], lk, snow, mulberry32(sd), true)]); }
+    return list; };
+  const snowAt = (x, y, z) => E.snowy ? 1 : snowLand ? snowCover(T, x, y, z) : 0;
+  const shapes = { stand: [makeStands(!!E.snowy), snowLand ? makeStands(true) : null], lone: [makeLone(!!E.snowy), snowLand ? makeLone(true) : null] };
+  const lists = new Map(), put = (geo, it) => { let L = lists.get(geo); if (!L) lists.set(geo, L = []); L.push(it); };
+  // the stands and lone trees: a point in every cell (jittered), out from just inside the trees by the road to the haze
+  const dens = clamp(F.dens, 0.25, 1.3), oDens = F.openDens || 0;
+  for (let cz = z0 + C; cz < z1 - C; cz += CS) for (let cx = x0 + C; cx < x1 - C; cx += CS) {
+    const x = cx + (R() - 0.5) * CS * 0.9, z = cz + (R() - 0.5) * CS * 0.9, d = distAt(x, z); if (d < D0 || d > D1) continue;
+    if (lmk.length && lmk.some(k => (x - k.x) * (x - k.x) + (z - k.z) * (z - k.z) < (k.r + 10) * (k.r + 10))) continue; // (not through a landmark)
+    const ramp = smooth(D0, 190, d), c = coverAt(x, z);
+    const pStand = c > 0.3 ? smooth(0.3, 0.75, c) * Math.min(1, dens * 1.05) * ramp : 0, pLone = (c < 0 ? oDens * 0.8 : oDens * 2.2 * (1 - Math.max(0, c))) * ramp;
+    const u = R(); if (u >= pStand + pLone) continue; const stand = u < pStand;
+    const y = ground(x, z); if (y == null) continue; const sw = snowAt(x, y, z) > 0.4 && snowLand ? 1 : 0, set = shapes[stand ? 'stand' : 'lone'][sw] || shapes[stand ? 'stand' : 'lone'][0]; if (!set || !set.length) continue;
+    put(set[(R() * set.length) | 0], { x, y, z, ry: R() * 6.283, s: rr(0.85, 1.15), m: 1, v: rr(0.85, 1.15), c: new THREE.Color().setScalar(rr(0.86, 1.08)) });
+    stand ? out.stands++ : out.lone++; }
+  // the hedgerows: along every field bound that is a hedge out here (each field draws its strip's near edge and its own
+  // start, as by the road), a long low mass every 10 m and a tree in it now and then
+  const hw = FP && FP.F.bound ? (FP.F.bound.hedge || 0) / Object.values(FP.F.bound).reduce((s, v) => s + v, 0) : 0;
+  if (hw > 0.05 && FP) {
+    const hedgeOf = B => { const c = new THREE.Color(E.hedgeC || '#3e5a2c'), pos = [], nrm = [], col = [];
+      for (const q of B.crown) { pos.push(q[0] * 5.4, 1.35 + q[1] * 1.45, q[2] * 1.3); const nx = q[0] / 5.4, ny = q[1] / 1.45, nz = q[2] / 1.3, L = Math.hypot(nx, ny, nz); nrm.push(nx / L, ny / L, nz / L); const k = 0.72 + 0.4 * (q[1] + 1) / 2; col.push(c.r * k, c.g * k, c.b * k); }
+      const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3)); g2.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g2.computeBoundingSphere(); return g2; };
+    const hedgeGeo = [hedgeOf(FAR_BASE.hi), hedgeOf(FAR_BASE.lo)];
+    const loneSet = shapes.lone[0], seen = new Set();
+    for (let cz = z0 + C; cz < z1 - C; cz += 40) for (let cx = x0 + C; cx < x1 - C; cx += 40) { const d = distAt(cx, cz); if (d < D0 - 40 || d > D1) continue; if (!FP.open(cx, cz)) continue;
+      const f = FP.at(cx, cz), key = f.m * 100003 + f.k; if (seen.has(key)) continue; seen.add(key);
+      for (const [bk, u0, v0, u1, v1] of [['v' + f.m + ':' + f.k, f.u0, f.v0, f.u1, f.v0], ['u' + f.m + ':' + f.k, f.u0, f.v0, f.u0, f.v1]]) { if (FP.bound(bk) !== 'hedge') continue;
+        const len = Math.hypot(u1 - u0, v1 - v0), n = Math.max(1, Math.round(len / 10)), [ax, az] = FP.toWorld(u0, v0), [bx, bz] = FP.toWorld(u1, v1), ry = Math.atan2(bz - az, bx - ax);
+        for (let s = 0; s < n; s++) { const t = (s + 0.5) / n, x = ax + (bx - ax) * t, z = az + (bz - az) * t, dd = distAt(x, z); if (dd < D0 || dd > D1) continue;
+          const y = ground(x, z); if (y == null || coverAt(x, z) > 0.3) continue;
+          put(hedgeGeo, { x, y, z, ry: -ry, s: 1, m: len / n / 10.8, v: rr(0.8, 1.2), c: new THREE.Color().setScalar(rr(0.82, 1.06)) }); out.hedges++;
+          if (loneSet && loneSet.length && hedgeTrees.length && R() < 0.22) put(loneSet[(R() * loneSet.length) | 0], { x: x + (R() - 0.5) * 6, y, z: z + (R() - 0.5) * 6, ry: R() * 6.283, s: rr(0.8, 1.05), m: 1, v: rr(0.85, 1.1), c: new THREE.Color().setScalar(rr(0.86, 1.05)) }); } } } }
+  for (const [geo, L] of lists) Array.isArray(geo) ? inst(geo[0], mat, L, place, geo[1]) : inst(geo, mat, L, place);
+  return out;
+}
+// ---------- the far country ----------
+// Past the haze the land goes on: low wooded ridges in lake country, sierras behind farmland, mesas in a high desert, a
+// great volcano over a plain, snowy ranges beyond the winter mountains. It is drawn as the horizon in the sky (SKY_FS),
+// three layers of it one behind another, each a profile of the land's height all round (m above the sea) at a distance
+// (km), worked out once for the stage from its seed, so each stage of a country has its own skyline. Where it shows
+// through the air, how pale it is with distance, how it is lit, and the forest, bare rock and snow on it (by height) are
+// worked out as it is drawn.
+//   L: the layers, nearest first: d: how far off (km); h: the land's lowest and highest there (m above the sea);
+//     k: its shape (hills: rounded; ridge: sharp crests; mesa: flat tops and cliffs; fells: broad domes; plain: low and
+//     even; cones: volcanic cones standing apart); n: how many rises round the horizon; cov: the share of the horizon
+//     it stands in (a range on one side; 1: all round); c: its colour (woods, grass, scrub, bare earth)
+//   tree: where the woods give out going up (m: bare rock above, rock its colour); snow: where the snow lies from (m),
+//     in the stage's season; open: the share of open land (fields, grass, scrub, snowfields) among the woods;
+//     volc: a volcano on the farthest layer (p: the chance of one, h: its summit's height range,
+//     w: half its width at the foot, km); isl: islands out to sea; air: how clear the air is (1: as most places; more in
+//     high, dry country, less in damp lowlands), deep: the sky's blue deepened (high, dry air), milk: its horizon
+//     whitened (damp air), dust: a warm haze (dust, smoke) of colour tint; puff: how heaped its fair-weather clouds
+//     are (high in warm country, low in the cold north); ci: how often high thin cloud streaks its fair skies;
+//     mist: how often mist lies in its low ground on a stage, and how thick (damp, cool country the most)
+const FAR_LAND = {
+  fast:     { L: [{ d: 6, h: [165, 235], k: 'hills', n: 10, c: '#2a3c2c' }, { d: 14, h: [160, 275], k: 'hills', n: 7, c: '#2e4232' }, { d: 30, h: [170, 330], k: 'hills', n: 5, c: '#384a40' }], open: 0.3, air: 1.1, deep: 0.1, milk: 0.12, puff: 0.9, ci: 0.5, mist: [0.6, 0.8] },
+  twisty:   { L: [{ d: 7, h: [380, 560], k: 'hills', n: 8, c: '#4e4a34' }, { d: 16, h: [400, 690], k: 'hills', n: 6, c: '#4a5040' }, { d: 35, h: [450, 860], k: 'ridge', n: 5, c: '#4e5848' }], open: 0.5, air: 0.7, milk: 0.35, puff: 0.6, ci: 0.55, mist: [0.6, 0.9] },
+  farm:     { L: [{ d: 8, h: [430, 610], k: 'hills', n: 8, c: '#5e6a3a' }, { d: 22, h: [600, 1300], k: 'ridge', n: 6, cov: 0.7, c: '#4e5a44' }, { d: 55, h: [900, 2350], k: 'ridge', n: 5, c: '#5a6070' }], open: 0.6, tree: 1700, rock: '#8a8478', snow: 2050, air: 1, deep: 0.1, milk: 0.15, mist: [0.4, 0.7] },
+  maquis:   { L: [{ d: 6, h: [380, 660], k: 'ridge', n: 10, c: '#4e5434' }, { d: 15, h: [500, 1150], k: 'ridge', n: 7, c: '#5a5c48' }, { d: 32, h: [700, 1650], k: 'ridge', n: 5, c: '#6a6a62' }], open: 0.35, tree: 1300, rock: '#9a9488', air: 0.9, deep: 0.15, milk: 0.25, dust: 0.08, tint: '#dccfb6', puff: 0.9, ci: 0.35, mist: [0.15, 0.5] },
+  rocky:    { L: [{ d: 7, h: [900, 1320], k: 'ridge', n: 9, c: '#7a7458' }, { d: 18, h: [1100, 2050], k: 'ridge', n: 7, c: '#7e786c' }, { d: 40, h: [1300, 2450], k: 'ridge', n: 5, c: '#8a8680' }], open: 0.5, tree: 1750, rock: '#a09a90', air: 1.2, deep: 0.2, dust: 0.15, tint: '#dacdb4', puff: 1, ci: 0.3, mist: [0.1, 0.5] },
+  savanna:  { L: [{ d: 8, h: [1960, 2050], k: 'plain', n: 6, c: '#5a6436' }, { d: 25, h: [2000, 2650], k: 'mesa', n: 3, cov: 0.55, c: '#4e5640' }, { d: 45, h: [2100, 3000], k: 'hills', n: 4, c: '#5a6274' }], open: 0.7,
+    volc: { p: 0.7, h: [3900, 4400], w: 15 }, air: 1.1, deep: 0.15, dust: 0.25, tint: '#d6c4a0', puff: 1.15, ci: 0.35, mist: [0.35, 0.6] },
+  desert:   { L: [{ d: 7, h: [2280, 2620], k: 'mesa', n: 8, cov: 0.65, c: '#8a6a4a' }, { d: 20, h: [2300, 3100], k: 'ridge', n: 6, c: '#86705a' }, { d: 50, h: [2400, 3650], k: 'ridge', n: 4, c: '#8a7e78' }], open: 0.8,
+    volc: { p: 0.35, h: [3700, 4300], w: 20 }, air: 1.6, deep: 0.35, dust: 0.2, tint: '#dcc8a8', puff: 0.7, ci: 0.25, mist: [0.05, 0.4] },
+  redearth: { L: [{ d: 6, h: [310, 365], k: 'plain', n: 8, c: '#3e4a30' }, { d: 20, h: [320, 540], k: 'mesa', n: 4, cov: 0.6, c: '#5a5a48' }, { d: 45, h: [350, 720], k: 'hills', n: 3, c: '#6a6a70' }], open: 0.35, air: 1.05, deep: 0.15, dust: 0.15, tint: '#d8bca0', puff: 0.95, mist: [0.2, 0.6] },
+  pampas:   { L: [{ d: 8, h: [1350, 1620], k: 'hills', n: 7, c: '#7a7448' }, { d: 20, h: [1500, 2250], k: 'ridge', n: 4, c: '#6e6a58' }, { d: 45, h: [1600, 2650], k: 'ridge', n: 4, c: '#7a7a80' }], open: 0.7, air: 1.3, deep: 0.25, milk: 0.05, puff: 0.85, ci: 0.4, mist: [0.35, 0.7] },
+  pastures: { L: [{ d: 6, h: [180, 390], k: 'hills', n: 8, c: '#4a6a32' }, { d: 15, h: [200, 570], k: 'hills', n: 5, c: '#4e6440' }, { d: 40, h: [300, 920], k: 'ridge', n: 4, c: '#5a6a6a' }], open: 0.7, air: 0.9, deep: 0.05, milk: 0.2, mist: [0.55, 0.85] },
+  volcanic: { L: [{ d: 5, h: [450, 760], k: 'hills', n: 9, c: '#3e5230' }, { d: 12, h: [480, 1060], k: 'cones', n: 5, c: '#46583c' }, { d: 40, h: [300, 900], k: 'cones', n: 3, cov: 0.5, c: '#5a6670' }], open: 0.45,
+    volc: { p: 0.55, h: [1500, 2300], w: 9 }, isl: { n: [1, 3], h: [300, 2300], w: [2, 7] }, air: 0.8, milk: 0.35, puff: 0.7, ci: 0.5, mist: [0.5, 0.9] },
+  mountain: { L: [{ d: 8, h: [1000, 1720], k: 'ridge', n: 8, c: '#3a4434' }, { d: 22, h: [1200, 2350], k: 'ridge', n: 6, c: '#46504a' }, { d: 70, h: [1500, 3700], k: 'ridge', n: 6, c: '#5a6274' }], open: 0.4, tree: 1550, rock: '#8e8a86', snow: 1250, air: 1.3, deep: 0.3, puff: 0.6, ci: 0.4, mist: [0.6, 0.9] },
+  lanes:    { L: [{ d: 6, h: [320, 420], k: 'hills', n: 8, c: '#46582e' }, { d: 15, h: [330, 510], k: 'hills', n: 6, c: '#4a5a3e' }, { d: 35, h: [350, 660], k: 'hills', n: 4, c: '#566070' }], open: 0.55, air: 0.85, milk: 0.2, mist: [0.5, 0.8] },
+  sweep:    { L: [{ d: 7, h: [450, 820], k: 'ridge', n: 8, c: '#4e5a36' }, { d: 18, h: [600, 1250], k: 'ridge', n: 6, c: '#5a604c' }, { d: 45, h: [800, 1750], k: 'ridge', n: 5, c: '#6a6e74' }], open: 0.4, tree: 1500, rock: '#9a9488', air: 0.95, milk: 0.2, dust: 0.05, tint: '#dccfb6', mist: [0.3, 0.6] },
+  coast:    { L: [{ d: 7, h: [600, 1250], k: 'ridge', n: 9, c: '#4a5434' }, { d: 18, h: [900, 2050], k: 'ridge', n: 7, c: '#606256' }, { d: 40, h: [1200, 2650], k: 'ridge', n: 5, c: '#6e7078' }], open: 0.4,
+    tree: 1600, rock: '#8a8680', snow: 1900, isl: { n: [1, 4], h: [60, 420], w: [0.4, 1.6] }, air: 1, deep: 0.1, milk: 0.2, mist: [0.3, 0.7] },
+  cedar:    { L: [{ d: 7, h: [700, 1320], k: 'ridge', n: 8, c: '#2e4030' }, { d: 18, h: [900, 1950], k: 'ridge', n: 6, c: '#3a4a3c' }, { d: 45, h: [1100, 2450], k: 'ridge', n: 5, c: '#5a6070' }], open: 0.3, tree: 1550, rock: '#8a8478', snow: 1750, air: 1, deep: 0.15, milk: 0.1, mist: [0.5, 0.85] },
+  range:    { L: [{ d: 6, h: [460, 525], k: 'plain', n: 6, c: '#5a5a3a' }, { d: 16, h: [470, 590], k: 'hills', n: 5, c: '#4a5038' }, { d: 40, h: [500, 720], k: 'hills', n: 4, c: '#5a6068' }], open: 0.6, air: 0.9, milk: 0.2, mist: [0.4, 0.7] },
+  hedges:   { L: [{ d: 6, h: [170, 265], k: 'hills', n: 14, c: '#3e4a2e' }, { d: 15, h: [180, 390], k: 'hills', n: 7, c: '#4a5040' }, { d: 40, h: [300, 870], k: 'ridge', n: 5, cov: 0.6, c: '#5a6070' }], open: 0.6, air: 0.7, milk: 0.4, puff: 0.6, ci: 0.55, mist: [0.6, 0.9] },
+  mixed:    { L: [{ d: 7, h: [480, 710], k: 'hills', n: 8, c: '#5e6438' }, { d: 20, h: [600, 1250], k: 'ridge', n: 6, c: '#5a5e4c' }, { d: 80, h: [1500, 3050], k: 'ridge', n: 5, cov: 0.7, c: '#6a7078' }], open: 0.55, tree: 2100, rock: '#8a8680', snow: 2500, air: 1, deep: 0.1, milk: 0.15, mist: [0.4, 0.7] },
+  forest:   { L: [{ d: 6, h: [270, 345], k: 'hills', n: 9, c: '#2e3a34' }, { d: 14, h: [270, 385], k: 'hills', n: 7, c: '#3e4a48' }, { d: 30, h: [280, 430], k: 'hills', n: 5, c: '#56606a' }], open: 0.25, snow: 0, air: 1.2, deep: 0.15, milk: 0.1, puff: 0.35, mist: [0.45, 0.8] },
+  alpine:   { L: [{ d: 6, h: [1500, 2650], k: 'ridge', n: 8, c: '#2e3a30' }, { d: 15, h: [1800, 3350], k: 'ridge', n: 7, c: '#3a4440' }, { d: 40, h: [2200, 4050], k: 'ridge', n: 6, c: '#5a6274' }], open: 0.35, tree: 1950, rock: '#86848a', snow: 900, air: 1.5, deep: 0.45, puff: 0.5, ci: 0.3, mist: [0.5, 0.9] },
+  arctic:   { L: [{ d: 8, h: [270, 430], k: 'fells', n: 6, c: '#3a4646' }, { d: 20, h: [300, 640], k: 'fells', n: 5, c: '#46524f' }, { d: 45, h: [350, 820], k: 'fells', n: 4, c: '#5a6468' }], open: 0.4, tree: 400, rock: '#eef2f6', snow: 0, air: 1.4, deep: 0.2, milk: 0.15, puff: 0.3, ci: 0.4, mist: [0.3, 0.7] }
+};
+const FAR_N = 4096; // (texels round the horizon: about a tenth of a degree each)
+// a layer's shape at a point on its circle (x, z: round the horizon, scaled by its count of rises), 0-1
+function farShape(k, x, z, s) {
+  const g = (f, o) => gnoise(x * f + o * 7.13, z * f - o * 3.71, s + o);
+  if (k === 'ridge') { let a = 0, w = 1, sum = 0; for (let o = 0; o < 4; o++) { const r = 1 - Math.min(1, Math.abs(g(Math.pow(2.07, o), o)) * 1.7); a += w * r * r; sum += w; w *= 0.52; } return clamp(a / sum * 1.25 - 0.1, 0, 1); }
+  if (k === 'mesa') { const b = 0.5 + g(1, 0) * 0.9 + g(2.3, 1) * 0.25; return clamp(smooth(0.5, 0.57, b) * (0.86 + 0.14 * (0.5 + g(5.3, 2))) + 0.12 * clamp(b, 0, 1), 0, 1); }
+  if (k === 'fells') { const b = clamp(0.5 + g(1, 0) * 0.85 + g(2.2, 1) * 0.28, 0, 1); return b * b * (3 - 2 * b); }
+  if (k === 'plain') return clamp(0.5 + g(1, 0) * 0.5 + g(3.1, 1) * 0.35 + g(9.3, 2) * 0.18, 0, 1);
+  return clamp(0.45 + g(1, 0) * 0.75 + g(2.1, 1) * 0.35 + g(4.6, 2) * 0.12, 0, 1);
+}
+// the stage's far country: its three profiles (m above the sea, round the horizon from -x, turning toward +z), packed
+// into a strip the sky draws from, and what it needs to draw them
+function farLandOf(T) {
+  if (T.farLand) return T.farLand;
+  const id = T.type ? T.type.id : 'fast', F = FAR_LAND[id] || FAR_LAND.fast, R = mulberry32(strHash(T.seed + ':farland')), rr = (a, b) => a + (b - a) * R(), N = FAR_N, TAU = Math.PI * 2;
+  // (out to sea there is no land, but islands; the sea's side of the horizon some 110 to 160 degrees wide)
+  const seaAz = T.land && T.land.sea ? Math.atan2(T.land.sea.nz, T.land.sea.nx) : null, seaW = rr(0.95, 1.4), dAz = (a, b) => { const d = ((a - b) % TAU + TAU * 1.5) % TAU - Math.PI; return Math.abs(d); };
+  const H = F.L.map(() => new Float32Array(N));
+  F.L.forEach((L, li) => { const s = (R() * 1e6) | 0, rad = L.n / TAU, ox = rr(-500, 500), oz = rr(-500, 500), cov = L.cov == null ? 1 : L.cov, mo = rr(-500, 500);
+    // (cones: so many volcanic cones standing apart round the horizon, each its own height and width)
+    const cones = L.k === 'cones' ? Array.from({ length: L.n + 1 }, () => ({ a: rr(-Math.PI, Math.PI), h: rr(0.35, 1), w: rr(0.05, 0.16) })) : null;
+    for (let i = 0; i < N; i++) { const az = (i + 0.5) / N * TAU - Math.PI, cx = Math.cos(az), cz = Math.sin(az);
+      let t; if (cones) { t = 0.12 + 0.1 * farShape('hills', cx * rad + ox, cz * rad + oz, s); for (const c of cones) { const d = dAz(az, c.a); if (d < c.w) t = Math.max(t, c.h * Math.pow(1 - d / c.w, 1.35) * (d < c.w * 0.12 ? 0.94 + 0.06 * d / (c.w * 0.12) : 1)); } }
+      else t = farShape(L.k, cx * rad + ox, cz * rad + oz, s);
+      if (cov < 1) t *= smooth(-0.12, 0.12, gnoise(cx * 0.8 + mo, cz * 0.8 - mo, s + 9) + cov - 0.5);
+      let h = L.h[0] + (L.h[1] - L.h[0]) * t;
+      if (seaAz != null) { const k = smooth(seaW - 0.4, seaW, dAz(az, seaAz)); h = h * k - 250 * (1 - k); }
+      H[li][i] = h; } });
+  // a volcano on the farthest layer (not out to sea): a great cone rising from it, its flanks curving up to a broad top
+  const far = H.length - 1; let volc = null;
+  if (F.volc && R() < F.volc.p) { let a = 0; for (let k = 0; k < 12; k++) { a = rr(-Math.PI, Math.PI); if (seaAz == null || dAz(a, seaAz) > seaW + 0.3) break; }
+    const D = F.L[far].d, top = rr(F.volc.h[0], F.volc.h[1]), w = Math.atan((F.volc.w * rr(0.8, 1.2)) / D), base = F.L[far].h[0]; volc = { az: a, top };
+    for (let i = 0; i < N; i++) { const az = (i + 0.5) / N * TAU - Math.PI, d = dAz(az, a); if (d >= w) continue; const f = 1 - d / w, y = base + (top - base) * Math.min(0.97, Math.pow(f, 1.7) * 1.04);
+      H[far][i] = Math.max(H[far][i], y); } }
+  // islands out to sea: low rocks offshore, or other islands' mountains far out
+  if (F.isl && seaAz != null) { const n = Math.round(rr(F.isl.n[0], F.isl.n[1] + 0.99) - 0.49);
+    for (let k = 0; k < n; k++) { const a = seaAz + rr(-seaW * 0.85, seaW * 0.85), li = far, D = F.L[li].d, w = Math.atan(rr(F.isl.w[0], F.isl.w[1]) / D), top = rr(F.isl.h[0], F.isl.h[1]), sh = rr(1.1, 2.2);
+      for (let i = 0; i < N; i++) { const az = (i + 0.5) / N * TAU - Math.PI, d = dAz(az, a); if (d >= w) continue; const f = 1 - d / w, y = -30 + (top + 30) * Math.pow(f, sh) * (0.9 + 0.1 * Math.sin(d * 97 + k));
+        H[li][i] = Math.max(H[li][i], y); } } }
+  // packed as heights between each layer's lowest and highest (a byte each: the strip a sky texture)
+  const data = new Uint8Array(N * 4), layers = H.map((h, li) => { let lo = 1e9, hi = -1e9; for (let i = 0; i < N; i++) { lo = Math.min(lo, h[i]); hi = Math.max(hi, h[i]); } hi = Math.max(hi, lo + 1);
+    for (let i = 0; i < N; i++) data[i * 4 + li] = Math.round((h[i] - lo) / (hi - lo) * 255); return { D: F.L[li].d * 1000, lo, hi, c: F.L[li].c }; });
+  // (and in the fourth byte, how steeply the nearest layer's crest rises round the horizon there, in the sky's units -
+  // its height in radians for each radian round - for its flanks' light; -2 to 2)
+  { const L = layers[0], A = (L.hi - L.lo) / L.D, du = 8 / N * Math.PI * 2;
+    for (let i = 0; i < N; i++) { const sl = A * (H[0][(i + 8) % N] - H[0][(i - 8 + N) % N]) / (L.hi - L.lo) / (2 * du); data[i * 4 + 3] = Math.round(clamp(sl / 4 + 0.5, 0, 1) * 255); } }
+  return T.farLand = { data, layers, F, volc, seaAz, tree: F.tree != null ? F.tree : 1e5, snow: F.snow != null ? F.snow : 1e5, rock: F.rock || '#8a8680' };
+}
+
+// ---------- landmarks ----------
+// Each stage has a few things a crew remembers it by, standing up on the high ground where they show from the road and
+// loom out of the haze as it is driven: a ruined keep or a castle on a hill, a chapel, a round watchtower or a
+// lighthouse on a headland, a row of wind turbines along a ridge, a wind pump over a stock tank, a radio mast, a fire
+// lookout tower, a lone giant tree, a pile of granite boulders, a rock butte, a farm's silos, a water tower. Which ones
+// is the country's own (each with the chance a stage has one), and where, the stage's: on a rise of its land that a
+// stretch of the road looks out to.
+const LANDMARKS = {
+  fast: [['mast', 0.5], ['lookout', 0.7]],
+  twisty: [['ruin', 0.7], ['turbines', 0.55], ['chapel', 0.35]],
+  farm: [['castle', 0.55], ['chapel', 0.5], ['silos', 0.35], ['bigtree', 0.3]],
+  maquis: [['round', 0.6], ['chapel', 0.45], ['tor', 0.5]],
+  rocky: [['chapel', 0.6], ['ruin', 0.5], ['mast', 0.3]],
+  savanna: [['bigtree', 0.8], ['tor', 0.6], ['mast', 0.25]],
+  desert: [['butte', 0.8], ['chapel', 0.3], ['mast', 0.3]],
+  redearth: [['windpump', 0.75], ['silos', 0.5], ['bigtree', 0.4]],
+  pampas: [['windpump', 0.6], ['chapel', 0.4], ['tor', 0.4]],
+  pastures: [['turbines', 0.5], ['lighthouse', 0.6], ['windpump', 0.3]],
+  volcanic: [['lighthouse', 0.6], ['chapel', 0.55], ['turbines', 0.25]],
+  mountain: [['castle', 0.45], ['chapel', 0.5], ['mast', 0.4]],
+  lanes: [['castle', 0.5], ['turbines', 0.45], ['chapel', 0.4], ['watertower', 0.3]],
+  sweep: [['castle', 0.45], ['round', 0.4], ['chapel', 0.4]],
+  coast: [['lighthouse', 0.6], ['round', 0.55], ['chapel', 0.35]],
+  cedar: [['chapel', 0.55], ['ruin', 0.5], ['mast', 0.3]],
+  range: [['lookout', 0.6], ['watertower', 0.45], ['mast', 0.4]],
+  hedges: [['ruin', 0.6], ['turbines', 0.5], ['chapel', 0.45]],
+  mixed: [['castle', 0.5], ['chapel', 0.45], ['turbines', 0.35]],
+  forest: [['mast', 0.6], ['lookout', 0.6]],
+  alpine: [['chapel', 0.6], ['mast', 0.45]],
+  arctic: [['mast', 0.7], ['lookout', 0.3]]
+};
+// where each kind stands: how far from the road (m), whether it wants the top of a rise (most do: a giant tree or a
+// farm's silos stand on open ground), how tall it is (m: for the view to it), and by the sea for some
+const LM_KIND = {
+  ruin: { d: [220, 560], top: 1, H: 18 }, castle: { d: [260, 620], top: 1, H: 22 }, chapel: { d: [160, 480], top: 1, H: 12 },
+  round: { d: [200, 520], top: 1, H: 13, sea: 0.5 }, lighthouse: { d: [180, 650], top: 0, H: 26, sea: 1 }, turbines: { d: [380, 900], top: 1, H: 120 },
+  windpump: { d: [90, 260], top: 0, H: 11 }, mast: { d: [300, 800], top: 1, H: 90 }, lookout: { d: [200, 520], top: 1, H: 22 },
+  bigtree: { d: [110, 320], top: 0, H: 18 }, tor: { d: [130, 380], top: 1, H: 9 }, butte: { d: [320, 760], top: 0, H: 50 },
+  silos: { d: [140, 380], top: 0, H: 30 }, watertower: { d: [160, 420], top: 0, H: 26 }
+};
+// the chapels of the warm, dry countries are whitewashed under clay tiles with a bell gable; elsewhere stone, slate and a
+// bell tower (a tall spire in the mountains)
+const LM_WHITE = new Set(['rocky', 'maquis', 'coast', 'volcanic', 'sweep', 'farm', 'desert', 'pampas', 'savanna', 'redearth']);
+const LM_SPIRE = new Set(['alpine', 'mountain', 'cedar']);
+// a thin square beam between two points (legs and braces), and a stack of rings (n-sided, radius r[k] at height h[k] over
+// x, y, z, each band between two rings in its own colour c[k]; closed on top), in a Baker
+function lmBeam(B, a, b, t, col) {
+  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(d[0], d[1], d[2]) || 1; d[0] /= L; d[1] /= L; d[2] /= L;
+  let u = Math.abs(d[1]) < 0.9 ? [d[2], 0, -d[0]] : [1, 0, 0]; const ul = Math.hypot(u[0], u[1], u[2]); u = u.map(v => v / ul);
+  const v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]], h = t / 2;
+  const off = [[h, h], [-h, h], [-h, -h], [h, -h]].map(([p, q]) => [u[0] * p + v[0] * q, u[1] * p + v[1] * q, u[2] * p + v[2] * q]);
+  for (let k = 0; k < 4; k++) { const o0 = off[k], o1 = off[(k + 1) % 4], n = [o0[0] + o1[0], o0[1] + o1[1], o0[2] + o1[2]];
+    B.quad([a[0] + o0[0], a[1] + o0[1], a[2] + o0[2]], [b[0] + o0[0], b[1] + o0[1], b[2] + o0[2]], [b[0] + o1[0], b[1] + o1[1], b[2] + o1[2]], [a[0] + o1[0], a[1] + o1[1], a[2] + o1[2]], col, n); }
+}
+function lmRings(B, x, y, z, r, h, n, c, ry, top) {
+  const C = B.cell(x, z), a0 = ry || 0, at = (k, i) => { const a = a0 + i / n * Math.PI * 2, rr = Array.isArray(r[k]) ? r[k][i % n] : r[k]; return [x + Math.cos(a) * rr, y + h[k], z + Math.sin(a) * rr]; };
+  for (let k = 0; k + 1 < r.length; k++) for (let i = 0; i < n; i++) { const am = a0 + (i + 0.5) / n * Math.PI * 2; B.quad(at(k, i), at(k + 1, i), at(k + 1, i + 1), at(k, i + 1), c[Math.min(k, c.length - 1)], [Math.cos(am), 0.15, Math.sin(am)], C); }
+  if (top !== false) { const k = r.length - 1; for (let i = 0; i < n; i++) B.tri([x, y + h[k], z], at(k, i), at(k, i + 1), top || c[c.length - 1], [0, 1, 0], C); }
+}
+// battlements along the top of a wall from a to b (local, at height y): merlons w wide every 2w
+function lmMerlons(B, P, ax, az, bx, bz, y, t, col, ry) {
+  const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.floor(L / 2.2)), dx = (bx - ax) / L, dz = (bz - az) / L;
+  for (let k = 0; k < n; k++) { const s = (k + 0.5) * L / n, [x, , z] = P(ax + dx * s, az + dz * s, 0); B.box(x, y, z, Math.abs(dx) > 0.5 ? 1.1 : t, Math.abs(dx) > 0.5 ? t : 1.1, 1.0, ry, col, null, y); }
+}
+// The landmarks' shapes. Each takes the Baker, where it stands (x, y the ground at its middle, z; turned ry), its random
+// stream, the colours (C: stone, its masonry; white; roof; dark: openings) and the country; and may add to out (rotors,
+// lamps, rocks, trees). Sizes are the real things'.
+const LM_BUILD = {
+  // a ruined keep: a square tower, its walls broken off at uneven heights, slit windows, a stretch of its curtain wall
+  // standing out from it, a mound of fallen stone at its foot
+  ruin(B, x, y, z, ry, R, C) {
+    const rr = (a, b) => a + (b - a) * R(), w = rr(7.5, 10), h = rr(13, 19), t = 1.6, cs = Math.cos(ry), sn = Math.sin(ry), P = (lx, lz, yy) => [x + lx * cs + lz * sn, yy, z - lx * sn + lz * cs];
+    const hs = [h, h * rr(0.7, 0.95), h * rr(0.55, 0.85), h * rr(0.8, 1)];
+    [[0, -w / 2 + t / 2, w, t], [w / 2 - t / 2, 0, t, w], [0, w / 2 - t / 2, w, t], [-w / 2 + t / 2, 0, t, w]].forEach(([lx, lz, bw, bd], k) => { const [px, , pz] = P(lx, lz, 0); B.box(px, y, pz, bw, bd, hs[k], ry, C.stone.clone().multiplyScalar(0.92 + 0.12 * R()), C.stone, y - 4); });
+    lmMerlons(B, P, -w / 2, -w / 2 + t / 2, w / 2, -w / 2 + t / 2, y + hs[0], t, C.stone, ry);
+    for (let k = 0; k < 6; k++) { const f = k % 2, [px, , pz] = P(f ? w / 2 + 0.02 : rr(-w / 3, w / 3), f ? rr(-w / 3, w / 3) : -w / 2 - 0.02, 0); B.box(px, y + rr(4, h * 0.75), pz, f ? 0.05 : 0.45, f ? 0.45 : 0.05, 1.7, ry, C.dark); }
+    const L = rr(14, 24), [ex, , ez] = P(w / 2 + L / 2, rr(-1, 1), 0); B.box(ex, y, ez, L, 1.5, rr(3, 5.5), ry, C.stone.clone().multiplyScalar(0.95), null, y - 4);
+    const [mx, , mz] = P(rr(-2, 2), -w / 2 - 3, 0); B.box(mx, y, mz, w * 0.8, 4, 1.2, ry + rr(-0.3, 0.3), C.stone.clone().multiplyScalar(0.8), null, y - 2);
+  },
+  // a small castle: a keep inside a walled court with a round tower at each corner and a gatehouse; battlements; in
+  // the damp north its towers have pointed slate roofs
+  castle(B, x, y, z, ry, R, C, E, id) {
+    const rr = (a, b) => a + (b - a) * R(), W = rr(28, 38), D = rr(22, 30), wh = rr(7, 9), t = 1.8, cs = Math.cos(ry), sn = Math.sin(ry), P = (lx, lz, yy) => [x + lx * cs + lz * sn, yy, z - lx * sn + lz * cs];
+    for (const [lx, lz, bw, bd] of [[0, -D / 2, W, t], [W / 2, 0, t, D], [0, D / 2, W, t], [-W / 2, 0, t, D]]) { const [px, , pz] = P(lx, lz, 0); B.box(px, y, pz, bw, bd, wh, ry, C.stone, C.stone.clone().multiplyScalar(1.05), y - 5); }
+    lmMerlons(B, P, -W / 2, -D / 2, W / 2, -D / 2, y + wh, t, C.stone, ry); lmMerlons(B, P, -W / 2, D / 2, W / 2, D / 2, y + wh, t, C.stone, ry);
+    lmMerlons(B, P, W / 2, -D / 2, W / 2, D / 2, y + wh, t, C.stone, ry); lmMerlons(B, P, -W / 2, -D / 2, -W / 2, D / 2, y + wh, t, C.stone, ry);
+    const north = !LM_WHITE.has(id), th = wh + rr(3, 5);
+    for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const [px, , pz] = P(sx * W / 2, sz * D / 2, 0); lmRings(B, px, y - 5, pz, [3.4, 3.2], [0, th + 5], 10, [C.stone], 0, north ? false : C.stone);
+      if (north) B.cone(px, y + th, pz, 3.8, rr(4, 5.5), 10, C.roof); else for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; B.box(px + Math.cos(a) * 3, y + th, pz + Math.sin(a) * 3, 1.1, 1.1, 1, a, C.stone); } }
+    const kw = rr(9, 12), kh = rr(16, 22), klx = rr(-3, 3), klz = rr(-2, 3), [kx, , kz] = P(klx, klz, 0); B.box(kx, y, kz, kw, kw, kh, ry, C.stone.clone().multiplyScalar(1.04), C.stone, y - 5);
+    for (const s of [-1, 1]) for (const q of [-1, 1]) { const [px, , pz] = P(klx + s * kw / 2, klz + q * kw / 2, 0); B.box(px, y + kh, pz, 1.2, 1.2, 1.2, ry, C.stone); }
+    if (north) B.hip(kx, y + kh, kz, kw - 0.6, kw - 0.6, rr(3, 5), ry, C.roof, 0.2);
+    for (let k = 0; k < 8; k++) { const f = k % 4, lx = f < 2 ? klx + (f ? 1 : -1) * (kw / 2 + 0.02) : klx + rr(-3, 3), lz = f >= 2 ? klz + (f === 3 ? 1 : -1) * (kw / 2 + 0.02) : klz + rr(-3, 3), [px, , pz] = P(lx, lz, 0);
+      B.box(px, y + rr(6, kh - 3), pz, f < 2 ? 0.05 : 0.6, f < 2 ? 0.6 : 0.05, 1.6, ry, C.dark); }
+    const [gx, , gz] = P(0, -D / 2, 0); B.box(gx, y, gz, 7, 3.2, wh + 3.5, ry, C.stone.clone().multiplyScalar(0.96), C.stone, y - 5); const [dx, , dz] = P(0, -D / 2 - 1.62, 0); B.box(dx, y, dz, 2.8, 0.06, 4, ry, C.dark);
+  },
+  // a hilltop chapel: a nave under a pitched roof and a rounded apse; whitewashed with a bell gable over its front in the
+  // warm dry countries; stone with a bell tower elsewhere (a tall spire in the mountains)
+  chapel(B, x, y, z, ry, R, C, E, id) {
+    const rr = (a, b) => a + (b - a) * R(), w = rr(5.5, 7), d = rr(10, 14), h = rr(5, 6.5), cs = Math.cos(ry), sn = Math.sin(ry), P = (lx, lz) => [x + lx * cs + lz * sn, z - lx * sn + lz * cs];
+    const white = LM_WHITE.has(id), wall = white ? C.white : C.stone, roof = white ? C.tile : C.roof;
+    B.box(x, y, z, w, d, h, ry, wall, false, y - 3); B.gable(x, y + h, z, w, d, w * 0.42, ry, roof, wall, 0.3);
+    const [ax, az] = P(0, d / 2); lmRings(B, ax, y - 3, az, [w * 0.42, w * 0.42], [0, h * 0.85 + 3], 8, [wall], ry, false); B.cone(ax, y + h * 0.85, az, w * 0.46, w * 0.3, 8, roof);
+    const [dx, dz] = P(0, -d / 2 - 0.03); B.box(dx, y, dz, 1.4, 0.06, 2.6, ry, C.dark);
+    for (const s of [-1, 1]) for (const q of [-0.2, 0.2]) { const [px, pz] = P(s * (w / 2 + 0.02), q * d); B.box(px, y + 2.4, pz, 0.05, 0.6, 1.4, ry, C.dark); }
+    if (white) { const [bx, bz] = P(0, -d / 2 + 0.3); B.box(bx, y + h, bz, w * 0.5, 0.6, w * 0.42 + 2.4, ry, wall); const [ox, oz] = P(0, -d / 2 - 0.02); B.box(ox, y + h + w * 0.42 + 0.6, oz, 0.9, 0.06, 1.1, ry, C.dark); }
+    else { const tw = rr(3, 3.6), th = h + rr(5, 8), [tx, tz] = P(0, -d / 2 - tw / 2 + 0.2); B.box(tx, y, tz, tw, tw, th, ry, wall, false, y - 3);
+      for (const s of [-1, 1]) { const [ox, oz] = P(s * (tw / 2 + 0.02), -d / 2 - tw / 2 + 0.2); B.box(ox, y + th - 2.2, oz, 0.05, 0.8, 1.4, ry, C.dark); }
+      const sh = LM_SPIRE.has(id) ? rr(7, 10) : rr(2.2, 3.2), [sx, sz] = P(0, -d / 2 - tw / 2 + 0.2); lmRings(B, sx, y + th, sz, [tw * 0.72, 0.05], [0, sh], 4, [roof], ry + Math.PI / 4, false); }
+  },
+  // a round watchtower on a headland: tapering stone, a door high up its side, a ring of battlements
+  round(B, x, y, z, ry, R, C) {
+    const rr = (a, b) => a + (b - a) * R(), r = rr(4.2, 5.5), h = rr(10, 14);
+    lmRings(B, x, y - 4, z, [r + 0.3, r, r * 0.9], [0, 4 + h * 0.3, 4 + h], 12, [C.stone.clone().multiplyScalar(0.95), C.stone], 0, C.stone);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; B.box(x + Math.cos(a) * r * 0.88, y + h, z + Math.sin(a) * r * 0.88, 1.2, 1.0, 1.1, a, C.stone); }
+    B.box(x + Math.cos(ry) * (r * 0.93), y + h * 0.55, z + Math.sin(ry) * (r * 0.93), 0.4, 1.1, 1.9, -ry, C.dark);
+  },
+  // a lighthouse: a tapering white tower, banded, with its gallery, lantern and dome, and the keeper's house at its foot
+  lighthouse(B, x, y, z, ry, R, C, E, id, out) {
+    const rr = (a, b) => a + (b - a) * R(), h = rr(16, 24), band = new THREE.Color(R() < 0.5 ? '#b83a32' : '#2e3438'), wh = C.white;
+    lmRings(B, x, y - 3, z, [2.9, 2.6, 2.3, 2.05], [0, 3 + h * 0.4, 3 + h * 0.75, 3 + h], 12, [wh, R() < 0.6 ? band : wh, wh], 0, wh);
+    lmRings(B, x, y + h, z, [2.8, 2.8], [0, 0.35], 12, [new THREE.Color('#3a3e42')], 0, new THREE.Color('#5a5e62'));
+    lmRings(B, x, y + h + 0.35, z, [1.45, 1.45], [0, 2.25], 12, [new THREE.Color('#4a545a')], 0, false); lmRings(B, x, y + h + 2.6, z, [1.5, 0.15], [0, 1.3], 12, [band], 0, false);
+    const cs = Math.cos(ry), sn = Math.sin(ry), hx = x + 7 * cs, hz = z - 7 * sn; B.box(hx, y, hz, 6, 8.5, 3.6, ry, wh, false, y - 2); B.gable(hx, y + 3.6, hz, 6, 8.5, 1.6, ry, C.tile, wh, 0.3);
+    out.lamps.push({ x, y: y + h + 1.4, z, r: 1.45, h: 2.3, kind: 'beacon' });
+  },
+  // a row of wind turbines along a ridge (each a tapering tower, its nacelle and a turning three-bladed rotor facing
+  // into the wind), with red lamps on their nacelles
+  turbines(B, x, y, z, ry, R, C, E, id, out, extra) {
+    const rr = (a, b) => a + (b - a) * R(), white = new THREE.Color('#e4e6e6');
+    for (const p of extra.row) { const hh = rr(78, 92);
+      lmRings(B, p.x, p.y - 3, p.z, [2.3, 1.85, 1.4], [0, 3 + hh * 0.5, 3 + hh], 10, [white], 0, white);
+      out.rotors.push({ x: p.x, y: p.y + hh + 1.2, z: p.z, kind: 'turbine', ph: R() * 6.283, w: rr(1.4, 1.8) }); out.lamps.push({ x: p.x, y: p.y + hh + 3.4, z: p.z, r: 0.5, h: 0.5, kind: 'red' }); }
+  },
+  // a wind pump over a bore: a tapering steel lattice tower, its many-bladed wheel and tail vane turning to the wind,
+  // and the round stock tank and trough beside it
+  windpump(B, x, y, z, ry, R, C, E, id, out) {
+    const rr = (a, b) => a + (b - a) * R(), h = rr(8.5, 11), steel = new THREE.Color('#8e9294'), b = 1.6, t = 0.45;
+    const legs = [[-b, -b], [b, -b], [b, b], [-b, b]];
+    for (const [lx, lz] of legs) lmBeam(B, [x + lx, y - 0.5, z + lz], [x + lx * 0.18, y + h, z + lz * 0.18], 0.12, steel);
+    for (let k = 1; k < 4; k++) { const f = k / 4, s = b * (1 - 0.82 * f), yy = y + h * f; for (let q = 0; q < 4; q++) { const [ax, az] = legs[q], [bx, bz] = legs[(q + 1) % 4]; lmBeam(B, [x + ax / b * s, yy, z + az / b * s], [x + bx / b * s, yy, z + bz / b * s], 0.08, steel); } }
+    B.box(x, y + h, z, 0.7, 0.7, 0.8, ry, steel);
+    out.rotors.push({ x, y: y + h + 0.4, z, kind: 'pump', ph: R() * 6.283, w: rr(5, 8) });
+    const tx = x + 6 * Math.cos(ry + 0.6), tz = z - 6 * Math.sin(ry + 0.6); lmRings(B, tx, y - 0.4, tz, [3.2, 3.2], [0, 2.4], 16, [new THREE.Color('#9a9c98')], 0, false);
+    B.box(tx + 4 * Math.cos(ry), y, tz - 4 * Math.sin(ry), 0.8, 5, 0.7, ry + 1.57, new THREE.Color('#7e8082'), null, y - 0.3);
+  },
+  // a radio mast: a slender three-sided steel lattice in red and white bands, dishes near its top, red lamps up it; a
+  // small hut at its foot
+  mast(B, x, y, z, ry, R, C, E, id, out) {
+    const rr = (a, b) => a + (b - a) * R(), h = rr(60, 105), n = 7, red = new THREE.Color('#c23a2e'), wh = new THREE.Color('#e8e6e2'), r0 = 2.2, r1 = 0.6;
+    const r = [], hs = [], cs = []; for (let k = 0; k <= n; k++) { r.push(r0 + (r1 - r0) * k / n); hs.push(k / n * h); if (k < n) cs.push(k % 2 ? wh : red); }
+    lmRings(B, x, y - 1, z, r, hs.map((v, k) => v + (k ? 1 : 0)), 3, cs, ry, red);
+    for (let k = 0; k < 3; k++) { const a = ry + k * 2.09 + 0.5, dy = h * rr(0.7, 0.9); lmRings(B, x + Math.cos(a) * 1.4, y + dy, z + Math.sin(a) * 1.4, [0.9, 0.9], [0, 1.8], 8, [wh], 0, wh); }
+    B.box(x + 6 * Math.cos(ry), y, z - 6 * Math.sin(ry), 3, 4, 2.6, ry, new THREE.Color('#9a9890'), new THREE.Color('#6a6c6e'), y - 1);
+    out.lamps.push({ x, y: y + h + 1.4, z, r: 0.5, h: 0.5, kind: 'red' }, { x: x + 0.9, y: y + h * 0.5, z, r: 0.45, h: 0.45, kind: 'red' });
+  },
+  // a fire lookout tower: four timber (or steel) legs braced up to a cabin with a pitched roof
+  lookout(B, x, y, z, ry, R, C, E, id) {
+    const rr = (a, b) => a + (b - a) * R(), h = rr(14, 20), wood = new THREE.Color(R() < 0.6 ? '#6a5240' : '#8a8e90'), b = 2.6, cs = Math.cos(ry), sn = Math.sin(ry);
+    const legs = [[-b, -b], [b, -b], [b, b], [-b, b]].map(([lx, lz]) => [lx * cs + lz * sn, -lx * sn + lz * cs]);
+    for (const [lx, lz] of legs) lmBeam(B, [x + lx, y - 0.5, z + lz], [x + lx * 0.55, y + h, z + lz * 0.55], 0.32, wood);
+    for (let k = 1; k <= 3; k++) { const f = k / 4, s = 1 - 0.45 * f, yy = y + h * f; for (let q = 0; q < 4; q++) { const [ax, az] = legs[q], [bx, bz] = legs[(q + 1) % 4]; lmBeam(B, [x + ax * s, yy, z + az * s], [x + bx * s, yy + h / 4, z + bz * s], 0.18, wood); } }
+    B.box(x, y + h, z, 3.4, 3.4, 2.4, ry, wood.clone().multiplyScalar(1.1), null, y + h); B.box(x, y + h + 1.0, z, 3.45, 3.45, 0.9, ry, C.dark, null, y + h + 1.0); B.hip(x, y + h + 2.4, z, 3.4, 3.4, 1.3, ry, new THREE.Color('#4a4c4e'), 0.4);
+  },
+  // a lone giant tree of the country (its own plant parts, a great deal bigger than its kind usually grows)
+  bigtree(B, x, y, z, ry, R, C, E, id, out) {
+    const sp = { savanna: 'acacia', redearth: 'gum', farm: 'holm', maquis: 'corkoak', pampas: 'molle' }[id] || 'broadleaf', k = { acacia: 2.3, gum: 1.3, holm: 2.1, corkoak: 1.9, molle: 2.6 }[sp] || 1.6;
+    out.trees.push({ sp, x, y, z, k: k * (0.9 + 0.2 * R()) });
+  },
+  // a tor: a pile of great rounded granite boulders, the biggest at the bottom
+  tor(B, x, y, z, ry, R, C, E, id, out) {
+    const rr = (a, b) => a + (b - a) * R(), n = 5 + (R() * 5 | 0);
+    for (let k = 0; k < n; k++) { const a = R() * 6.283, d = k < 3 ? rr(0, 5) : rr(2, 8), s = k < 3 ? rr(4.5, 7.5) : rr(2.5, 4.5);
+      out.rocks.push({ x: x + Math.cos(a) * d, z: z + Math.sin(a) * d, lift: k < 3 ? 0 : rr(3, 6), a: s * rr(0.9, 1.2), b: s * rr(0.8, 1.1), H: s * rr(0.75, 1.05), th: R() * 6.283, v: k % 3 }); }
+  },
+  // a butte: a block of layered red rock standing out of the plain, its cliffs rising from a skirt of fallen scree, the
+  // harder cap rock on top a little proud of them; its outline ragged, its layers each a shade of their own
+  butte(B, x, y, z, ry, R, C, E) {
+    const rr = (a, b) => a + (b - a) * R(), H = rr(38, 62), rx = rr(28, 48), rz = rx * rr(0.45, 0.75), n = 14, K = 6, ph = R() * 6.283;
+    const rock = new THREE.Color(E.rock || '#9a6a4a').lerp(new THREE.Color('#a8583a'), 0.5), scree = rock.clone().lerp(new THREE.Color(E.ground ? E.ground[0] : '#8a7a5a'), 0.45).multiplyScalar(0.95);
+    const jag = Array.from({ length: n }, (_, i) => 0.72 + 0.56 * vnoise(i * 1.3 + ph, 1.3, 77)), at = (i, f, k) => { const a = i / n * Math.PI * 2, w = jag[i] * (1 + 0.14 * (vnoise(i * 1.7, k * 0.8 + ph, 79) - 0.5)) * f; return [Math.cos(a) * rx * w, Math.sin(a) * rz * w]; };
+    const cs = Math.cos(ry), sn = Math.sin(ry), ring = (f, k) => Array.from({ length: n }, (_, i) => { const [lx, lz] = at(i, f, k); return Math.hypot(lx, lz); });
+    // (the rings' radii along their own angles: lmRings takes a radius for each corner, so the outline is the jagged oval)
+    const rs = [], hs = [], cl = [], H0 = H * 0.32;
+    rs.push(ring(1.75, 0)); hs.push(0); rs.push(ring(1.02, 1)); hs.push(3 + H0); cl.push(scree);
+    // (the cliff in two steps: a lower tier, a ledge, and the upper cliff set back from it under the cap)
+    for (let k = 1; k <= K; k++) { const f = (k <= 3 ? 1 - 0.03 * k : 0.8 - 0.03 * (k - 3)) * (k === K ? 1.05 : 1), hk = 3 + H0 + (H - H0) * k / K; if (k === 4) { rs.push(ring(0.9, k + 0.5)); hs.push(hs[hs.length - 1] + 0.6); cl.push(scree.clone().multiplyScalar(1.05)); }
+      rs.push(ring(f, k + 1)); hs.push(hk); cl.push(rock.clone().multiplyScalar(0.84 + 0.22 * vnoise(k * 1.3, ph, 81))); }
+    lmRings(B, x, y - 3, z, rs, hs, n, cl, ry, rock.clone().multiplyScalar(1.06));
+  },
+  // a farm's grain silos in a row, their conical tops, and the tall elevator at one end
+  silos(B, x, y, z, ry, R, C) {
+    const rr = (a, b) => a + (b - a) * R(), n = 3 + (R() * 2 | 0), h = rr(20, 27), r = rr(3.2, 4), cs = Math.cos(ry), sn = Math.sin(ry), col = new THREE.Color(R() < 0.5 ? '#c8c4b8' : '#a6aaac');
+    for (let k = 0; k < n; k++) { const lx = (k - (n - 1) / 2) * (2 * r + 0.4), px = x + lx * cs, pz = z - lx * sn; lmRings(B, px, y - 1, pz, [r, r], [0, h + 1], 14, [col.clone().multiplyScalar(0.94 + 0.1 * R())], 0, false); B.cone(px, y + h, pz, r + 0.15, r * 0.55, 14, col.clone().multiplyScalar(0.9)); }
+    const ex = (n / 2) * (2 * r + 0.4) + 2.5, px = x + ex * cs, pz = z - ex * sn; B.box(px, y, pz, 4, 4, h + 9, ry, col.clone().multiplyScalar(0.85), null, y - 1); B.gable(px, y + h + 9, pz, 4, 4, 1.2, ry, new THREE.Color('#7a7e80'), col, 0.2);
+  },
+  // a water tower: a tall concrete stem under a wide round tank
+  watertower(B, x, y, z, ry, R) {
+    const rr = (a, b) => a + (b - a) * R(), h = rr(16, 22), col = new THREE.Color('#c4c0b4');
+    lmRings(B, x, y - 1, z, [2, 1.7, 5.8, 6.2, 6.2], [0, h - 1, h + 1.5, h + 2.2, h + 6.5], 14, [col, col.clone().multiplyScalar(0.92), col], 0, col.clone().multiplyScalar(0.95));
+  }
+};
+// The landmarks of a stage: which (the country's, by chance; one at the least), each put on the best place for it - the
+// highest, most prominent ground among the places at its distance from the road, clear of water, cliffs, the road,
+// houses and each other, seen from the most points of the road ahead and behind (the line of sight over the land) - and
+// built. Returns what was built, with the parts that turn and the lamps (see lmAnimate), for the stage to keep.
+function landmarks(ctx) {
+  const { G, T, E, P, posAt, keepAt, A } = ctx, id = T.type ? T.type.id : 'fast', R = mulberry32(strHash(T.seed + ':landmarks')), rr = (a, b) => a + (b - a) * R();
+  const out = { built: [], rotors: [], lamps: [], rocks: [], trees: [], keep: [] }; if (T.sss || !T.terrain) return out;
+  const list = LANDMARKS[id] || []; let kinds = list.filter(e => R() < e[1]).map(e => e[0]);
+  const sea = T.land && T.land.sea; kinds = kinds.filter(k => !(LM_KIND[k].sea === 1 && !sea));
+  if (!kinds.length && list.length) { const e = list.filter(e => !(LM_KIND[e[0]].sea === 1 && !sea)).sort((a, b) => b[1] - a[1])[0]; if (e) kinds = [e[0]]; }
+  kinds = kinds.slice(0, 3);
+  const g = T.terrain, gx1 = g.x0 + (g.nx - 1) * g.cell, gz1 = g.z0 + (g.nz - 1) * g.cell, inG = (x, z) => x > g.x0 + 1 && x < gx1 - 1 && z > g.z0 + 1 && z < gz1 - 1;
+  const hAt = (x, z) => { if (inG(x, z)) { const y = groundAt(T, x, z); if (y != null) return y; } return natAt(T, x, z); };
+  const seaY = sea ? sea.y : -1e9, i0 = T.startIdx + 30, i1 = T.finishIdx - 10, placed = [];
+  const B = new Baker(), C = { stone: new THREE.Color(E.masonry || '#8a867c'), white: new THREE.Color('#f0eee8'), tile: new THREE.Color('#a85a3a'), roof: new THREE.Color(E.snowy ? '#e6eaee' : '#4a4e54'), dark: new THREE.Color('#2a2c2e') };
+  // (the woods as the far woods have them; the haze's reach the same on every graphics setting, so every crew in a race
+  // sees the landmarks in the same places)
+  const coverAt = coverFn(T, E, ctx.FP, true), fogFar = (E.fog ? E.fog[1] : 600) * 1.2;
+  // (how much of the road ahead and behind sees a point's top over the land and the woods between: a line of sight
+  // passing under the treetops through woods is lost in them)
+  const seen = (x, z, top, i) => { let n = 0; for (let k = -12; k <= 12; k++) { const j = clamp(i + k * 22, i0, i1), p = P[j], ex = p.x, ey = p.y + 1.4, ez = p.z; let ok = true, wood = 0;
+      for (let s = 1; s < 14; s++) { const f = s / 14, qx = ex + (x - ex) * f, qz = ez + (z - ez) * f, ly = ey + (top - ey) * f, gy = hAt(qx, qz); if (gy > ly + 0.8) { ok = false; break; }
+        if (ly - gy < 19 && coverAt(qx, qz) > 0.35 && ++wood > 1) { ok = false; break; } } if (ok) n++; } return n; };
+  // (none placed: the country's others are tried, the likeliest first, on looser terms, until one is)
+  const fallback = list.map(e => e[0]).filter(k => !(LM_KIND[k].sea === 1 && !sea));
+  for (let pass = 0; pass < 2 && !placed.length; pass++) for (const kind of pass ? fallback : kinds) {
+    if (pass && placed.length) break; const K = LM_KIND[kind], cands = [], relax = pass === 1;
+    // (near enough to show through the haze: a tall one further off)
+    const dMax = Math.max(K.d[0] + 40, Math.min(K.d[1], fogFar * (K.H > 60 || kind === 'lighthouse' ? 0.85 : 0.62)));
+    for (let i = i0; i < i1; i += 30) for (const side of [-1, 1]) for (let q = 0; q < 3; q++) {
+      const d = rr(K.d[0], dMax), c = posAt(i, side * d), x = c.x + rr(-30, 30), z = c.z + rr(-30, 30), y = hAt(x, z);
+      const cv = coverAt(x, z); if (cv > (K.top ? (relax ? 0.8 : 0.55) : relax ? 0.3 : 0.12)) continue; // (on open ground, or a clearing: not lost in the woods)
+      if (y < seaY + 3 || placed.some(o => Math.hypot(o.x - x, o.z - z) < 260) || (keepAt && keepAt(x, z, 40))) continue;
+      const wl = inG(x, z) ? waterLevelAt(T, x, z) : null; if (wl !== null && y < wl + 2) continue;
+      const sl = Math.hypot(hAt(x + 12, z) - hAt(x - 12, z), hAt(x, z + 12) - hAt(x, z - 12)) / 24; if (sl > (kind === 'butte' || kind === 'tor' ? 0.6 : relax ? 0.48 : 0.32)) continue;
+      // (a rise: above the road beside it and above the land round about; by the sea, at its edge)
+      let around = -1e9; for (let a = 0; a < 6; a++) around = Math.max(around, hAt(x + Math.cos(a * 1.047) * 90, z + Math.sin(a * 1.047) * 90));
+      let sc = K.top ? (y - around) * 1.5 + (y - P[i].y) * 0.5 : -Math.abs(y - P[i].y) * 0.3;
+      if (K.sea && sea) { const shore = hAt(x + sea.nx * 160, z + sea.nz * 160) < seaY; if (!shore && K.sea === 1) continue; if (shore) sc += 40 * K.sea - (y - seaY > 70 ? 20 : 0); }
+      cands.push({ x, y, z, i, sc }); }
+    // (of the best of them by the lie of the land, the one the most of the road sees, clear of the road itself)
+    cands.sort((a, b) => b.sc - a.sc); let best = null;
+    for (const c of cands.slice(0, 18)) { if (T.fieldAt(c.x, c.z).nd < K.d[0] * 0.6) continue; const v = seen(c.x, c.z, c.y + K.H * 0.75, c.i); if (v < (relax ? 1 : 3)) continue; c.sc += v * 6; if (!best || c.sc > best.sc) best = c; }
+    if (!best) continue;
+    const p = P[best.i], ry = Math.atan2(best.x - p.x, best.z - p.z) + Math.PI / 2 + rr(-0.4, 0.4), extra = {};
+    // (wind turbines: three to six in a line along the ridge's top, some 280 m apart, each on the highest ground across it)
+    if (kind === 'turbines') { const gxv = hAt(best.x + 20, best.z) - hAt(best.x - 20, best.z), gzv = hAt(best.x, best.z + 20) - hAt(best.x, best.z - 20), gl = Math.hypot(gxv, gzv) || 1, tx = -gzv / gl, tz = gxv / gl, n = 3 + (R() * 4 | 0);
+      extra.row = []; for (let k = 0; k < n; k++) { const s = (k - (n - 1) / 2) * rr(250, 310); let bx = best.x + tx * s, bz = best.z + tz * s, by = hAt(bx, bz);
+        for (let a = -2; a <= 2; a++) { const cx = best.x + tx * s + (gxv / gl) * a * 25, cz = best.z + tz * s + (gzv / gl) * a * 25, cy = hAt(cx, cz); if (cy > by) { bx = cx; bz = cz; by = cy; } }
+        if (by < seaY + 3 || T.fieldAt(bx, bz).nd < 120) continue; extra.row.push({ x: bx, y: by, z: bz }); }
+      if (extra.row.length < 2) continue; }
+    LM_BUILD[kind](B, best.x, best.y, best.z, ry, R, C, E, id, out, extra);
+    placed.push({ x: best.x, z: best.z }); out.built.push({ kind, x: Math.round(best.x), z: Math.round(best.z), y: Math.round(best.y), i: best.i, sc: Math.round(best.sc), H: K.H });
+    // (no trees, near or far, growing through it)
+    const rk = { castle: 30, ruin: 22, chapel: 14, round: 9, lighthouse: 14, windpump: 9, mast: 9, lookout: 6, bigtree: 12, tor: 11, butte: 45, silos: 18, watertower: 9 }[kind] || 10;
+    for (const p of extra.row || [best]) out.keep.push({ x: p.x, z: p.z, r: kind === 'turbines' ? 6 : rk });
+  }
+  out.tris = B.build(G, stageChunks, false);
+  // (the trees and bushes already planted where a landmark now stands taken away - the planting itself left as it was,
+  // so the trees by the road are the same as ever)
+  if (ctx.PL && out.keep.length) for (const k in ctx.PL) ctx.PL[k] = ctx.PL[k].filter(t => !out.keep.some(o => (t.x - o.x) * (t.x - o.x) + (t.z - o.z) * (t.z - o.z) < (o.r + 3) * (o.r + 3)));
+  // (the giant trees as the country's own trees, through the plants; the boulders as rocks of the stage's own stone)
+  // (a giant tree: one of its kind grown as usual, then every part of it made k times bigger about its foot)
+  for (const t of out.trees) { const k = t.k, big = (kd, x, y, z, sx, sy, sz, ry, rx, rz, c) => A(kd, t.x + (x - t.x) * k, t.y + (y - t.y) * k, t.z + (z - t.z) * k, sx * k, sy * k, sz * k, ry, rx, rz, c);
+    growTree(t.sp, big, { x: t.x, y: t.y, z: t.z, H: FAR_TREE[t.sp] ? FAR_TREE[t.sp][1] : 14, R, E, snow: E.snowy ? 1 : 0 }); }
+  if (out.rocks.length) { const shapes = rockShapes(E, T.seed), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(); let n = 0;
+    for (const r of out.rocks) n += shapes[r.v].pos.length; const pos = new Float32Array(n), col = new Float32Array(n); let o = 0;
+    for (const r of out.rocks) { const sh = shapes[r.v]; e.set(rr(-0.15, 0.15), r.th, rr(-0.15, 0.15), 'YXZ'); q.setFromEuler(e); m4.compose(v.set(r.x, hAt(r.x, r.z) + r.lift - 0.3 * r.H, r.z), q, sc.set(r.a, r.H, r.b));
+      const tone = rr(0.85, 1.1); for (let k = 0; k < sh.pos.length; k += 3) { v.set(sh.pos[k], sh.pos[k + 1], sh.pos[k + 2]).applyMatrix4(m4); pos[o] = v.x; pos[o + 1] = v.y; pos[o + 2] = v.z; col[o] = sh.col[k] * tone; col[o + 1] = sh.col[k + 1] * tone; col[o + 2] = sh.col[k + 2] * tone; o += 3; } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); geo.computeVertexNormals(); geo.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })); mesh.frustumCulled = false; G.add(mesh); stageChunks.push({ m: mesh, s: geo.boundingSphere }); }
+  // (what turns: the turbines' rotors and the pumps' wheels, each kind one instanced mesh, set turning by lmAnimate; the
+  // lamps: the red ones on masts and turbines blinking together after dark, a lighthouse's lantern flashing)
+  out.spin = [];
+  for (const k of ['turbine', 'pump']) { const L = out.rotors.filter(r => r.kind === k); if (!L.length) continue;
+    const mat = new THREE.MeshLambertMaterial({ color: k === 'turbine' ? 0xe6e8e8 : 0x9a9ea0, side: THREE.DoubleSide }), mk = g => { const m = new THREE.InstancedMesh(g, mat, L.length); m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); G.add(m); return m; };
+    out.spin.push({ m: mk(lmRotorGeo(k)), still: mk(lmRotorGeo(k, true)), L }); }
+  // (the lamps after dark: each a small bright point, the same size on the screen however far off, as a lamp in the
+  // night is seen, and hidden behind what stands in front of it; the red ones and the lighthouses' lanterns each one
+  // set of points)
+  const glow = (kind, col, size) => { const L = out.lamps.filter(l => l.kind === kind); if (!L.length) return null; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(L.flatMap(l => [l.x, l.y, l.z]), 3));
+    const p = new THREE.Points(g, new THREE.PointsMaterial({ map: lmGlowTex(), color: col, size, sizeAttenuation: false, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    p.frustumCulled = false; p.visible = false; G.add(p); return p; };
+  out.glowRed = glow('red', 0xff3a2a, 7); out.glowBeam = glow('beacon', 0xfff2c8, 18); out.beacons = out.lamps.filter(l => l.kind === 'beacon');
+  return out;
+}
+// a turbine's rotor (three long tapering blades round a pointed hub, turning about z) and its nacelle behind (turned to
+// the wind but not turning with the rotor); a wind pump's wheel (eighteen narrow sails in a ring) and its tail vane
+function lmRotorGeo(kind, still) {
+  const pos = [], tri = (a, b, c) => pos.push(...a, ...b, ...c), quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
+  if (kind === 'turbine' && !still) { for (let k = 0; k < 3; k++) { const a = k * 2.094, ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca, L = 40, w0 = 1.6, w1 = 0.35;
+      quad([ca * 1.2 + px * w0 / 2, sa * 1.2 + py * w0 / 2, 0.3], [ca * L + px * w1 / 2, sa * L + py * w1 / 2, 0.3], [ca * L - px * w1 / 2, sa * L - py * w1 / 2, 0.15], [ca * 1.2 - px * w0 / 2, sa * 1.2 - py * w0 / 2, 0]); }
+    for (let k = 0; k < 8; k++) { const a0 = k / 8 * 6.283, a1 = (k + 1) / 8 * 6.283; tri([0, 0, 3.2], [Math.cos(a0) * 1.3, Math.sin(a0) * 1.3, 0], [Math.cos(a1) * 1.3, Math.sin(a1) * 1.3, 0]); } }
+  else if (kind === 'turbine') { const bx = (x0, x1, y0, y1, z0, z1) => { quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1]); quad([x0, y1, z0], [x0, y1, z1], [x1, y1, z1], [x1, y1, z0]); quad([x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]);
+      quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]); quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]); quad([x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [x1, y0, z0]); };
+    bx(-1.5, 1.5, -1.7, 1.7, -10.5, -0.2); }
+  else if (!still) { for (let k = 0; k < 18; k++) { const a = k / 18 * 6.283, ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca; quad([ca * 0.5 + px * 0.12, sa * 0.5 + py * 0.12, 0], [ca * 2.6 + px * 0.42, sa * 2.6 + py * 0.42, 0.18], [ca * 2.6 - px * 0.42, sa * 2.6 - py * 0.42, -0.18], [ca * 0.5 - px * 0.12, sa * 0.5 - py * 0.12, 0]); } }
+  else { quad([0, -0.05, -0.3], [0, -0.05, -3.4], [0, 1.4, -3.9], [0, 0.8, -1.2]); quad([0, 0.12, -0.3], [0, 0.12, -3.4], [0, -0.12, -3.4], [0, -0.12, -0.3]); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); g.computeBoundingSphere(); return g;
+}
+// each frame: the rotors turning (into the wind, faster in a strong one), the lamps lit after dark - the red ones
+// blinking together, a lighthouse flashing every few seconds
+const _lmM = new THREE.Matrix4(), _lmQ = new THREE.Quaternion(), _lmE = new THREE.Euler(), _lmP = new THREE.Vector3(), _lmS = new THREE.Vector3(1, 1, 1);
+function lmAnimate(LM, dt, t, wind, yaw, dark, cam) {
+  if (!LM) return;
+  for (const S of LM.spin || []) { S.L.forEach((r, k) => { r.ph += dt * r.w * clamp(0.25 + wind / 9, 0.2, 1.6); _lmP.set(r.x, r.y, r.z);
+      _lmE.set(0, yaw, r.ph, 'YXZ'); _lmQ.setFromEuler(_lmE); S.m.setMatrixAt(k, _lmM.compose(_lmP, _lmQ, _lmS)); _lmE.set(0, yaw, 0, 'YXZ'); _lmQ.setFromEuler(_lmE); S.still.setMatrixAt(k, _lmM.compose(_lmP, _lmQ, _lmS)); });
+    S.m.instanceMatrix.needsUpdate = true; S.still.instanceMatrix.needsUpdate = true; }
+  const on = smooth(0.15, 0.45, dark), bl = Math.sin(t * Math.PI) > 0 ? 1 : 0, fl = Math.pow(Math.max(0, Math.cos(t * Math.PI / 5)), 30);
+  if (LM.glowRed) { LM.glowRed.material.opacity = on * bl; LM.glowRed.visible = on * bl > 0.02; }
+  if (LM.glowBeam) { LM.glowBeam.material.opacity = on * (0.3 + 0.7 * fl); LM.glowBeam.visible = on > 0.02;
+    // (a lantern's light seen through its glass: the point kept on the side of the lantern toward the eye)
+    if (LM.glowBeam.visible && cam) { const A = LM.glowBeam.geometry.attributes.position; LM.beacons.forEach((b, k) => { const dx = cam.x - b.x, dy = cam.y - b.y, dz = cam.z - b.z, d = Math.hypot(dx, dy, dz) || 1, o = (b.r + 0.35) / d;
+      A.setXYZ(k, b.x + dx * o, b.y + dy * o, b.z + dz * o); }); A.needsUpdate = true; } }
+}
+// a lamp's glow: white at its heart fading out to nothing
+function lmGlowTex() {
+  if (TEX.lmGlow) return TEX.lmGlow; const [c, g] = cnv(64, 64), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.18, 'rgba(255,255,255,0.85)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.25)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return TEX.lmGlow = new THREE.CanvasTexture(c);
+}
+
 // the plants' parts into instanced meshes (a stretch at a time, see inst)
 function flushPlants(PL, inst) {
   const G0 = plantGeos(), mats = {}; let n = 0;
