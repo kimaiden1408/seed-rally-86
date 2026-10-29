@@ -6186,7 +6186,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '1CE0';
+const SR86_BUILD = 'B941';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -7661,7 +7661,7 @@ function cullPools() {
     if (P.ordered) InstPool.reorder(P); InstPool.flush(gl, P, P.hi); if (mLo) InstPool.flush(gl, P, mLo);
   }
 }
-function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.map && !Object.values(TEX).includes(m.map)) m.map.dispose(); if (!(m.userData && m.userData.shared)) m.dispose(); }); } }); }
+function disposeGroup(g) { g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.map && !Object.values(TEX).includes(m.map)) m.map.dispose(); if (m.userData && m.userData.tex) m.userData.tex.dispose(); if (!(m.userData && m.userData.shared)) m.dispose(); }); } }); }
 function stdMat(color, opts) { return new THREE.MeshLambertMaterial(Object.assign({ color }, opts || {})); }
 // ---------- rocks ----------
 // Three shapes of each kind, made once per stage: weathered boulders (a lumpy rounded mass), broken angular rock (flat
@@ -8805,6 +8805,52 @@ function ckSink(name) {
   s.quad = (a, b, c, d, k, bones, ref) => { s.tri(a, b, c, k, bones && [bones[0], bones[1], bones[2]], ref); s.tri(a, c, d, k, bones && [bones[0], bones[2], bones[3]], ref); };
   return s;
 }
+// a triangle of a car's glass that belongs to the windscreen: facing forward (or up and forward, where the top of the
+// glass curves back into the roof), not to the side, in the front half of the cabin and above the waist (not a lamp's
+// glass). n: its unit normal (as wound: outward), cy, cz: its middle's height and place along the car; Hs: carShape
+const ckScreenTri = (nx, ny, nz, cy, cz, Hs) => Math.abs(nx) <= 0.55 && nz > 0.05 && cz > (Hs.rzf + Hs.rzr) / 2 && cy > Hs.belt - 0.15;
+// the windscreen's corners fitted to its glass. Q: the corners the body gives it (base left, base right, top right, top
+// left, in the Body frame; u across from the driver's side, v up the glass), which the glass as built overruns or falls
+// short of in places (its pillars curved, its top following the roof, a design's own outline); P: the glass's triangles
+// (nine numbers each), of which the windscreen's are those facing forward up in the cabin (as CarDmg takes them); Hs: the
+// car's shape (carShape). Returns the corners of the glass's own bounds in Q's (u, v), so that the windscreen's layers
+// (ScreenFx) and the damage done to it (CarDmg) span the glass exactly
+function ckScreenFit(Q, P, Hs) {
+  const uvOf = (x, y) => { const v = (y - Q[0][1]) / (Q[3][1] - Q[0][1]), w = (Q[0][0] - Q[1][0]) * (1 - v) + (Q[3][0] - Q[2][0]) * v; return [(Q[0][0] * (1 - v) + Q[3][0] * v - x) / w, v]; };
+  let u0 = 9, u1 = -9, v0 = 9, v1 = -9;
+  for (let t = 0; t < P.length / 9; t++) { const a = t * 9, ux = P[a + 3] - P[a], uy = P[a + 4] - P[a + 1], uz = P[a + 5] - P[a + 2], vx = P[a + 6] - P[a], vy = P[a + 7] - P[a + 1], vz = P[a + 8] - P[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, L = Math.hypot(nx, ny, nz) || 1, cz = (P[a + 2] + P[a + 5] + P[a + 8]) / 3, cy = (P[a + 1] + P[a + 4] + P[a + 7]) / 3;
+    if (!ckScreenTri(nx / L, ny / L, nz / L, cy, cz, Hs)) continue;
+    for (let j = 0; j < 3; j++) { const [u, v] = uvOf(P[a + j * 3], P[a + j * 3 + 1]); if (u < u0) u0 = u; if (u > u1) u1 = u; if (v < v0) v0 = v; if (v > v1) v1 = v; } }
+  if (!(u1 - u0 > 0.3 && v1 - v0 > 0.3)) return Q;
+  const m = 0.002; u0 -= m; u1 += m; v0 -= m; v1 += m;
+  const at = (u, v) => [0, 1, 2].map(k => { const b = Q[0][k] + (Q[1][k] - Q[0][k]) * u, t = Q[3][k] + (Q[2][k] - Q[3][k]) * u; return +(b + (t - b) * v).toFixed(5); });
+  return [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)];
+}
+// a wiper kept on the glass through its sweep. The blade (0.44 m from its pivot at P.pos, turned by P.rot: the glass's
+// slope, the sweep about the normal (from 0.08 rad parked to 1.6 rad less at the top of its stroke), a roll) sweeps a
+// plane, but the glass bows out of that plane in places: for each step of the stroke, how far the blade must stand off
+// the plane along its normal to clear the glass under it (the windscreen's triangles of P, as CarDmg takes them).
+// Returns { N: the normal, lift: the stand-off at each of 17 steps of the stroke } or null (the blade clears the glass)
+function ckWiperLift(W, P, Hs) {
+  const T = []; for (let t = 0; t < P.length / 9; t++) { const a = t * 9, ux = P[a + 3] - P[a], uy = P[a + 4] - P[a + 1], uz = P[a + 5] - P[a + 2], vx = P[a + 6] - P[a], vy = P[a + 7] - P[a + 1], vz = P[a + 8] - P[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, L = Math.hypot(nx, ny, nz) || 1, cz = (P[a + 2] + P[a + 5] + P[a + 8]) / 3, cy = (P[a + 1] + P[a + 4] + P[a + 7]) / 3;
+    if (ckScreenTri(nx / L, ny / L, nz / L, cy, cz, Hs)) T.push(a); }
+  if (!T.length) return null;
+  const M = new THREE.Matrix4(), E = new THREE.Euler(), v = new THREE.Vector3(), [ang, , roll] = W.rot, N = [0, Math.cos(ang), Math.sin(ang)], p0 = W.pos;
+  // (how far along N from p the glass lies: + outward; null where the line misses the windscreen)
+  const hit = p => { let best = null;
+    for (const a of T) { const e1 = [P[a + 3] - P[a], P[a + 4] - P[a + 1], P[a + 5] - P[a + 2]], e2 = [P[a + 6] - P[a], P[a + 7] - P[a + 1], P[a + 8] - P[a + 2]], h = ckCross(N, e2), d = ckDot(e1, h); if (Math.abs(d) < 1e-10) continue;
+      const sv = [p[0] - P[a], p[1] - P[a + 1], p[2] - P[a + 2]], uu = ckDot(sv, h) / d; if (uu < -1e-6 || uu > 1 + 1e-6) continue; const q = ckCross(sv, e1), vv = ckDot(N, q) / d; if (vv < -1e-6 || uu + vv > 1 + 1e-6) continue;
+      const t = ckDot(e2, q) / d; if (best == null || Math.abs(t) < Math.abs(best)) best = t; }
+    return best; };
+  const lift = new Float32Array(17); let any = false;
+  for (let k = 0; k < 17; k++) { M.makeRotationFromEuler(E.set(ang, 0.08 - k / 16 * 1.6, roll)); let need = 0;
+    // (along the blade, its rubber 6 mm under its middle line: kept 2 mm clear of the glass)
+    for (let s = 0; s <= 12; s++) { v.set(-0.44 * s / 12, 0, 0).applyMatrix4(M); const t = hit([p0[0] + v.x, p0[1] + v.y, p0[2] + v.z]); if (t != null && t + 0.008 > need) need = t + 0.008; }
+    lift[k] = need; if (need > 0.0005) any = true; }
+  return any ? { N, lift } : null;
+}
 function ckBox(s, c, size, k, rot, xf) {
   const P = [];
   for (const i of [-1, 1]) for (const j of [-1, 1]) for (const l of [-1, 1]) { let v = ckRot([i * size[0] / 2, j * size[1] / 2, l * size[2] / 2], rot); v = [v[0] + c[0], v[1] + c[1], v[2] + c[2]]; P.push(xf ? xf(v) : v); }
@@ -9208,13 +9254,11 @@ class RallyCarKit {
       interior: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0.0, flatShading: true, vertexColors: true }),
       ghost: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.26, depthWrite: false }),
       // the crew and the controls they work: smooth, each part's own roughness (aRough: suit cloth, gloves, a helmet's
-      // paint, the visor's glass, the wheel's suede or wood), seen from either side (a strap, a page, inside a helmet)
+      // paint, the visor's glass, the wheel's suede or wood), seen from either side (a strap, a page, inside a helmet);
+      // their suits' panels, helmets' paint and the like painted by the shader (crew.js: crewShader)
       crew: new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, vertexColors: true, side: THREE.DoubleSide })
     };
-    mats.crew.onBeforeCompile = sh => {
-      sh.vertexShader = 'attribute float aRough; varying float vRough;\n' + sh.vertexShader.replace('#include <color_vertex>', '#include <color_vertex>\n vRough = aRough;');
-      sh.fragmentShader = 'varying float vRough;\n' + sh.fragmentShader.replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = vRough;').replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n metalnessFactor = vRough < 0.2 ? 0.3 : 0.0;');
-    };
+    mats.crew.onBeforeCompile = sh => crewShader(sh); mats.crew.extensions = { derivatives: true };
     mats.matBody = mats.body; mats.matTrim = mats.trim; mats.matGlass = mats.glass; mats.matInterior = mats.interior;
     for (const k of ['body', 'interior', 'ghost', 'crew']) mats[k].skinning = true; // three r128 skinned meshes need this; later releases ignore it
     for (const k of ['body', 'trim', 'glass', 'interior', 'ghost', 'crew']) mats[k].userData = { shared: true };
@@ -10008,7 +10052,7 @@ class RallyCarKit {
         return [x * lo, c + (y - c) * lo, z]; };
       // where the cabin floor ends: clear of the front and rear wheel openings (where the shell's floor rises over the arches)
       const zFA = axles[0][0], zRA = axles[1][0], cabF = Math.min(ws.zBase, zFA - Ra - 0.01), cabR = Math.max(hoopZ - 0.1, zRA + Ra + 0.01);
-      const IN = { seat: col('#1b1b1d'), shell: col('#2a2a2e'), cage: col('#c9c9c9'), belt: col('#c4202f'), dash: col('#222225'), floor: col('#1e1e20'), suit: col(L.band), helmet: col(L.pin), skin: col('#141414'), face: col('#0b0b0b'), needle: col('#ff7a1a'), paper: col('#f7f5ef') };
+      const IN = { seat: col('#1b1b1d'), shell: col('#2a2a2e'), cage: col('#c9c9c9'), belt: col('#c4202f'), dash: col('#222225'), floor: col('#1e1e20'), suit: col(L.band), helmet: col(L.pin), skin: col('#141414'), face: col('#0b0b0b'), needle: col('#ff7a1a'), paper: col('#f7f5ef'), lcd: col('#8fa58f') };
       cab.begin('panel', [0, floorY - 1, 0], false); { const y = floorY + 0.01, w = inW / 2; cab.quad([-w, y, cabF], [w, y, cabF], [w, y, cabR], [-w, y, cabR], IN.floor); } cab.end(); // the floor
       { const t0 = Math.min(ws.zBase - 0.1, cabF), t1 = Math.max(seatZ - 0.3, cabR); ckBox(cab, [0, floorY + 0.09, (t0 + t1) / 2], [0.24, 0.16, t0 - t1], IN.dash); } // the tunnel
       // door cards, so the cabin side of each door is trimmed rather than showing the livery (their outer face kept 1 cm
@@ -10233,6 +10277,14 @@ class RallyCarKit {
         lamp: for (const lh of [0.18, 0.13, 0.08]) for (const ls of [1, -1]) { const lx = px + ls * sx * 0.2, head = [lx, dTop + lh, dashRear - 0.09];
           if ((ls > 0 && legGap(head) < 0.02 + 0.036) || !boxIn(head, [0.02, 0.015, 0.025], null)) continue;
           ckCyl(cab, [px + ls * sx * 0.17, dTop, dashRear - 0.02], [lx, dTop + lh - 0.01, dashRear - 0.08], 0.006, IN.cage, 3, false); ckBox(cab, head, [0.04, 0.03, 0.05], IN.skin); break lamp; } }
+      // from the 1980s the navigator's trip meter instead: a small box on the dash before the co-driver, tipped toward
+      // them, its two-line display and its buttons (it moves in toward the middle until it stands inside the body)
+      else if (crewEra(S).era !== 'classic') { const z = dashRear - 0.03, y = dTop + 0.032, tilt = [-0.55, 0, 0], sx = Math.sign(xc) || -1;
+        const boxIn = (c, h, rot) => [-1, 1].every(i => [-1, 1].every(j => [-1, 1].every(k => { const v = ckRot([i * h[0], j * h[1], k * h[2]], rot); return inside(c[0] + v[0], c[1] + v[1], c[2] + v[2]) >= 0.005; })));
+        let px = xc - sx * 0.04; while (Math.abs(px) > 0.16 && !boxIn([px, y, z], [0.075, 0.03, 0.03], tilt)) px -= sx * 0.01;
+        if (boxIn([px, y, z], [0.075, 0.03, 0.03], tilt)) { ckBox(cab, [px, y, z], [0.15, 0.06, 0.055], IN.face, tilt);
+          const face = (dx, dy, w, h, k) => ckBox(cab, [0, 0, 0], [w, h, 0.003], k, null, v => { const q = ckRot([v[0] + dx, v[1] + dy, v[2] - 0.0285], tilt); return [px + q[0], y + q[1], z + q[2]]; });
+          face(-0.012, 0.006, 0.1, 0.028, IN.lcd); face(0.055, 0.012, 0.016, 0.012, IN.belt); face(0.055, -0.01, 0.016, 0.012, IN.cage); face(-0.012, -0.019, 0.016, 0.008, IN.cage); face(0.016, -0.019, 0.016, 0.008, IN.cage); } }
       // the crew (crew.js): seated where the driver's eye puts them, the steering wheel, gear lever, handbrake and pedals
       // of the car's era placed for them; the seats are built round them
       const CE = crewEra(S), CDR = CREW_DRIVE[CE.era], LEV = crewLever(S, CP);
@@ -10250,34 +10302,27 @@ class RallyCarKit {
       const backTop = Math.min(topAt(sZb - 0.3) - 0.12, floorY + 0.97), Lb = (backTop - (yc - 0.04)) / ca, zBk = sZb - Lb * sa - 0.08;
       const barU = (z, sd) => { const dF = F[sd].doorF, t = (z - dF[2]) / (N.doorR[2] - dF[2] || 1); return dF[0] + (N.doorR[0] - dF[0]) * Math.max(0, Math.min(1, t)); };
       const overArch = zBk < zRA + Ra, archU = overArch ? axles[1][1] / 2 - 0.172 : 9;
-      const sbox = (sd, u0, u1, y, z, h, dz, k, rot) => ckBox(cab, [sd * (u0 + u1) / 2, y, z], [u1 - u0, h, dz], k, rot);
-      // (along the back: v up it from the cushion, f out in front of it)
-      const onBack = (v, f) => [yc - 0.04 + v * ca + f * sa, sZb - v * sa + f * ca];
       for (const x of [xd, xc]) { const sd = Math.sign(x), u = Math.abs(x);
         // (and of a roof rail running down the side glass beside the back's top)
         let railU = 9; for (const [A, B] of rails(F[sd])) for (let k = 0; k <= 20; k++) { const p = A.map((v, j) => v + (B[j] - v) * k / 20); if (p[2] > zBk - 0.05 && p[2] < sZb + 0.05 && p[1] < backTop + 0.03) railU = Math.min(railU, p[0] - 0.035); }
-        const sideU = Math.min(archU, barU(sZb + 0.05, sd) - 0.03, barU(sZb - 0.27, sd) - 0.03, railU), rot = [-ST.a, 0, 0];
-        sbox(sd, u - 0.23, Math.min(u + 0.23, archU), (floorY + 0.04 + yc) / 2, (sZb + sZf) / 2, yc - floorY - 0.04, sZf - sZb, IN.seat);
-        { const [y, z] = onBack(Lb / 2, -0.04); sbox(sd, u - 0.24, Math.min(u + 0.24, sideU), y, z, Lb, 0.08, IN.shell, rot); }
-        // (the wings: beside the thighs, the ribs and shoulders, the helmet)
-        for (const o of [u - 0.28 + 0.06, Math.min(u + 0.28, sideU)]) { const [y, z] = onBack(0.26, 0.06); sbox(sd, o - 0.06, o, y, z, 0.42, 0.18, IN.shell, rot);
-        }
-        for (const [a, c] of [[u - 0.205, u - 0.165], [Math.min(u + 0.165, sideU - 0.04), Math.min(u + 0.205, sideU)]]) { const [y2, z2] = onBack(Lb - 0.1, 0.05); if (Lb > 0.62) sbox(sd, a, c, y2, z2, 0.18, 0.12, IN.shell, rot); }
-        sbox(sd, u - 0.26, u - 0.2, yc + 0.025, (sZb + sZf) / 2 + 0.02, 0.07, sZf - sZb - 0.08, IN.shell);
-        sbox(sd, Math.min(u + 0.2, archU - 0.06), Math.min(u + 0.26, archU), yc + 0.025, (sZb + sZf) / 2 + 0.02, 0.07, sZf - sZb - 0.08, IN.shell);
+        const sideU = Math.min(archU, barU(sZb + 0.05, sd) - 0.03, barU(sZb - 0.27, sd) - 0.03, railU);
+        // (the seat itself is the crew's: a padded bucket shell of the era, smooth, in the crew's mesh: crew.js)
+        crewSeats(CR, { x, floorY, cushion: yc, back: sZb, front: sZf, a: ST.a, Lb, sideU, archU, J: CR.J[x === xd ? 'D' : 'C'], style: CR.look.style });
       }
-      const at = (p, sd) => [sd * p[0], p[1], p[2]], csH = cs > 4 ? 4 : 3;
+      const at = (p, sd) => [sd * p[0], p[1], p[2]], csH = cs > 4 ? 4 : 3, cageSegs = [], tube = (A, B, r, k, n) => { ckCyl(cab, A, B, r, k, n, false); cageSegs.push([A, B, r]); };
       cab.tag = 'cage';
       mir(sd => { const f = F[sd];
-        ckCyl(cab, at(N.foot, sd), at(N.top, sd), 0.022, IN.cage, cs, false);
-        for (const [A, B] of [...legs(f), ...rails(f)]) ckCyl(cab, at(A, sd), at(B, sd), 0.02, IN.cage, A === N.aFoot ? csH : cs, false); // (the leg's foot, under the dash, plainer)
-        ckCyl(cab, at(f.doorF, sd), at(N.doorR, sd), 0.02, IN.cage, csH, false);
-        ckCyl(cab, at(N.top, sd), at(N.stay, sd), 0.018, IN.cage, csH, false);
+        tube(at(N.foot, sd), at(N.top, sd), 0.022, IN.cage, cs);
+        for (const [A, B] of [...legs(f), ...rails(f)]) tube(at(A, sd), at(B, sd), 0.02, IN.cage, A === N.aFoot ? csH : cs); // (the leg's foot, under the dash, plainer)
+        tube(at(f.doorF, sd), at(N.doorR, sd), 0.02, IN.cage, csH);
+        tube(at(N.top, sd), at(N.stay, sd), 0.018, IN.cage, csH);
       });
-      ckCyl(cab, at(N.top, 1), at(N.top, -1), 0.022, IN.cage, cs, false);
-      ckCyl(cab, at(N.diag, 1), at(N.top, -1), 0.02, IN.cage, csH, false);
-      for (const [A, B] of chain([at(F[1].aTop, 1), ...F.hdr, at(F[-1].aTop, -1)])) ckCyl(cab, A, B, 0.02, IN.cage, cs, false); // the header
+      tube(at(N.top, 1), at(N.top, -1), 0.022, IN.cage, cs);
+      tube(at(N.diag, 1), at(N.top, -1), 0.02, IN.cage, csH);
+      for (const [A, B] of chain([at(F[1].aTop, 1), ...F.hdr, at(F[-1].aTop, -1)])) tube(A, B, 0.02, IN.cage, cs); // the header
       cab.tag = '';
+      // (the cage's padding where a helmet could strike it: smooth foam sleeves in the crew's mesh, crew.js)
+      crewPads(CR, cageSegs);
       // the crew's heads (bones 4 and 5 stand there, kept for what reads them; the crew are a mesh of their own: crew.js),
       // and the room each of them needs, as spheres a crushed shell, cage or door is kept out of: head, chest, lap
       for (const P of ['D', 'C']) { const J = CR.J[P], ch = cv3.at(J.H, J.X, J.U, J.F, 0, 0.3, 0.02), lap = cv3.lerp(J.hipL, J.knL, 0.45);
@@ -10488,10 +10533,11 @@ class RallyCarKit {
     const bodyBone = new THREE.Bone(); bodyBone.name = 'BodyBone'; bodyG.add(bodyBone);
     const names = ['Wheel_FL', 'Wheel_FR', 'Wheel_RL', 'Wheel_RR'], wheels = [];
     wheelPos.forEach(([x, z, frontW], i) => { const piv = new THREE.Object3D(); piv.name = names[i]; piv.position.set(x, R, z); const w = new THREE.Bone(); w.name = names[i] + '_Spin'; piv.add(w); root.add(piv); wheels.push({ piv, w, front: !!frontW }); });
-    const wipers = wiperAt.map((P, k) => { const bn = new THREE.Bone(); bn.name = 'Wiper' + (k + 1); bn.position.set(P.pos[0], P.pos[1], P.pos[2]); bn.rotation.set(P.rot[0], P.rot[1], P.rot[2]); bodyG.add(bn); return bn; });
+    const wipers = wiperAt.map((P, k) => { const bn = new THREE.Bone(); bn.name = 'Wiper' + (k + 1); bn.position.set(P.pos[0], P.pos[1], P.pos[2]); bn.rotation.set(P.rot[0], P.rot[1], P.rot[2]); bodyG.add(bn);
+      bn.userData.p0 = P.pos.slice(); const lift = ckWiperLift(P, glass.p, carShape(S)); if (lift) Object.assign(bn.userData, lift); return bn; });
     while (wipers.length < 2) { const bn = new THREE.Bone(); bn.name = 'Wiper' + (wipers.length + 1); bodyG.add(bn); wipers.push(bn); }
     const bodyMesh = new THREE.SkinnedMesh(geo(body, true, true), ghost ? this.mats.ghost : this.mats.body); bodyMesh.name = 'BodyMesh'; bodyMesh.castShadow = !ghost; bodyMesh.receiveShadow = !ghost; bodyG.add(bodyMesh);
-    const I = {}; let eye = null, hood = null, tail = null, cabMesh = null, crewMesh = null, crewBones = null;
+    const I = {}; let eye = null, hood = null, tail = null, cabMesh = null, crewMesh = null, crewLow = null, crewBones = null;
     if (!ghost) {
       const trimMesh = new THREE.Mesh(geo(trim, false, false), this.mats.trim); trimMesh.name = 'TrimMesh'; trimMesh.castShadow = true; trimMesh.receiveShadow = true; bodyG.add(trimMesh);
       const glassMesh = new THREE.Mesh(geo(glass, false, false), this.mats.glass); glassMesh.name = 'GlassMesh'; glassMesh.renderOrder = 2; bodyG.add(glassMesh);
@@ -10505,7 +10551,11 @@ class RallyCarKit {
           if (d.parent == null) { b.position.set(d.at[0], d.at[1], d.at[2]); bodyG.add(b); }
           else if (d.parent === 'Wheel') { b.position.set(d.at[0], d.at[1], d.at[2]); I.wheel.add(b); }
           else { const q = R.bones[R.bi[d.parent]]; b.position.set(d.at[0] - q.at[0], d.at[1] - q.at[1], d.at[2] - q.at[2]); bn[R.bi[d.parent]].add(b); } });
-        crewMesh = new THREE.SkinnedMesh(R.geo.build(), this.mats.crew); crewMesh.name = 'CrewMesh'; crewMesh.receiveShadow = true; bodyG.add(crewMesh); crewBones = bn; R.geo = null; }
+        // (the car's own crew materials: the shared one's, one for each group of the crew's parts, with this crew's painted faces)
+        const crewMat = crewMaterial(this.mats.crew, R.look);
+        crewMesh = new THREE.SkinnedMesh(R.geo.build(), crewMat); crewMesh.name = 'CrewMesh'; crewMesh.receiveShadow = true; bodyG.add(crewMesh); crewBones = bn; R.geo = null;
+        // (the light mesh for further off: drawn instead of the full one beyond a few car lengths, on the same skeleton)
+        crewLow = new THREE.SkinnedMesh(R.geoLow.build(), crewMat); crewLow.name = 'CrewMeshLow'; crewLow.receiveShadow = true; crewLow.visible = false; bodyG.add(crewLow); R.geoLow = null; }
       eye = new THREE.Object3D(); eye.name = 'CockpitCamera'; eye.position.set(eyeAt[0], eyeAt[1], eyeAt[2]); bodyG.add(eye);
       hood = new THREE.Object3D(); hood.name = 'BonnetCamera'; hood.position.set(hoodAt[0], hoodAt[1], hoodAt[2]); bodyG.add(hood);
       tail = new THREE.Object3D(); tail.name = 'TailCamera'; tail.position.set(tailAt[0], tailAt[1], tailAt[2]); bodyG.add(tail);
@@ -10514,10 +10564,11 @@ class RallyCarKit {
     root.updateMatrixWorld(true);
     bodyMesh.bind(new THREE.Skeleton([bodyBone].concat(wheels.map(w => w.w), wipers)));
     if (cabMesh) cabMesh.bind(new THREE.Skeleton([I.cabBone, I.wheel, I.tach, I.boost, I.head, I.cohead]));
-    if (crewMesh) crewMesh.bind(new THREE.Skeleton(crewBones));
+    if (crewMesh) { const sk = new THREE.Skeleton(crewBones); crewMesh.bind(sk); if (crewLow) crewLow.bind(sk); }
     const flame = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9 })); flame.name = 'BackfireFlame'; flame.position.set(exX, exY, exZ - 0.18); flame.visible = false; bodyG.add(flame);
     // the rig holds the animated parts (not in userData, so clone() and toJSON() stay safe)
     const needle = v => Math.PI * 0.75 - Math.min(1, Math.max(0, v)) * Math.PI * 1.5, oilGauge = S.boost === 'na', dash = this.mats.interior.userData.dash;
+    const screenQ = wsInfo ? [[wsInfo.wBase / 2, wsInfo.yBase, wsInfo.zBase], [-wsInfo.wBase / 2, wsInfo.yBase, wsInfo.zBase], [-wsInfo.wTop / 2, wsInfo.yTop, wsInfo.zTop], [wsInfo.wTop / 2, wsInfo.yTop, wsInfo.zTop]] : null;
     const rig = {
       id, root, tilt, body: bodyG, wheels, flame, I, eye, hood, tail, cab: cabInfo, livery: L, lamps, wipers, panels, bay: bayInfo,
       // a digital display, if the car has one: { kind: 'lcd' | 'tft', scale: the revs its bar reaches } (see CK_SCR)
@@ -10526,13 +10577,14 @@ class RallyCarKit {
       // the room the crew need inside the cabin as spheres [x, y, z, r] (heads, chests, laps and the driver's view)
       exhaust: { tip: [exX, exY, exZ], stub: [exX, Math.min(0.25, exY - 0.05), zr + 0.16] }, crew: crewAt,
       // the crew's mesh, bones and rest pose, for the crew's animation (crew.js: CrewAnim)
-      crewRig: crewMesh ? { mesh: crewMesh, bones: crewBones, R: crewR } : null,
+      crewRig: crewMesh ? { mesh: crewMesh, low: crewLow, bones: crewBones, R: crewR } : null,
       // the end faces things are mounted on (for inspection): nose and tail stations, end ribs, bumper bands
       faces: { zf, zr, front, rear, bfY, brY, bumpF, bumpR },
       // (for inspection) a design's side windows: how far any point of their outlines had to move to stay inside the band
       windows: WIN ? { clamp: +winClamp.toFixed(4), at: winClampAt } : null,
-      // the windscreen glass as four corners in the Body frame (base left, base right, top right, top left)
-      screen: wsInfo ? [[wsInfo.wBase / 2, wsInfo.yBase, wsInfo.zBase], [-wsInfo.wBase / 2, wsInfo.yBase, wsInfo.zBase], [-wsInfo.wTop / 2, wsInfo.yTop, wsInfo.zTop], [wsInfo.wTop / 2, wsInfo.yTop, wsInfo.zTop]] : null,
+      // the windscreen glass as four corners in the Body frame (base left, base right, top right, top left): the bounds of
+      // the glass as built (screen), and the corners the body's sections give it (screenIn, inside its frame)
+      screen: screenQ ? ckScreenFit(screenQ, glass.p, carShape(S)) : null, screenIn: screenQ,
       // sync(telemetry): optional one-call pose from simulation state; every field may be left out, and a call
       // with no argument does nothing. { pitch, roll, steer (road-wheel angle, rad), steerRatio, rpm, rpmMax (the dial is
       // printed to 10,000 r/min), boost (0-1), oil (0-1 of the oil gauge's 8 bar, on cars without a turbo or blower),
@@ -10563,7 +10615,9 @@ class RallyCarKit {
         }
         if (I.head && t.cockpit != null) { const k = t.cockpit ? 1e-3 : 1; I.head.scale.set(k, k, k); }
         if (t.backfire != null) flame.visible = !!t.backfire;
-        if (t.wipers != null) for (const bn of wipers) bn.rotation.y = 0.08 - Math.min(1, Math.max(0, t.wipers)) * 1.6;
+        if (t.wipers != null) for (const bn of wipers) { const f = Math.min(1, Math.max(0, t.wipers)), u = bn.userData; bn.rotation.y = 0.08 - f * 1.6;
+          // (lifted off the plane it sweeps in as far as the glass bows out under the blade there: see ckWiperLift)
+          if (u.lift) { const x = f * (u.lift.length - 1), i = Math.min(u.lift.length - 2, x | 0), l = u.lift[i] + (u.lift[i + 1] - u.lift[i]) * (x - i); bn.position.set(u.p0[0] + u.N[0] * l, u.p0[1] + u.N[1] * l, u.p0[2] + u.N[2] * l); } }
         return rig;
       }
     };
@@ -13903,7 +13957,7 @@ for (const S of CARS) {
 // a snorkel on a car (rig.screen: the windscreen's corners in the body's frame): a black pipe from the top of the front wing
 // up the windscreen pillar on the co-driver's side to a ram head over the roof's front edge, its mouth facing forward
 function fitSnorkel(rig) {
-  if (!rig || !rig.screen || !rig.body || rig.snorkel) return; const s = rig.screen, side = rig.eye && rig.eye.position.x > 0 ? -1 : 1, k = side > 0 ? 0 : 1;
+  if (!rig || !rig.screen || !rig.body || rig.snorkel) return; const s = rig.screenIn || rig.screen, side = rig.eye && rig.eye.position.x > 0 ? -1 : 1, k = side > 0 ? 0 : 1;
   const b = s[k], t = s[k === 0 ? 3 : 2], bx = Math.abs(b[0]) + 0.075, tx = Math.abs(t[0]) + 0.075;
   const pts = [[bx + 0.02, b[1] - 0.1, b[2] + 0.42], [bx + 0.03, b[1] - 0.03, b[2] + 0.12], [bx, b[1] + 0.05, b[2] - 0.02], [tx, t[1] - 0.06, t[2] + 0.04], [tx - 0.02, t[1] + 0.06, t[2] - 0.02]].map(p => new THREE.Vector3(side * p[0], p[1], p[2]));
   const mat = new THREE.MeshLambertMaterial({ color: 0x1b1c1d }), g = new THREE.Group(); g.name = 'Snorkel';
@@ -13944,9 +13998,9 @@ function dashScreen(m, c, S, dt, on) {
 // digital display shows the car's readings
 function animateInterior(m, c, S, dt, hbOn, interior) {
   const I = m.I; if (!I || !I.wheel) return;
-  // the crew (crew.js): drawn and moved only from close by, or from the driver's seat
-  if (m.crewRig) { const cm = m.crewRig.mesh, near = interior || camera.position.distanceToSquared(m.root.position) < Math.pow(CREW_NEAR[typeof Gfx !== 'undefined' ? Gfx.level : 'high'] || 40, 2);
-    cm.visible = near; if (near) crewSafe(m, () => { const A = m.crewAnim || (m.crewAnim = new CrewAnim(m, S)); A.update(dt, crewDrive(m, c, S, hbOn, interior)); }); }
+  // the crew (crew.js): in full from close by or the driver's seat, the light mesh further off (moved less often), not
+  // at all from far away
+  if (m.crewRig) crewFrame(m, S, dt, interior ? 0 : camera.position.distanceToSquared(m.root.position), () => crewDrive(m, c, S, hbOn, interior));
   else I.wheel.rotation.z = -(c.delta || 0) * 13;
   const nAng = v => Math.PI * 0.75 - clamp(v, 0, 1) * Math.PI * 1.5;
   I.tach.rotation.z += (nAng((c.rpm || 0) / 10000) - I.tach.rotation.z) * Math.min(1, dt * 20);
@@ -17131,8 +17185,19 @@ function updateFlyoverOld(dt) {
 //     key (Shift) with it, or use the handbrake or a lift. Let go, the wheels come back straight. At a crawl it is direct
 //     steering (a hairpin's full lock). It is the keys' filtering of what they ask, as rally games have always filtered
 //     a pad's steering for control; More lock takes it off.
-const GRIP = { tap0: 0.35, tap: 0.25, lim: 0.92, limK: 30, yaw: 1.15, ahead: 0.12, yawK: 8, kMin: 0.3, rel: 1.5, apply: 3.6, back: 7, stick: 12, loose: 1.25, hb: 1.8 };
-function steerState() { return { d: 0, hold: 0, dir: 0, k: 1, rp: null, dr: 0 }; }
+// With keys and touch buttons the rack is then moved as a driver's hands move a wheel (steerHands): never at a fixed
+// rate, never all or nothing.
+const GRIP = { tap0: 0.55, tap: 0.2, lim: 0.92, limK: 30, yaw: 1.15, ahead: 0.12, yawK: 8, kMin: 0.3, rel: 1.5, apply: 3.6, back: 7, stick: 12, loose: 1.25, hb: 1.8 };
+// the hands: holding a key, how firmly they turn the wheel to what is asked (the spring's rad/s at a crawl and at speed,
+// its damping) and their quickest (share of lock a second); a key let go, how they unwind it back to straight (the
+// spring, the damping of the wheel and hands together, its quickest: back in about a fifth of a second, the tyres'
+// torque hurrying it or holding it back); the tyres' self-aligning torque at the kingpins (the pneumatic trail's and the
+// castor's: the front axle's torque over its static load times a typical 5 cm of trail moves the rack by sat, share of
+// lock a second squared); the road's work: the shake's size on the roughest ground at speed (share of lock), its pitch
+// (Hz), a rock's kick and a one-sided bump's (share of lock a second)
+const HANDS = { wOn: 22, wOnFast: 15, zOn: 0.82, vOn: 2.8, wRel: 12, zRel: 0.75, vRel: 6, sat: 12, trail: 0.05, shake: 0.0065, hz: 5.5, rock: 0.9, bump: 0.35 };
+const ROAD_FEEL = { gravel: 1, loose: 1, hard: 0.8, dirt: 0.9, snow: 0.5, snowbank: 0.7, snowlayer: 0.45, slush: 0.5, powder: 0.65, grass: 0.75, tarmac: 0.16, stone: 0.45, concrete: 0.14, paint: 0.1, steel: 0.2, moss: 0.3, ice: 0.06 };
+function steerState() { return { d: 0, v: 0, n: 0, nv: 0, hold: 0, dir: 0, k: 1, rp: null, dr: 0, evN: 0, fz: null }; }
 // P: { lim (Stability Control's part, 0-1), grip (keys use grip steering), analog (a stick or wheel), more (More lock
 // held), hb (the handbrake held: the wheels go further, for a hairpin, and the rear's limit is not watched), tgt (the
 // grip target, a share of the peak's slip angle), speed and ret (the steering and return speeds, times the usual), sens
@@ -17160,10 +17225,43 @@ function steerFor(c, S, req, P, st, dt) {
     tgt = lerp(req * P.range, dg / lock, smooth(3, 7, u) * (P.hb ? smooth(12, 20, sp) : 1)); // (at a crawl, and on the handbrake in a hairpin: the share of lock)
   }
   tgt = clamp(tgt, -1, 1);
-  if (P.analog) { st.d = tgt; return tgt; } // (a stick or wheel sets the rack directly, as always)
-  const more = Math.abs(tgt) > Math.abs(st.d) && (Math.sign(tgt) === Math.sign(st.d) || st.d === 0);
-  const rate = more ? GRIP.apply * P.speed / (1 + P.sens * sp / 15) : GRIP.back * P.ret;
-  st.d += clamp(tgt - st.d, -rate * dt, rate * dt); return st.d;
+  if (P.analog) { st.d = tgt; st.v = 0; st.n = 0; st.nv = 0; return tgt; } // (a stick or wheel sets the rack directly, as always)
+  return steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K);
+}
+// The hands on the wheel, for keys and touch buttons: the rack moved toward what is asked (tgt) as a driver's hands
+// move a wheel that the tyres push back on. Held, the hands turn it firmly, like a damped spring rather than at a fixed
+// rate: the wheel picks up speed and eases in to where it is going (quicker at a crawl, more careful at speed, no
+// quicker than hands turn a wheel), so a tap gives a small, soft correction and a held key a smooth sweep. All the
+// while the front tyres' self-aligning torque works on it, as the physics has it at each kingpin: the tyre's own
+// aligning moment (its force acting behind the contact patch's middle, the pneumatic trail, which shrinks as the tyre
+// nears its limit and slides) and the castor's (the force behind the kingpin's line, the mechanical trail). So the
+// wheel is heavy in a firm corner and gives a little to it, goes light as the front tyres reach their limit and let go;
+// and let go, the hands unwind it while that torque helps: quicker at speed on a grippy road, a touch lazier on a loose
+// one or with the front sliding, a little past straight and back, and in a slide drawn a little toward where the front
+// wheels are going, as a wheel turns through loosened hands. And the road comes up through it: a loose or broken
+// surface works the wheel about (a shake of a few hertz, its size by the ground's roughness and the speed), a rock
+// under a front wheel kicks it, a bump under one front wheel more than the other jerks it; held firmly it is soon back,
+// held lightly it wanders further.
+function steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K) {
+  const H = HANDS, firm = dir !== 0, f = 1 / (1 + P.sens * sp / 25);
+  tgt = clamp(tgt, -1, 1);
+  // (the self-aligning torque at the two kingpins, as a share of a typical front axle's)
+  const Fn = Math.max(2000, (S.mass || 1200) * 9.81 * (S.wf != null ? S.wf : 0.55)), sat = H.sat * ((c.w[0].Mk || 0) + (c.w[1].Mk || 0)) / (Fn * H.trail);
+  const wh = firm ? lerp(H.wOnFast, H.wOn, f) * P.speed : H.wRel * P.ret, we = firm ? wh : Math.sqrt(wh * wh + 5 * H.sat), z = firm ? H.zOn : H.zRel, vm = firm ? H.vOn * P.speed * f : H.vRel;
+  // (the road: kicks into the wheel's speed, the surface's shake laid over its place)
+  let kick = 0; const ev = c.ev || [], R = ROAD_FEEL[c.surfName] != null ? ROAD_FEEL[c.surfName] : 0.5;
+  if (st.evN > ev.length) st.evN = 0;
+  for (let i = st.evN; i < ev.length; i++) { const e = ev[i]; if (e.startsWith('rockw:')) { const q = e.split(':'), wi = parseInt(q[2], 10); if (wi === 0 || wi === 1) kick += (wi === 0 ? 1 : -1) * (Math.random() < 0.7 ? 1 : -1) * H.rock * Math.min(1, (parseFloat(q[1]) || 0) / 8); } }
+  st.evN = ev.length;
+  { const w0 = c.w[0], w1 = c.w[1], fz = (w0.Fz || 0) - (w1.Fz || 0), sFz = Math.max(1500, ((w0.Fz || 0) + (w1.Fz || 0)) / 2 || 3000);
+    if (st.fz != null && sp > 3) kick += clamp((fz - st.fz) / sFz, -1, 1) * H.bump * R; st.fz = fz; }
+  st.v += kick;
+  st.v += (wh * wh * (tgt - st.d) + sat - 2 * z * we * st.v) * dt; st.v = clamp(st.v, -vm - Math.abs(kick), vm + Math.abs(kick)); st.d = clamp(st.d + st.v * dt, -1, 1);
+  st.sat = sat; // (kept for the tests)
+  const A = H.shake * R * Math.min(1, sp / 20), wn = 2 * Math.PI * H.hz, zn = 0.45, g = (Math.random() + Math.random() + Math.random() - 1.5) * 2; // (about a normal deviate)
+  st.nv += (-wn * wn * st.n - 2 * zn * wn * st.nv) * dt + A * Math.sqrt(4 * zn * wn * wn * wn * dt) * g; st.n += st.nv * dt;
+  if (sp < 1) { st.n *= 0.9; st.nv *= 0.9; }
+  return clamp(st.d + (firm ? 0.7 : 1) * st.n, -1, 1);
 }
 // ---------- end grip steering ----------
 
@@ -20167,13 +20265,16 @@ function crowdReset() {
 // ==== THE CREW ====
 // The driver and the co-driver: seated people in suits, gloves, boots and helmets of their car's era, belted into their
 // seats, who drive and navigate the car the way crews of that era did. Each car carries them as one skinned mesh
-// (CrewMesh) beside the cabin's own: the two people, the steering wheel, the gear lever, the handbrake and the pedals,
-// on one skeleton, smooth-shaded. Everything here is drawn from the car's own cabin (where the driver's eye is, the
+// (CrewMesh) beside the cabin's own: the two people, their bucket seats, the padding on the cage's tubes near their
+// helmets, the steering wheel, the gear lever, the handbrake and the pedals, on one skeleton, smooth-shaded, their
+// suits' panels, helmets' paint and the like painted by its shaders (CREW_GLSL: four materials, one for each group of
+// parts, each shader holding only its own group's paint), their faces painted pictures whose eyes and mouths change
+// with the expression (crewFaceAtlas); and a light copy of it (CrewMeshLow) drawn instead from further off. Everything here is drawn from the car's own cabin (where the driver's eye is, the
 // seat, the floor, the roof, the wheel) and moved each frame from what the car and its driver are doing (CrewAnim).
 //
 // The era decides how the car is steered. The steering wheel turns by the car's steering ratio (turns lock to lock),
 // and the hands keep up with it the way drivers of the time did:
-//   classic (the 1970s cars): a big thin-rimmed wheel on a slow, heavy, unassisted rack, some 3.6 turns lock to lock.
+//   classic (the 1970s cars): a big thin-rimmed wheel on a heavy, unassisted rack, some 3 turns lock to lock.
 //     Wide, sweeping hand-over-hand; the thumbs kept outside the rim (a rock under a front wheel can snap the wheel round
 //     hard enough to break a thumb hooked round a spoke); hands from ten to two.
 //   golden (Group B, Group A, the kit cars): a smaller, thick suede rim on power-assisted, quicker racks (2.2 to 2.8
@@ -20188,7 +20289,7 @@ function crowdReset() {
 // hub stands, style), turns lock to lock, hub: where the wheel's hub stands ahead of the seat's middle (seatZ), tilt
 // (the wheel leans back from upright), helmets [driver, co-driver], mic (a boom microphone), hans
 const CREW_ERA = {
-  G4: { era: 'classic', turns: 3.6, wheel: { r: 0.19, t: 0.0105, dish: 0.035, style: 'classic' }, hub: 0.49, tilt: 0.48, helmet: ['open', 'open'], mic: [false, true], hans: false, peak: true },
+  G4: { era: 'classic', turns: 3.0, wheel: { r: 0.19, t: 0.0105, dish: 0.035, style: 'classic' }, hub: 0.49, tilt: 0.48, helmet: ['open', 'open'], mic: [false, true], hans: false, peak: true },
   B: { era: 'golden', turns: 2.8, wheel: { r: 0.175, t: 0.0155, dish: 0.085, style: 'dish' }, hub: 0.52, tilt: 0.42, helmet: ['open', 'open'], mic: [true, true], hans: false },
   A: { era: 'golden', turns: 2.6, wheel: { r: 0.175, t: 0.0155, dish: 0.08, style: 'dish' }, hub: 0.53, tilt: 0.42, helmet: ['full', 'open'], mic: [false, true], hans: false },
   F2: { era: 'golden', turns: 2.2, wheel: { r: 0.17, t: 0.0155, dish: 0.09, style: 'dish' }, hub: 0.53, tilt: 0.42, helmet: ['full', 'open'], mic: [false, true], hans: false },
@@ -20296,27 +20397,42 @@ function crewHold(R, t, phi, sd, psi) {
   return { X, Y, Z, W, P };
 }
 
-// ---- building the crew's mesh: positions, colours, roughness and up to four bones a vertex ----
-function crewGeo() {
-  const g = { p: [], c: [], r: [], si: [], sw: [], ix: [] };
-  g.v = (p, k, rh, w) => { const i = g.p.length / 3; g.p.push(p[0], p[1], p[2]); g.c.push(k[0], k[1], k[2]); g.r.push(rh);
+// ---- building the crew's mesh: positions, colours, roughness, up to four bones a vertex, and where the vertex lies
+// on its part for the paint (CREW_GLSL): aPat (three coordinates and the part's kind) and the part's second and third
+// colours (aCol2, aCol3; the vertex colour is the first). lod 1: the light mesh seen from further off ----
+const CREW_PAT = { trunk: 1, arm: 2, shoulder: 3, leg: 4, collar: 5, glove: 6, hand: 7, open: 8, full: 9, eye: 10, strap: 11, seat: 12, spiral: 13, watch: 14, page: 15, pad: 16, epaul: 17, face: 18 };
+const crewKind = (n, st) => CREW_PAT[n] + 32 * (st || 0);
+// (the group each kind is drawn in, each with its own material: 0 the suits and hands, 1 the helmets, 2 the faces, 3 the
+// seats, straps, pads, notes and watch)
+const CREW_GROUP = k => k === 18 ? 2 : k === 8 || k === 9 ? 1 : k >= 11 && k <= 16 ? 3 : 0;
+const CREW_P0 = [0, 0, 0, 0];
+function crewGeo(lod) {
+  const g = { p: [], c: [], r: [], si: [], sw: [], ix: [], pt: [], c2: [], c3: [], lod: lod || 0, pal: null };
+  // (the vertex: its place p, colour k, roughness rh, bones w ([[bone, weight], ...]), pattern pt ([a, b, c, kind]); the
+  // part's other two colours are g.pal's while it is set)
+  g.v = (p, k, rh, w, pt) => { const i = g.p.length / 3; g.p.push(p[0], p[1], p[2]); g.c.push(k[0], k[1], k[2]); g.r.push(rh);
+    const q = pt || CREW_P0, a = g.pal ? g.pal[0] : k, b = g.pal ? g.pal[1] : k; g.pt.push(q[0], q[1], q[2], q[3]); g.c2.push(a[0], a[1], a[2]); g.c3.push(b[0], b[1], b[2]);
     let s = 0; for (const e of w) s += e[1]; for (let j = 0; j < 4; j++) { const e = w[j]; g.si.push(e ? e[0] : 0); g.sw.push(e ? e[1] / (s || 1) : 0); } return i; };
+  // (a count of sides or rings for the light mesh: about half, never under m)
+  g.n = (n, m) => g.lod > 0 ? Math.max(m || 4, Math.round(n * 0.5)) : n;
   g.tri = (a, b, c) => g.ix.push(a, b, c);
   g.quad = (a, b, c, d) => g.ix.push(a, b, c, a, c, d);
   // a tube through rings, each { c: centre, X, Y: its axes, rx, ry, k: colour (or a function of the angle round), rh,
   // w: bones, sq: how square the section is (0 round) }; n sides; cap0 / cap1 close its ends (a point a little out
   // along the tube for a rounded end)
+  // (q.pt: the pattern at a ring's vertex, a function of the angle round, its cosine and sine, and the vertex's
+  // offsets x, y along the ring's axes)
   g.loft = (R, n, cap0, cap1) => {
     const rows = [];
     for (const q of R) { const row = [];
       for (let j = 0; j < n; j++) { const th = j / n * Math.PI * 2, cs = Math.cos(th), sn = Math.sin(th), e = 1 - (q.sq || 0) * 0.55;
         const x = Math.sign(cs) * Math.pow(Math.abs(cs), e) * q.rx, y = Math.sign(sn) * Math.pow(Math.abs(sn), e) * q.ry;
         const k = typeof q.k === 'function' ? q.k(th, cs, sn) : q.k;
-        row.push(g.v(cv3.at(q.c, q.X, q.Y, [0, 0, 0], x, y, 0), k, q.rh, typeof q.w === 'function' ? q.w(th, cs, sn) : q.w)); }
+        row.push(g.v(cv3.at(q.c, q.X, q.Y, [0, 0, 0], x, y, 0), k, q.rh, typeof q.w === 'function' ? q.w(th, cs, sn) : q.w, q.pt ? q.pt(th, cs, sn, x, y) : null)); }
       rows.push(row); }
     for (let i = 0; i + 1 < rows.length; i++) for (let j = 0; j < n; j++) g.quad(rows[i][j], rows[i + 1][j], rows[i + 1][(j + 1) % n], rows[i][(j + 1) % n]);
     // (a cap's point stands out along the tube, from the ring before the end one)
-    const cap = (row, q, q2, out) => { const ax = cv3.norm(cv3.sub(q.c, q2.c)), tip = g.v(cv3.madd(q.c, ax, out), typeof q.k === 'function' ? q.k(0, 1, 0) : q.k, q.rh, typeof q.w === 'function' ? q.w(0, 1, 0) : q.w);
+    const cap = (row, q, q2, out) => { const ax = cv3.norm(cv3.sub(q.c, q2.c)), tip = g.v(cv3.madd(q.c, ax, out), typeof q.k === 'function' ? q.k(0, 1, 0) : q.k, q.rh, typeof q.w === 'function' ? q.w(0, 1, 0) : q.w, q.pt ? q.pt(0, 0, 0, 0, 0) : null);
       for (let j = 0; j < n; j++) g.tri(row[j], row[(j + 1) % n], tip); };
     if (cap0 != null && cap0 !== false && R.length > 1) cap(rows[0], R[0], R[1], cap0 === true ? 0 : cap0);
     if (cap1 != null && cap1 !== false && R.length > 1) cap(rows[rows.length - 1], R[R.length - 1], R[R.length - 2], cap1 === true ? 0 : cap1);
@@ -20325,29 +20441,431 @@ function crewGeo() {
   // an ellipsoid on centre c with axes A, B, C (vectors as long as its radii: B its poles' axis), nu round by nv from
   // pole to pole; keep(x, y, z) says which of its quads to draw (x, y, z: where the quad's middle lies on the unit
   // sphere, along A, B, C); k, rh and w are given the same (or are those values)
-  g.blob = (c, A, B, C, nu, nv, k, rh, w, keep, warp) => {
+  g.blob = (c, A, B, C, nu, nv, k, rh, w, keep, warp, pt) => {
     const idx = [], f = v => typeof v === 'function' ? v : () => v, K = f(k), RH = f(rh), Wf = f(w);
     for (let i = 0; i <= nv; i++) { const row = [], th = i / nv * Math.PI, y = Math.cos(th), s = Math.sin(th);
       for (let j = 0; j < nu; j++) { const ph = j / nu * Math.PI * 2, x = s * Math.cos(ph), z = s * Math.sin(ph); let p = cv3.at(c, A, B, C, x, y, z); if (warp) p = warp(p, x, y, z);
-        row.push(g.v(p, K(x, y, z), RH(x, y, z), Wf(x, y, z))); }
+        row.push(g.v(p, K(x, y, z), RH(x, y, z), Wf(x, y, z), pt ? pt(x, y, z) : null)); }
       idx.push(row); }
     for (let i = 0; i < nv; i++) for (let j = 0; j < nu; j++) {
       const th = (i + 0.5) / nv * Math.PI, ph = (j + 0.5) / nu * Math.PI * 2, x = Math.sin(th) * Math.cos(ph), y = Math.cos(th), z = Math.sin(th) * Math.sin(ph);
       if (keep && !keep(x, y, z)) continue; g.quad(idx[i][j], idx[i + 1][j], idx[i + 1][(j + 1) % nu], idx[i][(j + 1) % nu]); }
   };
-  // a box on centre c, axes X Y Z (unit), half sizes h, its faces flat
-  g.box = (c, X, Y, Z, h, k, rh, w) => {
-    for (const [a, b, d] of [[X, Y, Z], [Y, Z, X], [Z, X, Y]]) for (const s of [-1, 1]) { const o = cv3.madd(c, a, s * h[[X, Y, Z].indexOf(a)]), hb = h[[X, Y, Z].indexOf(b)], hd = h[[X, Y, Z].indexOf(d)];
-      const q = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => g.v(cv3.madd(cv3.madd(o, b, u * hb), d, v * hd), k, rh, w)); g.quad(q[0], q[1], q[2], q[3]); }
+  // a box on centre c, axes X Y Z (unit), half sizes h, its faces flat (pt: the pattern, or a function of the corner's
+  // offsets along X, Y, Z)
+  g.box = (c, X, Y, Z, h, k, rh, w, pt) => {
+    const AX = [X, Y, Z];
+    for (const [ia, ib, id] of [[0, 1, 2], [1, 2, 0], [2, 0, 1]]) for (const s of [-1, 1]) { const o = cv3.madd(c, AX[ia], s * h[ia]), hb = h[ib], hd = h[id];
+      const q = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => { const off = [0, 0, 0]; off[ia] = s * h[ia]; off[ib] = u * hb; off[id] = v * hd;
+        return g.v(cv3.madd(cv3.madd(o, AX[ib], u * hb), AX[id], v * hd), k, rh, w, typeof pt === 'function' ? pt(off) : pt); }); g.quad(q[0], q[1], q[2], q[3]); }
   };
-  // a flat strip along a path of points, each { p, side (unit: across the strip), w }: a belt, a strap
-  g.strip = (pts, wd, k, rh) => { let prev = null;
-    for (const q of pts) { const a = g.v(cv3.madd(q.p, q.side, -wd / 2), k, rh, q.w), b = g.v(cv3.madd(q.p, q.side, wd / 2), k, rh, q.w); if (prev) g.quad(prev[0], a, b, prev[1]); prev = [a, b]; } };
+  // a flat strip along a path of points, each { p, side (unit: across the strip), w }: a belt, a strap (pt: the pattern
+  // at a point's edge, given which edge (-1, 1) and how far along the strip it lies)
+  g.strip = (pts, wd, k, rh, pt) => { let prev = null, along = 0;
+    pts.forEach((q, i) => { if (i) along += cv3.len(cv3.sub(q.p, pts[i - 1].p));
+      const a = g.v(cv3.madd(q.p, q.side, -wd / 2), k, rh, q.w, pt ? pt(-1, along) : null), b = g.v(cv3.madd(q.p, q.side, wd / 2), k, rh, q.w, pt ? pt(1, along) : null); if (prev) g.quad(prev[0], a, b, prev[1]); prev = [a, b]; }); };
   g.build = () => {
-    const G = new THREE.BufferGeometry(); G.setAttribute('position', new THREE.Float32BufferAttribute(g.p, 3)); G.setAttribute('color', new THREE.Float32BufferAttribute(g.c, 3));
+    const G = new THREE.BufferGeometry(), u8 = A => Uint8Array.from(A, v => Math.max(0, Math.min(255, Math.round(v * 255))));
+    G.setAttribute('position', new THREE.Float32BufferAttribute(g.p, 3)); G.setAttribute('color', new THREE.Float32BufferAttribute(g.c, 3));
     G.setAttribute('aRough', new THREE.Float32BufferAttribute(g.r, 1)); G.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(g.si, 4)); G.setAttribute('skinWeight', new THREE.Float32BufferAttribute(g.sw, 4));
-    G.setIndex(g.p.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(g.ix, 1) : new THREE.Uint16BufferAttribute(g.ix, 1)); G.computeVertexNormals(); return G; };
+    G.setAttribute('aPat', new THREE.Float32BufferAttribute(g.pt, 4)); G.setAttribute('aCol2', new THREE.BufferAttribute(u8(g.c2), 3, true)); G.setAttribute('aCol3', new THREE.BufferAttribute(u8(g.c3), 3, true));
+    // (the triangles sorted by their part's group, one draw for each: see crewMaterial)
+    const part = [], ix = []; for (let j = 0; j < CREW_GROUPS; j++) part.push([]);
+    for (let i = 0; i < g.ix.length; i += 3) { const w = g.pt[g.ix[i] * 4 + 3], st = Math.floor(w / 32 + 0.001); part[CREW_GROUP(Math.floor(w - st * 32 + 0.5))].push(g.ix[i], g.ix[i + 1], g.ix[i + 2]); }
+    for (let j = 0; j < CREW_GROUPS; j++) { if (part[j].length) G.addGroup(ix.length, part[j].length, j); for (const v of part[j]) ix.push(v); }
+    G.setIndex(g.p.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(ix, 1) : new THREE.Uint16BufferAttribute(ix, 1)); G.computeVertexNormals(); return G; };
   return g;
+}
+
+// ---- the faces, painted ----
+// Each face is a smooth low-polygon mask carrying a painted picture, in the manner of the best late-1990s console
+// faces: the skin's light and shade painted in (the sockets, the nose's sides and shadow, the cheeks' warmth and the
+// folds beside the mouth, the chin), the brows hair by hair, a day's stubble on some; and its eyes and mouth are small
+// pictures of their own, one for each expression, swapped as the face changes (CREW_GLSL picks them): the eyes open,
+// half shut (reading, looking down), shut (a blink), wide (a fright) and narrowed (a grimace), over the eyeball (its
+// iris and pupil slid about as the eyes look round); the mouth shut, talking, wide open (a shout or a cheer), smiling,
+// and with the teeth clenched. One picture per car (512 x 512) holds both of its crew's faces and expressions:
+//   faces: the driver's at (0, 0), the co-driver's at (192, 0), each 192 x 256, the face from x -0.08 to 0.08 m, y
+//     -0.112 to 0.13 m (the head's frame: x to the person's left, y up);
+//   eyeballs: at (388, 4) and (388, 48), 64 x 40; lids for each of the five states at (4 + 68 s, 260 + 44 p), 64 x 40,
+//     each the left eye's box (from its middle at x 0.031, y 0.045, 0.017 m either way across and 0.011 up and down; the
+//     right eye is its mirror), see-through where the eyeball shows;
+//   mouths for each of the five states at (4 + 100 s, 348 + 64 p), 96 x 60, the box 0.033 m either way across and 0.021
+//     up and down from the mouth's middle at y -0.0375.
+const CREW_ATLAS = { N: 512, face: { w: 192, h: 256, box: [-0.08, 0.08, -0.112, 0.13] }, eye: { c: [0.031, 0.045], h: [0.017, 0.011], w: 64, ht: 40 }, mouth: { c: [0, -0.0375], h: [0.033, 0.021], w: 96, ht: 60 } };
+function crewFaceAtlas(Lk) {
+  // (painted on the processor, not the graphics chip: a canvas the browser keeps on the chip records its thousands of
+  // small strokes and draws them all at once later, holding up the frames for a second or more on a modest chip)
+  const A = CREW_ATLAS, cv = document.createElement('canvas'); cv.width = cv.height = A.N; const x = cv.getContext('2d', { willReadFrequently: true });
+  const css = (k, a) => `rgba(${Math.round(k[0] * 255)},${Math.round(k[1] * 255)},${Math.round(k[2] * 255)},${a == null ? 1 : a})`, mx = (a, b, t) => [0, 1, 2].map(i => a[i] + (b[i] - a[i]) * t);
+  // (a window: the canvas rectangle [px, py, w, h] showing the face from x0 to x1, y0 to y1, metres)
+  const win = (r, b) => { x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(r[0], r[1], r[2], r[3]); x.clip(); const sx = r[2] / (b[1] - b[0]), sy = r[3] / (b[3] - b[2]); x.setTransform(sx, 0, 0, -sy, r[0] - b[0] * sx, r[1] + b[3] * sy); return { b, sx }; };
+  // (a soft spot: an ellipse at c, radii r, its colour k at the middle fading to nothing at its edge (from a share
+  // inner of the way out), turned by rot)
+  const blob = (cx, cy, rx, ry, k, a, inner, rot) => { x.save(); x.translate(cx, cy); if (rot) x.rotate(rot); x.scale(rx, ry); const gr = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gr.addColorStop(0, css(k, a)); gr.addColorStop(Math.min(0.95, inner || 0), css(k, a)); gr.addColorStop(1, css(k, 0)); x.fillStyle = gr; x.fillRect(-1, -1, 2, 2); x.restore(); };
+  // (a soft line through points: strokes narrowing and darkening toward its middle)
+  const soft = (pts, wd, k, a) => { for (let i = 1; i <= 4; i++) { x.beginPath(); pts.forEach((p, j) => j ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = wd * (1.25 - i * 0.25); x.strokeStyle = css(k, a / 3); x.stroke(); } };
+  const bez = (p0, p1, p2, p3, n) => { const out = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; out.push([u * u * u * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t * t * t * p3[0], u * u * u * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t * t * t * p3[1]]); } return out; };
+  const rng = seed => { let s = seed >>> 0 || 1; return () => { s = Math.imul(s ^ (s >>> 15), 2246822507) ^ Math.imul(s ^ (s >>> 13), 3266489909); s ^= s >>> 16; return (s >>> 0) / 4294967296; }; };
+  // ---- the face without its eyes and mouth (b: the window's bounds, to skip the specks outside it) ----
+  const face = (P, b, seed) => {
+    const sk = P.skin, dk = mx(sk, [0.1, 0.05, 0.05], 0.55), lt = mx(sk, [1, 0.96, 0.9], 0.4), cool = mx(sk, [0.25, 0.2, 0.28], 0.6), V = P.var || [1, 1, 1, 1];
+    x.fillStyle = css(sk); x.fillRect(-0.3, -0.3, 0.6, 0.6);
+    // (the form: the sides, the temples and the jaw turning away from the light, the forehead, the nose and the
+    // cheekbones toward it; the sockets deep under the brows' ridge, the cheeks hollow under the bones)
+    for (const s of [1, -1]) { const g = x.createLinearGradient(s * 0.034, 0, s * 0.08, 0); g.addColorStop(0, css(dk, 0)); g.addColorStop(1, css(dk, 0.55)); x.fillStyle = g; x.fillRect(s > 0 ? 0.034 : -0.2, -0.3, 0.166, 0.6); }
+    { const g = x.createLinearGradient(0, -0.066, 0, -0.112); g.addColorStop(0, css(dk, 0)); g.addColorStop(1, css(dk, 0.45)); x.fillStyle = g; x.fillRect(-0.2, -0.3, 0.4, 0.234); }
+    blob(0, 0.088, 0.042, 0.026, lt, 0.34); blob(0, 0.035, 0.026, 0.05, lt, 0.14);
+    for (const s of [1, -1]) {
+      blob(s * 0.06, 0.05, 0.016, 0.03, dk, 0.3); // (the temple)
+      blob(s * 0.03, 0.045, 0.019, 0.014, cool, 0.5, 0.3); blob(s * 0.018, 0.048, 0.006, 0.008, cool, 0.5); // (the eye's socket, deepest by the nose)
+      blob(s * 0.03, 0.055, 0.024, 0.0065, dk, 0.55); blob(s * 0.032, 0.074, 0.022, 0.006, lt, 0.3); // (under the brow's ridge; over it)
+      blob(s * 0.043, 0.016, 0.015, 0.009, lt, 0.2); blob(s * 0.047, -0.021, 0.014, 0.013, dk, 0.22); // (the cheekbone's light, the hollow under it)
+      blob(s * 0.052, -0.07, 0.022, 0.03, dk, 0.22); // (the jaw)
+      blob(s * 0.043, -0.006, 0.019, 0.017, P.blush, 0.38, 0.1); // (the cheek's warmth)
+      blob(s * 0.0128 * V[1], 0.012, 0.0075, 0.022, dk, 0.32); // (the nose's side)
+      blob(s * 0.0118, -0.0152, 0.006, 0.0052, P.blush, 0.45); blob(s * 0.0118, -0.0152, 0.0062, 0.0055, dk, 0.18); // (its wing)
+      soft(bez([s * 0.0145, -0.012], [s * 0.0205, -0.019], [s * 0.025, -0.029], [s * 0.0265, -0.04], 10), 0.0042, dk, 0.2); // (the fold toward the mouth's corner)
+      soft([[s * 0.0042, -0.0236], [s * 0.0052, -0.031]], 0.0018, dk, 0.22); // (the groove over the lip)
+      blob(s * 0.0071, -0.0205, 0.0028, 0.0014, [0.06, 0.03, 0.03], 0.85, 0.45, s * 0.35); } // (the nostril)
+    blob(0, 0.022, 0.003 * V[1], 0.016, lt, 0.22, 0.2); blob(0, -0.0072, 0.0068 * V[1], 0.0054, lt, 0.45); blob(0, -0.0068, 0.008, 0.006, P.blush, 0.2); // (the nose's bridge and tip)
+    blob(0, 0.05, 0.007, 0.006, dk, 0.22); // (between the brows)
+    blob(0, -0.0235, 0.013, 0.0038, dk, 0.65); // (the shadow under the nose)
+    blob(0, -0.0505, 0.014, 0.0045, dk, 0.55); blob(0, -0.083, 0.017, 0.011, lt, 0.2); // (under the lower lip; the chin)
+    // (the skin's grain, and a day's stubble on some)
+    const R = rng(seed), inb = (px, py) => px > b[0] - 0.002 && px < b[1] + 0.002 && py > b[2] - 0.002 && py < b[3] + 0.002;
+    const gD = css(dk, 0.18), gL = css(lt, 0.18);
+    for (let i = 0; i < 1800; i++) { const px = (R() - 0.5) * 0.16, py = -0.112 + R() * 0.242, v = R(); if (inb(px, py)) { x.fillStyle = v < 0.5 ? gD : gL; x.fillRect(px, py, 0.0006, 0.0006); } }
+    if (P.stub) { const st = mx(sk, P.brow, 0.62), inBeard = (px, py) => py < -0.013 - 0.12 * Math.max(0, Math.abs(px) - 0.045) && !(Math.abs(py + 0.0375) < 0.0095 && Math.abs(px) < 0.026) && !(py > -0.026 && Math.abs(px) < 0.012);
+      x.save(); x.beginPath(); x.rect(-0.08, -0.12, 0.16, 0.107); x.clip(); blob(0, -0.06, 0.07, 0.05, st, 0.16, 0.3); x.restore();
+      const sC = [0.3, 0.4, 0.5, 0.6].map(a => css(st, a));
+      for (let i = 0; i < 4200; i++) { const px = (R() - 0.5) * 0.15, py = -0.112 + R() * 0.1, v = R(); if (inBeard(px, py) && inb(px, py)) { x.fillStyle = sC[Math.min(3, Math.floor(v * 4))]; x.fillRect(px, py, 0.00045, 0.00045); } } }
+    // (the brows: a soft fill under hairs drawn one by one, slanting outward, thick at the inner end)
+    const BR = rng(seed + 7);
+    for (const s of [1, -1]) { const arch = t => [s * (0.0115 + 0.0425 * t), 0.0645 + 0.0085 * V[0] * Math.sin(Math.PI * Math.min(1, t * 1.25)) - 0.003 * t], th = t => (0.0062 * (1 - t) + 0.0022 * t) * V[2];
+      x.beginPath(); for (let i = 0; i <= 12; i++) { const t = i / 12, p = arch(t); x.lineTo(p[0], p[1] + th(t) / 2); } for (let i = 12; i >= 0; i--) { const t = i / 12, p = arch(t); x.lineTo(p[0], p[1] - th(t) / 2); } x.closePath(); x.fillStyle = css(P.brow, 0.7); x.fill();
+      x.lineCap = 'round'; for (let i = 0; i < 80; i++) { const t = BR(), p = arch(t), o = (BR() - 0.5) * th(t), ang = (t < 0.25 ? 1.25 : 0.4) + (BR() - 0.5) * 0.4, l = 0.0035 + BR() * 0.002;
+        x.beginPath(); x.moveTo(p[0] - s * Math.cos(ang) * l * 0.5, p[1] + o - Math.sin(ang) * l * 0.5); x.lineTo(p[0] + s * Math.cos(ang) * l * 0.5, p[1] + o + Math.sin(ang) * l * 0.5); x.lineWidth = 0.00045; x.strokeStyle = css(mx(P.brow, [0, 0, 0], 0.3), 0.7); x.stroke(); } } };
+  // ---- an eye's opening for a state (in the left eye's box: u outward from its middle, v up): the upper and lower lids'
+  // curves, from the inner corner to the outer ----
+  const EYE = [[0.0068, -0.0062], [0.0034, -0.0064], [-0.0006, -0.0012], [0.0098, -0.0074], [0.0044, -0.0032]], ec = A.eye.c;
+  const lids = s => { const [up, lo] = EYE[s], I = [ec[0] - 0.0145, ec[1] - 0.0004], O = [ec[0] + 0.0148, ec[1] + 0.0012];
+    return { I, O, upper: bez(I, [ec[0] - 0.008, ec[1] + up * 1.05], [ec[0] + 0.0062, ec[1] + up], O, 16), lower: bez(O, [ec[0] + 0.007, ec[1] + lo * 1.1], [ec[0] - 0.006, ec[1] + lo], I, 16) }; };
+  const eyePaint = (P, s, ball) => { const L = lids(s), sk = P.skin, dk = mx(sk, [0.1, 0.05, 0.05], 0.55), lash = mx(P.brow, [0.03, 0.02, 0.02], 0.45), up = EYE[s][0];
+    // (the lid's skin catching the light; its crease above; a narrowed eye's lines at its corner)
+    blob(ec[0], ec[1] + Math.max(0.002, up * 0.75) + 0.0028, 0.012, 0.004, mx(sk, [1, 0.95, 0.92], 0.3), 0.35);
+    if (s !== 2) soft(L.upper.map(p => [p[0], p[1] + (s === 3 ? 0.0032 : 0.0043) + 0.0008 * Math.sin(Math.PI * (p[0] - L.I[0]) / 0.03)]), 0.0016, dk, 0.42);
+    else soft(L.upper.map(p => [p[0], p[1] + 0.0058]), 0.0014, dk, 0.25);
+    if (s === 4) for (const a of [-0.35, 0, 0.35]) soft([[L.O[0] + 0.002, L.O[1] + a * 0.003], [L.O[0] + 0.0065, L.O[1] + a * 0.008]], 0.0008, dk, 0.35);
+    soft(L.lower.map(p => [p[0], p[1] - 0.0022]), 0.0026, mx(sk, [0.35, 0.25, 0.35], 0.4), 0.22); // (the lower lid's soft fold)
+    if (s !== 2) {
+      const path = () => { x.beginPath(); L.upper.forEach((p, j) => j ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); L.lower.forEach(p => x.lineTo(p[0], p[1])); x.closePath(); };
+      // (the opening cut through to the eyeball, or the eyeball painted in it; the upper lid's shadow over its top, the
+      // pink inner corner)
+      if (ball) { x.save(); path(); x.clip(); ball(); x.restore(); }
+      else { x.save(); x.globalCompositeOperation = 'destination-out'; path(); x.fillStyle = '#000'; x.fill(); x.restore(); }
+      x.save(); path(); x.clip(); const yT = ec[1] + up * 0.78, g = x.createLinearGradient(0, yT, 0, yT - 0.0034); g.addColorStop(0, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(ec[0] - 0.02, yT - 0.0034, 0.04, 0.008);
+      blob(L.I[0] + 0.0012, L.I[1] + 0.0002, 0.0024, 0.0019, mx(sk, [0.85, 0.42, 0.42], 0.55), 1, 0.35); x.restore();
+      soft(L.lower, 0.0006, mx(sk, [0.2, 0.12, 0.12], 0.5), 0.55); } // (the lower lashes' line)
+    // (the upper lashes' line, heavier toward the outer corner, a few lashes flicked up at the outer end)
+    const U = L.upper; x.lineCap = 'round';
+    soft(U.map(p => [p[0], p[1] + 0.0009]), 0.0016, mx(sk, [1, 0.92, 0.88], 0.15), 0.35); // (the lid's rim)
+    for (let i = 1; i < U.length; i++) { const t = i / (U.length - 1), wd = 0.00045 + 0.0008 * Math.sin(Math.PI * Math.min(1, t * 0.85 + 0.1)) + (s === 2 ? 0.0003 : 0);
+      for (const [f, a] of [[1.8, 0.22], [1, 0.75]]) { x.beginPath(); x.moveTo(U[i - 1][0], U[i - 1][1]); x.lineTo(U[i][0], U[i][1]); x.lineWidth = wd * f; x.strokeStyle = css(lash, a); x.stroke(); } }
+    if (s !== 2) for (let i = 9; i < U.length; i += 2) { const p = U[i]; x.beginPath(); x.moveTo(p[0], p[1]); x.lineTo(p[0] + 0.0011, p[1] + 0.0014 + (i / U.length) * 0.0006); x.lineWidth = 0.00035; x.strokeStyle = css(lash, 0.8); x.stroke(); } };
+  // ---- the eyeball: the white (shaded as it curves away, pinker at the corners), the iris (its rim dark, streaked,
+  // lighter round the pupil), the pupil, the window's light caught in it ----
+  const ballPaint = (P, seed) => { const ir = P.iris, wh = mx([0.94, 0.91, 0.87], P.skin, 0.12), R = rng(seed + 3), cx = ec[0], cy = ec[1];
+    x.fillStyle = css(wh); x.fillRect(cx - 0.03, cy - 0.02, 0.06, 0.04);
+    for (const s of [1, -1]) { const g = x.createLinearGradient(cx + s * 0.006, 0, cx + s * 0.016, 0); g.addColorStop(0, css([0.55, 0.42, 0.42], 0)); g.addColorStop(1, css([0.55, 0.42, 0.42], 0.45)); x.fillStyle = g; x.fillRect(s > 0 ? cx + 0.006 : cx - 0.03, cy - 0.02, 0.024, 0.04); }
+    const g = x.createRadialGradient(cx, cy, 0.0018, cx, cy, 0.0058); g.addColorStop(0, css(mx(ir, [1, 0.95, 0.8], 0.25))); g.addColorStop(0.55, css(ir)); g.addColorStop(0.82, css(mx(ir, [0, 0, 0], 0.25))); g.addColorStop(1, css(mx(ir, [0, 0, 0], 0.62)));
+    x.beginPath(); x.arc(cx, cy, 0.0058, 0, Math.PI * 2); x.fillStyle = g; x.fill();
+    x.lineCap = 'round'; for (let i = 0; i < 46; i++) { const a = R() * Math.PI * 2, r0 = 0.0024 + R() * 0.001, r1 = 0.0042 + R() * 0.0013; x.beginPath(); x.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); x.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); x.lineWidth = 0.00028; x.strokeStyle = css(R() < 0.5 ? mx(ir, [1, 1, 0.9], 0.3) : mx(ir, [0, 0, 0], 0.4), 0.45); x.stroke(); }
+    x.beginPath(); x.arc(cx, cy, 0.0022, 0, Math.PI * 2); x.fillStyle = css([0.025, 0.02, 0.02]); x.fill();
+    blob(cx - 0.0017, cy + 0.0021, 0.0011, 0.0009, [1, 1, 1], 0.95, 0.55); blob(cx + 0.0018, cy - 0.0016, 0.0005, 0.0004, [1, 1, 1], 0.5, 0.4); };
+  // ---- the mouth for a state: [half-width, the corners' rise, how far open in the middle, teeth shown (1 the upper, 2
+  // both, 3 both clenched)] ----
+  const MOUTH = [[0.0235, -0.0005, 0, 0], [0.0225, -0.0003, 0.0044, 1], [0.0238, -0.0012, 0.0158, 2], [0.0272, 0.0058, 0.0046, 1], [0.0258, -0.0026, 0.0046, 3]];
+  const mouthPaint = (P, s) => { const [w, cyR, oh, teeth] = MOUTH[s], my = A.mouth.c[1], sk = P.skin, lip = P.lips, dk = mx(sk, [0.1, 0.05, 0.05], 0.5);
+    const V = P.var || [1, 1, 1, 1], at = (u, v) => [u, my + v], up = (s === 3 ? 0.85 : 1) * V[3];
+    // (the opening's edges, and the lips' outer edges: the upper lip's bow, the fuller lower lip)
+    const ro = oh > 0.008 ? 0.72 : 0.45, oTop = bez(at(-w, cyR), at(-w * ro, cyR + oh * 0.6), at(w * ro, cyR + oh * 0.6), at(w, cyR), 14), oBot = bez(at(w, cyR), at(w * ro, cyR - oh * 0.8), at(-w * ro, cyR - oh * 0.8), at(-w, cyR), 14);
+    const lift = Math.max(0, cyR) * 0.55, uTop = [at(-w, cyR), ...bez(at(-w * 0.8, cyR + 0.002 * up), at(-0.011, 0.0058 * up + oh * 0.5 + lift), at(-0.0075, 0.0066 * up + oh * 0.5 + lift), at(-0.0035, 0.0062 * up + oh * 0.5 + lift), 6), at(0, 0.0052 * up + oh * 0.5 + lift),
+      ...bez(at(0.0035, 0.0062 * up + oh * 0.5 + lift), at(0.0075, 0.0066 * up + oh * 0.5 + lift), at(0.011, 0.0058 * up + oh * 0.5 + lift), at(w * 0.8, cyR + 0.002 * up), 6), at(w, cyR)];
+    const lBot = bez(at(w, cyR), at(w * 0.55, cyR - 0.009 * up - oh * 0.75), at(-w * 0.55, cyR - 0.009 * up - oh * 0.75), at(-w, cyR), 14);
+    const poly = (pts, k, a) => { x.beginPath(); pts.forEach((p, j) => j ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); x.fillStyle = css(k, a == null ? 1 : a); x.fill(); };
+    if (s === 3) for (const sd of [1, -1]) { soft(bez([sd * 0.0142, -0.0115], [sd * 0.022, -0.02], [sd * 0.0285, -0.03], [sd * 0.0295, -0.043], 10), 0.0034, dk, 0.4); blob(sd * (w + 0.0035), my + cyR - 0.001, 0.0025, 0.004, dk, 0.35); }
+    if (s === 4) for (const sd of [1, -1]) blob(sd * (w + 0.002), my + cyR - 0.004, 0.003, 0.005, dk, 0.3);
+    poly([...uTop, ...oTop.slice().reverse()], mx(lip, [0.1, 0.03, 0.03], 0.28)); // (the upper lip, in the shade of the nose)
+    poly([...oBot.slice().reverse(), ...lBot.slice(1)], mx(lip, [0.42, 0.12, 0.12], 0.08)); // (the lower lip)
+    soft(lBot, 0.0012, mx(lip, [0.1, 0.03, 0.03], 0.4), 0.3);
+    blob(0, my + cyR - oh * 0.5 - 0.0045 * up, w * 0.42, 0.0022, mx(lip, [1, 0.95, 0.9], 0.3), 0.5); // (its sheen)
+    soft(uTop, 0.0007, mx(lip, [1, 0.9, 0.85], 0.2), 0.35); // (the upper lip's pale edge)
+    if (oh > 0.001) {
+      poly([...oTop, ...oBot.slice(1)], [0.13, 0.045, 0.045]);
+      x.save(); x.beginPath(); [...oTop, ...oBot.slice(1)].forEach((p, j) => j ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); x.clip();
+      const tooth = [0.9, 0.87, 0.8], yT = my + cyR + oh * 0.42, tH = teeth === 3 ? oh * 0.5 : Math.min(0.0038, oh * 0.45);
+      x.fillStyle = css(tooth); x.fillRect(-w * 0.62, yT - tH, w * 1.24, tH + 0.002);
+      if (teeth >= 2) { const yB = my + cyR - oh * 0.6; x.fillStyle = css(mx(tooth, [0.5, 0.45, 0.4], 0.25)); x.fillRect(-w * 0.55, yB, w * 1.1, teeth === 3 ? oh * 0.55 : Math.min(0.0028, oh * 0.3)); }
+      for (let i = -3; i <= 3; i++) { x.fillStyle = css([0.5, 0.45, 0.4], 0.45); x.fillRect(i * 0.0042 - 0.0002, yT - tH, 0.0004, tH + (teeth >= 2 ? 0.02 : 0.0004)); }
+      if (teeth === 2) blob(0, my + cyR - oh * 0.45, w * 0.45, oh * 0.22, [0.45, 0.12, 0.13], 0.85, 0.3); // (the tongue)
+      const g = x.createLinearGradient(0, my + cyR + oh * 0.55, 0, my + cyR + oh * 0.55 - 0.0025); g.addColorStop(0, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(-w, my + cyR + oh * 0.55 - 0.0025, 2 * w, 0.0025);
+      x.restore(); }
+    else soft(oTop, 0.0011, mx(lip, [0.05, 0.02, 0.02], 0.7), 0.85); // (shut: the line between the lips)
+    for (const sd of [1, -1]) blob(sd * w, my + cyR, 0.0016, 0.0013, [0.1, 0.04, 0.04], 0.5, 0.2); }; // (the corners)
+  // ---- the whole picture: both faces, their eyeballs, lids and mouths ----
+  const people = [Lk.D, Lk.C], E = A.eye, M = A.mouth;
+  people.forEach((P, pi) => { const seed = (P.seed || 1) + pi * 977, F = A.face;
+    // (the face's own picture, its eyes open (the eyeball filled in behind the lids) and its mouth shut)
+    x.save(); const w0 = win([pi * 192, 0, F.w, F.h], F.box); face(P, w0.b, seed);
+    for (const sd of [1, -1]) { x.save(); if (sd < 0) x.scale(-1, 1); eyePaint(P, 0, () => ballPaint(P, seed)); x.restore(); }
+    mouthPaint(P, 0); x.restore();
+    x.save(); win([388, 4 + pi * 44, E.w, E.ht], [E.c[0] - E.h[0], E.c[0] + E.h[0], E.c[1] - E.h[1], E.c[1] + E.h[1]]); ballPaint(P, seed); x.restore();
+    for (let s = 0; s < 5; s++) { x.save(); const w1 = win([4 + s * 68, 260 + pi * 44, E.w, E.ht], [E.c[0] - E.h[0], E.c[0] + E.h[0], E.c[1] - E.h[1], E.c[1] + E.h[1]]); face(P, w1.b, seed); eyePaint(P, s); x.restore(); }
+    for (let s = 0; s < 5; s++) { x.save(); const w2 = win([4 + s * 100, 348 + pi * 64, M.w, M.ht], [M.c[0] - M.h[0], M.c[0] + M.h[0], M.c[1] - M.h[1], M.c[1] + M.h[1]]); face(P, w2.b, seed); mouthPaint(P, s); x.restore(); } });
+  x.setTransform(1, 0, 0, 1, 0, 0); return cv;
+}
+
+// ---- the crew's paint ----
+// Each vertex says where it lies on its part (aPat: three coordinates and the part's kind, plus 32 times the era's
+// style: 0 the 1970s, 1 the 1980s and 1990s, 2 modern) and carries the part's three colours; the fragment shader draws
+// the part's panels, piping, stitching, badges and edges from those, crisp at any distance (each edge one pixel soft)
+// and without any texture. It also gives each part its roughness and shine, a cloth's sheen at grazing angles, and a
+// little relief (seams, ribs, a zip) through the shading normal.
+const CREW_GLSL_V = `attribute float aRough; attribute vec4 aPat; attribute vec3 aCol2; attribute vec3 aCol3;
+varying vec4 vPat; varying vec4 vCol2; varying vec3 vCol3;
+`;
+const CREW_GLSL_F = `#ifndef CR_G
+#define CR_G 9
+#endif
+varying vec4 vPat; varying vec4 vCol2; varying vec3 vCol3;
+uniform sampler2D uFace; uniform vec4 uExD; uniform vec4 uExC;
+float crR; float crM; float crH; float crS;
+// (the faces' picture, by its pixels, its colours held premultiplied by their cover)
+vec4 crTex(vec2 px) { return texture2D(uFace, vec2(px.x / 512.0, 1.0 - px.y / 512.0)); }
+float crA(float e, float v, float w) { return clamp((v - e) / max(w, 1e-6) + 0.5, 0.0, 1.0); }
+float crB(float a, float b, float v, float w) { return crA(a, v, w) * (1.0 - crA(b, v, w)); }
+float crHash(float n) { return fract(sin(n * 12.9898 + 4.1414) * 43758.5453); }
+vec3 crBump(vec3 sp, vec3 n, vec2 dh, float fd) {
+  vec3 sx = dFdx(sp), sy = dFdy(sp), r1 = cross(sy, n), r2 = cross(n, sx); float det = dot(sx, r1) * fd;
+  return normalize(abs(det) * n - sign(det) * (dh.x * r1 + dh.y * r2));
+}
+#if CR_G == 1 || CR_G == 9
+// the helmets' paint over the shell (d: the direction on the shell; st: the style; full: a full-faced helmet)
+vec3 crHelmet(vec3 c1, vec3 c2, vec3 c3, vec3 d, vec3 w, float st, float full) {
+  vec3 col = c1; float ax = abs(d.x), wv = w.x + w.y + w.z;
+  if (full > 0.5) {
+    // (a band sweeping up the side from the chin bar to the back, a stripe over the crown, a pin line beside each)
+    float sw = d.y + 0.62 * d.z, side = crA(0.28, ax, wv);
+    col = mix(col, c2, crB(-0.05, 0.3, sw, wv) * side); col = mix(col, c3, (crB(-0.11, -0.05, sw, wv) + crB(0.3, 0.36, sw, wv)) * side);
+    col = mix(col, c2, (1.0 - crA(0.1, ax, wv)) * crA(0.38, d.y, wv)); col = mix(col, c3, crB(0.1, 0.14, ax, wv) * crA(0.4, d.y, wv));
+    // (the raised visor over the eye port, tinted; its pivots; vents on the crown and in the chin bar)
+    float vz = crA(0.3, d.z, wv), ev = pow(ax / 0.86, 5.0) + pow(abs(d.y - 0.37) / 0.13, 5.0), vi = (1.0 - crA(1.0, ev, wv * 6.0)) * vz;
+    col = mix(col, vec3(0.06, 0.07, 0.08), vi); crR = mix(crR, 0.06, vi); crM = mix(crM, 0.5, vi);
+    float pv = (1.0 - crA(0.075, length(vec2(d.y - 0.12, d.z - 0.05)), wv)) * crA(0.9, ax, wv); col = mix(col, vec3(0.12), pv);
+    float vt = crB(0.06, 0.15, ax, wv) * crB(0.12, 0.36, d.z, wv) * crA(0.9, d.y, wv); col = mix(col, vec3(0.05), vt); crH -= vt * 0.001;
+    float vc = crB(0.04, 0.2, ax, wv) * crB(-0.56, -0.47, d.y, wv) * crA(0.75, d.z, wv) * step(0.5, fract(d.x * 22.0)); col = mix(col, vec3(0.05), vc); crH -= vc * 0.001;
+  } else if (st < 0.5) {
+    // (the 1970s: a stripe over the crown, a band round the foot)
+    col = mix(col, c2, (1.0 - crA(0.11, ax, wv)) * crA(0.2, d.y, wv)); col = mix(col, c2, crB(-0.47, -0.36, d.y, wv));
+  } else {
+    // (twin stripes over the crown, a band round the side with a pin line under it)
+    col = mix(col, c2, crB(0.04, 0.13, ax, wv) * crA(0.15, d.y, wv)); col = mix(col, c3, (1.0 - crA(0.04, ax, wv)) * crA(0.15, d.y, wv));
+    col = mix(col, c2, crB(-0.4, -0.26, d.y, wv)); col = mix(col, c3, crB(-0.46, -0.42, d.y, wv));
+  }
+  return col;
+}
+// a helmet's shell (the direction on it; how far in it lies, in the kind's fraction: the lining inside (0.45), the
+// rubber edge between it and the painted outside (0))
+vec3 crShell(vec3 c1, vec3 c2, vec3 c3, vec4 P, vec4 W, float st, float k) {
+  float inn = P.w - (st * 32.0 + k); vec3 d = normalize(P.xyz), w = W.xyz;
+  float ou = 1.0 - crA(0.05, inn, 0.02), ln = crA(0.36, inn, 0.02);
+  vec3 pc = crHelmet(c1, c2, c3, d, w, st, k > 8.5 ? 1.0 : 0.0);
+  crR = mix(mix(0.55, 0.95, ln), crR, ou); crM = mix(0.0, crM, ou); crS = ln * 0.2;
+  return mix(mix(vec3(0.03, 0.03, 0.033), vec3(0.08, 0.08, 0.085), ln), pc, ou);
+}
+#endif
+#if CR_G == 2 || CR_G == 9
+// the face (x across, y up, m, the head's frame; c: 1 under a full-faced helmet, + 2 the co-driver): its painted
+// picture (crewFaceAtlas), the eyes' lids of the expression over the eyeball (its iris slid by the gaze), the mouth
+// of the expression; the balaclava's opening and its hem over it, crisp
+vec3 crFace(vec3 c2, vec4 P, vec4 W) {
+  float x = P.x, y = P.y, ax = abs(x), fl = floor(P.z + 0.5), slot = mod(fl, 2.0), who = step(1.5, fl);
+  vec4 ex = who > 0.5 ? uExC : uExD; float es = floor(ex.x + 0.5), ms = floor(ex.y + 0.5);
+  vec2 el = vec2(ax - 0.031, y - 0.045), bl = el - vec2(sign(x) * ex.z, ex.w), ml = vec2(x, y + 0.0375);
+  vec4 tf = crTex(vec2(who * 192.0 + (x + 0.08) * 1200.0, (0.13 - y) * 1057.85));
+  vec4 tl = crTex(vec2(4.0 + es * 68.0 + clamp((el.x + 0.017) * 1882.35, 0.5, 63.5), 260.0 + who * 44.0 + clamp((0.011 - el.y) * 1818.18, 0.5, 39.5)));
+  vec4 tb = crTex(vec2(388.0 + clamp((bl.x + 0.017) * 1882.35, 0.5, 63.5), 4.0 + who * 44.0 + clamp((0.011 - bl.y) * 1818.18, 0.5, 39.5)));
+  vec4 tm = crTex(vec2(4.0 + ms * 100.0 + clamp((ml.x + 0.033) * 1454.55, 0.5, 95.5), 348.0 + who * 64.0 + clamp((0.021 - ml.y) * 1428.57, 0.5, 59.5)));
+  float inE = step(abs(el.x), 0.0168) * step(abs(el.y), 0.0108), inM = step(abs(ml.x), 0.0328) * step(abs(ml.y), 0.0208);
+  vec3 col = mix(mix(tf.rgb, tl.rgb + tb.rgb * (1.0 - tl.a), inE), tm.rgb, inM);
+  float c, wc; vec2 q;
+  if (slot > 0.5) { q = vec2(ax / 0.061, abs(y - 0.047) / 0.025); c = pow(q.x, 4.0) + pow(q.y, 4.0); wc = 4.0 * (pow(q.x, 3.0) * W.x / 0.061 + pow(q.y, 3.0) * W.y / 0.025); }
+  else { q = vec2(ax / 0.055, abs(y - 0.016) / 0.069); c = pow(q.x, 4.0) + pow(q.y, 4.0); wc = 4.0 * (pow(q.x, 3.0) * W.x / 0.055 + pow(q.y, 3.0) * W.y / 0.069); }
+  float hm = crA(1.0, c, wc), cl = crA(1.22, c, wc);
+  crR = mix(0.62, 0.92, hm); crS = mix(0.06, 0.2, cl); crH += hm * 0.0004;
+  return mix(mix(col, vec3(0.45) * 0.5 + c2 * 0.5, hm), c2, cl);
+}
+#endif
+// (each of the crew's four materials draws its own parts, and its shader holds only their paint: CR_G 0 the suits and
+// hands, 1 the helmets, 2 the faces, 3 the seats, straps, pads, notes and watch; 9 all of them)
+vec3 crewPaint(vec3 c1, vec3 c2, vec3 c3, vec4 P, vec4 W) {
+  float st = floor(P.w / 32.0 + 0.001), k = floor(P.w - st * 32.0 + 0.5);
+  vec3 col = c1, dk = vec3(0.035, 0.035, 0.04);
+  crR = vCol2.w; crM = crR < 0.2 ? 0.3 : 0.0; crH = 0.0; crS = 0.0;
+#if CR_G == 1
+  return crShell(c1, c2, c3, P, W, st, k);
+#elif CR_G == 2
+  return crFace(c2, P, W);
+#else
+  if (k < 0.5) return col;
+#if CR_G == 0 || CR_G == 9
+  if (k < 1.5) {
+    // the trunk (x across in metres, + the person's left; s forward: the sine round; y up the back)
+    float x = P.x, s = P.y, y = P.z, ax = abs(x), wx = W.x, ws = W.y, wy = W.z; crS = 0.25;
+    if (st > 1.5) {
+      // (modern: the shoulders' yoke and the sides' panels in the second colour, piped in the third; a ribbed waistband)
+      float yk = mix(0.4, 0.428, clamp(s, 0.0, 1.0)), yo = crA(yk, y, wy), sd = (1.0 - crA(0.42, abs(s), ws)) * crA(0.13, y, wy);
+      col = mix(col, c2, max(yo, sd));
+      col = mix(col, c3, clamp(crB(yk - 0.007, yk, y, wy) * (1.0 - sd) + crB(0.42, 0.5, abs(s), ws) * crA(0.13, y, wy) * (1.0 - yo), 0.0, 1.0));
+      float wb = crB(0.1, 0.142, y, wy); col = mix(col, mix(c1, dk, 0.72), wb); crH += wb * 0.0004 * sin(y * 1257.0) * (1.0 - clamp(wy / 0.002, 0.0, 1.0));
+    } else {
+      // (the 1980s: a band across the chest between pin lines; the 1970s: a stripe down each side; both belted)
+      if (st > 0.5) { col = mix(col, c2, crB(0.272, 0.338, y, wy)); col = mix(col, c3, crB(0.262, 0.272, y, wy) + crB(0.338, 0.348, y, wy)); }
+      else col = mix(col, c2, 1.0 - crA(0.1, abs(s), ws));
+      float bt = crB(0.098, 0.14, y, wy); col = mix(col, mix(c1, dk, 0.45), bt); crH -= bt * 0.0006;
+      float bk = bt * (1.0 - crA(0.022, ax, wx)) * crA(0.5, s, ws); col = mix(col, vec3(0.62, 0.63, 0.65), bk); crM = mix(crM, 0.8, bk); crR = mix(crR, 0.3, bk);
+    }
+    // (the zip up the front, its puller under the collar)
+    float fr = crA(0.0, s, ws), zp = (1.0 - crA(0.0045, ax, wx)) * fr * crB(0.105, 0.54, y, wy);
+    col = mix(col, vec3(0.06, 0.06, 0.065), zp); crH -= zp * 0.0007;
+    float tz = (1.0 - crA(0.0017, ax, wx)) * zp; col = mix(col, vec3(0.45, 0.46, 0.48), tz); crM = mix(crM, 0.7, tz); crR = mix(crR, 0.35, tz);
+    float pl = (1.0 - crA(0.006, ax, wx)) * fr * crB(0.495, 0.522, y, wy); col = mix(col, vec3(0.55, 0.56, 0.58), pl); crM = mix(crM, 0.8, pl); crR = mix(crR, 0.3, pl);
+    // (a patch over the left breast, a name tape over the right)
+    float fs = crA(0.55, s, ws), bd = crB(0.052, 0.104, x, wx) * crB(0.33, 0.374, y, wy) * fs, bi = crB(0.057, 0.099, x, wx) * crB(0.335, 0.369, y, wy) * fs;
+    col = mix(col, vec3(0.9, 0.9, 0.88), bd); col = mix(col, c3, bi);
+    float nt = crB(-0.112, -0.046, x, wx) * crB(0.349, 0.371, y, wy) * fs; col = mix(col, vec3(0.07, 0.07, 0.08), nt);
+    float lt = nt * crB(0.354, 0.366, y, wy) * step(0.42, crHash(floor(x / 0.0055))) * step(0.25, fract(x / 0.0055)) * (1.0 - clamp(wx / 0.002, 0.0, 1.0));
+    return mix(col, vec3(0.85, 0.85, 0.82), lt);
+  }
+  if (k < 2.5) {
+    // a sleeve (lat: outward; up; t: 0 the shoulder, 1 the elbow, 2 the wrist)
+    float lat = P.x, up = P.y, t = P.z; crS = 0.25;
+    if (st > 1.5) {
+      float e = mix(-0.3, 1.0, clamp(t / 0.82, 0.0, 1.0)), on = 1.0 - crA(0.84, t, W.z), yo = crA(e, up, W.y) * on;
+      col = mix(col, c2, yo); col = mix(col, c3, crB(e - 0.14, e, up, W.y) * on * (1.0 - yo));
+      float fa = crB(1.06, 1.64, t, W.z); col = mix(col, c2, fa * crA(0.8, lat, W.x)); col = mix(col, c3, fa * crB(0.66, 0.74, lat, W.x));
+    } else if (st > 0.5) { float on = crB(0.06, 1.66, t, W.z); col = mix(col, c2, on * crA(0.8, lat, W.x)); col = mix(col, c3, on * crB(0.64, 0.72, lat, W.x)); }
+    else col = mix(col, c2, crB(0.06, 1.66, t, W.z) * crA(0.88, lat, W.x));
+    // (the knitted cuff)
+    float cf = crA(1.7, t, W.z); col = mix(col, mix(c1, dk, 0.8), cf); crH += cf * 0.0003 * sin(atan(up, lat) * 36.0) * (1.0 - clamp((W.x + W.y) * 8.0, 0.0, 1.0)); crS *= 1.0 - cf;
+    return col;
+  }
+  if (k < 3.5) { crS = 0.25; if (st > 1.5) { col = mix(col, c2, crA(-0.12, P.y, W.y)); col = mix(col, c3, crB(-0.24, -0.12, P.y, W.y)); } return col; }
+  if (k < 4.5) {
+    // a leg (lat outward; t: 0 the hip, 1 the knee, 2 the ankle): a stripe down its outside
+    float on = crB(0.12, 1.86, P.z, W.z); crS = 0.25;
+    col = mix(col, c2, on * crA(st > 1.5 ? 0.78 : 0.84, P.x, W.x));
+    if (st > 0.5) col = mix(col, c3, on * crB(st > 1.5 ? 0.62 : 0.7, st > 1.5 ? 0.7 : 0.78, P.x, W.x));
+    return col;
+  }
+  if (k < 5.5) { crS = 0.2; col = mix(col, c2, crA(0.74, P.z, W.z)); crH += 0.0005 * crB(0.15, 0.74, P.z, W.z); return col; }
+  if (k < 6.5) {
+    // a glove (lat round; b: the back of the hand +; t: from the wrist along the hand, back along the gauntlet -)
+    float bk = crA(0.3, P.y, W.y), pm = 1.0 - crA(-0.2, P.y, W.y); crS = 0.08;
+    col = mix(col, c3, pm); crR = mix(crR, 0.95, pm);
+    col = mix(col, c2, clamp(bk * crB(0.004, 0.068, P.z, W.z) + crB(-0.074, -0.062, P.z, W.z), 0.0, 1.0));
+    float tab = bk * crB(-0.054, -0.014, P.z, W.z) * (1.0 - crA(0.55, abs(P.x), W.x)); col = mix(col, mix(c1, vec3(0.3), 0.3), tab); crH += tab * 0.0008;
+    return col;
+  }
+  if (k < 7.5) {
+    // a bare hand (b: the back of the hand +; t: how far from a finger's tip): the nails
+    float nl = crA(0.38, P.y, W.y) * (1.0 - crA(0.0125, P.z, W.z)) * crA(0.0018, P.z, W.z);
+    col = mix(col, mix(c1, vec3(0.97, 0.86, 0.82), 0.5), nl); crR = mix(crR, 0.3, nl); crH += nl * 0.0003; return col;
+  }
+  if (k > 16.5 && k < 17.5) { crS = 0.2; col = mix(col, c3, crA(0.72, abs(P.x), W.x)); float bt = 1.0 - crA(0.0045, length(vec2(P.x * 0.019, P.y - 0.013)), W.y + W.x * 0.019); crH += bt * 0.0008; return mix(col, mix(c1, vec3(0.6), 0.6), bt); }
+#endif
+#if CR_G == 9
+  if (k < 9.5) return crShell(c1, c2, c3, P, W, st, k);
+  if (k > 17.5) return crFace(c2, P, W);
+#endif
+#if CR_G == 3 || CR_G == 9
+  if (k < 11.5) {
+    // a strap (a: across, the edges at -1 and 1; t: along it): stitching beside each edge, the edges' roll
+    float a = abs(P.x), fd = 1.0 - clamp(W.z / 0.004, 0.0, 1.0); crS = 0.15;
+    col = mix(col, col * 0.58, crB(0.72, 0.8, a, W.x) * mix(0.5, step(0.45, fract(P.z / 0.006)), fd));
+    col = mix(col, col * 0.8, crA(0.92, a, W.x)); crH -= crA(0.92, a, W.x) * 0.0004; return col;
+  }
+  if (k < 12.5) {
+    // a seat's cover (u across, + outward; v up the back or along the cushion, m; c: the panel: 0 the middle, 1 a
+    // bolster, 2 the shell's back): quilted down the middle, the bolsters in their own cloth, the harness's slots
+    float u = P.x, v = P.y, pn = P.z, fd = 1.0 - clamp((W.x + W.y) / 0.006, 0.0, 1.0);
+    if (pn < 0.5) { float q = fract(u / 0.045 + 0.5); crH -= 0.0012 * (1.0 - smoothstep(0.0, 0.18, min(q, 1.0 - q))) * fd; col *= 1.0 - 0.18 * (1.0 - smoothstep(0.0, 0.12, min(q, 1.0 - q))) * fd; crS = 0.18; }
+    else if (pn < 1.5) { col = c2; crS = 0.12; }
+    else { col = c3; crR = 0.38; }
+    float sl = crB(0.042, 0.118, abs(u), W.x) * crB(-0.021, 0.021, v, W.y); col = mix(col, vec3(0.008), sl); crH -= sl * 0.002;
+    return col;
+  }
+  if (k < 13.5) { float rg = crB(0.0, 0.0034, fract(P.x / 0.0064) * 0.0064, W.x * 2.0); col = mix(vec3(0.05), c1, rg); crM = mix(0.0, 0.8, rg); crR = 0.3; return col; }
+  if (k < 14.5) {
+    // a watch's face (x, y from its middle, m): the bezel, the hour marks, the hands at ten past ten
+    float r = length(P.xy), w = W.x + W.y, a = atan(P.x, P.y);
+    col = mix(col, c3, crA(0.0105, r, w)); crM = mix(0.0, 0.7, crA(0.0105, r, w));
+    float mk = crB(0.0078, 0.0098, r, w) * crA(0.96, cos(a * 12.0), 0.06);
+    vec2 h1 = vec2(-0.866, 0.5), h2 = vec2(0.866, 0.5);
+    float hh = (1.0 - crA(0.0007, abs(dot(P.xy, vec2(h1.y, -h1.x))), w)) * crB(-0.001, 0.0052, dot(P.xy, h1), w);
+    float hm = (1.0 - crA(0.0005, abs(dot(P.xy, vec2(h2.y, -h2.x))), w)) * crB(-0.001, 0.0078, dot(P.xy, h2), w);
+    col = mix(col, c2, max(max(hh, hm), mk) * (1.0 - crA(0.0105, r, w))); crR = 0.15; return col;
+  }
+  if (k < 15.5) {
+    // a page of the notes (x across, y up toward the spiral, m): ruled lines, lines of notes in ink
+    float x = P.x, y = P.y, ry = fract((y + 0.2) / 0.019) * 0.019, row = floor((y + 0.2) / 0.019), fd = 1.0 - clamp((W.x + W.y) / 0.004, 0.0, 0.6);
+    col = mix(col, vec3(0.66, 0.74, 0.86), (1.0 - crA(0.0006, ry, W.y)) * crB(-0.098, 0.088, y, W.y) * fd);
+    // (the notes in a hand: each word a wavy stroke of joined letters, its own size and slant; each line written partway
+    // across; far off, the strokes fade to their average shade)
+    float cell = floor((x + 0.08) / 0.0135), hs = crHash(row * 17.0 + cell), wd = step(0.24, hs) * crB(0.0012, 0.0118, fract((x + 0.08) / 0.0135) * 0.0135, W.x);
+    float ln = -0.064 + 0.03 + 0.1 * crHash(row * 3.1 + 0.7), amp = 0.0022 + 0.0014 * hs, mid = 0.0062 + 0.0008 * crHash(cell + row * 5.0);
+    float wave = ry - mid - amp * sin((x + ry * 0.35) * 1150.0 + hs * 6.283) * (0.7 + 0.3 * sin(x * 410.0 + row));
+    float ink = (1.0 - crA(0.0008 + 0.0004 * hs, abs(wave), W.y + W.x * 0.5)), near = clamp(1.0 - (W.x + W.y) / 0.0024, 0.0, 1.0);
+    float on = wd * (1.0 - crA(ln, x, W.x)) * crA(-0.066, x, W.x) * crB(-0.093, 0.083, y, W.y) * crB(0.0012, 0.0115, ry, W.y);
+    col = mix(col, c2, on * mix(0.32, ink * 0.95, near));
+    crR = 0.85; return col;
+  }
+  if (k < 16.5) { crS = 0.3; crR = 0.92; return col * (1.0 - 0.25 * crB(-1.0, -0.86, P.x, W.x)); }
+#endif
+  return col;
+#endif
+}
+`;
+// a car's crew materials: the shared one's, four of them, each drawing its own group of the crew's parts (CREW_GROUP:
+// the mesh's triangles are sorted by it) with only that group's paint in its shader, so that no pixel runs the paint
+// of the others' parts; with the car's own picture of its crew's faces (crewFaceAtlas) and their expressions now
+// (uExD, uExC: the driver's and the co-driver's eyes' and mouth's pictures, and the gaze), shared by them all
+const CREW_GROUPS = 4;
+function crewMaterial(base, Lk) {
+  const cv = typeof document !== 'undefined' ? crewFaceAtlas(Lk) : null, tex = cv ? new THREE.CanvasTexture(cv) : null;
+  if (tex) { tex.premultiplyAlpha = true; tex.anisotropy = 2; }
+  const U = { uFace: { value: tex }, uExD: { value: new THREE.Vector4() }, uExC: { value: new THREE.Vector4() } };
+  return Array.from({ length: CREW_GROUPS }, (_, gi) => { const m = base.clone();
+    m.defines = Object.assign({}, base.defines, { CR_G: gi });
+    m.onBeforeCompile = sh => { crewShader(sh); Object.assign(sh.uniforms, U); };
+    m.extensions = { derivatives: true }; m.skinning = true; m.userData = gi === 2 ? { U, tex } : { U }; // (the picture let go once, with the faces' material)
+    return m; });
+}
+// the expressions' uniforms of a crew's mesh (its materials share them)
+const crewU = mesh => { const M = mesh && mesh.material, m = Array.isArray(M) ? M[0] : M; return m && m.userData ? m.userData.U : null; };
+// the crew's material: three's standard one, its colour, roughness, shine and normal from the paint
+function crewShader(sh) {
+  sh.vertexShader = CREW_GLSL_V + sh.vertexShader.replace('#include <color_vertex>', '#include <color_vertex>\n vPat = aPat; vCol2 = vec4(aCol2, aRough); vCol3 = aCol3;');
+  sh.fragmentShader = CREW_GLSL_F + sh.fragmentShader
+    .replace('#include <color_fragment>', `vec4 crW = fwidth(vPat);
+  diffuseColor.rgb = crewPaint(vColor, vCol2.rgb, vCol3, vPat, crW);
+  vec2 crDH = vec2(dFdx(crH), dFdy(crH));
+  diffuseColor.rgb *= 1.0 + crS * pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 3.0);`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = crR;')
+    .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n metalnessFactor = crM;')
+    .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n normal = crBump(-vViewPosition, normal, crDH, faceDirection);');
 }
 
 // ---- a person ----
@@ -20357,18 +20875,25 @@ const CREW_FACE = {
   mid: [[0.125, 0.064], [0.105, 0.083], [0.085, 0.093], [0.068, 0.097], [0.045, 0.093], [0.02, 0.097], [0, 0.1], [-0.02, 0.103], [-0.033, 0.104], [-0.04, 0.1015], [-0.05, 0.1], [-0.065, 0.095], [-0.082, 0.088], [-0.095, 0.072], [-0.104, 0.05]],
   eye: [0.031, 0.045], mouth: -0.0375, mouthW: 0.024, jaw: [0.022, 0.04], nose: [0.05, 0.004, -0.02]
 };
+// (the face's lower part drawn a fifth shorter than its picture's own measure: the picture and its coordinates keep
+// the measure above, the surface and the bones of the jaw and mouth stand at crewFaceY's heights)
+const crewFaceY = y => y < 0.03 ? 0.03 + (y - 0.03) * 0.8 : y;
 const crewMid = y => { const M = CREW_FACE.mid; if (y >= M[0][0]) return M[0][1]; for (let i = 0; i + 1 < M.length; i++) { const [y0, z0] = M[i], [y1, z1] = M[i + 1]; if (y <= y0 && y >= y1) return z0 + (z1 - z0) * (y0 - y) / (y0 - y1); } return M[M.length - 1][1]; };
 // the face's depth at (x, y): the middle line, curving back to the sides, the nose, the eyes' hollows, brow and lips
 function crewFaceZ(x, y) {
   const F = CREW_FACE, sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
   let z = crewMid(y) - x * x * (y < -0.06 ? 13 : 9.5) - Math.max(0, Math.abs(x) - 0.05) * 0.6;
   // the nose: from the bridge between the eyes, out to its tip and back under it
-  const ny = y > F.nose[1] ? sm(F.nose[0], F.nose[1], y) : 1 - sm(F.nose[1], F.nose[2], y), nw = Math.exp(-Math.pow(x / (0.0085 + 0.0075 * (1 - sm(-0.012, 0.045, y))), 2));
+  const ny = y > F.nose[1] ? sm(F.nose[0], F.nose[1], y) : 1 - sm(F.nose[1], F.nose[2], y), nw = Math.exp(-Math.pow(x / (0.0072 + 0.0072 * (1 - sm(-0.012, 0.045, y))), 2));
   z += 0.019 * Math.pow(ny, 0.8) * nw;
-  for (const sd of [1, -1]) { const dx = x - sd * F.eye[0], dy = y - F.eye[1], e = (dx * dx) / (0.0165 * 0.0165) + (dy * dy) / (0.0105 * 0.0105);
-    z -= 0.016 * Math.exp(-e * e * 0.6); // (the eyes' sockets: the eyeballs sit in them, under the brow)
+  for (const sd of [1, -1]) { const dx = x - sd * F.eye[0], dy = y - F.eye[1], e = (dx * dx) / (0.0165 * 0.0165) + (dy * dy) / (0.0086 * 0.0086);
+    z -= 0.0065 * Math.exp(-e * e * 0.6); // (the eyes' sockets, shallow: the eyes are painted in them)
     z += 0.003 * Math.exp(-((dx * dx) / 0.0006 + Math.pow(y - 0.068, 2) / 0.00006)); } // (the brow)
-  z += 0.0035 * Math.exp(-(x * x) / 0.0005 - Math.pow(y + 0.031, 2) / 0.00005) + 0.003 * Math.exp(-(x * x) / 0.0004 - Math.pow(y + 0.046, 2) / 0.00005); // (the lips)
+  z += 0.0024 * Math.exp(-(x * x) / 0.0005 - Math.pow(y + 0.031, 2) / 0.00005) + 0.0022 * Math.exp(-(x * x) / 0.0004 - Math.pow(y + 0.046, 2) / 0.00005); // (the lips)
+  const ax = Math.abs(x);
+  z += 0.0045 * Math.exp(-(Math.pow(ax - 0.043, 2) / 0.00012 + Math.pow(y - 0.016, 2) / 0.0002)); // (the cheekbones)
+  z -= 0.006 * sm(0.048, 0.07, ax) * sm(0.02, 0.07, y); // (the temples falling away)
+  { const t = Math.max(0, Math.min(1, (0.014 - y) / 0.03)), lx = 0.016 + 0.012 * t, ly = 0.014 - 0.03 * t; if (y < 0.016 && y > -0.044) z -= 0.0016 * Math.exp(-Math.pow(ax - lx, 2) / 0.000012) * Math.sin(Math.PI * t); } // (the folds from nose to mouth)
   return z;
 }
 // one person: their joints at rest (J, with the arms and legs placed: elbows, wrists, hands' frames, knees, ankles,
@@ -20376,155 +20901,265 @@ function crewFaceZ(x, y) {
 // suit, band, stripe, glove, boot, helmet, helmet stripe, visor, skin, lips, brow, belt, iris; helmet: 'open' or
 // 'full'; mic, hans, peak). Adds them to the mesh g
 function crewPerson(g, J, P, bi, L) {
-  const B = CREW_BODY, k = J.k, b = n => bi[P + n], X = J.X, U = J.U, F = J.F, SUIT = 0.85, GLOVE = 0.62;
+  const B = CREW_BODY, k = J.k, b = n => bi[P + n], X = J.X, U = J.U, F = J.F, SUIT = 0.85, GLOVE = 0.62, st = L.style || 0, lo = g.lod > 0, bare = !!L.bare;
   const sm = (a, c, v) => { const t = Math.max(0, Math.min(1, (v - a) / (c - a))); return t * t * (3 - 2 * t); };
+  const KT = crewKind('trunk', st), KA = crewKind('arm', st), KS = crewKind('shoulder', st), KL = crewKind('leg', st), KHd = crewKind(bare ? 'hand' : 'glove', st), suitPal = [L.band, L.pin];
+  // (a limb's pattern: for a ring's vertex, how far it lies outward (from the body's middle) and upward round the limb)
+  const refs = (d, xx, yy, out0, up0) => { let Lr = cv3.sub(out0, cv3.mul(d, cv3.dot(out0, d))); Lr = cv3.len(Lr) < 1e-4 ? xx : cv3.norm(Lr); let Ur = cv3.cross(d, Lr); if (cv3.dot(Ur, up0) < 0) Ur = cv3.mul(Ur, -1);
+    return (cs, sn) => { const o = cv3.add(cv3.mul(xx, cs), cv3.mul(yy, sn)); return [cv3.dot(o, Lr), cv3.dot(o, Ur)]; }; };
   // ---- the trunk: from under the seat of the suit up to the collar, a rounded box in section (the trunk's frame:
-  // across, along the back, forward), the suit's band down each side and across the shoulders
-  const T = [[-0.1, 0.15, 0.1, -0.035, 0.55], [-0.045, 0.172, 0.125, -0.02, 0.5], [0.02, 0.17, 0.122, 0, 0.45], [0.1, 0.155, 0.108, 0.006, 0.45], [0.17, 0.15, 0.104, 0.01, 0.45],
+  // across, along the back, forward); its panels are the paint's (CREW_GLSL: the yoke, side panels, zip, badges)
+  const T = [[-0.045, 0.172, 0.125, -0.02, 0.5], [0.02, 0.17, 0.122, 0, 0.45], [0.1, 0.155, 0.108, 0.006, 0.45], [0.17, 0.15, 0.104, 0.01, 0.45],
     [0.25, 0.16, 0.113, 0.016, 0.45], [0.33, 0.174, 0.12, 0.017, 0.45], [0.405, 0.183, 0.116, 0.012, 0.5], [0.465, 0.175, 0.1, 0.002, 0.55], [0.505, 0.125, 0.078, -0.008, 0.5], [0.535, 0.07, 0.06, -0.006, 0.2]];
   const wT = y => y < 0.06 ? [[b('Hips'), 1]] : y < 0.14 ? [[b('Hips'), 1 - sm(0.06, 0.14, y)], [b('Spine'), sm(0.06, 0.14, y)]] : y < 0.22 ? [[b('Spine'), 1]] : y < 0.31 ? [[b('Spine'), 1 - sm(0.22, 0.31, y)], [b('Chest'), sm(0.22, 0.31, y)]] : y < 0.52 ? [[b('Chest'), 1]] : [[b('Chest'), 0.6], [b('Neck'), 0.4]];
-  g.loft(T.map(([y, hw, hd, f, sq]) => ({ c: cv3.at(J.H, X, U, F, 0, y * k, f * k), X, Y: F, rx: hw * k, ry: hd * k, sq, rh: SUIT, w: wT(y),
-    k: (th, cs, sn) => (y > 0.45 && y < 0.53) || (Math.abs(cs) > 0.86 && y < 0.47) ? L.band : Math.abs(cs) > 0.8 && Math.abs(cs) <= 0.86 && y < 0.47 ? L.pin : L.suit })), 18, 0.05 * k, false);
-  // the neck, from inside the collar up into the head (a fireproof hood's or the skin's colour)
+  g.pal = suitPal;
+  g.loft((lo ? T.filter((r, i) => i % 2 === 0 || i === T.length - 1) : T).map(([y, hw, hd, f, sq]) => ({ c: cv3.at(J.H, X, U, F, 0, y * k, f * k), X, Y: F, rx: hw * k, ry: hd * k, sq, rh: SUIT, w: wT(y), k: L.suit,
+    pt: (th, cs, sn, x) => [x / k, sn, y, KT] })), g.n(18, 10), false, false); // (its foot, sunk in the cushion, left open)
+  // the collar: a soft band standing round the neck, higher behind, open a finger's width at the front where it fastens
+  if (!lo) { const KC = crewKind('collar', st), M = 13, a0 = Math.PI / 2 + 0.17, a1 = Math.PI / 2 + Math.PI * 2 - 0.17, tk = 0.0055 * k, cw = [[b('Chest'), 0.55], [b('Neck'), 0.45]];
+    g.pal = [L.collarT, L.collarT]; const rows = [];
+    for (let i = 0; i <= M; i++) { const a = a0 + (a1 - a0) * i / M, cs = Math.cos(a), sn = Math.sin(a), y0 = 0.514, y1 = 0.548 + 0.03 * (1 - sn) / 2, rx = 0.073 * k, rz = 0.066 * k;
+      const P0 = (y, r) => cv3.at(J.H, X, U, F, cs * (rx + r) / 1, y * k, sn * (rz + r) - 0.004 * k), pt = h => [cs, sn, h, KC];
+      rows.push([g.v(P0(y0, 0), L.collar, SUIT, cw, pt(0)), g.v(P0(y1, -0.002 * k), L.collar, SUIT, cw, pt(1)), g.v(P0(y1 - 0.002, -tk), L.collar, SUIT, cw, pt(0.9)), g.v(P0(y0 + 0.01, -tk), L.collar, SUIT, cw, pt(0.4))]); }
+    for (let i = 0; i < M; i++) for (let j = 0; j < 3; j++) g.quad(rows[i][j], rows[i + 1][j], rows[i + 1][j + 1], rows[i][j + 1]);
+    for (const r of [rows[0], rows[M]]) g.quad(r[0], r[1], r[2], r[3]); }
+  // the neck, from inside the collar up into the head (the balaclava's colour)
+  g.pal = null;
   { const n0 = J.neck, n1 = J.atlas, d = cv3.norm(cv3.sub(n1, n0)), x2 = cv3.norm(cv3.cross(d, F)), y2 = cv3.cross(x2, d);
     g.loft([[-0.03, 0.06, [[b('Chest'), 1]]], [0.0, 0.05, [[b('Chest'), 0.5], [b('Neck'), 0.5]]], [0.5, 0.047, [[b('Neck'), 1]]], [1.0, 0.045, [[b('Neck'), 0.5], [b('Head'), 0.5]]], [1.5, 0.045, [[b('Head'), 1]]]]
-      .map(([t, r, w]) => ({ c: cv3.madd(n0, cv3.sub(n1, n0), t), X: x2, Y: [0, 0, 1], rx: r * k, ry: r * k * 1.08, rh: 0.92, w, k: L.bala })), 10, false, true); }
-  // ---- the arms: the shoulder's round, the sleeve to the glove's cuff ----
+      .map(([t, r, w]) => ({ c: cv3.madd(n0, cv3.sub(n1, n0), t), X: x2, Y: [0, 0, 1], rx: r * k, ry: r * k * 1.08, rh: 0.92, w, k: L.bala })), g.n(10, 6), false, true); }
+  // ---- the arms: the shoulder's round, the sleeve to its knitted cuff, the glove's gauntlet over it (or the bare
+  // wrist out of it) ----
   for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R', S = J['sh' + s], E = J['el' + s], W = J['wr' + s], H = J['hand' + s];
     const d1 = cv3.norm(cv3.sub(E, S)), d2 = cv3.norm(cv3.sub(W, E)); let nb = cv3.cross(d1, d2); nb = cv3.len(nb) < 1e-4 ? [0, 1, 0] : cv3.norm(nb);
     const fr = d => { const x = cv3.norm(cv3.cross(d, nb)); return [x, cv3.cross(d, x)]; }, [x1, y1] = fr(d1), [x2, y2] = fr(d2), l1 = cv3.len(cv3.sub(E, S)), l2 = cv3.len(cv3.sub(W, E));
-    const cl = b('Clav' + s), A1 = b('Arm' + s), A2 = b('Fore' + s), HA = b('Hand' + s);
-    const kS = th => L.suit;
-    const R1 = [[-0.035, 0.05, [[cl, 0.55], [A1, 0.45]]], [0, 0.056, [[cl, 0.3], [A1, 0.7]]], [0.12, 0.055, [[A1, 1]]], [0.45, 0.049, [[A1, 1]]], [0.78, 0.045, [[A1, 1]]], [0.93, 0.043, [[A1, 0.8], [A2, 0.2]]]].map(([t, r, w]) => ({ c: cv3.madd(S, d1, t * l1), X: x1, Y: y1, rx: r * k, ry: r * k * 0.95, rh: SUIT, w, k: kS }));
-    const R2 = [[0, 0.042, [[A1, 0.5], [A2, 0.5]]], [0.08, 0.043, [[A1, 0.2], [A2, 0.8]]], [0.3, 0.044, [[A2, 1]]], [0.6, 0.038, [[A2, 1]]], [0.78, 0.034, [[A2, 1]]]].map(([t, r, w]) => ({ c: cv3.madd(E, d2, t * l2), X: x2, Y: y2, rx: r * k, ry: r * k * 0.82, rh: SUIT, w, k: L.suit }));
-    // (the glove's cuff over the sleeve's end: a step out, then in to the wrist)
-    const R3 = [[0.8, 0.039, [[A2, 1]], L.glove], [0.92, 0.035, [[A2, 0.75], [HA, 0.25]]], [1.0, 0.031, [[A2, 0.35], [HA, 0.65]]], [1.08, 0.031, [[HA, 1]]]].map(([t, r, w]) => ({ c: cv3.madd(E, d2, t * l2), X: x2, Y: y2, rx: r * k, ry: r * k * 0.78, rh: GLOVE, w, k: L.glove }));
-    g.loft([...R1, ...R2, ...R3], 10, 0.02 * k, false);
-    // the shoulder: the suit rounded over the joint
+    const cl = b('Clav' + s), A1 = b('Arm' + s), A2 = b('Fore' + s), HA = b('Hand' + s), out0 = cv3.mul(X, sd), up0 = cv3.add(U, cv3.mul(F, 0.3));
+    const pa1 = refs(d1, x1, y1, out0, up0), pa2 = refs(d2, x2, y2, out0, up0);
+    g.pal = suitPal;
+    const R1 = [[-0.035, 0.05, [[cl, 0.55], [A1, 0.45]]], [0, 0.056, [[cl, 0.3], [A1, 0.7]]], [0.12, 0.055, [[A1, 1]]], [0.45, 0.049, [[A1, 1]]], [0.78, 0.045, [[A1, 1]]], [0.93, 0.043, [[A1, 0.8], [A2, 0.2]]]]
+      .filter((r, i) => !lo || i !== 3).map(([t, r, w]) => ({ c: cv3.madd(S, d1, t * l1), X: x1, Y: y1, rx: r * k, ry: r * k * 0.95, rh: SUIT, w, k: L.suit, pt: (th, cs, sn) => [...pa1(cs, sn), t, KA] }));
+    const R2 = [[0, 0.042, [[A1, 0.5], [A2, 0.5]]], [0.08, 0.043, [[A1, 0.2], [A2, 0.8]]], [0.3, 0.044, [[A2, 1]]], [0.6, 0.038, [[A2, 1]]], [0.78, 0.034, [[A2, 1]]]].concat(bare ? [[0.82, 0.0335, [[A2, 0.85], [HA, 0.15]]], [0.865, 0.0315, [[A2, 0.75], [HA, 0.25]]]] : [])
+      .filter((r, i) => !lo || i !== 2).map(([t, r, w]) => ({ c: cv3.madd(E, d2, t * l2), X: x2, Y: y2, rx: r * k, ry: r * k * 0.82, rh: SUIT, w, k: L.suit, pt: (th, cs, sn) => [...pa2(cs, sn), 1 + t, KA] }));
+    g.loft([...R1, ...R2], g.n(10, 6), 0.02 * k, false);
+    // (the glove's gauntlet over the sleeve's end: a step out, then in to the wrist)
+    const back = cv3.mul(H.Z, -1), thumb = cv3.mul(H.X, -sd);
+    if (!bare) { g.pal = [L.gloveB, L.palm];
+      g.loft([[0.74, 0.0405, [[A2, 1]]], [0.8, 0.039, [[A2, 1]]], [0.92, 0.035, [[A2, 0.75], [HA, 0.25]]], [1.0, 0.031, [[A2, 0.35], [HA, 0.65]]], [1.08, 0.031, [[HA, 1]]]].filter((r, i) => !lo || i !== 1)
+        .map(([t, r, w]) => ({ c: cv3.madd(E, d2, t * l2), X: x2, Y: y2, rx: r * k, ry: r * k * 0.78, rh: GLOVE, w, k: L.glove,
+          pt: (th, cs, sn) => { const o = cv3.add(cv3.mul(x2, cs), cv3.mul(y2, sn)); return [cv3.dot(o, thumb), cv3.dot(o, back), (t - 1) * l2, KHd]; } })), g.n(10, 6), false, false); }
+    // the shoulder: the suit rounded over the joint (its outer half)
+    g.pal = suitPal;
     { const c = cv3.madd(S, U, 0.004), wS = (x, y) => y > 0.2 ? [[cl, 0.7], [b('Chest'), 0.3]] : [[cl, 0.45], [A1, 0.55]];
-      g.blob(c, cv3.mul(F, 0.058 * k), cv3.mul(U, 0.056 * k), cv3.mul(X, sd * 0.056 * k), 12, 8, (x, y) => y > 0.55 ? L.band : L.suit, SUIT, wS); }
-    // ---- the hand: the palm, four fingers in two joints, the thumb (the glove); the left hand the right's mirror ----
-    const M = H, at = (x, y, z) => cv3.at(W, M.X, M.Y, M.Z, x * sd * -1 * k, y * k, z * k) ; // (the left hand's x mirrored: its thumb on -x)
-    const pal = [[-0.004, 0.03, 0.019, [[A2, 0.3], [HA, 0.7]]], [0.03, 0.037, 0.018, [[HA, 1]]], [0.062, 0.042, 0.017, [[HA, 1]]], [0.086, 0.043, 0.014, [[HA, 1]]]];
-    g.loft(pal.map(([y, rx, rz, w]) => ({ c: at(0, y, 0), X: cv3.mul(M.X, -sd), Y: M.Z, rx: rx * k, ry: rz * k, sq: 0.6, rh: GLOVE, w, k: (th, cs, sn) => sn < -0.3 && y > 0.02 ? L.gloveB : L.glove })), 10, false, 0.008 * k);
-    B.fingers.forEach(([fx, fy, f1, f2], i) => { const n = ['Index', 'Middle', 'Ring', 'Little'][i], F1 = b(n + s + '1'), F2 = b(n + s + '2'), r0 = (i === 3 ? 0.0082 : 0.0093);
-      const R = [[0, r0, [[HA, 0.5], [F1, 0.5]]], [f1 * 0.5, r0 * 0.97, [[F1, 1]]], [f1, r0 * 0.93, [[F1, 0.5], [F2, 0.5]]], [f1 + f2 * 0.45, r0 * 0.88, [[F2, 1]]], [f1 + f2 - 0.007, r0 * 0.8, [[F2, 1]]]];
-      g.loft(R.map(([t, r, w]) => ({ c: at(fx, fy + t, 0), X: cv3.mul(M.X, -sd), Y: M.Z, rx: r * k, ry: r * k * 0.9, rh: GLOVE, w, k: L.glove })), 6, false, 0.007 * k); });
-    { const T0 = B.thumb, td = cv3.norm(T0.dir), base = T0.base, T1 = b('Thumb' + s + '1'), T2 = b('Thumb' + s + '2');
-      const R = [[0, 0.0125, [[HA, 0.6], [T1, 0.4]]], [T0.len[0] * 0.5, 0.0118, [[T1, 1]]], [T0.len[0], 0.0108, [[T1, 0.5], [T2, 0.5]]], [T0.len[0] + T0.len[1] * 0.5, 0.0098, [[T2, 1]]], [T0.len[0] + T0.len[1] - 0.007, 0.0088, [[T2, 1]]]];
-      const dir = [td[0], td[1], td[2]], ax = cv3.norm(cv3.cross(dir, [0, 0, 1])), ay = cv3.cross(ax, dir), wl = v => cv3.at([0, 0, 0], cv3.mul(M.X, -sd), M.Y, M.Z, v[0], v[1], v[2]);
-      g.loft(R.map(([t, r, w]) => ({ c: at(base[0] + dir[0] * t, base[1] + dir[1] * t, base[2] + dir[2] * t), X: wl(ax), Y: wl(ay), rx: r * k, ry: r * k * 0.85, rh: GLOVE, w, k: L.glove })), 6, false, 0.007 * k); }
+      g.blob(c, cv3.mul(F, 0.058 * k), cv3.mul(U, 0.056 * k), cv3.mul(X, sd * 0.056 * k), g.n(10, 8), g.n(7, 5), L.suit, SUIT, wS, (x, y, z) => z > -0.45 && y > -0.8, null, (x, y, z) => [x, y, z, KS]); }
+    // the epaulette (a strap to pull a person out by) along the top of the shoulder, buttoned at its outer end
+    if (!lo && st > 0) { const KE = crewKind('epaul', st), Q = [[0.074, 0.541, -0.012], [0.12, 0.527, -0.012], [0.17, 0.531, -0.006], [0.207, 0.521, -0.002]], len = 0.135;
+      const pts = Q.map(q => cv3.at(J.H, X, U, F, sd * q[0] * k, q[1] * k, q[2] * k)), wE = q => q[0] < 0.12 ? [[b('Chest'), 1]] : q[0] < 0.18 ? [[b('Chest'), 0.5], [cl, 0.5]] : [[cl, 0.8], [b('Chest'), 0.2]];
+      g.pal = [L.pin, L.pin];
+      g.loft(Q.map((q, i) => { const d = cv3.norm(cv3.sub(pts[Math.min(i + 1, 3)], pts[Math.max(i - 1, 0)])), nn = cv3.norm(cv3.cross(F, d)), up = cv3.dot(nn, U) < 0 ? cv3.mul(nn, -1) : nn;
+        return { c: cv3.madd(pts[i], up, 0.0005 * k), X: F, Y: up, rx: 0.018 * k, ry: 0.0026 * k, sq: 1, rh: SUIT, w: wE(q), k: L.epaul, pt: (th, cs) => [cs, (0.207 - q[0]) / 0.133 * len, 0, KE] }; }), 6, true, true); }
+    // ---- the hand: the palm, four fingers in two joints, the thumb (gloved, or bare with a watch on the left wrist);
+    // the left hand the right's mirror ----
+    const M = H, at = (x, y, z) => cv3.at(W, M.X, M.Y, M.Z, x * sd * -1 * k, y * k, z * k), hk = bare ? L.skin : L.glove, hr = bare ? 0.58 : GLOVE, XH = cv3.mul(M.X, -sd);
+    g.pal = bare ? [L.nail, L.skin] : [L.gloveB, L.palm];
+    // (a bare hand slimmer and flatter than a gloved one: the wrist out of the cuff, the palm, the knuckles' line)
+    const pal = bare ? [[-0.05, 0.025, 0.019, [[A2, 0.75], [HA, 0.25]]], [-0.004, 0.0285, 0.0172, [[A2, 0.3], [HA, 0.7]]], [0.03, 0.0378, 0.0152, [[HA, 1]]], [0.062, 0.0418, 0.0142, [[HA, 1]]], [0.086, 0.0428, 0.0118, [[HA, 1]]]]
+      : [[-0.004, 0.03, 0.019, [[A2, 0.3], [HA, 0.7]]], [0.03, 0.037, 0.018, [[HA, 1]]], [0.062, 0.042, 0.017, [[HA, 1]]], [0.086, 0.043, 0.014, [[HA, 1]]]];
+    g.loft(pal.filter((r, i) => !lo || i !== pal.length - 3).map(([y, rx, rz, w]) => ({ c: at(0, y, 0), X: XH, Y: M.Z, rx: rx * k, ry: rz * k, sq: bare ? 0.75 : 0.6, rh: hr, w, k: hk, pt: (th, cs, sn) => [cs, -sn, bare ? 1 : y, KHd] })), g.n(bare ? 12 : 10, 6), false, 0.008 * k);
+    if (lo) { // (the light mesh: the fingers as one mitten)
+      g.loft([[0.084, 0.041, 0.0135], [0.13, 0.04, 0.012], [0.165, 0.034, 0.0105]].map(([y, rx, rz]) => ({ c: at(0.004, y, 0), X: XH, Y: M.Z, rx: rx * k, ry: rz * k, sq: 0.7, rh: hr, w: [[HA, 0.5], [b('Middle' + s + '1'), 0.5]], k: hk, pt: (th, cs, sn) => [cs, -sn, 1, KHd] })), 6, false, 0.01 * k); }
+    else B.fingers.forEach(([fx, fy, f1, f2], i) => { const n = ['Index', 'Middle', 'Ring', 'Little'][i], F1 = b(n + s + '1'), F2 = b(n + s + '2'), r0 = bare ? (i === 3 ? 0.0072 : 0.0081) : (i === 3 ? 0.0082 : 0.0093), tip = f1 + f2;
+      // (a bare finger: the knuckle's swell at its joint, tapering to a rounded tip)
+      const R = bare ? [[0, r0 * 1.03, [[HA, 0.5], [F1, 0.5]]], [f1 * 0.5, r0 * 0.94, [[F1, 1]]], [f1, r0 * 0.97, [[F1, 0.5], [F2, 0.5]]], [f1 + f2 * 0.45, r0 * 0.87, [[F2, 1]]], [f1 + f2 - 0.009, r0 * 0.82, [[F2, 1]]], [f1 + f2 - 0.0045, r0 * 0.7, [[F2, 1]]]]
+        : [[0, r0, [[HA, 0.5], [F1, 0.5]]], [f1, r0 * 0.93, [[F1, 0.5], [F2, 0.5]]], [f1 + f2 * 0.45, r0 * 0.88, [[F2, 1]]], [f1 + f2 - 0.007, r0 * 0.8, [[F2, 1]]]];
+      g.loft(R.map(([t, r, w]) => ({ c: at(fx, fy + t, 0), X: XH, Y: M.Z, rx: r * k, ry: r * k * (bare ? 0.84 : 0.9), rh: hr, w, k: hk, pt: (th, cs, sn) => [cs, -sn, bare ? tip - t : fy + t, KHd] })), bare ? 8 : 6, false, (bare ? 0.0042 : 0.007) * k); });
+    { const T0 = B.thumb, td = cv3.norm(T0.dir), base = T0.base, T1 = b('Thumb' + s + '1'), T2 = b('Thumb' + s + '2'), tip = T0.len[0] + T0.len[1];
+      const R = [[0, 0.0125, [[HA, 0.6], [T1, 0.4]]], [T0.len[0] * 0.5, 0.0118, [[T1, 1]]], [T0.len[0], 0.0108, [[T1, 0.5], [T2, 0.5]]], [T0.len[0] + T0.len[1] * 0.5, 0.0098, [[T2, 1]]], [T0.len[0] + T0.len[1] - 0.007, 0.0088, [[T2, 1]]]].filter((r, i) => !lo || i % 2 === 0);
+      const dir = [td[0], td[1], td[2]], ax = cv3.norm(cv3.cross(dir, [0, 0, 1])), ay = cv3.cross(ax, dir), wl = v => cv3.at([0, 0, 0], XH, M.Y, M.Z, v[0], v[1], v[2]);
+      const n0 = cv3.norm([0.5, 0, -1]), dl = cv3.norm(cv3.sub(n0, cv3.mul(dir, cv3.dot(n0, dir)))), ll = cv3.cross(dir, dl);
+      g.loft(R.map(([t, r, w]) => ({ c: at(base[0] + dir[0] * t, base[1] + dir[1] * t, base[2] + dir[2] * t), X: wl(ax), Y: wl(ay), rx: r * k, ry: r * k * 0.85, rh: hr, w, k: hk,
+        pt: (th, cs, sn) => { const o = cv3.add(cv3.mul(ax, cs), cv3.mul(ay, sn)); return [cv3.dot(o, ll), cv3.dot(o, dl), bare ? tip - t : 0.05 + t, KHd]; } })), g.n(6, 5), false, 0.007 * k); }
+    // the watch on the bare left wrist: its strap, the case on the back of the wrist, the face
+    if (bare && sd > 0 && !lo) { const wy = -0.016, ww = [[A2, 0.5], [HA, 0.5]], KW = crewKind('watch', st), n = cv3.mul(M.Z, -1);
+      g.pal = null;
+      g.loft([[wy - 0.009, 0.0283, 0.0218], [wy + 0.009, 0.0288, 0.0215]].map(([y, rx, rz]) => ({ c: at(0, y, 0), X: XH, Y: M.Z, rx: rx * k, ry: rz * k, sq: 0.6, rh: 0.6, w: ww, k: L.strapW })), 10, false, false);
+      const cc = cv3.madd(at(0, wy, 0), n, 0.0215 * k), cx = XH, cy = M.Y;
+      g.pal = [L.dial, L.dial];
+      g.loft([[0, 0.0168], [0.0062, 0.0168], [0.0075, 0.0158]].map(([h, r]) => ({ c: cv3.madd(cc, n, h * k), X: cx, Y: cy, rx: r * k, ry: r * k, rh: 0.3, w: ww, k: L.case })), 12, false, false);
+      g.pal = [L.hands, L.case];
+      const fc = cv3.madd(cc, n, 0.0072 * k), ctr = g.v(fc, L.dial, 0.2, ww, [0, 0, 0, KW]), ring = [];
+      for (let j = 0; j < 12; j++) { const a = j / 12 * Math.PI * 2, x = Math.cos(a) * 0.0158, y = Math.sin(a) * 0.0158; ring.push(g.v(cv3.at(fc, cx, cy, n, x * k, y * k, 0), L.dial, 0.2, ww, [y, -x, 0, KW])); } // (twelve o'clock toward the little finger, three toward the fingers, as worn)
+      for (let j = 0; j < 12; j++) g.tri(ctr, ring[j], ring[(j + 1) % 12]); }
   }
   // ---- the legs: thigh, shin, the boot ----
+  g.pal = suitPal;
   for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R', Hp = J['hip' + s], K = J['kn' + s], A = J['an' + s], Ft = J['foot' + s], T1 = b('Thigh' + s), T2 = b('Shin' + s), T3 = b('Foot' + s);
     const d1 = cv3.norm(cv3.sub(K, Hp)), d2 = cv3.norm(cv3.sub(A, K)), nb0 = cv3.cross(d1, d2), nb = cv3.len(nb0) < 1e-4 ? [1, 0, 0] : cv3.norm(nb0);
     const fr = d => { const x = cv3.norm(cv3.cross(d, nb)); return [x, cv3.cross(d, x)]; }, [x1, y1] = fr(d1), [x2, y2] = fr(d2), l1 = cv3.len(cv3.sub(K, Hp)), l2 = cv3.len(cv3.sub(A, K));
-    const R = [[Hp, d1, x1, y1, -0.06 * l1, 0.075, [[b('Hips'), 0.7], [T1, 0.3]]], [Hp, d1, x1, y1, 0.08 * l1, 0.083, [[b('Hips'), 0.25], [T1, 0.75]]], [Hp, d1, x1, y1, 0.4 * l1, 0.074, [[T1, 1]]], [Hp, d1, x1, y1, 0.78 * l1, 0.06, [[T1, 1]]],
-      [K, d2, x2, y2, -0.02, 0.054, [[T1, 0.55], [T2, 0.45]]], [K, d2, x2, y2, 0.06, 0.053, [[T1, 0.1], [T2, 0.9]]], [K, d2, x2, y2, 0.3 * l2, 0.053, [[T2, 1]]], [K, d2, x2, y2, 0.7 * l2, 0.041, [[T2, 1]]]]
-      .map(([o, d, xx, yy, t, r, w]) => ({ c: cv3.madd(o, d, t), X: xx, Y: yy, rx: r * k, ry: r * k * (r > 0.07 ? 0.85 : 0.95), rh: SUIT, w, k: L.suit }));
-    // (the boot's top round the ankle)
-    R.push(...[[0.8 * l2, 0.039, [[T2, 1]]], [0.93 * l2, 0.037, [[T2, 0.7], [T3, 0.3]]], [l2 + 0.01, 0.036, [[T2, 0.3], [T3, 0.7]]]].map(([t, r, w]) => ({ c: cv3.madd(K, d2, t), X: x2, Y: y2, rx: r * k, ry: r * k, rh: 0.55, w, k: L.boot })));
-    g.loft(R, 10, false, false);
-    // the boot: heel to toe along the foot (its frame: X across, Y up, Z along), its sole a shade lighter
+    const out0 = cv3.mul(X, sd), pl1 = refs(d1, x1, y1, out0, U), pl2 = refs(d2, x2, y2, out0, cv3.add(F, U));
+    const R = [[Hp, d1, x1, y1, -0.06 * l1, 0.075, [[b('Hips'), 0.7], [T1, 0.3]], pl1, l1, 0], [Hp, d1, x1, y1, 0.08 * l1, 0.083, [[b('Hips'), 0.25], [T1, 0.75]], pl1, l1, 0], [Hp, d1, x1, y1, 0.4 * l1, 0.074, [[T1, 1]], pl1, l1, 0], [Hp, d1, x1, y1, 0.78 * l1, 0.06, [[T1, 1]], pl1, l1, 0],
+      [K, d2, x2, y2, -0.02, 0.054, [[T1, 0.55], [T2, 0.45]], pl2, l2, 1], [K, d2, x2, y2, 0.06, 0.053, [[T1, 0.1], [T2, 0.9]], pl2, l2, 1], [K, d2, x2, y2, 0.3 * l2, 0.053, [[T2, 1]], pl2, l2, 1], [K, d2, x2, y2, 0.7 * l2, 0.041, [[T2, 1]], pl2, l2, 1], [K, d2, x2, y2, 0.8 * l2, 0.0385, [[T2, 1]], pl2, l2, 1]]
+      .filter((r, i) => !lo || (i !== 2 && i !== 5)).map(([o, d, xx, yy, t, r, w, pf, ln, t0]) => ({ c: cv3.madd(o, d, t), X: xx, Y: yy, rx: r * k, ry: r * k * (r > 0.07 ? 0.85 : 0.95), rh: SUIT, w, k: L.suit, pt: (th, cs, sn) => [...pf(cs, sn), t0 + t / ln, KL] }));
+    g.loft(R, g.n(10, 6), false, false);
+    // (the boot: its top round the ankle, then heel to toe along the foot (its frame: X across, Y up, Z along), its sole
+    // a shade lighter)
+    g.pal = null;
+    g.loft([[0.75 * l2, 0.0418, [[T2, 1]]], [0.8 * l2, 0.0405, [[T2, 1]]], [0.93 * l2, 0.037, [[T2, 0.7], [T3, 0.3]]], [l2 + 0.01, 0.036, [[T2, 0.3], [T3, 0.7]]]].filter((r, i) => !lo || i !== 1)
+      .map(([t, r, w]) => ({ c: cv3.madd(K, d2, t), X: x2, Y: y2, rx: r * k, ry: r * k, rh: 0.55, w, k: L.boot })), g.n(10, 6), false, false);
     const fz = Ft.Z, fy = Ft.Y, fx = Ft.X, bt = [[-0.07, 0.03, 0.035, 0.03], [-0.04, 0.036, 0.075, 0.035], [0.0, 0.04, 0.085, 0.04], [0.06, 0.045, 0.062, 0.035], [0.12, 0.049, 0.045, 0.03], [0.17, 0.042, 0.035, 0.028], [0.2, 0.026, 0.025, 0.022]];
-    g.loft(bt.map(([z, hw, hh, dn]) => ({ c: cv3.at(A, fx, fy, fz, 0, (hh - dn) / 2 * k - 0.04 * k, z * k), X: fx, Y: fy, rx: hw * k, ry: (hh + dn) / 2 * k, sq: 0.55, rh: 0.5, w: z < -0.02 ? [[T3, 0.85], [T2, 0.15]] : [[T3, 1]], k: (th, cs, sn) => sn < -0.75 ? L.sole : L.boot })), 10, true, 0.008 * k);
+    g.loft(bt.filter((r, i) => !lo || i % 2 === 0).map(([z, hw, hh, dn]) => ({ c: cv3.at(A, fx, fy, fz, 0, (hh - dn) / 2 * k - 0.04 * k, z * k), X: fx, Y: fy, rx: hw * k, ry: (hh + dn) / 2 * k, sq: 0.55, rh: 0.5, w: z < -0.02 ? [[T3, 0.85], [T2, 0.15]] : [[T3, 1]], k: (th, cs, sn) => sn < -0.75 ? L.sole : L.boot })), g.n(10, 6), true, 0.008 * k);
+    g.pal = suitPal;
   }
+  g.pal = null;
   return g;
 }
 
 // ---- the head: helmet, face, eyes, the microphone, the neck restraint; the harness; the notes ----
+// The helmet's shell is a surface fitted to its openings, so that their edges run smooth: its directions d (x left, y
+// up, z forward, on the shell's ellipsoid) laid out in columns round the openings' edges and rows across the shell.
+// A full-faced helmet's runs from the eye port's edge round the head to the neck's opening (each column bending on its
+// way through a middle loop between the two: over the crown and down the back from the port's top, round over the ear
+// from its sides, down over the chin bar from its foot); an open-faced one's from a point on the crown behind out to its
+// one edge (round the face and along the rim over the ears and the nape). At each edge the shell rolls over a thick
+// rubber edge into the lining (the paint tells them apart by how far in they lie: CREW_GLSL).
+const CREW_HELM = {
+  // (the openings: the eye port and the neck's opening of a full-faced helmet, the face and the rim of an open one)
+  port: d => d[2] > 0.25 && Math.pow(Math.abs(d[0]) / 0.7, 5) + Math.pow(Math.abs(d[1] + 0.02) / 0.215, 5) < 1,
+  face: d => d[2] > 0 && Math.pow(Math.abs(d[0]) / 0.7, 4) + Math.pow(Math.abs(d[1] + 0.4) / 0.57, 4) < 1,
+  rim: d => d[1] < -0.66 + 0.3 * Math.max(0, d[2])
+};
+const crewSlerp = (a, b, t) => { const d = Math.max(-1, Math.min(1, cv3.dot(a, b))), om = Math.acos(d); if (om < 1e-6) return a.slice(); const s0 = Math.sin((1 - t) * om) / Math.sin(om), s1 = Math.sin(t * om) / Math.sin(om); return cv3.norm([a[0] * s0 + b[0] * s1, a[1] * s0 + b[1] * s1, a[2] * s0 + b[2] * s1]); };
+function crewHelmetShell(g, o) {
+  const k = o.k, lo = g.lod > 0, KH = crewKind(o.open ? 'open' : 'full', o.st), N = lo ? 14 : (o.open ? 30 : 28);
+  const map = (d, s) => [o.c[0] + d[0] * o.rx * s, o.c[1] + d[1] * o.ry * s, o.c[2] + d[2] * o.rz * s + (d[2] < 0 ? -0.012 : -0.014) * d[2] * d[2] * k];
+  // (columns spaced evenly along an edge given by edgeAt(u), u from 0 to 1 round it)
+  const spaced = edgeAt => { const M = 720, P = [], L = [0]; for (let i = 0; i <= M; i++) P.push(edgeAt(i / M)); for (let i = 1; i <= M; i++) L.push(L[i - 1] + Math.acos(Math.max(-1, Math.min(1, cv3.dot(P[i - 1], P[i])))));
+    const out = []; for (let j = 0; j < N; j++) { const want = L[M] * j / N; let i = 1; while (i < M && L[i] < want) i++; out.push(((i - 1) + (want - L[i - 1]) / ((L[i] - L[i - 1]) || 1)) / M); } return out; };
+  let cols, path, ends;
+  if (!o.open) {
+    const D = cv3.norm([0, -1, -0.3]), e1 = [1, 0, 0], e2 = cv3.mul(cv3.cross(D, e1), -1), rn = 0.52, Fc = cv3.norm([0, -0.02, 1]), n = cv3.norm(cv3.sub(Fc, D)), mv = cv3.cross(n, e1);
+    const portAt = s => { const cs = Math.cos(s), sn = Math.sin(s), rho = 1 / Math.pow(Math.pow(Math.abs(cs) / 0.7, 5) + Math.pow(Math.abs(sn) / 0.215, 5), 0.2), x = rho * cs, y = -0.02 + rho * sn; return [x, y, Math.sqrt(Math.max(0, 1 - x * x - y * y))]; };
+    const neckAt = s => cv3.norm(cv3.add(cv3.mul(D, Math.cos(rn)), cv3.mul(cv3.add(cv3.mul(e1, Math.cos(s)), cv3.mul(e2, Math.sin(s))), Math.sin(rn))));
+    const midAt = s => cv3.add(cv3.mul(e1, Math.cos(s)), cv3.mul(mv, Math.sin(s)));
+    cols = spaced(u => portAt(u * Math.PI * 2)).map(u => u * Math.PI * 2);
+    path = (s, r) => { const A = portAt(s), Mi = midAt(s), B = neckAt(s); return crewSlerp(crewSlerp(A, Mi, r), crewSlerp(Mi, B, r), r); };
+    ends = 2;
+  } else {
+    const C = cv3.norm([0, 0.55, -0.83]), e1 = [1, 0, 0], e2 = cv3.cross(e1, C), shell = d => !CREW_HELM.face(d) && !CREW_HELM.rim(d);
+    const ray = (s, b) => cv3.add(cv3.mul(C, Math.cos(b)), cv3.mul(cv3.add(cv3.mul(e1, Math.cos(s)), cv3.mul(e2, Math.sin(s))), Math.sin(b)));
+    const exitAt = s => { let b = 0; while (b < Math.PI && shell(ray(s, b + 0.02))) b += 0.02; let lo2 = b, hi = b + 0.02; for (let i = 0; i < 18; i++) { const m = (lo2 + hi) / 2; if (shell(ray(s, m))) lo2 = m; else hi = m; } return lo2; };
+    const B = []; for (let i = 0; i <= 720; i++) { const s = i / 720 * Math.PI * 2; B.push([s, exitAt(s)]); }
+    const bAt = s => { const f = ((s / (Math.PI * 2)) % 1 + 1) % 1 * 720, i = Math.floor(f), t = f - i; return B[i][1] + (B[Math.min(720, i + 1)][1] - B[i][1]) * t; };
+    cols = spaced(u => ray(u * Math.PI * 2, bAt(u * Math.PI * 2))).map(u => u * Math.PI * 2);
+    path = (s, r) => ray(s, bAt(s) * r);
+    ends = 1;
+  }
+  // (each column's rows: [where along it (0 to 1), how far in (1 the shell's outside)]: the lining and the rolled edge at
+  // each end, the shell between, closer near the edges)
+  const mid = lo ? [0.1, 0.3, 0.55, 0.8] : o.open ? [0.12, 0.27, 0.42, 0.56, 0.68, 0.78, 0.86, 0.92] : [0.03, 0.08, 0.15, 0.25, 0.38, 0.52, 0.66, 0.79, 0.89, 0.95];
+  const rowsOf = Th => { const a1 = 0.028 / Th, a2 = 0.07 / Th, a3 = (lo ? 0.08 : 0.2) / Th, R = [];
+    if (ends === 2) R.push([a3, 0.93], [a1 * 0.6, 0.94], [0, 0.965], [a1, 0.992]);
+    for (const r of mid) if (r > (ends === 2 ? a2 : 0) + 0.01 && r < 1 - a2 - 0.01) R.push([r, 1]);
+    if (ends === 2) R.push([1 - a1, 0.992], [1, 0.962], [1 - Math.min(a3, 0.1 / Th), 0.93]);
+    else R.push([1 - a1, 0.992], [1, 0.965], [1 - a1 * 0.6, 0.94], [1 - a3, 0.93]);
+    return R; };
+  // (the same number of rows down every column)
+  const Th = cols.map(s => { let a = 0, p = path(s, 0); for (let i = 1; i <= 24; i++) { const q = path(s, i / 24); a += Math.acos(Math.max(-1, Math.min(1, cv3.dot(p, q)))); p = q; } return a; });
+  const nr = Math.min(...Th.map(t => rowsOf(t).length)), grid = cols.map((s, j) => { let R = rowsOf(Th[j]); while (R.length > nr) R.splice(ends === 2 ? 4 + Math.floor((R.length - 7) / 2) : Math.floor((R.length - 4) / 2), 1); return R.map(([r, sc]) => { const d = path(s, r); return g.v(map(d, sc), o.col, 0.28, o.w, [d[0], d[1], d[2], KH + Math.min(0.45, (1 - sc) / 0.07 * 0.45)]); }); });
+  for (let j = 0; j < N; j++) for (let i = 0; i + 1 < nr; i++) g.quad(grid[j][i], grid[(j + 1) % N][i], grid[(j + 1) % N][i + 1], grid[j][i + 1]);
+  // (the open helmet's crown: a fan round the point the columns start from)
+  if (ends === 1) { const d = path(0, 0), c = g.v(map(d, 1), o.col, 0.28, o.w, [d[0], d[1], d[2], KH]); for (let j = 0; j < N; j++) g.tri(c, grid[(j + 1) % N][0], grid[j][0]); }
+}
 function crewHead(g, J, P, bi, L) {
-  const k = J.k, b = n => bi[P + n], hd = (x, y, z) => cv3.add(J.atlas, [x * k, y * k, z * k]), F0 = CREW_FACE;
+  const k = J.k, b = n => bi[P + n], hd = (x, y, z) => cv3.add(J.atlas, [x * k, y * k, z * k]), F0 = CREW_FACE, lo = g.lod > 0, st = L.style || 0;
   const sm = (a, c, v) => { const t = Math.max(0, Math.min(1, (v - a) / (c - a))); return t * t * (3 - 2 * t); }, Hd = b('Head');
-  // ---- the helmet: the shell (open-faced: cut away from the brow to under the chin in front, down over the ears at
-  // the sides; full-faced: the chin bar in front, the eye port open, the visor raised over the brow), lined inside ----
+  const mixc = (a, c, t) => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t, a[2] + (c[2] - a[2]) * t];
+  // ---- the helmet ----
   const open = L.helmetType === 'open', hc = open ? hd(0, 0.07, 0.0) : hd(0, 0.046, 0.01), rx = open ? 0.119 : 0.124, ry = open ? 0.142 : 0.166, rz = open ? 0.142 : 0.157;
-  // (open: the face's window from the brow down, its edge running back past the cheeks and down over the ears, the
-  // shell down to the nape behind; full: the chin bar under the face, the eye port, the neck's opening underneath)
-  const keep = open ? (x, y, z) => !(z > 0.12 && Math.abs(x) < 0.66 && y < 0.17) && y > -0.66 + 0.3 * Math.max(0, z)
-    : (x, y, z) => !(z > 0.42 && y < 0.2 && y > -0.24 && Math.abs(x) < 0.72) && y > -0.93 && !(y < -0.78 && z < 0.55);
-  const visor = (x, y, z) => !open && z > 0.3 && y >= 0.2 && y < 0.5 && Math.abs(x) < 0.88;
-  const hk = (x, y, z) => visor(x, y, z) ? L.visor : (Math.abs(x) < 0.15 && y > -0.1 && z > -0.97) || (y < -0.3 && y > -0.42 && !open) || (open && y < -0.52 && y > -0.6) ? L.hstripe : L.helmet;
-  const hr = (x, y, z) => visor(x, y, z) ? 0.1 : 0.28;
-  // (the shell egg-shaped: fuller behind, flatter over the face)
-  const warp = (p, x, y, z) => cv3.add(p, [0, 0, (z < 0 ? -0.012 * z * z : -0.014 * z * z) * k]);
-  g.blob(hc, [rx * k, 0, 0], [0, ry * k, 0], [0, 0, rz * k], 16, 12, hk, hr, [[Hd, 1]], keep, warp);
-  g.blob(hc, [(rx - 0.012) * k, 0, 0], [0, (ry - 0.012) * k, 0], [0, 0, (rz - 0.013) * k], 12, 9, L.lining, 0.9, [[Hd, 1]], keep, warp);
-  // ---- the face: a grid over the face's surface, its lower part (below the mouth's line) on the jaw, the mouth's
-  // corners and the brows on bones of their own, so it can smile, frown and shout ----
-  const ym = F0.mouth, xs = 18, ws = x => (1 - sm(F0.mouthW - 0.004, F0.mouthW + 0.022, Math.abs(x)));
-  const wFace = (x, y, lower) => { const W = [];
-    let wj = lower ? Math.max(ws(x), sm(0.004, 0.04, ym - y) * (1 - sm(0.042, 0.068, Math.abs(x)))) : 0; if (wj > 0) W.push([b('Jaw'), wj]);
-    for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R', dc = Math.hypot(x - sd * F0.mouthW, (y - ym) * 1.3), wc = dc < 0.022 ? Math.pow(1 - dc / 0.022, 2) * 0.85 : 0; if (wc > 0) W.push([b('Mouth' + s), wc]);
-      const dbw = Math.hypot((x - sd * 0.031) * 0.8, y - 0.068), wb = !lower && dbw < 0.022 ? (1 - dbw / 0.022) * 0.55 : 0; if (wb > 0) W.push([b('Brow' + s), wb]); }
+  g.pal = [L.hstripe, L.hthird];
+  crewHelmetShell(g, { c: hc, rx: rx * k, ry: ry * k, rz: rz * k, k, open, st, w: [[Hd, 1]], col: L.helmet });
+  g.pal = null;
+  // (the neck restraint's posts on the helmet's sides, where its tethers clip on)
+  if (L.hans && !lo) for (const sd of [1, -1]) { const c = hd(sd * 0.126, 0.018, -0.012); g.box(c, [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.006 * k, 0.012 * k, 0.012 * k], L.hansK, 0.4, [[Hd, 1]]); }
+  // ---- the face: one smooth surface over the head's front, carrying its painted picture (crewFaceAtlas; CREW_GLSL
+  // swaps its eyes' and mouth's pictures as the expression changes). Below the mouth it follows the jaw a little, round
+  // the mouth's corners their bones, over the eyes the brows' (so it frowns, smiles and drops its chin); under a
+  // full-faced helmet only what shows through the eye port is made ----
+  const ym = F0.mouth, xs = lo ? 8 : (open ? 14 : 12), who = P === 'C' ? 1 : 0;
+  const wFace = (x, y) => { const W = [], wj = sm(0.0, 0.045, ym + 0.004 - y) * (1 - sm(0.045, 0.07, Math.abs(x))); if (wj > 0) W.push([b('Jaw'), wj]);
+    for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R', dc = Math.hypot(x - sd * F0.mouthW, (y - ym) * 1.3), wc = dc < 0.024 ? Math.pow(1 - dc / 0.024, 2) * 0.6 : 0; if (wc > 0) W.push([b('Mouth' + s), wc]);
+      const dbw = Math.hypot((x - sd * 0.031) * 0.8, y - 0.068), wb = dbw < 0.022 ? (1 - dbw / 0.022) * 0.55 : 0; if (wb > 0) W.push([b('Brow' + s), wb]); }
     const rest = Math.max(0.05, 1 - W.reduce((a, e) => a + e[1], 0)); W.push([Hd, rest]); return W.slice(0, 4); };
   // the fireproof balaclava under the helmet: over the head and neck, its opening framing the face (from the brows to
-  // under the lower lip) under an open-faced helmet, a slot for the eyes under a full-faced one; a layer of cloth over
-  // the face round the opening, a darker hem at its edge
-  const eyeSlot = L.helmetType !== 'open', cloth = (x, y) => eyeSlot ? Math.pow(Math.abs(x) / 0.061, 4) + Math.pow(Math.abs(y - 0.047) / 0.025, 4) : Math.pow(Math.abs(x) / 0.055, 4) + Math.pow(Math.abs(y - 0.01) / 0.077, 4);
-  const kFace = (x, y) => { const c = cloth(x, y); if (c >= 1) return c < 1.45 ? L.hem : L.bala; return Math.abs(y - ym) < 0.0075 && Math.abs(x) < F0.mouthW + 0.003 - Math.abs(y - ym) * 0.4 ? L.lips : L.skin; };
+  // under the lower lip) under an open-faced helmet, a slot for the eyes under a full-faced one (painted over the face's
+  // picture by CREW_GLSL); a layer of cloth over the face round the opening
+  const eyeSlot = !open, cloth = (x, y) => eyeSlot ? Math.pow(Math.abs(x) / 0.061, 4) + Math.pow(Math.abs(y - 0.047) / 0.025, 4) : Math.pow(Math.abs(x) / 0.055, 4) + Math.pow(Math.abs(y - 0.016) / 0.069, 4), KF = crewKind('face', st);
   const lift = (x, y) => cloth(x, y) >= 1 ? 0.0028 : 0;
-  for (const lower of [false, true]) { const y0 = lower ? ym - 0.0008 : 0.128, y1 = lower ? -0.106 : ym + 0.0008, ny = lower ? 8 : 18, rows = [];
+  g.pal = [L.bala, L.bala];
+  { const y0 = open ? 0.128 : 0.108, y1 = open ? -0.106 : -0.014, ny = lo ? (open ? 10 : 6) : (open ? 18 : 9), rows = [];
     for (let i = 0; i <= ny; i++) { const y = y0 + (y1 - y0) * i / ny, row = [], hw = 0.072 - Math.max(0, y - 0.07) * 0.25 - Math.max(0, -0.07 - y) * 0.45;
       for (let j = 0; j <= xs; j++) { const u = j / xs * 2 - 1, x = hw * Math.sign(u) * Math.pow(Math.abs(u), 1.35), lf = lift(x, y);
-        row.push(g.v(hd(x * (1 + lf * 6), y, crewFaceZ(x, y) + lf - (Math.abs(x) > 0.062 ? (Math.abs(x) - 0.062) * 1.5 : 0)), kFace(x, y), lf > 0 ? 0.92 : 0.72, wFace(x, y, lower))); }
+        row.push(g.v(hd(x * (1 + lf * 6), crewFaceY(y), crewFaceZ(x, y) + lf - (Math.abs(x) > 0.062 ? (Math.abs(x) - 0.062) * 1.5 : 0)), L.skin, 0.62, wFace(x, y), [x, y, (eyeSlot ? 1 : 0) + 2 * who, KF])); }
       rows.push(row); }
     for (let i = 0; i < ny; i++) for (let j = 0; j < xs; j++) g.quad(rows[i][j], rows[i][j + 1], rows[i + 1][j + 1], rows[i + 1][j]); }
-  // the mouth's inside (dark, stretched as the jaw opens) and the teeth
-  { const zm = crewMid(ym); g.loft([[0.03, [[Hd, 1]]], [-0.004, [[Hd, 0.6], [b('Jaw'), 0.4]]], [-0.02, [[b('Jaw'), 1]]]].map(([dy, w]) => ({ c: hd(0, ym + dy, zm - 0.022), X: [1, 0, 0], Y: [0, 0, 1], rx: 0.024 * k, ry: 0.013 * k, rh: 0.9, w, k: L.mouth })), 8, true, true);
-    g.box(hd(0, ym + 0.0042, zm - 0.0055), [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.0165 * k, 0.0032 * k, 0.003 * k], L.teeth, 0.3, [[Hd, 1]]);
-    g.box(hd(0, ym - 0.0045, zm - 0.008), [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.0145 * k, 0.0028 * k, 0.003 * k], L.teeth, 0.3, [[b('Jaw'), 1]]); }
-  // the eyes: white, the iris, the upper lid (on its own bone: it closes to blink, opens wide in fright); the brows
-  for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R', ex = sd * F0.eye[0], ey = F0.eye[1], ez = crewFaceZ(ex, ey) + 0.016 - 0.0085;
-    g.blob(hd(ex, ey, ez), [0.0108 * k, 0, 0], [0, 0.007 * k, 0], [0, 0, 0.0062 * k], 8, 5, L.white, 0.15, [[Hd, 1]], (x, y, z) => z > -0.2);
-    g.blob(hd(ex, ey - 0.0004, ez + 0.0052), [0.0049 * k, 0, 0], [0, 0.0049 * k, 0], [0, 0, 0.0016 * k], 8, 4, L.iris, 0.15, [[Hd, 1]], (x, y, z) => z > 0);
-    g.blob(hd(ex, ey + 0.0006, ez - 0.0005), [0.0122 * k, 0, 0], [0, 0.0084 * k, 0], [0, 0, 0.0074 * k], 8, 6, L.lid, 0.72, [[b('Lid' + s), 1]], (x, y, z) => z > -0.3 && y > 0.32);
-    const bz = crewFaceZ(sd * 0.03, 0.07) + 0.0022;
-    g.box(hd(sd * 0.031, 0.0695, bz), cv3.norm([1, -sd * 0.12, -sd * 0.25]), [0, 1, 0], cv3.norm([sd * 0.25, 0, 1]), [0.017 * k, 0.0028 * k, 0.0022 * k], L.brow, 0.8, [[b('Brow' + s), 1]]); }
+  g.pal = null;
   // the intercom's boom microphone, from the helmet's left side round in front of the mouth
-  if (L.mic && open) { const pts = [[0.13, 0.015, 0.035], [0.122, -0.028, 0.088], [0.088, -0.05, 0.13], [0.04, -0.045, 0.142], [0.016, -0.038, 0.137]].map(q => hd(q[0], q[1], q[2]));
+  if (L.mic && open) { const pts = [[0.13, 0.015, 0.035], [0.122, -0.028, 0.088], [0.088, -0.05, 0.13], [0.04, -0.045, 0.142], [0.016, -0.038, 0.137]].map(q => hd(q[0], crewFaceY(q[1]), q[2]));
     const R = pts.map((c, i) => { const d = cv3.norm(cv3.sub(pts[Math.min(i + 1, pts.length - 1)], pts[Math.max(i - 1, 0)])), x = cv3.norm(cv3.cross(d, [0, 1, 0])); return { c, X: x, Y: cv3.cross(d, x), rx: 0.0034 * k, ry: 0.0034 * k, rh: 0.4, w: [[Hd, 1]], k: L.mic }; });
-    g.loft(R, 6, false, false); g.blob(pts[pts.length - 1], [0.011 * k, 0, 0], [0, 0.0105 * k, 0], [0, 0, 0.011 * k], 8, 6, L.mic, 0.95, [[Hd, 1]]); }
+    g.loft(lo ? [R[0], R[2], R[4]] : R, lo ? 4 : 6, false, false); g.blob(pts[pts.length - 1], [0.011 * k, 0, 0], [0, 0.0105 * k, 0], [0, 0, 0.011 * k], lo ? 5 : 8, lo ? 4 : 6, L.mic, 0.95, [[Hd, 1]]); }
   // the neck restraint (from 2005 in the World Rally Cars): a carbon yoke lying on the shoulders and up behind the
   // neck, tethered to the helmet's sides
   if (L.hans) { const X = J.X, U = J.U, F = J.F, tr = (x, y, z) => cv3.at(J.H, X, U, F, x * k, y * k, z * k);
     for (const sd of [1, -1]) { const P0 = [[0.068, 0.44, 0.112], [0.094, 0.5, 0.07], [0.098, 0.535, -0.005], [0.07, 0.56, -0.07], [0.028, 0.585, -0.098]].map(q => [sd * q[0], q[1], q[2]]);
       const R = P0.map((q, i) => { const c = tr(...q), dn = cv3.sub(tr(...P0[Math.min(i + 1, 4)]), tr(...P0[Math.max(i - 1, 0)])), d = cv3.norm(dn), up = cv3.norm(cv3.sub(c, tr(0, q[1] - 0.15, 0))), x = cv3.norm(cv3.cross(d, up));
         return { c: cv3.madd(c, up, 0.006 * k), X: x, Y: cv3.cross(d, x), rx: 0.03 * k, ry: 0.009 * k, sq: 0.9, rh: 0.35, w: [[b('Chest'), 1]], k: L.hansK }; });
-      g.loft(R, 8, sd > 0 ? true : false, false); }
+      g.loft(lo ? [R[0], R[2], R[4]] : R, lo ? 6 : 8, sd > 0 ? true : false, false); }
     // (its collar standing up behind the neck, and the tethers)
-    g.loft([[0.58, 0.035], [0.66, 0.033]].map(([y, r]) => ({ c: tr(0, y, -0.1), X: [1, 0, 0], Y: J.F, rx: r * 1.6 * k, ry: 0.012 * k, sq: 0.8, rh: 0.35, w: [[b('Chest'), 1]], k: L.hansK })), 8, true, true);
-    for (const sd of [1, -1]) { const a0 = tr(sd * 0.05, 0.645, -0.09), a1 = hd(sd * 0.128, 0.02, -0.01), side = cv3.norm(cv3.cross(cv3.sub(a1, a0), [sd, 0, 0]));
+    g.loft([[0.58, 0.035], [0.66, 0.033]].map(([y, r]) => ({ c: tr(0, y, -0.1), X: [1, 0, 0], Y: J.F, rx: r * 1.6 * k, ry: 0.012 * k, sq: 0.8, rh: 0.35, w: [[b('Chest'), 1]], k: L.hansK })), lo ? 6 : 8, true, true);
+    if (!lo) for (const sd of [1, -1]) { const a0 = tr(sd * 0.05, 0.645, -0.09), a1 = hd(sd * 0.128, 0.02, -0.01), side = cv3.norm(cv3.cross(cv3.sub(a1, a0), [sd, 0, 0]));
       g.strip([0, 0.5, 1].map(t => ({ p: cv3.lerp(a0, a1, t), side, w: t === 0 ? [[b('Chest'), 1]] : t === 1 ? [[Hd, 1]] : [[b('Chest'), 0.5], [Hd, 0.5]] })), 0.018 * k, L.tether, 0.8); } }
 }
 // the six-point harness: the shoulder straps from the harness bar behind the seat over the shoulders (over the neck
 // restraint's yoke where there is one) down to the buckle, the lap straps from the seat's sides, the crotch straps from
-// the cushion's front; the round buckle
+// the cushion's front; stitched webbing, a metal adjuster on each shoulder strap over the chest and on each lap strap,
+// the loose ends hanging from them; the round buckle
 function crewHarness(g, J, P, bi, L, fix) {
-  const k = J.k, b = n => bi[P + n], X = J.X, U = J.U, F = J.F, tr = (x, y, z) => cv3.at(J.H, X, U, F, x * k, y * k, z * k), up = L.hans ? 0.017 : 0;
-  const run = (pts, wd) => { const P0 = pts.map(q => ({ p: tr(q[0], q[1], q[2]), w: q[3] }));
-    g.strip(P0.map((q, i) => { const d = cv3.norm(cv3.sub(P0[Math.min(i + 1, P0.length - 1)].p, P0[Math.max(i - 1, 0)].p)), out = cv3.norm(cv3.sub(q.p, tr(0, cv3.dot(cv3.sub(q.p, J.H), U) / k, -0.01)));
-      return { p: q.p, side: cv3.norm(cv3.cross(d, out)), w: q.w }; }), wd * k, L.belt, 0.8); };
+  const k = J.k, b = n => bi[P + n], X = J.X, U = J.U, F = J.F, tr = (x, y, z) => cv3.at(J.H, X, U, F, x * k, y * k, z * k), up = L.hans ? 0.017 : 0, lo = g.lod > 0, KS = crewKind('strap', 0);
+  // (a strap's path: its points with their sides, lying flat on the body)
+  const lay = pts => { const P0 = pts.map(q => ({ p: tr(q[0], q[1], q[2]), w: q[3] }));
+    return P0.map((q, i) => { const d = cv3.norm(cv3.sub(P0[Math.min(i + 1, P0.length - 1)].p, P0[Math.max(i - 1, 0)].p)), out = cv3.norm(cv3.sub(q.p, tr(0, cv3.dot(cv3.sub(q.p, J.H), U) / k, -0.01)));
+      return { p: q.p, side: cv3.norm(cv3.cross(d, out)), out, d, w: q.w }; }); };
+  const run = (pts, wd) => { const Q = lay(pts); g.strip(lo ? Q.filter((q, i) => i % 2 === 0 || i === Q.length - 1) : Q, wd * k, L.belt, 0.8, (e, a) => [e, 0, a, KS]); return Q; };
+  // (an adjuster: a metal frame lying on the strap at a share u along its run, and the strap's loose end hanging from it)
+  const adj = (Q, u, wd, hang) => { const f = u * (Q.length - 1), i = Math.min(Q.length - 2, Math.floor(f)), t = f - i, p = cv3.lerp(Q[i].p, Q[i + 1].p, t), q = Q[i], w = q.w;
+    const ou = cv3.norm(cv3.sub(q.out, cv3.mul(q.d, cv3.dot(q.out, q.d)))), sdv = cv3.cross(q.d, ou), c = cv3.madd(p, ou, 0.004 * k); g.box(c, sdv, q.d, ou, [wd * 0.6 * k, 0.014 * k, 0.003 * k], L.metal, 0.16, w);
+    if (!lo && hang) { const e = cv3.madd(c, ou, 0.003 * k), dn = cv3.norm(cv3.sub(cv3.mul(U, -1), cv3.mul(ou, cv3.dot(cv3.mul(U, -1), ou)))), sd2 = cv3.norm(cv3.cross(dn, ou));
+      g.strip([0, 0.5, 1].map(h => ({ p: cv3.add(cv3.madd(e, dn, h * hang * k), cv3.mul(ou, 0.004 * h * k)), side: sd2, w })), wd * 0.92 * k, L.belt, 0.8, (e2, a) => [e2, 0, a, KS]); } };
   const Ch = [[b('Chest'), 1]], Sp = [[b('Spine'), 1]], Hp = [[b('Hips'), 1]], Fx = [[fix, 1]];
   for (const sd of [1, -1]) {
-    run([[sd * 0.075, 0.6, -0.24, Fx], [sd * 0.083, 0.57, -0.13, [[fix, 0.5], [b('Chest'), 0.5]]], [sd * 0.088, 0.543 + up, -0.05, Ch], [sd * 0.084, 0.515 + up, 0.035, Ch], [sd * 0.074, 0.45 + up * 0.5, 0.11 + up, Ch], [sd * 0.062, 0.33, 0.126, Ch], [sd * 0.045, 0.21, 0.118, [[b('Spine'), 0.6], [b('Chest'), 0.4]]], [sd * 0.026, 0.1, 0.116, Sp], [sd * 0.014, 0.045, 0.127, Hp]], 0.068);
-    run([[sd * 0.205, -0.03, -0.07, Fx], [sd * 0.178, 0.0, 0.02, [[fix, 0.4], [b('Hips'), 0.6]]], [sd * 0.135, 0.028, 0.095, Hp], [sd * 0.07, 0.04, 0.128, Hp], [sd * 0.02, 0.044, 0.134, Hp]], 0.068);
+    const sh = run([[sd * 0.075, 0.6, -0.24, Fx], [sd * 0.083, 0.57, -0.13, [[fix, 0.5], [b('Chest'), 0.5]]], [sd * 0.088, 0.543 + up, -0.05, Ch], [sd * 0.084, 0.515 + up, 0.035, Ch], [sd * 0.074, 0.45 + up * 0.5, 0.11 + up, Ch], [sd * 0.062, 0.33, 0.126, Ch], [sd * 0.045, 0.21, 0.118, [[b('Spine'), 0.6], [b('Chest'), 0.4]]], [sd * 0.026, 0.1, 0.116, Sp], [sd * 0.014, 0.045, 0.127, Hp]], 0.068);
+    adj(sh, 0.58, 0.068, 0.07);
+    const lp = run([[sd * 0.205, -0.03, -0.07, Fx], [sd * 0.178, 0.0, 0.02, [[fix, 0.4], [b('Hips'), 0.6]]], [sd * 0.135, 0.028, 0.095, Hp], [sd * 0.07, 0.04, 0.128, Hp], [sd * 0.02, 0.044, 0.134, Hp]], 0.068);
+    adj(lp, 0.45, 0.068, 0.05);
     run([[sd * 0.032, -0.1, 0.24, Fx], [sd * 0.03, -0.055, 0.2, [[fix, 0.5], [b('Hips'), 0.5]]], [sd * 0.026, -0.005, 0.155, Hp], [sd * 0.016, 0.03, 0.135, Hp]], 0.044); }
-  g.blob(tr(0, 0.045, 0.134), cv3.mul(X, 0.036 * k), cv3.mul(F, 0.008 * k), cv3.mul(U, 0.036 * k), 12, 5, L.buckle, 0.25, Hp);
+  g.blob(tr(0, 0.045, 0.134), cv3.mul(X, 0.036 * k), cv3.mul(F, 0.008 * k), cv3.mul(U, 0.036 * k), lo ? 8 : 14, lo ? 4 : 5, L.buckle, 0.18, Hp);
+  if (!lo) g.blob(tr(0, 0.045, 0.142), cv3.mul(X, 0.017 * k), cv3.mul(F, 0.004 * k), cv3.mul(U, 0.017 * k), 10, 4, L.belt, 0.5, Hp, (x, y, z) => z > -0.2);
 }
-// the co-driver's pace notes: a spiral-bound book (stiff back, a block of pages, lines of notes on the open page), and
-// one leaf on a bone of its own to turn over the spiral at the top; built in the book's frame c, X (to the reader's
-// right), Y (to the spiral), Z (out of the page)
+// the co-driver's pace notes: a spiral-bound book (stiff back, a block of pages, the open page's notes printed by the
+// paint (CREW_GLSL), the spiral's rings), and one leaf on a bone of its own to turn over the spiral at the top; built in
+// the book's frame c, X (to the reader's right), Y (to the spiral), Z (out of the page)
 function crewBook(g, c, X, Y, Z, bk, pg, L) {
-  const at = (x, y, z) => cv3.at(c, X, Y, Z, x, y, z);
+  const at = (x, y, z) => cv3.at(c, X, Y, Z, x, y, z), lo = g.lod > 0, KP = crewKind('page', 0);
+  // (a page's printed face: a flat quad over (x0..x1, y0..y1) at height z)
+  const face = (x0, x1, y0, y1, z, w) => { const q = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([x, y]) => g.v(at(x, y, z), L.paper, 0.85, w, [x, y, 0, KP])); g.quad(q[0], q[1], q[2], q[3]); };
   g.box(at(0, 0, -0.004), X, Y, Z, [0.078, 0.108, 0.003], L.cover, 0.7, [[bk, 1]]);
   g.box(at(0, -0.002, 0.003), X, Y, Z, [0.073, 0.103, 0.0045], L.paper, 0.85, [[bk, 1]]);
-  for (let i = 0; i < 9; i++) { const y = 0.075 - i * 0.019, w = 0.03 + ((i * 37) % 7) * 0.006; g.box(at(-0.055 + w / 2, y, 0.0078), X, Y, Z, [w / 2, 0.0022, 0.0004], L.ink, 0.9, [[bk, 1]]);
-    if (i % 2 === 0) g.box(at(0.035, y, 0.0078), X, Y, Z, [0.016, 0.0028, 0.0004], L.ink, 0.9, [[bk, 1]]); }
-  g.box(at(0, 0.106, 0.004), X, Y, Z, [0.075, 0.0045, 0.006], L.spiral, 0.3, [[bk, 1]]); // (the spiral)
-  // the leaf that turns, lying on the open page (hinged at the spiral)
+  g.pal = [L.ink, L.ink];
+  if (!lo) face(-0.073, 0.073, -0.105, 0.101, 0.0078, [[bk, 1]]);
+  g.pal = null;
+  g.box(at(0, 0.106, 0.004), X, Y, Z, [0.075, 0.0045, 0.006], L.spiral, 0.3, [[bk, 1]], lo ? null : off => [off[0], 0, 0, crewKind('spiral', 0)]); // (the spiral)
+  // the leaf that turns, lying on the open page (hinged at the spiral), printed on both sides
   g.box(at(0, -0.002, 0.0086), X, Y, Z, [0.0725, 0.102, 0.0005], L.paper, 0.85, [[pg, 1]]);
-  for (let i = 0; i < 4; i++) g.box(at(-0.04, 0.06 - i * 0.03, 0.0094), X, Y, Z, [0.022, 0.0025, 0.0003], L.ink, 0.9, [[pg, 1]]);
+  if (!lo) { g.pal = [L.ink, L.ink]; face(-0.0725, 0.0725, -0.104, 0.1, 0.0093, [[pg, 1]]); g.pal = null; }
 }
 // the controls the driver works: the steering wheel (its era's: rim, spokes, hub, the yellow mark at the top; the
 // modern one flat-bottomed with buttons and dials), shift paddles, the gear lever, the handbrake, the pedals, a
@@ -20533,17 +21168,18 @@ function crewControls(g, R0, o, bi, L) {
   const W = o.wheel, wl = (x, y, z) => cv3.add(W.pos, crewRx([x, y, z], W.tilt)), wd = v => crewRx(v, W.tilt), Wb = [[bi.Wheel, 1]], st = W.style;
   // the rim: a tube round the wheel (the modern one flat across its foot), its thickness and colour round it
   const rimAt = th => { const x = Math.cos(th) * W.R, y = Math.sin(th) * W.R; return st === 'modern' ? [x, Math.max(y, -W.R * 0.74)] : [x, y]; };
-  const N = 40, rows = [];
+  const lo = g.lod > 0, N = lo ? 20 : 40, NS = lo ? 5 : 8, rows = [];
   for (let i = 0; i < N; i++) { const th = i / N * Math.PI * 2, p = rimAt(th), q = rimAt(th + 0.02), tg = cv3.norm([q[0] - p[0], q[1] - p[1], 0]), out = [tg[1], -tg[0], 0];
     const top = Math.abs(th - Math.PI / 2) < 0.09, grip = st === 'modern' && Math.abs(Math.sin(th)) < 0.42, t = W.t * (grip ? 1.13 : st === 'modern' ? 0.92 : 1);
     const kk = top ? L.mark : st === 'classic' ? ((i % 5) < 1 ? L.woodD : L.wood) : L.rim, rh = st === 'classic' ? 0.35 : 0.95; const row = [];
-    for (let j = 0; j < 8; j++) { const a = j / 8 * Math.PI * 2, d = cv3.add(cv3.mul(out, Math.cos(a) * t), [0, 0, Math.sin(a) * t * (st === 'classic' ? 1 : 1.1)]); row.push(g.v(wl(p[0] + d[0], p[1] + d[1], d[2]), kk, rh, Wb)); }
+    for (let j = 0; j < NS; j++) { const a = j / NS * Math.PI * 2, d = cv3.add(cv3.mul(out, Math.cos(a) * t), [0, 0, Math.sin(a) * t * (st === 'classic' ? 1 : 1.1)]); row.push(g.v(wl(p[0] + d[0], p[1] + d[1], d[2]), kk, rh, Wb)); }
     rows.push(row); }
-  for (let i = 0; i < N; i++) for (let j = 0; j < 8; j++) g.quad(rows[i][j], rows[(i + 1) % N][j], rows[(i + 1) % N][(j + 1) % 8], rows[i][(j + 1) % 8]);
+  for (let i = 0; i < N; i++) for (let j = 0; j < NS; j++) g.quad(rows[i][j], rows[(i + 1) % N][j], rows[(i + 1) % N][(j + 1) % NS], rows[i][(j + 1) % NS]);
   // the hub boss on the column, its horn button
   const hubZ = W.dish;
-  g.loft([[hubZ + 0.06, 0.03], [hubZ + 0.012, 0.033], [hubZ - 0.004, 0.036], [hubZ - 0.012, 0.03]].map(([z, r]) => ({ c: wl(0, 0, z), X: wd([1, 0, 0]), Y: wd([0, 1, 0]), rx: r, ry: r, rh: 0.5, w: Wb, k: L.hub })), 12, true, true);
-  if (st === 'modern') {
+  g.loft([[hubZ + 0.06, 0.03], [hubZ + 0.012, 0.033], [hubZ - 0.004, 0.036], [hubZ - 0.012, 0.03]].map(([z, r]) => ({ c: wl(0, 0, z), X: wd([1, 0, 0]), Y: wd([0, 1, 0]), rx: r, ry: r, rh: 0.5, w: Wb, k: L.hub })), lo ? 6 : 12, true, true);
+  if (st === 'modern' && lo) g.box(wl(0, -0.02, hubZ * 0.35), wd([1, 0, 0]), wd([0, 1, 0]), wd([0, 0, 1]), [W.R - 0.01, 0.05, 0.006], L.carbon, 0.35, Wb);
+  else if (st === 'modern') {
     // a carbon plate across from the grips, down to the flat foot; buttons, two dials, the yellow mark at the top
     const pz = hubZ * 0.35;
     g.box(wl(0, 0.004, pz), wd([1, 0, 0]), wd([0, 1, 0]), wd([0, 0, 1]), [W.R - 0.01, 0.034, 0.006], L.carbon, 0.35, Wb);
@@ -20567,7 +21203,7 @@ function crewControls(g, R0, o, bi, L) {
     if (o.lever === 'H') {
       g.loft([[0, 0.05], [0.025, 0.04], [0.05, 0.022], [0.08, 0.014]].map(([t, r]) => ({ c: cv3.madd(lb, d, t), X: x, Y: y, rx: r, ry: r, rh: 0.8, w: t < 0.03 ? [[bi.Fix, 1]] : gb, k: L.gaiter })), 10, false, false);
       g.loft([[0.06, 0.0075], [cv3.len(cv3.sub(lt, lb)) - 0.01, 0.0072]].map(([t, r]) => ({ c: cv3.madd(lb, d, t), X: x, Y: y, rx: r, ry: r, rh: 0.2, w: gb, k: L.shaft })), 8, false, false);
-      g.blob(cv3.madd(lt, d, 0.008), [0.021, 0, 0], [0, 0.02, 0], [0, 0, 0.021], 12, 8, L.knob, L.knobR, gb);
+      g.blob(cv3.madd(lt, d, 0.008), [0.021, 0, 0], [0, 0.02, 0], [0, 0, 0.021], lo ? 6 : 12, lo ? 4 : 8, L.knob, L.knobR, gb);
     } else {
       g.box(cv3.madd(lb, [0, -1, 0], 0.012), [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.035, 0.026, 0.085], L.hub, 0.5, [[bi.Fix, 1]]);
       const mid = cv3.add(cv3.lerp(lb, lt, 0.55), [0.0, 0.0, 0.03]);
@@ -20588,6 +21224,73 @@ function crewControls(g, R0, o, bi, L) {
   for (const fr of o.rests) g.box(fr.c, [1, 0, 0], fr.Y, fr.N, [fr.w, 0.07, 0.005], L.pedal, 0.4, [[bi.Fix, 1]]);
 }
 const crewRx = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [v[0], v[1] * c - v[2] * s, v[1] * s + v[2] * c]; };
+
+// ---- the seats ----
+// A bucket seat under each of them, of the era: a shell moulded round the person, padded and covered in cloth (the
+// middle quilted, the bolsters in their own cloth: CREW_GLSL), its back reclined with theirs, wings beside the ribs and
+// the shoulders, and in the modern cars wings round the helmet as well (the 1980s and 1990s seats a headrest above
+// the shoulders, the 1970s ones lower); slots in the back for the harness's shoulder straps; the cushion with bolsters
+// under the thighs; the brackets it is bolted down with. o: { x (the seat's middle across), floorY, cushion (its top),
+// back (where its back stands at the cushion), front, a (the recline), Lb (the back's length), sideU, archU (how far out
+// from the car's middle the back and the cushion may reach), J (the person's joints), style }
+function crewSeats(CR, o) { for (const g of [CR.geo, CR.geoLow]) if (g) crewSeat3D(g, o, CR.bi.Fix, CR.look); }
+function crewSeat3D(g, o, fix, Lk) {
+  const sd = Math.sign(o.x) || 1, u = Math.abs(o.x), ca = Math.cos(o.a), sa = Math.sin(o.a), lo = g.lod > 0, st = o.style, KS = crewKind('seat', st), w = [[fix, 1]];
+  const O = [o.x, o.cushion - 0.04, o.back], bd = [0, ca, -sa], fd = [0, sa, ca], J = o.J;
+  // (a point of the back: a across (+ outward), v up it from the cushion, f out in front of it)
+  const onB = (a, v, f) => [o.x + sd * a, O[1] + v * ca + f * sa, O[2] - v * sa + f * ca], vOf = p => cv3.dot(cv3.sub(p, O), bd);
+  const vSh = vOf(J.shL), vHelm = vOf(J.helm), vSlot = vOf(cv3.at(J.H, J.X, J.U, J.F, 0, 0.565 * J.k, -0.115 * J.k)), Lb = o.Lb;
+  const outMax = Math.min(0.26, o.sideU - u - 0.006), inMax = 0.27;
+  // the back's rows: [v, the inner half-width between the wings, the wings' depth]
+  let rows = st === 2 ? [[0, 0.2, 0.05], [0.1, 0.19, 0.1], [0.24, 0.2, 0.13], [vSh - 0.13, 0.215, 0.14], [vSh - 0.02, 0.238, 0.125], [vSh + 0.065, 0.15, 0.06], [vHelm - 0.08, 0.156, 0.17], [vHelm + 0.05, 0.156, 0.2], [Lb, 0.14, 0.12]]
+    : st === 1 ? [[0, 0.2, 0.05], [0.1, 0.19, 0.09], [0.24, 0.2, 0.12], [vSh - 0.13, 0.212, 0.12], [vSh - 0.02, 0.235, 0.1], [vSh + 0.065, 0.14, 0.05], [Lb - 0.04, 0.13, 0.05], [Lb, 0.12, 0.035]]
+    : [[0, 0.2, 0.04], [0.12, 0.19, 0.07], [0.26, 0.2, 0.09], [vSh - 0.1, 0.21, 0.08], [vSh, 0.22, 0.06], [Math.min(Lb, vSh + 0.08), 0.15, 0.04], [Lb, 0.13, 0.03]];
+  rows = rows.filter(r => r[0] <= Lb + 1e-3).filter((r, i, A) => i === 0 || r[0] > A[i - 1][0] + 0.03); if (rows[rows.length - 1][0] < Lb - 0.03) rows.push([Lb, rows[rows.length - 1][1] * 0.9, rows[rows.length - 1][2] * 0.6]);
+  if (lo) rows = rows.filter((r, i) => i % 2 === 0 || i === rows.length - 1);
+  const tb = 0.045, th = 0.028;
+  // (the profile round the back at a row, from the inner wing's tip round to the outer wing and back round the shell:
+  // [a, f, panel (0 the middle, 1 a bolster, 2 the shell)])
+  const prof = (hw, wd) => { const oIn = Math.min(hw, outMax - th), oOut = Math.min(hw + th, outMax), iIn = Math.min(hw, inMax - th), iOut = Math.min(hw + th, inMax);
+    const P = [[-iIn + 0.004, wd, 1], [-iIn, wd * 0.55, 1], [-iIn + 0.012, 0.022, 1], [-0.1, 0.005, 0], [0, 0, 0], [0.1, 0.005, 0], [oIn - 0.012, 0.022, 1], [oIn, wd * 0.55, 1], [oIn - 0.004, wd, 1],
+      [oOut - 0.01, wd + 0.008, 1], [oOut, wd * 0.5, 2], [oOut - 0.012, -tb + 0.012, 2], [0.1, -tb, 2], [0, -tb - 0.004, 2], [-0.1, -tb, 2], [-iOut + 0.012, -tb + 0.012, 2], [-iOut, wd * 0.5, 2], [-iOut + 0.01, wd + 0.008, 1]];
+    return lo ? P.filter((p, i) => ![2, 6, 11, 15].includes(i)) : P; };
+  const ring = (v, hw, wd) => prof(hw, wd).map(([a, f, pn]) => g.v(onB(a, v, f), Lk.seatM, pn === 2 ? 0.4 : 0.9, w, [a, v - vSlot, pn, KS]));
+  g.pal = [Lk.seatB, Lk.seatS];
+  const R = rows.map(([v, hw, wd]) => ring(v, hw, wd)), n = R[0].length;
+  for (let i = 0; i + 1 < R.length; i++) for (let j = 0; j < n; j++) g.quad(R[i][j], R[i + 1][j], R[i + 1][(j + 1) % n], R[i][(j + 1) % n]);
+  // (the top closed over: a fan to its middle)
+  { const [v, hw, wd] = rows[rows.length - 1], c = g.v(onB(0, v + 0.012, wd * 0.3 - tb * 0.5), Lk.seatS, 0.4, w, [0, v - vSlot, 2, KS]), top = R[R.length - 1]; for (let j = 0; j < n; j++) g.tri(top[j], top[(j + 1) % n], c); }
+  // ---- the cushion: stations from the back to its front, each a profile across with the thighs' bolsters ----
+  const cMax = Math.min(0.225, o.archU - u - 0.006), cIn = 0.225, depth = o.front - o.back;
+  const cprof = (hb, dn) => { const P = [[-cIn, -0.075, 2], [-cIn, 0.025, 2], [-cIn + 0.025, hb, 1], [-0.15, hb * 0.6, 1], [-0.128, 0.008, 1], [-0.06, 0.002, 0], [0, 0, 0], [0.06, 0.002, 0], [0.128, 0.008, 1], [0.15, hb * 0.6, 1], [cMax - 0.025, hb, 1], [cMax, 0.025, 2], [cMax, -0.075, 2], [0, -0.08, 2]];
+    return (lo ? P.filter((p, i) => ![5, 7, 4, 8].includes(i)) : P).map(([a, h, pn]) => [a, h - dn, pn]); };
+  const st2 = lo ? [[0.02, 0.07, 0], [0.5, 0.05, 0], [1, 0.035, 0.012]] : [[0.02, 0.07, 0], [0.3, 0.065, 0], [0.62, 0.05, 0], [0.88, 0.04, 0.004], [1, 0.032, 0.016]];
+  const CR2 = st2.map(([t, hb, dn]) => cprof(hb, dn).map(([a, h, pn]) => g.v([o.x + sd * a, o.cushion + h, o.back + 0.02 + t * (depth - 0.02)], Lk.seatM, pn === 2 ? 0.4 : 0.9, w, [a, 9, pn, KS]))), m2 = CR2[0].length;
+  for (let i = 0; i + 1 < CR2.length; i++) for (let j = 0; j < m2; j++) g.quad(CR2[i][j], CR2[i + 1][j], CR2[i + 1][(j + 1) % m2], CR2[i][(j + 1) % m2]);
+  { const f = CR2[CR2.length - 1], c = g.v([o.x, o.cushion - 0.03, o.front + 0.012], Lk.seatM, 0.9, w, [0, 9, 1, KS]); for (let j = 0; j < m2; j++) g.tri(f[j], f[(j + 1) % m2], c); }
+  g.pal = null;
+  // ---- the brackets: a steel plate down each side to the floor ----
+  for (const a of [-cIn + 0.03, cMax - 0.03]) { const h = o.cushion - 0.07 - o.floorY; if (h > 0.02) g.box([o.x + sd * a, o.floorY + h / 2, (o.back + o.front) / 2 - 0.04], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0.004, h / 2, (o.front - o.back) * 0.36], Lk.bracket, 0.5, w); }
+}
+
+// the cage's padding: fireproof foam sleeved over the tubes wherever a helmet could strike them (the roof's rails and
+// the hoops' tops beside and above the heads, the pillars' tubes before them), as the rules ask; some 2 cm thick, less
+// where a tube runs close by a helmet, its ends tapered onto the tube, its seam underneath. segs: [[A, B, the tube's
+// radius], ...] in the body frame
+function crewPads(CR, segs) { for (const g of [CR.geo, CR.geoLow]) if (g) crewPads3D(g, segs, CR); }
+function crewPads3D(g, segs, CR) {
+  const heads = ['D', 'C'].map(P => CR.J[P].helm), R = 0.4, lo = g.lod > 0, w = [[CR.bi.Fix, 1]], K = crewKind('pad', 0), col = CR.look.pad, up = [0, 1, 0];
+  for (const [A, B, r0] of segs) {
+    const d = cv3.sub(B, A), L = cv3.len(d); if (L < 0.05) continue; const u = cv3.mul(d, 1 / L);
+    const near = t => { const p = cv3.madd(A, d, t); let m = 9; for (const h of heads) m = Math.min(m, cv3.len(cv3.sub(p, h))); return m; };
+    let t0 = -1, t1 = -1; for (let i = 0; i <= 60; i++) { const t = i / 60; if (near(t) < R) { if (t0 < 0) t0 = t; t1 = t; } }
+    if (t0 < 0 || (t1 - t0) * L < 0.1) continue;
+    const thick = t => Math.max(0.006, Math.min(0.016, near(t) - 0.17)), x = cv3.norm(cv3.cross(u, Math.abs(u[1]) < 0.9 ? up : [1, 0, 0])), y = cv3.cross(u, x);
+    const n = Math.max(2, Math.round((t1 - t0) * L / 0.1)), e = Math.min(0.015 / L, (t1 - t0) / 4), ts = lo ? [[t0, 0.5], [(t0 + t1) / 2, 1], [t1, 0.5]] : [[t0, 0.3], [t0 + e, 1]];
+    if (!lo) { for (let i = 1; i < n; i++) ts.push([t0 + e + (t1 - t0 - 2 * e) * i / n, 1]); ts.push([t1 - e, 1], [t1, 0.3]); }
+    g.loft(ts.map(([t, f]) => { const r = r0 + thick(t) * f; return { c: cv3.madd(A, d, t), X: x, Y: y, rx: r, ry: r, rh: 0.92, w, k: col, pt: (th, cs, sn) => [cs * x[1] + sn * y[1], 0, 0, K] }; }), lo ? 5 : 10, false, false);
+  }
+}
 
 // ---- the crew at rest, and their mesh ----
 // o: { era, drv, lever ('H', 'seq', 'paddle'), xd, xc (the seats' middles across), eye (the driver's), floorY, cabF
@@ -20642,8 +21345,9 @@ function crewBuild(o) {
   for (const P of ['D', 'C']) { const J = people[P];
     add(P + 'Hips', null, J.H); add(P + 'Spine', P + 'Hips', J.spine); add(P + 'Chest', P + 'Spine', J.chest); add(P + 'Neck', P + 'Chest', J.neck); add(P + 'Head', P + 'Neck', J.atlas);
     const hd = (x, y, z) => cv3.add(J.atlas, [x * J.k, y * J.k, z * J.k]);
-    add(P + 'Jaw', P + 'Head', hd(0, CREW_FACE.jaw[0], CREW_FACE.jaw[1]));
-    for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R'; add(P + 'Brow' + s, P + 'Head', hd(sd * 0.031, 0.069, 0.09)); add(P + 'Lid' + s, P + 'Head', hd(sd * CREW_FACE.eye[0], CREW_FACE.eye[1], crewFaceZ(sd * CREW_FACE.eye[0], CREW_FACE.eye[1]) - 0.0035)); add(P + 'Mouth' + s, P + 'Head', hd(sd * CREW_FACE.mouthW, CREW_FACE.mouth, crewMid(CREW_FACE.mouth) - 0.004)); }
+    add(P + 'Jaw', P + 'Head', hd(0, crewFaceY(CREW_FACE.jaw[0]), CREW_FACE.jaw[1]));
+    // (the brows and the mouth's corners on bones of their own; the eyes and lids are the face's pictures)
+    for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R'; add(P + 'Brow' + s, P + 'Head', hd(sd * 0.031, 0.069, 0.09)); add(P + 'Mouth' + s, P + 'Head', hd(sd * CREW_FACE.mouthW, crewFaceY(CREW_FACE.mouth), crewMid(CREW_FACE.mouth) - 0.004)); }
     for (const sd of [1, -1]) { const s = sd > 0 ? 'L' : 'R', H = J['hand' + s], at = (x, y, z) => cv3.at(H.W, H.X, H.Y, H.Z, -sd * x * J.k, y * J.k, z * J.k);
       add(P + 'Clav' + s, P + 'Chest', J['sc' + s]); add(P + 'Arm' + s, P + 'Clav' + s, J['sh' + s]); add(P + 'Fore' + s, P + 'Arm' + s, J['el' + s]); add(P + 'Hand' + s, P + 'Fore' + s, H.W);
       B.fingers.forEach(([fx, fy, f1], i) => { const n = P + ['Index', 'Middle', 'Ring', 'Little'][i] + s; add(n + '1', P + 'Hand' + s, at(fx, fy, 0)); add(n + '2', n + '1', at(fx, fy + f1, 0)); });
@@ -20651,40 +21355,52 @@ function crewBuild(o) {
       add(P + 'Thigh' + s, P + 'Hips', J['hip' + s]); add(P + 'Shin' + s, P + 'Thigh' + s, J['kn' + s]); add(P + 'Foot' + s, P + 'Shin' + s, J['an' + s]); }
     if (P === 'C') { const Bk = J.book; add('CBook', 'CHips', Bk.c); add('CPage', 'CBook', cv3.add(Bk.c, cv3.mul(Bk.Y, 0.104))); }
   }
-  // ---- the mesh ----
-  const g = crewGeo(), Lk = o.look;
-  for (const P of ['D', 'C']) { const J = people[P], L = Object.assign({}, Lk, Lk[P]), bip = {}; for (const n in bi) if (n.startsWith(P)) bip[n] = bi[n];
-    crewPerson(g, J, P, bi, L); crewHead(g, J, P, bi, L); crewHarness(g, J, P, bi, L, bi.Fix);
-    if (P === 'C') crewBook(g, J.book.c, J.book.X, J.book.Y, J.book.Z, bi.CBook, bi.CPage, L); }
-  crewControls(g, null, Object.assign({}, o, { pedals, rests }), bi, Lk);
-  return { geo: g, bones, bi, seat, J: people, pedals, rests, ankZ, ankY };
+  // ---- the meshes: the full one, and a light one (about a fifth of the triangles) for further off, on the same bones ----
+  const g = crewGeo(), gl = crewGeo(1), Lk = o.look;
+  for (const G of [g, gl]) {
+    for (const P of ['D', 'C']) { const J = people[P], L = Object.assign({}, Lk, Lk[P]);
+      crewPerson(G, J, P, bi, L); crewHead(G, J, P, bi, L); crewHarness(G, J, P, bi, L, bi.Fix);
+      if (P === 'C') crewBook(G, J.book.c, J.book.X, J.book.Y, J.book.Z, bi.CBook, bi.CPage, L); }
+    crewControls(G, null, Object.assign({}, o, { pedals, rests }), bi, Lk); }
+  return { geo: g, geoLow: gl, bones, bi, seat, J: people, pedals, rests, ankZ, ankY, look: Lk };
 }
-// how the crew look: the team's suits in the car's colours (its band down the sides and across the shoulders, its
-// pinstripe beside it), gloves, boots, helmets painted to match; each person's skin, eyes and brows their own (the
-// same for a car every time); the harness, the wheel, the lever's knob, the notes
+// how the crew look: the team's suits in the car's colours (cut by the era: CREW_GLSL's panels), gloves, boots, helmets
+// painted to match; each person's skin, eyes, brows and stubble their own (the same for a car every time); most
+// co-drivers bare-handed (their gloves are optional) with a watch on the left wrist; the harness, the wheel, the
+// lever's knob, the notes
 function crewLook(S, L, E) {
   const col = h => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; }, mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
   let h = 2166136261; for (const ch of S.id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
-  const pick = (A, n) => A[((h >>> n) ^ (h >>> (n + 7))) % A.length];
+  const pick = (A, n) => A[((h >>> n) ^ (h >>> (n + 7))) % A.length], roll = n => (((h >>> n) ^ (h >>> (n + 11)) ^ (h >>> (n + 19))) & 255) / 255;
   const SKIN = ['#f3cfb0', '#eab894', '#dca47e', '#c88f66', '#ad764e', '#8f5c3c', '#6e4630', '#563424'];
-  const HAIR = ['#2b1e15', '#3b2a1c', '#5c4129', '#18130f', '#7b5f3e', '#3a3633'], IRIS = ['#3d2a19', '#4c3620', '#2f4b66', '#3f5e3b', '#5b4731', '#26201b'];
-  const base = col(L.base), band = col(L.band), white = col('#f2f2ee'), modern = E.era === 'modern';
-  // (each person: skin, lips, eyelids, brows, eyes; the neck in a fireproof hood's white in the modern cars)
-  const person = (n, si, type, mic) => { const skin = col(SKIN[si % SKIN.length]);
-    const bala = col(pick(['#ebeae4', '#ebeae4', '#e4e2da', '#1e1e21', '#ebeae4', '#9ea3aa'], n + 5));
-    return { skin, lid: mix(skin, [0, 0, 0], 0.08), lips: mix(skin, [0.55, 0.16, 0.14], 0.42), brow: col(pick(HAIR, n)), iris: col(pick(IRIS, n + 3)), bala, hem: mix(bala, [0.45, 0.45, 0.45], 0.35), helmetType: type, mic, hans: E.hans }; };
-  const D = person(1, (h >>> 3) % 8, E.helmet[0], E.mic[0]), C = person(9, (h >>> 11) % 8, E.helmet[1], E.mic[1]);
-  // (the driver's helmet in the car's band colour with its base colour's stripe, a full-face one; open-faced helmets
-  // white with the band colour's stripe)
-  D.helmet = E.helmet[0] === 'full' ? band : white; D.hstripe = E.helmet[0] === 'full' ? base : band; C.helmet = white; C.hstripe = band;
+  const HAIR = ['#2b1e15', '#3b2a1c', '#5c4129', '#18130f', '#7b5f3e', '#3a3633'], IRIS = ['#5a3a1e', '#6b4a28', '#3f6a8f', '#4f7a4a', '#7a6340', '#3a2a1e', '#5f7f99'];
+  const base = col(L.base), band = col(L.band), pin = col(L.pin), white = col('#f2f2ee'), modern = E.era === 'modern', style = modern ? 2 : E.era === 'golden' ? 1 : 0;
+  // (each person: skin and its warmer and darker places, lips, eyelids and lashes, brows, eyes, stubble; the balaclava:
+  // black or grey mostly in the modern cars, white before)
+  const person = (n, si, type, mic) => { const skin = col(SKIN[si % SKIN.length]), dark = si >= 5, hair = col(pick(HAIR, n));
+    const bala = col(pick(modern ? ['#1b1b1e', '#1b1b1e', '#232427', '#ebeae4', '#55585d'] : ['#ebeae4', '#ebeae4', '#e4e2da', '#1e1e21', '#ebeae4', '#9ea3aa'], n + 5));
+    return { skin, blush: mix(skin, [0.78, 0.3, 0.27], dark ? 0.18 : 0.32), under: mix(skin, [0.32, 0.22, 0.26], 0.3), lid: mix(skin, [0, 0, 0], 0.1), lash: mix(skin, [0.06, 0.04, 0.03], 0.75),
+      lips: mix(skin, [0.55, 0.16, 0.14], dark ? 0.28 : 0.42), brow: hair, stub: roll(n + 2) < 0.45 ? mix(skin, mix(hair, [0.25, 0.25, 0.26], 0.4), 0.55) : null, iris: col(pick(IRIS, n + 3)),
+      nail: mix(skin, [0.95, 0.8, 0.78], 0.45), bala, hem: mix(bala, [0.45, 0.45, 0.45], 0.35), helmetType: type, mic, hans: E.hans, style }; };
+  const D = person(1, (h >>> 3) % 8, E.helmet[0], E.mic[0]), C = person(9, (h >>> 11) % 8, E.helmet[1], E.mic[1]); D.seed = (h ^ 0x9e3779b9) >>> 0; C.seed = (Math.imul(h, 31) ^ 0x7f4a7c15) >>> 0;
+  for (const P of [D, C]) { const r = k => ((P.seed >>> k) & 255) / 255; P.var = [0.4 + 0.45 * r(3), 0.88 + 0.24 * r(9), 0.95 + 0.35 * r(15), 0.85 + 0.3 * r(21)]; }
+  // (the driver's helmet in the car's band colour with its base colour's stripes, a full-face one; open-faced helmets
+  // white with the band colour's stripes)
+  D.helmet = E.helmet[0] === 'full' ? band : white; D.hstripe = E.helmet[0] === 'full' ? base : band; D.hthird = E.helmet[0] === 'full' ? (modern ? white : pin) : base;
+  C.helmet = white; C.hstripe = band; C.hthird = base;
+  // (the co-driver mostly bare-handed, a watch on the left wrist: a steel or black case, a black or white dial)
+  C.bare = roll(4) < 0.75; C.watch = C.bare; const dialW = roll(6) < 0.3;
+  C.strapW = col(pick(['#18181a', '#3b2a1c', '#9da1a7', '#18181a'], 17)); C.case = col(roll(8) < 0.6 ? '#b8bcc2' : '#2a2b2e'); C.dial = col(dialW ? '#eeeeea' : '#141416'); C.hands = col(dialW ? '#141416' : '#f0f0ee');
   return {
-    suit: base, band, pin: col(L.pin), glove: col('#1d1d20'), gloveB: band, boot: col('#151516'), sole: col('#38383a'), visor: col('#1b2328'), lining: col('#1d1d1f'),
-    white: col('#f1eee8'), mouth: col('#3c1515'), teeth: col('#ebe6da'), mic: col('#161616'), hansK: col('#25272b'), tether: col('#1f1f22'), buckle: col('#b9bdc3'),
+    suit: base, band, pin, glove: col('#1d1d20'), gloveB: band, palm: col('#4a4a4e'), boot: col('#151516'), sole: col('#38383a'), lining: col('#1d1d1f'),
+    collar: modern ? band : style === 1 ? mix(base, [0, 0, 0], 0.25) : base, collarT: modern ? pin : band, epaul: band,
+    white: col('#f1eee8'), mouth: col('#3c1515'), teeth: col('#ebe6da'), mic: col('#161616'), hansK: col('#25272b'), tether: col('#1f1f22'), buckle: col('#b9bdc3'), metal: col('#a9adb3'),
     belt: col(pick(['#c3202e', '#2350b5', '#1b1b1d', '#c3202e', '#d8a020'], 5)), cover: col(pick(['#1f3a6b', '#1b1b1e', '#7a1c1c', '#1d4d32'], 13)), paper: col('#f5f3ec'), ink: col('#2b2c44'), spiral: col('#a0a4aa'),
     mark: col('#f2c014'), wood: col('#7c4b25'), woodD: col('#55311a'), rim: col('#1b1b1d'), hub: col('#1e1e21'), carbon: col('#27292d'), spoke: E.wheel.style === 'classic' ? col('#c9ccd1') : col('#202023'),
     btnR: col('#d4252b'), btnY: col('#f2c014'), btnB: col('#2b62d8'), btnG: col('#2aa84a'), btnW: col('#eeeeee'), dial: col('#3a3c40'),
     gaiter: col('#151517'), shaft: col('#9ea3a9'), knob: E.wheel.style === 'classic' ? col('#5b351a') : col('#18181a'), knobR: E.wheel.style === 'classic' ? 0.3 : 0.55, grip: col('#18181a'), pedal: col('#a2a7ad'),
-    D, C };
+    pad: col('#1a1a1c'), seatM: style === 2 ? col('#26272b') : style === 1 ? col('#2c2e35') : col('#1d1d20'), seatB: style === 2 ? col('#141416') : style === 1 ? col('#18191c') : col('#141416'), seatS: col('#0d0d0f'), bracket: col('#3a3c40'),
+    style, D, C };
 }
 
 // ==== THE CREW AT WORK ====
@@ -20731,7 +21447,8 @@ class CrewAnim {
   }
   newHand(sd) { const DR = this.DR; return { sd, mode: 'wheel', phi: DR.home[sd > 0 ? 0 : 1], curl: (CREW_HANDS[DR.grip] || CREW_HANDS.wrap).slice(), mv: null, slideA: 0, pose: null, busyT: 0 }; }
   newPerson(P) { return { P, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, hx: 0, hy: 0, hz: 0, hvx: 0, hvy: 0, hvz: 0, yaw: 0, pitch: 0, roll: 0, yawT: 0, pitchT: 0,
-    face: { jaw: 0, smile: 0, brow: 0, lid: 0, wide: 0 }, faceT: { jaw: 0, smile: 0, brow: 0, lid: 0, wide: 0 }, blinkT: 1 + Math.random() * 3, blink: 0, talk: 0, look: 0, lookT: 3 }; }
+    face: { jaw: 0, smile: 0, brow: 0, lid: 0, wide: 0 }, faceT: { jaw: 0, smile: 0, brow: 0, lid: 0, wide: 0 }, blinkT: 1 + Math.random() * 3, blink: 0, talk: 0, look: 0, lookT: 3,
+    eye: { yaw: 0, pitch: 0, ty: 0, tp: 0, fixT: 0, jy: 0, jp: 0, word: 0, line: 0 }, breath: Math.random() * 6.3, rate: 0.25, ph: [Math.random() * 6.3, Math.random() * 6.3, Math.random() * 6.3] }; }
   // ---- the rim: a point on it at angle a (round from nine o'clock) in the wheel's own frame (the modern wheel's foot flat)
   rimLocal(a) { const R = this.R.wheelR, x = Math.cos(a) * R, y = Math.sin(a) * R; return this.E.wheel.style === 'modern' ? [x, Math.max(y, -R * 0.74), 0] : [x, y, 0]; }
   // the body frame from the wheel's frame (turned by rho, or not)
@@ -20811,8 +21528,8 @@ Object.assign(CrewAnim.prototype, {
 const CREW_EASE = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
 Object.assign(CrewAnim.prototype, {
   update(dt, s) {
-    dt = Math.min(Math.max(dt || 0, 0), 0.05); this.t += dt; this.s = s;
-    this.sense(dt); this.steer(dt, s); this.jobs(dt, s); this.wheelHands(dt, s); this.acts(dt, s); this.bodies(dt, s); this.faces(dt, s); this.apply(dt, s);
+    dt = Math.min(Math.max(dt || 0, 0), 0.08); this.t += dt; this.s = s;
+    this.sense(dt); this.steer(dt, s); this.jobs(dt, s); this.wheelHands(dt, s); this.acts(dt, s); this.bodies(dt, s); this.faces(dt, s); this.gaze(dt, s); this.apply(dt, s);
   },
   // how the car moves: its acceleration in the body frame (smoothed, for the bodies' lean), blows (sudden changes of
   // the cabin's speed beyond hard driving's), which way is up
@@ -21033,7 +21750,7 @@ Object.assign(CrewAnim.prototype, {
   // ---- faces: what each is about (focused, reading out the notes, startled), blinking ----
   faces(dt, s) {
     for (const P of ['D', 'C']) { const p = this.P[P], F = p.faceT, co = P === 'C';
-      F.jaw = 0; F.smile = co ? 0.05 : -0.08; F.brow = co ? 0.05 : -0.3; F.lid = co && !p.look ? 0.38 : 0.2; F.wide = 0;
+      F.jaw = 0; F.smile = co ? 0.05 : -0.08; F.brow = co ? 0.05 : -0.3; F.lid = co && !p.look ? 0.45 : 0.3; F.wide = 0;
       if (!co && s.mode === 'run' && (Math.abs(this.acc[0]) > 8 || (s.slide || 0) > 0.4)) { F.smile = -0.35; F.brow = -0.55; F.jaw = 0.04; }
       if (co && s.talk > 0) { F.jaw = 0.12 + 0.18 * Math.max(0, Math.sin(this.t * 31) * Math.sin(this.t * 7.3 + 1)); F.brow = 0.15; }
       const ac = this.act[P]; if (ac && ac.face) Object.assign(F, typeof ac.face === 'function' ? ac.face(ac.t) : ac.face);
@@ -21066,23 +21783,32 @@ Object.assign(CrewAnim.prototype, {
   apply(dt, s) {
     const R = this.R, rs = this.rest, b = this.b, DR = this.DR;
     if (!this.loc0) { this.loc0 = {}; for (const d of R.bones) { const bn = this.B[R.bi[d.name]]; if (bn && bn !== this.wheel) this.loc0[d.name] = bn.position.clone(); } }
-    const L0 = this.loc0, hang = Math.min(0, this.up[1]) * 0.035;
+    const L0 = this.loc0, hang = Math.min(0, this.up[1]) * 0.035, uS = this.upS || (this.upS = this.up.slice()), ku = Math.min(1, dt / 0.4);
+    for (let i = 0; i < 3; i++) uS[i] += (this.up[i] - uS[i]) * ku;
+    // (the heads kept nearer level with the horizon than the car is, as drivers do: against its slower roll and pitch)
+    const lvl = -Math.atan2(uS[0], Math.max(0.25, Math.abs(uS[1]))) * 0.42, lvp = Math.atan2(uS[2], Math.max(0.25, Math.abs(uS[1]))) * 0.25;
     // ---- the trunks, necks and heads ----
-    for (const P of ['D', 'C']) { const p = this.P[P], h0 = L0[P + 'Hips'];
+    for (const P of ['D', 'C']) { const p = this.P[P], h0 = L0[P + 'Hips'], ph = p.ph, t = this.t;
       // (upside down they hang in their belts toward the roof)
       b(P + 'Hips').position.set(h0.x + p.x * 0.25, h0.y + p.y * 0.6 - hang, h0.z + p.z * 0.15);
-      const roll = -p.x / 0.3, pitch = p.z / 0.32, lvl = -Math.atan2(this.up[0], Math.max(0.25, Math.abs(this.up[1]))) * 0.3;
-      b(P + 'Spine').rotation.set(pitch * 0.45, 0, roll * 0.45); b(P + 'Chest').rotation.set(pitch * 0.55, 0, roll * 0.55);
+      const roll = -p.x / 0.3, pitch = p.z / 0.32, br = Math.sin(p.breath) * (0.6 + p.rate);
+      b(P + 'Spine').rotation.set(pitch * 0.45 - br * 0.004, 0, roll * 0.45); b(P + 'Chest').rotation.set(pitch * 0.55 - br * 0.009, 0, roll * 0.55);
+      // (a slow sway of the head, never quite still)
+      const sy = 0.014 * (Math.sin(t * 0.83 + ph[0]) + 0.6 * Math.sin(t * 2.1 + ph[1])), sp = 0.01 * (Math.sin(t * 0.71 + ph[2]) + 0.5 * Math.sin(t * 1.9 + ph[0])) + br * 0.005;
       const hr = -(p.hx - p.x) / 0.13, hp = (p.hz - p.z) / 0.13;
-      b(P + 'Neck').rotation.set(hp * 0.5 + p.pitch * 0.35 - pitch * 0.7, p.yaw * 0.35, hr * 0.5 - roll * 0.7 + lvl * 0.4);
-      b(P + 'Head').rotation.set(hp * 0.5 + p.pitch * 0.65, p.yaw * 0.65, hr * 0.5 + lvl * 0.6);
-      // the face
-      const f = p.face, lid = Math.max(f.lid, p.blink > 0 ? 1 : 0) - f.wide * 0.35;
-      b(P + 'Jaw').rotation.x = f.jaw * 0.32;
+      b(P + 'Neck').rotation.set(hp * 0.5 + p.pitch * 0.35 - pitch * 0.7 + lvp * 0.4 + sp * 0.4, p.yaw * 0.35 + sy * 0.4, hr * 0.5 - roll * 0.7 + lvl * 0.4);
+      b(P + 'Head').rotation.set(hp * 0.5 + p.pitch * 0.65 + lvp * 0.6 + sp * 0.6, p.yaw * 0.65 + sy * 0.6, hr * 0.5 + lvl * 0.6);
+      // the face: its eyes' and mouth's pictures for the expression (CREW_GLSL), the iris slid with the gaze; a blink
+      // half shut, shut, half shut; the chin dropped a little with the jaw, the mouth's corners and the brows moved
+      const g = p.eye, f = p.face, U = crewU(this.mesh);
+      if (U) { const bk = p.blink > 0 ? (p.blink > 0.1 || p.blink < 0.03 ? 1 : 2) : 0;
+        const es = bk === 2 ? 2 : bk === 1 ? 1 : f.wide > 0.5 ? 3 : f.lid > 0.6 && f.brow < -0.2 ? 4 : f.lid > 0.42 || g.pitch > 0.08 ? 1 : 0;
+        const ms = f.jaw > 0.42 ? 2 : f.smile < -0.5 ? 4 : f.jaw > 0.18 ? 1 : f.smile > 0.45 ? 3 : 0;
+        (P === 'D' ? U.uExD : U.uExC).value.set(es, ms, crewClamp(g.yaw * 0.009, -0.0042, 0.0042), crewClamp(-g.pitch * 0.007, -0.0035, 0.0035)); }
+      b(P + 'Jaw').rotation.x = f.jaw * 0.1;
       for (const sd of [1, -1]) { const ss = sd > 0 ? 'L' : 'R', m0 = L0[P + 'Mouth' + ss], b0 = L0[P + 'Brow' + ss];
-        b(P + 'Mouth' + ss).position.set(m0.x + sd * f.smile * 0.003, m0.y + f.smile * 0.0042, m0.z - Math.abs(f.smile) * 0.001);
-        b(P + 'Brow' + ss).position.set(b0.x - sd * Math.max(0, -f.brow) * 0.0022, b0.y + f.brow * 0.0045, b0.z); b(P + 'Brow' + ss).rotation.z = sd * Math.max(0, -f.brow) * 0.22;
-        b(P + 'Lid' + ss).rotation.x = crewClamp(lid, -0.35, 1) * 0.95; }
+        b(P + 'Mouth' + ss).position.set(m0.x + sd * f.smile * 0.0012, m0.y + f.smile * 0.0016, m0.z);
+        b(P + 'Brow' + ss).position.set(b0.x - sd * Math.max(0, -f.brow) * 0.0022, b0.y + f.brow * 0.0045, b0.z); b(P + 'Brow' + ss).rotation.z = sd * Math.max(0, -f.brow) * 0.22; }
     }
     // ---- the driver's arms ----
     for (const k of ['L', 'R']) { const h = this.hand[k], sd = h.sd; let pose;
@@ -21101,6 +21827,9 @@ Object.assign(CrewAnim.prototype, {
       if (h.mode === 'move') { pose = this.movePose(h, dt); want = null; }
       else if (h.mode === 'act') { pose = h.tgt(); want = CREW_HANDS[typeof h.shape === 'function' ? h.shape() : h.shape] || CREW_HANDS.open; }
       else { pose = this.onBook(F, k);
+        // (the right thumb marks the place: it slides down the page's edge as the notes are read, back to the top with
+        // the page turned)
+        if (k === 'R') { const B = this.book, want = B.turn ? 0 : Math.min(0.1, 0.0115 * (this.notes % 9)); B.slide = (B.slide || 0) + (want - (B.slide || 0)) * Math.min(1, dt * 5); pose = { W: cv3.madd(pose.W, F.Y, -B.slide), X: pose.X, Y: pose.Y, Z: pose.Z }; }
         if (k === 'R' && this.book.turn) { const T = this.book.turn, th = this.book.page, hinge = cv3.madd(F.c, F.Y, 0.104), corner = cv3.add(hinge, cv3.rot(cv3.add(cv3.mul(F.Y, -0.2), cv3.mul(F.X, 0.055)), F.X, -Math.min(th, 2.2)));
           const Z = cv3.rot(cv3.mul(F.Z, -1), F.X, -Math.min(th, 2.2)), Y = cv3.rot(F.Y, F.X, -Math.min(th, 2.2)), X = cv3.cross(Y, Z), pc = { W: cv3.sub(cv3.sub(corner, cv3.mul(Y, 0.075)), cv3.mul(Z, 0.02)), X, Y, Z };
           const u = T.t < 0.22 ? CREW_EASE(T.t / 0.22) : T.t > 0.66 ? 1 - CREW_EASE((T.t - 0.66) / 0.29) : 1;
@@ -21129,6 +21858,29 @@ Object.assign(CrewAnim.prototype, {
     const sc = s.cockpit ? 1e-3 : 1; b('DNeck').scale.set(sc, sc, sc);
   }
 });
+Object.assign(CrewAnim.prototype, {
+  // ---- the eyes: they hold on a point for a moment (a fixation), then jump to the next (a saccade, some 40 ms),
+  // leading the head as it turns. The driver's go where the head is turning, a little ahead of it, and flick about the
+  // road; the co-driver's, reading, step along a line of the notes (a few words at a glance), sweep back to the next
+  // line's start, and come up with the head to check the road. The breath: calm on the start line, quicker on a stage,
+  // deep after the finish ----
+  gaze(dt, s) {
+    for (const P of ['D', 'C']) { const p = this.P[P], g = p.eye, co = P === 'C', ac = this.act[P];
+      g.fixT -= dt; let ty, tp;
+      const lead = crewClamp((p.yawT - p.yaw) * 0.9, -0.42, 0.42), reading = co && !p.look && !ac && s.mode !== 'grid' && s.mode !== 'finish';
+      if (reading) {
+        if (g.fixT <= 0) { g.fixT = 0.17 + Math.random() * 0.12; g.word++; if (g.word > 3) { g.word = 0; g.line = (g.line + 1) % 6; } }
+        ty = -0.13 + 0.085 * g.word; tp = 0.1 + 0.018 * g.line;
+      } else {
+        if (g.fixT <= 0) { g.fixT = (P === 'D' && s.mode === 'run' ? 0.18 : 0.4) + Math.random() * (P === 'D' && s.mode === 'run' ? 0.35 : 1.4); g.jy = (Math.random() - 0.5) * (s.mode === 'run' ? 0.14 : 0.3); g.jp = (Math.random() - 0.5) * 0.08; g.line = 0; g.word = 0; }
+        ty = lead + g.jy; tp = g.jp + (P === 'D' && s.mode === 'run' ? -0.02 : 0);
+      }
+      const k = Math.min(1, dt / 0.035); g.yaw += (crewClamp(ty, -0.5, 0.5) - g.yaw) * k; g.pitch += (crewClamp(tp, -0.3, 0.35) - g.pitch) * k;
+      // (the breath: about 14 a minute at rest, 22 on a stage, 30 just after the finish, easing back)
+      const want = s.mode === 'finish' ? 0.5 : s.mode === 'run' ? 0.37 : 0.23; p.rate += (want - p.rate) * Math.min(1, dt * (want > p.rate ? 1.5 : 0.15)); p.breath += dt * p.rate * Math.PI * 2;
+    }
+  }
+});
 // ---- what the crew are told each frame ----
 // from the player's car (c: the simulation's car, S its spec; hb: the handbrake held; cockpit: seen from the driver's
 // seat), or the car on show in the menu (c: its demonstration's state)
@@ -21149,9 +21901,12 @@ Object.assign(CrewAnim.prototype, {
   // a note read out: the co-driver talks for as long as it takes to read it
   say(text) { this.talkUntil = this.t + 0.25 + 0.058 * String(text || '').length; this.said = true; }
 });
-// the crew are drawn from close by only (from further off they are lost behind the glass): how close, by the
-// graphics level
-const CREW_NEAR = { high: 45, medium: 32, low: 20 };
+// how far off a car's crew are drawn, by the graphics level (metres): the full mesh within the first distance, the light
+// one within the second, none beyond (from further off they are lost behind the glass); the light one is moved 30 times
+// a second, or 15 from beyond half its distance
+const CREW_LOD = { high: [16, 70], medium: [12, 48], low: [9, 30] };
+function crewLevel(d2) { const L = CREW_LOD[typeof Gfx !== 'undefined' ? Gfx.level : 'high'] || CREW_LOD.high; return d2 < L[0] * L[0] ? 0 : d2 < L[1] * L[1] ? 1 : 2; }
+function crewShow(m, lv) { const C = m.crewRig; if (!C) return; C.mesh.visible = lv === 0; if (C.low) C.low.visible = lv === 1; }
 
 // ==== THE CREW'S ACTIONS ====
 // Beyond driving and reading the notes, each of them now and then does something with their hands, head and face: an
@@ -21309,15 +22064,17 @@ function crewDuel(m, S, v, yaw, aLong, running, fin) {
 function crewChatter(D, A) { if (!A) { D.talk = 0; D.talkStart = false; return; } A.chatT = (A.chatT || 2) - (A.lastDt || 0.016);
   D.talkStart = false; if (D.mode === 'run' && A.chatT <= 0) { A.chatT = 2 + Math.random() * 3; A.say('left four into right three over crest'.slice(0, 12 + Math.floor(Math.random() * 20))); D.talkStart = true; }
   D.talk = A.talkUntil > A.t ? 1 : 0; }
-// draw and move a car's crew when it is near the camera (the camera's distance squared: d2)
+// draw and move a car's crew by how near the camera is (its distance squared: d2): CREW_LOD
 function crewFrame(m, S, dt, d2, drive) {
-  if (!m || !m.crewRig) return; const cm = m.crewRig.mesh, lim = CREW_NEAR[typeof Gfx !== 'undefined' ? Gfx.level : 'high'] || 40, near = d2 < lim * lim;
-  cm.visible = near; if (!near) return; crewSafe(m, () => { const A = m.crewAnim || (m.crewAnim = new CrewAnim(m, S)); A.lastDt = dt; A.update(dt, drive(A)); });
+  if (!m || !m.crewRig) return; const lv = crewLevel(d2); crewShow(m, lv); if (lv > 1) return;
+  crewSafe(m, () => { const A = m.crewAnim || (m.crewAnim = new CrewAnim(m, S)), L = CREW_LOD[typeof Gfx !== 'undefined' ? Gfx.level : 'high'] || CREW_LOD.high;
+    const every = lv === 0 ? 0 : d2 < L[1] * L[1] / 4 ? 1 / 30 : 1 / 15; A.lodT = (A.lodT || 0) + dt; if (A.lodT + 1e-6 < every) return;
+    const st = A.lodT; A.lodT = 0; A.lastDt = st; A.update(st, drive(A)); });
 }
 // the crew are only for show: whatever goes wrong moving them never stops the game (the crew are hidden instead, the
 // fault noted once)
 function crewSafe(m, f) {
-  try { f(); } catch (e) { if (!crewSafe.told) { crewSafe.told = true; console.error('crew:', e); } if (typeof window !== 'undefined') window.__crewErr = (window.__crewErr || 0) + 1; if (m && m.crewRig) m.crewRig.mesh.visible = false; }
+  try { f(); } catch (e) { if (!crewSafe.told) { crewSafe.told = true; console.error('crew:', e); } if (typeof window !== 'undefined') window.__crewErr = (window.__crewErr || 0) + 1; if (m && m.crewRig) crewShow(m, 2); }
 }
 
 
@@ -22478,7 +23235,7 @@ const CarDmg = {
     const panes = { ws: [], rw: [], L: [], R: [] }; const gm = M.find(mm => mm.glass);
     if (gm) { const o = gm.orig, H = carShape(S); for (let t = 0; t < o.length / 9; t++) { const a = t * 9, ux = o[a + 3] - o[a], uy = o[a + 4] - o[a + 1], uz = o[a + 5] - o[a + 2], vx = o[a + 6] - o[a], vy = o[a + 7] - o[a + 1], vz = o[a + 8] - o[a + 2];
       let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const L = Math.hypot(nx, ny, nz) || 1; nx /= L; ny /= L; nz /= L; const cz = (o[a + 2] + o[a + 5] + o[a + 8]) / 3;
-      if (Math.abs(nx) > 0.55) panes[nx > 0 ? 'L' : 'R'].push(t); else if (nz > 0.25 && cz > (H.rzf + H.rzr) / 2) panes.ws.push(t); else if (nz < -0.25) panes.rw.push(t); } }
+      const cy = (o[a + 1] + o[a + 4] + o[a + 7]) / 3; if (Math.abs(nx) > 0.55) panes[nx > 0 ? 'L' : 'R'].push(t); else if (ckScreenTri(nx, ny, nz, cy, cz, H)) panes.ws.push(t); else if (nz < -0.25) panes.rw.push(t); } }
     const at = list => this.paneCentre(gm, list);
     rig.dv = { M, fits, panes, paneAt: { ws: at(panes.ws), rw: at(panes.rw), L: at(panes.L), R: at(panes.R) }, broken: {}, ver: -1, cracks: [], cv: 0, lost: [0, 0, 0, 0], H: carShape(S), steamT: 0, smokeT: 0, hudT: 0, hudKey: '', holes: [], wsOut: 0, wsUV: this.paneUV(rig, gm, panes.ws),
       // the room the crew need (heads, chests, laps, the driver's view): no crushed panel, cage tube or door is pushed into it
@@ -22647,9 +23404,9 @@ const CarDmg = {
     const g = gmesh.geometry, P = g.attributes.position.array, Nm = g.attributes.normal ? g.attributes.normal.array : null, n = P.length / 9, Hs = carShape(S), K = 8, OP = [], ON = [], map = new Int32Array(n + 1);
     for (let t = 0; t < n; t++) {
       map[t] = OP.length / 9; const a = t * 9, ux = P[a + 3] - P[a], uy = P[a + 4] - P[a + 1], uz = P[a + 5] - P[a + 2], vx = P[a + 6] - P[a], vy = P[a + 7] - P[a + 1], vz = P[a + 8] - P[a + 2];
-      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const L = Math.hypot(nx, ny, nz) || 1; nx /= L; nz /= L; const cz = (P[a + 2] + P[a + 5] + P[a + 8]) / 3, cy = (P[a + 1] + P[a + 4] + P[a + 7]) / 3;
+      let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const L = Math.hypot(nx, ny, nz) || 1; nx /= L; ny /= L; nz /= L; const cz = (P[a + 2] + P[a + 5] + P[a + 8]) / 3, cy = (P[a + 1] + P[a + 4] + P[a + 7]) / 3;
       // (the windscreen only: not the glass covers of headlamps, which sit lower down the nose)
-      if (!(Math.abs(nx) <= 0.55 && nz > 0.25 && cz > (Hs.rzf + Hs.rzr) / 2 && cy > Hs.belt - 0.15)) { for (let k = 0; k < 9; k++) { OP.push(P[a + k]); ON.push(Nm ? Nm[a + k] : 0); } continue; }
+      if (!ckScreenTri(nx, ny, nz, cy, cz, Hs)) { for (let k = 0; k < 9; k++) { OP.push(P[a + k]); ON.push(Nm ? Nm[a + k] : 0); } continue; }
       // a point at (i, j) of the grid: corner A plus i/K of the way to B and j/K of the way to C
       const pt = (i, j, out, src) => { const wb = i / K, wc = j / K, wa = 1 - wb - wc; for (let k = 0; k < 3; k++) out.push(wa * src[a + k] + wb * src[a + 3 + k] + wc * src[a + 6 + k]); };
       const tri = (i0, j0, i1, j1, i2, j2) => { pt(i0, j0, OP, P); pt(i1, j1, OP, P); pt(i2, j2, OP, P); if (Nm) { pt(i0, j0, ON, Nm); pt(i1, j1, ON, Nm); pt(i2, j2, ON, Nm); } else for (let k = 0; k < 9; k++) ON.push(0); };
@@ -24706,19 +25463,32 @@ const ScreenFx = {
     // the glass's normal (towards the cabin) and a grid over it: the inside sheet 2 mm in, the outside one 2 mm out
     const e1 = [Q[1][0] - Q[0][0], Q[1][1] - Q[0][1], Q[1][2] - Q[0][2]], e2 = [Q[3][0] - Q[0][0], Q[3][1] - Q[0][1], Q[3][2] - Q[0][2]]; let nx = e1[1] * e2[2] - e1[2] * e2[1], ny = e1[2] * e2[0] - e1[0] * e2[2], nz = e1[0] * e2[1] - e1[1] * e2[0]; const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
     if (nz > 0) { nx = -nx; ny = -ny; nz = -nz; } // the cabin is behind the screen (towards -z)
-    const mk = off => { const SX = 24, SY = 12, P = [], UV = [], I = [], p = [0, 0, 0]; for (let j = 0; j <= SY; j++) for (let i = 0; i <= SX; i++) { const u = i / SX, v = j / SY; this.at(u, v, p); P.push(p[0] + nx * off, p[1] + ny * off, p[2] + nz * off); UV.push(u, v); }
-      for (let j = 0; j < SY; j++) for (let i = 0; i < SX; i++) { const a = j * (SX + 1) + i, b = a + 1, c = a + SX + 1, e = c + 1; I.push(a, b, e, a, e, c); }
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); g.computeBoundingSphere(); return g; };
+    // (the sheets lie on the glass itself: the windscreen's own triangles, as CarDmg takes them, cut small, each point
+    // where it is on the glass's (u, v), and facing the cabin; without them, a grid between the corners)
+    const GT = this.glassTris(rig, Q), cl = x => x < 0 ? 0 : x > 1 ? 1 : x;
+    const mk = off => { const P = [], UV = [], I = [], p = [0, 0, 0];
+      if (GT) { const S = GT.P, q = [0, 0];
+        for (const t of GT.list) { const a = t * 9, A = [S[a], S[a + 1], S[a + 2]], B = [S[a + 3], S[a + 4], S[a + 5]], C = [S[a + 6], S[a + 7], S[a + 8]];
+          const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]]; let mx = e1[1] * e2[2] - e1[2] * e2[1], my = e1[2] * e2[0] - e1[0] * e2[2], mz = e1[0] * e2[1] - e1[1] * e2[0]; const ml = Math.hypot(mx, my, mz) || 1;
+          mx = -mx / ml; my = -my / ml; mz = -mz / ml; // (the glass faces out: the cabin is behind it)
+          const len = Math.max(Math.hypot(...e1), Math.hypot(...e2), Math.hypot(C[0] - B[0], C[1] - B[1], C[2] - B[2])), K = Math.max(1, Math.min(8, Math.ceil(len / 0.06))), base = P.length / 3;
+          for (let j = 0; j <= K; j++) for (let i = 0; i + j <= K; i++) { const wb = i / K, wc = j / K, wa = 1 - wb - wc, x = wa * A[0] + wb * B[0] + wc * C[0], y = wa * A[1] + wb * B[1] + wc * C[1], z = wa * A[2] + wb * B[2] + wc * C[2];
+            this.uvOf(Q, x, y, q); P.push(x + mx * off, y + my * off, z + mz * off); UV.push(cl(q[0]), cl(q[1])); }
+          const at = (i, j) => base + j * (K + 1) - (j * (j - 1)) / 2 + i; // (row j starts after the rows below it, each one shorter)
+          for (let j = 0; j < K; j++) for (let i = 0; i + j < K; i++) { I.push(at(i, j), at(i, j + 1), at(i + 1, j)); if (i + j < K - 1) I.push(at(i + 1, j), at(i, j + 1), at(i + 1, j + 1)); } } }
+      else { const SX = 24, SY = 12; for (let j = 0; j <= SY; j++) for (let i = 0; i <= SX; i++) { const u = i / SX, v = j / SY; this.at(u, v, p); P.push(p[0] + nx * off, p[1] + ny * off, p[2] + nz * off); UV.push(u, v); }
+        for (let j = 0; j < SY; j++) for (let i = 0; i < SX; i++) { const a = j * (SX + 1) + i, b = a + 1, c = a + SX + 1, e = c + 1; I.push(a, b, e, a, e, c); } }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(P.length / 3 > 65535 ? new THREE.Uint32BufferAttribute(I, 1) : new THREE.Uint16BufferAttribute(I, 1)); g.computeBoundingSphere(); return g; };
     this.mesh = new THREE.Mesh(mk(0.002), this.mat); this.mesh.matrixAutoUpdate = false; this.mesh.frustumCulled = false; this.scene.add(this.mesh);
     this.out = new THREE.Mesh(mk(-0.002), this.outMat); this.out.name = 'ScreenDirt'; this.out.renderOrder = 3; this.out.visible = false; rig.body.add(this.out);
     this.bmap = null; if (rig.dv && rig.dv.ver >= 0) this.bend(rig);
     // each wiper's reach over the dirt grid: the cells it can reach sorted by their angle up from the parked blade (so a
     // sweep visits only what it passes over), each one's place along the blade, and the same for the sheet's grid. Worked
     // out once for each car (and kept for the last few)
-    const p = this._p, dW = this.dW, dH = this.dH, NB = this.NB, FW = this.FW, FH = this.FH, f32 = k => new Float32Array(k), ckey = rig.id + ':' + JSON.stringify(Q) + ':' + (rig.wipers || []).map(b => b.position.toArray().map(x => x.toFixed(4)).join(',') + ',' + b.rotation.x.toFixed(4)).join(';');
+    const p = this._p, dW = this.dW, dH = this.dH, NB = this.NB, FW = this.FW, FH = this.FH, f32 = k => new Float32Array(k), ckey = rig.id + ':' + JSON.stringify(Q) + ':' + (rig.wipers || []).map(b => (b.userData.p0 || b.position.toArray()).map(x => x.toFixed(4)).join(',') + ',' + b.rotation.x.toFixed(4)).join(';');
     const C = this.cache || (this.cache = new Map()), hit = C.get(ckey);
     if (hit) { for (const w of hit.W) this.W.push(Object.assign({}, w, { lm: f32(NB), ld: f32(NB), ls: f32(NB), water: 0 })); this.streak.set(hit.streak); this.dustMap.set(hit.dustMap); return; }
-    for (const bn of rig.wipers || []) { if (!bn.parent) continue; const P = bn.position, ang = bn.rotation.x, W = { P: [P.x, P.y, P.z], es: [Math.sin(ang), -Math.cos(ang)], lm: f32(NB), ld: f32(NB), ls: f32(NB), water: 0 };
+    for (const bn of rig.wipers || []) { if (!bn.parent) continue; const p0 = bn.userData.p0, P = p0 ? { x: p0[0], y: p0[1], z: p0[2] } : bn.position, ang = bn.rotation.x, W = { P: [P.x, P.y, P.z], es: [Math.sin(ang), -Math.cos(ang)], lm: f32(NB), ld: f32(NB), ls: f32(NB), water: 0 };
       // (a counting sort by angle into fine bins, 0.0015 rad: quick, and fine enough for any sweep)
       const n = dW * dH, RR = f32(n), AB = 4096, A0 = -Math.PI, AS = AB / (2 * Math.PI), cnt = new Int32Array(AB + 1), ab = new Int32Array(n).fill(-1), RM = this.REACH + 0.01, [Px, Py, Pz] = W.P, [e0, e1] = W.es; let m = 0;
       for (let j = 0; j < dH; j++) { const v = (j + 0.5) / dH, ax = Q[0][0] + (Q[3][0] - Q[0][0]) * v, ay = Q[0][1] + (Q[3][1] - Q[0][1]) * v, az = Q[0][2] + (Q[3][2] - Q[0][2]) * v, bx = Q[1][0] + (Q[2][0] - Q[1][0]) * v, by = Q[1][1] + (Q[2][1] - Q[1][1]) * v, bz = Q[1][2] + (Q[2][2] - Q[1][2]) * v;
@@ -24740,6 +25510,21 @@ const ScreenFx = {
       for (let i = 0; i < dW; i++) { const gx = i / dW * 40, x0 = gx | 0, tx = gx - x0, a = nz2[y0 * 41 + x0], b = nz2[y0 * 41 + x0 + 1], c = nz2[(y0 + 1) * 41 + x0], e = nz2[(y0 + 1) * 41 + x0 + 1];
         this.dustMap[j * dW + i] = (0.55 + 0.6 * ((a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + e * tx) * ty)) * (ev + ec[i]); } }
     C.set(ckey, { W: this.W.map(w => ({ P: w.P, es: w.es, cx: w.cx, cs: w.cs, ord: w.ord, fo: w.fo, bin: w.bin, fR: w.fR, fF: w.fF })), streak: this.streak.slice(), dustMap: this.dustMap.slice() }); if (C.size > 3) C.delete(C.keys().next().value);
+  },
+  // a point on (or by) the glass, its (u, v) by the corners Q (as CarDmg places the glass's pieces): v by its height, u
+  // across at that height
+  uvOf(Q, x, y, out) { const v = (y - Q[0][1]) / (Q[3][1] - Q[0][1]), w = (Q[0][0] - Q[1][0]) * (1 - v) + (Q[3][0] - Q[2][0]) * v; out[0] = (Q[0][0] * (1 - v) + Q[3][0] * v - x) / w; out[1] = v; return out; },
+  // the windscreen's own triangles in the car's glass, as CarDmg takes them (facing forward, up in the cabin, within the
+  // screen's corners), from the glass as built: { P: the glass's positions, list: the triangles' numbers }, or null
+  glassTris(rig, Q) {
+    let gm = null; if (rig.root) rig.root.traverse(o => { if (o.name === 'GlassMesh' && o.geometry && o.geometry.attributes.position) gm = o; }); if (!gm) return null;
+    const dm = rig.dv && rig.dv.M ? rig.dv.M.find(mm => mm.glass) : null, P = dm && dm.orig ? dm.orig : gm.geometry.attributes.position.array;
+    const spec = typeof CARS !== 'undefined' ? CARS.find(c => c.id === rig.id) : null, Hs = spec && typeof carShape === 'function' ? carShape(spec) : null, list = [], q = [0, 0];
+    for (let t = 0; t < P.length / 9; t++) { const a = t * 9, ux = P[a + 3] - P[a], uy = P[a + 4] - P[a + 1], uz = P[a + 5] - P[a + 2], vx = P[a + 6] - P[a], vy = P[a + 7] - P[a + 1], vz = P[a + 8] - P[a + 2];
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, L = Math.hypot(nx, ny, nz) || 1, cx = (P[a] + P[a + 3] + P[a + 6]) / 3, cy = (P[a + 1] + P[a + 4] + P[a + 7]) / 3, cz = (P[a + 2] + P[a + 5] + P[a + 8]) / 3;
+      if (Hs ? !ckScreenTri(nx / L, ny / L, nz / L, cy, cz, Hs) : !(Math.abs(nx / L) <= 0.55 && nz / L > 0.05)) continue;
+      this.uvOf(Q, cx, cy, q); if (q[0] < -0.03 || q[0] > 1.03 || q[1] < -0.03 || q[1] > 1.03) continue; list.push(t); }
+    return list.length ? { P, list } : null;
   },
   // a point in the body frame as a wiper sees it: how far from its pivot, and its angle up from the parked blade
   polar(W, p) { const dX = p[0] - W.P[0], dS = (p[1] - W.P[1]) * W.es[0] + (p[2] - W.P[2]) * W.es[1], q = this._q; q[0] = Math.hypot(dX, dS); q[1] = Math.atan2(dS, -dX); return q; },
@@ -25032,11 +25817,18 @@ const ScreenFx = {
   bendMap(rig, gm, L) {
     const Q = rig.screen, o = gm.orig, uvOf = (x, y) => { const v = (y - Q[0][1]) / (Q[3][1] - Q[0][1]), w = (Q[0][0] - Q[1][0]) * (1 - v) + (Q[3][0] - Q[2][0]) * v; return [(Q[0][0] * (1 - v) + Q[3][0] * v - x) / w, v]; };
     const T = L.map(t => [0, 1, 2].map(j => uvOf(o[t * 9 + j * 3], o[t * 9 + j * 3 + 1]))), UV = this.mesh.geometry.attributes.uv.array, n = UV.length / 2, out = { rig, n: L.length, t: new Int32Array(n).fill(-1), w: new Float32Array(n * 3), inP: this.mesh.geometry.attributes.position.array.slice(), outP: this.out ? this.out.geometry.attributes.position.array.slice() : null };
-    for (let k = 0; k < n; k++) { const u = UV[k * 2], v = UV[k * 2 + 1]; let best = -1, bd = 1e9, bw = null;
-      for (let q = 0; q < L.length; q++) { const [A, B, C] = T[q], d = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]); if (Math.abs(d) < 1e-12) continue;
-        const l1 = ((B[1] - C[1]) * (u - C[0]) + (C[0] - B[0]) * (v - C[1])) / d, l2 = ((C[1] - A[1]) * (u - C[0]) + (A[0] - C[0]) * (v - C[1])) / d, l3 = 1 - l1 - l2, m = -Math.min(l1, l2, l3); // (how far outside it, if at all)
-        if (m < bd) { bd = m; best = q; bw = [l1, l2, l3]; if (m <= 0) break; } }
-      if (best < 0) continue; out.t[k] = L[best]; const c = bw.map(x => Math.max(0, x)), s = c[0] + c[1] + c[2] || 1; for (let j = 0; j < 3; j++) out.w[k * 3 + j] = c[j] / s; }
+    // (the pieces filed by where they reach on a coarse grid over the glass, so each point tries only those near it)
+    const GX = 40, GY = 20, cells = Array.from({ length: GX * GY }, () => []), ci = (x, N) => Math.max(0, Math.min(N - 1, Math.floor(x * N)));
+    T.forEach(([A, B, C], q) => { const i0 = ci(Math.min(A[0], B[0], C[0]) - 0.01, GX), i1 = ci(Math.max(A[0], B[0], C[0]) + 0.01, GX), j0 = ci(Math.min(A[1], B[1], C[1]) - 0.01, GY), j1 = ci(Math.max(A[1], B[1], C[1]) + 0.01, GY);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) cells[j * GX + i].push(q); });
+    const test = (q, u, v, r) => { const [A, B, C] = T[q], d = (B[1] - C[1]) * (A[0] - C[0]) + (C[0] - B[0]) * (A[1] - C[1]); if (Math.abs(d) < 1e-12) return false;
+      const l1 = ((B[1] - C[1]) * (u - C[0]) + (C[0] - B[0]) * (v - C[1])) / d, l2 = ((C[1] - A[1]) * (u - C[0]) + (A[0] - C[0]) * (v - C[1])) / d, l3 = 1 - l1 - l2, m = -Math.min(l1, l2, l3); // (how far outside it, if at all)
+      if (m < r.bd) { r.bd = m; r.best = q; r.w[0] = l1; r.w[1] = l2; r.w[2] = l3; } return m <= 0; };
+    const r = { bd: 1e9, best: -1, w: [0, 0, 0] };
+    for (let k = 0; k < n; k++) { const u = UV[k * 2], v = UV[k * 2 + 1]; r.bd = 1e9; r.best = -1; let hit = false;
+      for (const q of cells[ci(v, GY) * GX + ci(u, GX)]) if (test(q, u, v, r)) { hit = true; break; }
+      if (!hit && r.bd > 0.02) for (let q = 0; q < L.length; q++) if (test(q, u, v, r)) break; // (none near: the nearest of all)
+      if (r.best < 0) continue; out.t[k] = L[r.best]; const c = r.w.map(x => Math.max(0, x)), s = c[0] + c[1] + c[2] || 1; for (let j = 0; j < 3; j++) out.w[k * 3 + j] = c[j] / s; }
     return out;
   },
 
