@@ -31,18 +31,23 @@ body{height:100%;margin:0;background:var(--pine);color:var(--ink);font-family:va
 button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:3px solid var(--marshal);outline-offset:2px}
 [hidden]{display:none!important}
+/* on a large screen the menus and the sheets grow with it (--us, see UIFit): each layer is laid out on a screen 1/--us
+   the size of the real one and drawn --us times as large */
+:root{--us:1;--hs:1}
+html.usc #menu,html.usc .overlay,html.usc #rally{inset:auto;left:0;top:0;width:calc(100vw / var(--us));height:calc(100vh / var(--us));transform:scale(var(--us));transform-origin:0 0}
+html.usc #inspectBar{transform:scale(var(--us));transform-origin:50% 100%}
 
 /* ---------- service park (menu) ---------- */
 #menu{position:fixed;inset:0;display:grid;grid-template-columns:minmax(290px,360px) minmax(320px,420px);justify-content:space-between;gap:20px;padding:max(20px,env(safe-area-inset-top,0px)) 24px max(20px,env(safe-area-inset-bottom,0px));overflow:auto;pointer-events:none}
 #menu>section{pointer-events:auto;background:var(--panel);border-radius:6px;padding:20px 22px 22px;align-self:start;box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
 /* each panel scrolls on its own (the menu layer itself lets clicks through to the showroom) */
-#menu>section{max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#menu>section{max-height:calc(100vh / var(--us) - 40px);max-height:calc(100dvh / var(--us) - 40px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 #menu>section>.go{position:sticky;bottom:0;z-index:2}
 .brand{margin:0 0 14px;font-weight:800;font-size:20px;letter-spacing:.01em;display:flex;align-items:center;gap:10px}
 .brand::before{content:"";width:34px;height:10px;background:linear-gradient(90deg,var(--livery) 0 33%,var(--marshal) 33% 66%,var(--ink) 66%)}
-.plate{background:#fbfbf8;color:#121212;border:5px solid #121212;border-radius:12px;overflow:hidden}
+.plate{background:#fbfbf8;color:#121212;border:5px solid #121212;border-radius:12px;overflow:hidden;container-type:inline-size}
 .plate label{display:block;background:var(--livery);color:#fbfbf8;font-weight:700;font-size:15px;letter-spacing:.04em;padding:5px 14px}
-.plate input{display:block;width:100%;border:0;background:transparent;color:#121212;font-family:var(--stencil);font-size:clamp(64px,9vw,104px);line-height:1;text-align:center;padding:10px 6px 2px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.plate input{display:block;width:100%;border:0;background:transparent;color:#121212;font-family:var(--stencil);font-size:64px;font-size:clamp(40px,22cqi,104px);line-height:1;text-align:center;padding:10px 6px 2px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
 .plate input:focus{outline:none;background:#fff6cf}
 .plate p{margin:0;padding:0 14px 10px;font-size:14px;color:#4a4f47;text-align:center}
 .row{display:flex;gap:8px;margin:12px 0 4px}
@@ -56,7 +61,8 @@ button{font-family:inherit;cursor:pointer}
 .cond{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:12px 0 4px}
 .cond label{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--muted);font-weight:600}
 .cond .wide{grid-column:1/-1}
-.cond select{font:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:6px 6px;min-width:0;width:100%}
+.cond select{font:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:6px 6px;min-width:0;width:100%;text-overflow:ellipsis}
+@media (max-width:400px){ .cond select,.rfield select{font-size:13px;padding:6px 4px} }
 #condNote{margin:4px 0 2px;font-size:14px;color:var(--muted);line-height:1.35}
 @media (max-width:360px){ .cond{grid-template-columns:1fr} }
 #featList{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:15px}
@@ -101,10 +107,26 @@ button{font-family:inherit;cursor:pointer}
 .linkbtn{background:none;border:0;padding:0;color:var(--ink);font-weight:700;text-decoration:underline;font-size:inherit}
 .keys kbd{font-family:inherit;font-weight:700;color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:0 4px}
 @media (max-width:820px){
-  #menu{grid-template-columns:1fr;justify-content:stretch;padding:12px}
+  #menu{grid-template-columns:minmax(0,1fr);justify-content:stretch;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(max(12px,env(safe-area-inset-bottom,0px)) + 80px) max(12px,env(safe-area-inset-left,0px))}
   #menu>section{max-width:560px;width:100%;justify-self:center;max-height:none;overflow:visible}
   #menu{pointer-events:auto;-webkit-overflow-scrolling:touch}
+  /* (the start along the bottom, on a strip of its own, whatever part of the menu is in view; the car viewer's button
+     beside it) */
+  #menu::after{content:"";position:fixed;z-index:5;left:0;right:0;bottom:0;height:calc(max(12px,env(safe-area-inset-bottom,0px)) + 72px);background:var(--panel);box-shadow:0 -12px 26px -16px rgba(0,0,0,.5);pointer-events:none}
+  #menu>section>#go{position:fixed;z-index:6;bottom:max(12px,env(safe-area-inset-bottom,0px));left:calc(max(12px,env(safe-area-inset-left,0px),50% - 280px) + 128px);right:max(12px,env(safe-area-inset-right,0px),50% - 280px);width:auto;height:52px;margin:0;padding:0 10px;font-size:21px;line-height:1.05;box-shadow:0 3px 0 #9d7c06}
 }
+@media (max-width:820px) and (max-height:500px){
+  #menu{padding-bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 62px)} #menu::after{height:calc(max(10px,env(safe-area-inset-bottom,0px)) + 58px)}
+  #menu>section>#go,body #inspectFab{height:44px;bottom:max(8px,env(safe-area-inset-bottom,0px))} #menu>section>#go{font-size:20px}
+}
+/* a short screen (a phone on its side) with the two columns: less padding, a smaller start, so more of each column shows */
+@media (min-width:821px) and (max-height:500px){
+  #menu{padding:max(10px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  #menu>section{padding:14px 16px 0;max-height:calc(100vh / var(--us) - 20px);max-height:calc(100dvh / var(--us) - 20px)}
+  #menu>section>.go{font-size:20px;padding:9px;margin-top:10px;margin-bottom:10px}
+  .brand{margin-bottom:10px}
+}
+@media (max-width:360px){ body #inspectFab{width:96px;font-size:16px} #menu>section>#go{left:calc(max(12px,env(safe-area-inset-left,0px)) + 104px);font-size:18px} }
 
 /* ---------- game modes and the rally ---------- */
 .modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 14px;border:2px solid var(--ink);border-radius:5px;overflow:hidden}
@@ -124,7 +146,7 @@ button{font-family:inherit;cursor:pointer}
 #mpNote.why{font-size:15px;color:var(--ink);margin:4px 0 2px;padding:2px 0 2px 10px;border-left:3px solid var(--marshal)}
 .mpjoin{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:12px 0 4px}
 .mpcode{font-family:var(--stencil);font-size:26px;letter-spacing:.12em;text-transform:uppercase;text-align:center;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:4px 6px;min-width:0;width:100%}
-.mpbig{font-family:var(--stencil);font-size:clamp(54px,8vw,84px);line-height:1;text-align:center;letter-spacing:.14em;padding:8px 6px 2px;font-variant-numeric:tabular-nums}
+.mpbig{font-family:var(--stencil);font-size:64px;font-size:clamp(40px,25cqi,84px);line-height:1;text-align:center;letter-spacing:.14em;padding:8px 6px 2px;font-variant-numeric:tabular-nums}
 #mpRole{margin:0;padding:0 14px 10px;font-size:14px;color:#4a4f47;text-align:center}
 .mpgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:12px 0 4px}
 .mpgrid label{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--muted);font-weight:600}
@@ -146,15 +168,6 @@ button{font-family:inherit;cursor:pointer}
 #mpStatus{margin:8px 0 0;font-size:15px;font-weight:700}
 .mpver{margin:10px 0 0;font-size:13px;color:var(--muted)}
 .mphere{margin:2px 0 0;font-weight:600}
-.mpstand{position:absolute;right:max(14px,env(safe-area-inset-right,0px));top:max(14px,env(safe-area-inset-top,0px));min-width:170px;max-width:240px;background:rgba(0,0,0,.42);border-radius:5px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
-.mprow{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:baseline;font-size:15px;font-weight:700;line-height:1.25}
-.mprow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mprow small{font-size:13px;opacity:.85}
-.mprow.me{color:var(--marshal)}
-.mprow.tm{box-shadow:inset 3px 0 0 var(--tc);padding-left:6px}
-#mpTags{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.mptag{position:absolute;left:0;top:0;white-space:nowrap;font-weight:800;font-size:14px;background:rgba(0,0,0,.5);color:#fbfbf8;padding:1px 7px;border-radius:3px;will-change:transform}
-.mptag.rx{background:var(--marshal);color:#121212}
 /* the race's rules in the menu, the series table */
 .mpopt .assist.mp4{flex-wrap:wrap} .mpopt .assist.mp4 button{flex:1 1 40%}
 .mpopt select{font:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:5px;min-width:0;width:100%}
@@ -165,31 +178,10 @@ button{font-family:inherit;cursor:pointer}
 .mpser:last-child{border-bottom:0} .mpser b{color:var(--muted)} .mpser small{font-weight:800;font-variant-numeric:tabular-nums} .mpser.me{background:rgba(242,192,20,.16)}
 .mpser.tm{border-left:4px solid var(--tc);padding-left:4px}
 .mpaw{list-style:none;margin:10px 0 4px;padding:0;display:grid;gap:3px}
-.mpaw li{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;gap:8px;align-items:baseline;font-size:14.5px;padding:3px 6px;background:rgba(242,192,20,.12);border-radius:4px}
-.mpaw small{color:var(--muted);font-size:13px}
+.mpaw li{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr);gap:8px;align-items:baseline;font-size:14.5px;padding:3px 6px;background:rgba(242,192,20,.12);border-radius:4px}
+.mpaw small{color:var(--muted);font-size:13px;grid-column:2}
+@media (max-width:480px){ .mpaw li{grid-template-columns:minmax(0,1fr)} .mpaw li b,.mpaw small{grid-column:1} }
 table.rt tr.tm td:first-child{box-shadow:inset 4px 0 0 var(--tc)}
-/* the race on screen: the grid's card, the wait for a start, a banner, the reactions, the watched car */
-.mpreveal{position:absolute;left:50%;top:22%;transform:translateX(-50%);display:grid;gap:4px;min-width:min(420px,88vw);max-width:92vw;background:rgba(10,12,14,.78);border-radius:8px;padding:10px 14px;text-shadow:none}
-.mprv{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:10px;align-items:baseline;border-left:4px solid var(--tc,transparent);padding-left:8px}
-.mprv small{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--marshal)}
-.mprv b{font-size:18px;line-height:1.2}
-.mpwait{position:absolute;left:50%;top:max(70px,12%);transform:translateX(-50%);font-family:var(--stencil);font-size:34px;line-height:1;color:var(--marshal);background:rgba(10,12,14,.6);padding:6px 14px;border-radius:6px;text-shadow:none}
-.mpbanner{position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);font-family:var(--stencil);font-size:clamp(26px,5vw,44px);line-height:1.1;text-align:center;max-width:90vw;color:#fff;background:rgba(196,32,47,.88);padding:10px 20px;border-radius:6px;text-shadow:none}
-.mpfeed{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 236px);display:flex;flex-direction:column;gap:3px;max-width:260px;text-shadow:none}
-.mpfl{background:rgba(0,0,0,.55);border-radius:4px;padding:2px 8px;font-size:15px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mpfl b{margin-right:6px;color:var(--marshal)} .mpfl.me b{color:#9ad1ff}
-.mpwatch{pointer-events:auto;position:absolute;left:50%;bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 120px);transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(10,12,14,.72);border-radius:999px;padding:4px 6px;text-shadow:none;max-width:94vw}
-.mpwatch button{background:transparent;border:2px solid rgba(255,255,255,.6);color:#fff;border-radius:999px;min-width:38px;height:34px;font-weight:800;font-size:15px;padding:0 10px}
-.mpwatch .mpwl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--marshal)}
-.mpwatch .mpwn{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.mpreact{pointer-events:auto;position:absolute;left:50%;bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 170px);transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:94vw}
-.mpreact button{background:rgba(10,12,14,.78);border:2px solid var(--marshal);color:#fff;border-radius:999px;padding:7px 12px;font-weight:800;font-size:15px}
-.touch .mpb{width:56px;height:56px;font-size:13px;top:auto;left:max(16px,env(safe-area-inset-left,0px));bottom:calc(max(24px,env(safe-area-inset-bottom,0px)) + 100px * var(--tsz,1))}
-.touch #tReact{left:calc(max(16px,env(safe-area-inset-left,0px)) + 64px)}
-#hud.tswap .touch .mpb{left:auto;right:max(16px,env(safe-area-inset-right,0px))} #hud.tswap .touch #tReact{left:auto;right:calc(max(16px,env(safe-area-inset-right,0px)) + 64px)}
-@media (max-width:640px){ .mpreveal{top:18%} .mprv b{font-size:15.5px} .mpwait{font-size:26px} .mpfeed{bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 300px)} }
-@media (pointer:coarse){ .mpstand{top:calc(max(14px,env(safe-area-inset-top,0px)) + 132px);min-width:140px} .mprow{font-size:13px} }
-@media (max-width:640px){ .mpstand{top:auto;bottom:calc(max(16px,env(safe-area-inset-bottom,0px)) + 210px);right:8px;min-width:130px} }
 .modes button{background:transparent;color:var(--ink);border:0;padding:8px 4px;font-size:15px;line-height:1.15;font-weight:800;letter-spacing:0}
 .modes button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
 .rfield{display:flex;flex-direction:column;gap:3px;font-size:14px;color:var(--muted);font-weight:600;margin:14px 0 2px}
@@ -210,9 +202,9 @@ table.rt tr.tm td:first-child{box-shadow:inset 4px 0 0 var(--tc)}
 .itin .ss{font-family:var(--stencil);font-size:15px;color:var(--livery)}
 #rallyOn .big{font-size:30px;font-weight:800;line-height:1.05;margin:10px 0 2px}
 #rallyOn .row{margin-top:14px}
-#rally{position:fixed;inset:0;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) 16px max(16px,env(safe-area-inset-bottom,0px));overflow:auto;background:rgba(10,16,12,.42)}
+#rally{position:fixed;inset:0;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto;background:rgba(10,16,12,.42)}
 #rally[data-layout="side"]{place-items:start;background:none;pointer-events:none}
-#rally .card{width:min(760px,100%);pointer-events:auto;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;padding:0;overflow:hidden}
+#rally .card{width:min(760px,100%);pointer-events:auto;max-height:calc(100vh / var(--us) - 32px);max-height:calc(100dvh / var(--us) - 32px);display:flex;flex-direction:column;padding:0;overflow:hidden}
 #rally .rbody{overflow-y:auto;overscroll-behavior:contain;padding:24px 28px 10px;min-height:0}
 #rally[data-layout="side"] .card{width:min(420px,100%);margin:4px 8px}
 #rally .card>.btns{flex:none;margin:0;padding:12px 28px 20px;border-top:1px solid var(--line)}
@@ -248,19 +240,19 @@ table.rt tr.gap td{border:0;padding:0 5px;color:var(--muted);text-align:left}
 #rallyTag{font-weight:700;font-size:17px;margin-top:2px;opacity:.92}
 @media (max-width:640px){ .rentry{columns:1} }
 /* ---------- car inspection: the menu steps aside; a bar along the bottom steps through the entry list ---------- */
-.elh{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.elh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px}
 .elh .ghostbtn{font-size:15px;padding:5px 10px}
 .elb{display:flex;gap:6px}
 .elb .ghostbtn{white-space:nowrap}
 #setupLine{margin:-10px 0 16px}
 /* ---------- the car setup sheet ---------- */
-#setup{z-index:20;padding:16px}
-#setup .card{width:min(640px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;padding:0;overflow:hidden}
+#setup{z-index:20;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#setup .card{width:min(640px,100%);max-height:calc(100vh / var(--us) - 32px);max-height:calc(100dvh / var(--us) - 32px);display:flex;flex-direction:column;padding:0;overflow:hidden}
 #setup .sbody{overflow-y:auto;overscroll-behavior:contain;padding:22px 24px 12px;min-height:0}
 #setup .card>.btns{flex:none;margin:0;padding:12px 24px 18px;border-top:1px solid var(--line)}
 #setup .card>.btns .go{flex:1 1 auto;font-size:20px}
 #setup h2{font-size:28px;line-height:1.05}
-.suh,.sur{display:grid;grid-template-columns:minmax(0,1fr) 132px 132px;gap:6px;align-items:center}
+.suh,.sur{display:grid;grid-template-columns:minmax(0,1fr) 140px 140px;gap:6px;align-items:center}
 .suh{margin:16px 0 2px;border-bottom:2px solid var(--ink);padding-bottom:3px;align-items:end}
 .suh b{font-size:16px;font-weight:800;line-height:1.15}
 .suh span{font-size:13px;color:var(--muted);text-align:center;font-weight:700}
@@ -278,9 +270,9 @@ table.rt tr.gap td{border:0;padding:0 5px;color:var(--muted);text-align:left}
 .tyres button{position:relative;text-align:left;background:transparent;color:var(--ink);border:2px solid var(--line);border-radius:4px;padding:6px 8px 7px;font-size:15.5px;font-weight:800;line-height:1.15}
 .tyres button small{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-top:2px}
 .tyres button[aria-pressed="true"]{border-color:var(--marshal);background:rgba(242,192,20,.22)}
-.tyres .rec{display:block;font-size:11px;font-weight:800;color:var(--livery);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
-@media (max-width:600px){ #setup{padding:8px} #setup .sbody{padding:16px 14px 10px} #setup .card>.btns{padding:10px 14px 14px} .suh,.sur{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px} .suh b,.sur .sul{grid-column:1/3} .sur.one .stp{grid-column:1/3;justify-self:stretch;width:auto} .sul small{font-size:12px} .suh span:empty{display:none} }
-#inspectFab{display:none;position:fixed;z-index:5;top:max(12px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));background:var(--marshal);color:#121212;border:0;border-radius:999px;padding:9px 16px;font-size:16px;font-weight:800;box-shadow:0 6px 16px -6px rgba(0,0,0,.5)}
+.tyres .rec{display:block;font-size:11.5px;font-weight:800;color:var(--livery);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+@media (max-width:600px){ #setup{padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))} #setup .sbody{padding:16px 14px 10px} #setup .card>.btns{padding:10px 14px 14px} .suh,.sur{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px 8px} .suh b,.sur .sul{grid-column:1/3} .sur.one .stp{grid-column:1/3;justify-self:stretch;width:auto} .sul small{font-size:12px} .suh span:empty{display:none} }
+#inspectFab{display:none;position:fixed;z-index:7;bottom:max(12px,env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px),50% - 280px);width:120px;height:52px;background:transparent;color:var(--ink);border:2px solid var(--ink);border-radius:4px;padding:0 8px;font-size:17px;font-weight:800}
 body[data-mode="menu"]:not([data-inspect]) #inspectFab{display:block}
 @media (min-width:821px){ body[data-mode="menu"]:not([data-inspect]) #inspectFab{display:none} }
 body[data-inspect] #gl{touch-action:none;cursor:grab}
@@ -303,17 +295,36 @@ body[data-inspect] #gl:active{cursor:grabbing}
 @media (max-height:500px) and (min-width:600px){ #inspectBar{grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:880px;align-items:center;padding-top:8px} .insHint,.insCar small{display:none} }
 
 /* ---------- HUD ---------- */
-#hud{position:fixed;inset:0;pointer-events:none;color:#fbfbf8;text-shadow:0 1px 3px rgba(0,0,0,.5)}
-.clock{position:absolute;left:max(18px,env(safe-area-inset-left,0px));top:max(14px,env(safe-area-inset-top,0px))}
+/* The driving screen is laid out on a screen of its own, 1/--hs the size of the real one and drawn --hs times as large
+   (see UIFit), in the form that suits the room it has (data-form): wide; short (a phone on its side); tall (a phone held
+   upright, or a narrow window). Its edges keep clear of a phone's rounded corners and notch (--sl --sr --st --sb), --t
+   is the touch buttons' size, and --ov the height above the touch buttons, where the instruments go. */
+#hud{position:fixed;inset:0;pointer-events:none;color:#fbfbf8;text-shadow:0 1px 3px rgba(0,0,0,.5);
+  --sl:max(16px,env(safe-area-inset-left,0px));--sr:max(16px,env(safe-area-inset-right,0px));--st:max(14px,env(safe-area-inset-top,0px));--sb:max(16px,env(safe-area-inset-bottom,0px));
+  --t:var(--tsz,1);--bt:calc(78px * var(--t));--row:calc(var(--bt) + 12px);--ov:calc(var(--sb) + var(--row));
+  --gm:calc((var(--sl) + 168px * var(--t) + 100% - var(--sr) - 180px * var(--t) - 64px) / 2)}
+#hud.tswap{--gm:calc((var(--sl) + 180px * var(--t) + 64px + 100% - var(--sr) - 168px * var(--t)) / 2)}
+#hud[data-ped=up]{--ov:calc(var(--sb) + 2 * var(--row))}
+html.hsc #hud,html.hsc #replay{inset:auto;left:0;top:0;width:calc(100vw / var(--hs));height:calc(100vh / var(--hs));height:calc(100dvh / var(--hs));transform:scale(var(--hs));transform-origin:0 0}
+/* (things centred across the screen: centred whatever their width, and never wider than it) */
+#split,#msg,#count,.notes,.mpreveal,.mpwait,.mpbanner,.mpwatch,.mpreact,#dmgDead{position:absolute;left:0;right:0;margin-left:auto;margin-right:auto;width:max-content;max-width:calc(100% - 24px)}
+
+/* the clock, the gap to the leader or the best, the rally */
+.clock{position:absolute;left:var(--sl);top:var(--st)}
 #time{font-weight:800;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
 #delta{font-weight:700;font-size:24px;font-variant-numeric:tabular-nums;margin-top:2px}
 #delta.neg,#split.neg{color:#7ee08d}
 #delta.pos{color:#ff8a7d}
-#split{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-weight:800;font-size:30px;opacity:0;transition:opacity .3s;font-variant-numeric:tabular-nums;white-space:pre}
+#hud[data-form=short] #time{font-size:32px} #hud[data-form=short] #delta{font-size:19px;margin-top:1px} #hud[data-form=short] #rallyTag{font-size:14px;margin-top:1px}
+#hud[data-form=tall] #time{font-size:30px} #hud[data-form=tall] #delta{font-size:19px;margin-top:1px} #hud[data-form=tall] #rallyTag{font-size:14px;margin-top:1px}
+
+/* the split: under the pace notes */
+#split{top:calc(var(--st) + 148px);font-weight:800;font-size:30px;line-height:1.15;text-align:center;white-space:pre-wrap;opacity:0;transition:opacity .3s;font-variant-numeric:tabular-nums}
 #split.on{opacity:1}
-.notes{position:absolute;top:max(14px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;text-shadow:none}
-/* the pace notes as signs: the next note large with how far off it is, the ones called after it smaller, linked by
-   "into" or the distance between them */
+
+/* the pace notes: along the top. As signs, the next note large with how far off it is, the ones called after it
+   smaller, linked by "into" or the distance between them */
+.notes{top:var(--st);display:flex;flex-direction:column;align-items:center;gap:6px;text-shadow:none}
 .notes.icons,.notes.both{flex-direction:row;align-items:flex-start;gap:5px}
 .pn{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(13,15,17,.72);border-radius:10px;padding:5px 7px 6px;box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
 .pn .pg{display:block;width:80px;height:80px}
@@ -323,14 +334,16 @@ body[data-inspect] #gl:active{cursor:grabbing}
 .pn .pt.gr{color:#52d273}
 .pn .pd{font-weight:800;font-size:17px;line-height:1;color:#f4f1e8;font-variant-numeric:tabular-nums}
 .pn .pw{font-weight:700;font-size:12.5px;line-height:1.15;color:#d8d4c8;max-width:140px;text-align:center}
-.pn.sm{opacity:.9;padding:4px 5px 5px} .pn.sm .pg{width:56px;height:56px} .pn.sm .pb svg{width:18px;height:18px} .pn.sm .pt{font-size:10px;line-height:18px} .pn.sm .pw{font-size:11px;max-width:110px}
+.pn.sm{opacity:.9;padding:4px 5px 5px} .pn.sm .pg{width:56px;height:56px} .pn.sm .pb svg{width:18px;height:18px} .pn.sm .pt{font-size:10.5px;line-height:18px} .pn.sm .pw{font-size:12px;max-width:110px}
 .pl{align-self:center;margin-top:-4px;font-weight:800;font-size:15px;color:#f4f1e8;background:rgba(13,15,17,.62);border-radius:999px;padding:2px 8px;font-variant-numeric:tabular-nums}
 .pl.into,.pl.next{font-size:20px;line-height:20px;padding:1px 8px 3px} .pl.into{color:var(--marshal)} .pl.next{color:rgba(244,241,232,.55)}
 .note{background:#fbfbf8;color:#121212;border-radius:4px;padding:6px 16px 7px;display:flex;align-items:baseline;gap:14px;box-shadow:0 6px 18px -8px rgba(0,0,0,.6);border-left:6px solid var(--livery)}
 .note .nt{font-family:var(--stencil);font-size:30px;line-height:1.05;white-space:nowrap}
 .note .nd{font-weight:700;font-size:17px;color:#555;font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
 .note.next{opacity:.82;transform:scale(.78);transform-origin:top center;border-left-color:#999;margin-top:-8px}
-.dash{position:absolute;right:max(18px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:14px;align-items:end;justify-items:end}
+
+/* the instruments: speed, gear, the assists, the lamps, the revs and boost, the engine's temperature */
+.dash{position:absolute;right:var(--sr);bottom:var(--sb);display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:14px;align-items:end;justify-items:end}
 .spd{display:flex;align-items:baseline;gap:6px}
 #speed{font-weight:800;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums;min-width:2.2ch;text-align:right}
 .spd small{font-size:18px;font-weight:600}
@@ -353,54 +366,25 @@ body[data-inspect] #gl:active{cursor:grabbing}
 .etemp{grid-column:1/3;display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:4px;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-height:18px}
 .etemp .ct{opacity:.78} .etemp .ct.c{color:#8fc4ff;opacity:.9} .etemp .ct.h{color:#ff9a3a;opacity:1} .etemp .ct.r{color:#fff;background:#c4202f;padding:0 5px;border-radius:3px;opacity:1}
 .etemp .ew span{padding:1px 6px;border-radius:3px;background:rgba(0,0,0,.5);letter-spacing:.03em;margin-left:4px} .etemp .ew .y{color:#f2c014} .etemp .ew .o{color:#ff9a3a} .etemp .ew .r{color:#fff;background:#c4202f}
-#mini{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));width:190px;height:150px;background:rgba(0,0,0,.28);border-radius:4px}
-#count{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-family:var(--stencil);font-size:140px;line-height:1;color:var(--marshal);text-shadow:0 4px 20px rgba(0,0,0,.5)}
-#msg{position:absolute;left:50%;bottom:24%;transform:translateX(-50%);font-weight:700;font-size:22px;background:rgba(0,0,0,.55);padding:6px 14px;border-radius:4px;opacity:0;transition:opacity .25s;white-space:nowrap}
-#msg.on{opacity:1}
-.touch{display:none}
-@media (pointer:coarse){
-  .touch{display:block}
-  .touch button{pointer-events:auto;position:absolute;width:78px;height:78px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.28);color:#fff;font-weight:800;font-size:17px;touch-action:none;-webkit-user-select:none;user-select:none}
-  .touch button.down{background:rgba(242,192,20,.6)}
-  .touch .sm.on{border-color:var(--marshal);color:var(--marshal)}
-  .touch [data-t=left]{left:16px;bottom:max(24px,env(safe-area-inset-bottom,0px))}
-  .touch [data-t=right]{left:106px;bottom:max(24px,env(safe-area-inset-bottom,0px))}
-  .touch [data-t=gas]{right:16px;bottom:max(130px,calc(env(safe-area-inset-bottom,0px) + 110px))}
-  .touch [data-t=brake]{right:106px;bottom:max(130px,calc(env(safe-area-inset-bottom,0px) + 110px))}
-  .touch [data-t=hb]{right:196px;bottom:max(130px,calc(env(safe-area-inset-bottom,0px) + 110px));width:64px;height:64px;font-size:14px}
-  .touch .sm{width:48px;height:48px;font-size:13px;top:max(84px,calc(env(safe-area-inset-top,0px) + 70px))}
-  #tReset{right:16px} #tPause{right:72px} #tCam{right:128px} #tHelp{right:184px} #tLights{right:240px}
-  #tReset.wait{opacity:.4}
-  #mini{display:none}
-  .dash{bottom:max(16px,env(safe-area-inset-bottom,0px));right:200px}
-  .bars{width:160px}
-  #speed{font-size:44px} #gear{font-size:40px}
-  .note .nt{font-size:22px}
-  .pn .pg{width:58px;height:58px} .pn.sm .pg{width:42px;height:42px} .pn .pb svg{width:19px;height:19px} .pn.sm .pb svg{width:15px;height:15px} .pn .pt{font-size:10px;line-height:19px} .pn .pd{font-size:14px} .pn .pw{font-size:11px;max-width:96px}
-}
-/* (a phone held upright: the signs under the row of small buttons and the damage panel, on the side away from the
-   driver display) */
-@media (pointer:coarse) and (orientation:portrait){ .notes.icons,.notes.both{left:max(10px,env(safe-area-inset-left,0px));transform:none;top:calc(max(14px,env(safe-area-inset-top,0px)) + 190px)} #hud.tswap .notes.icons,#hud.tswap .notes.both{left:auto;right:max(10px,env(safe-area-inset-right,0px))} }
-@media (max-width:640px){ .note .nt{font-size:22px} #time{font-size:32px} #split{font-size:20px;white-space:normal;width:92%;text-align:center}
-  .pn .pg{width:58px;height:58px} .pn.sm .pg{width:42px;height:42px} .pn .pb svg{width:19px;height:19px} .pn.sm .pb svg{width:15px;height:15px} .pn .pt{font-size:10px;line-height:19px} .pn .pd{font-size:14px} .pn .pw{font-size:11px;max-width:96px} }
-@media (max-width:480px){ .pn.c3,.pl.c3{display:none} }
 
-/* the damage panel: the car from above, coloured where it is hurt, with the engine's warnings */
-.dmghud{position:absolute;left:max(14px,env(safe-area-inset-left,0px));bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + 160px);display:flex;align-items:flex-end;gap:6px;opacity:.9;text-shadow:none}
+/* the stage map, the countdown, a message */
+#mini{position:absolute;left:var(--sl);bottom:var(--sb);width:190px;height:150px;background:rgba(0,0,0,.28);border-radius:4px}
+#count{top:38%;transform:translateY(-50%);font-family:var(--stencil);font-size:140px;line-height:1;color:var(--marshal);text-shadow:0 4px 20px rgba(0,0,0,.5)}
+#msg{bottom:calc(var(--sb) + 182px);font-weight:700;font-size:22px;line-height:1.25;text-align:center;background:rgba(0,0,0,.55);padding:6px 14px;border-radius:4px;opacity:0;transition:opacity .25s}
+#msg.on{opacity:1}
+
+/* the damage panel: the car from above, coloured where it is hurt, with the engine's warnings (over the map) */
+.dmghud{position:absolute;left:var(--sl);bottom:calc(var(--sb) + 160px);display:flex;align-items:flex-end;gap:6px;opacity:.9;text-shadow:none}
 .dmghud svg{width:40px;height:70px}
 .dmghud svg rect,.dmghud svg path{fill:rgba(255,255,255,.14);stroke:rgba(255,255,255,.65);stroke-width:1.4}
 .dmghud svg .y{fill:#f2c014;stroke:#f2c014} .dmghud svg .o{fill:#ff8a1a;stroke:#ff8a1a} .dmghud svg .r{fill:#e8402a;stroke:#ff6a4a}
 .dmgw{display:flex;flex-direction:column;gap:3px}
 .dmgw span{font-weight:800;font-size:13px;padding:1px 6px;border-radius:3px;background:rgba(0,0,0,.5);letter-spacing:.03em}
 .dmgw .y{color:#f2c014} .dmgw .o{color:#ff9a3a} .dmgw .r{color:#fff;background:#c4202f}
-#dmgDead{position:absolute;left:50%;top:30%;transform:translateX(-50%);max-width:min(560px,92vw);text-align:center;font-weight:800;font-size:22px;background:rgba(196,32,47,.9);color:#fff;padding:10px 18px;border-radius:5px;text-shadow:none}
-@media (pointer:coarse){ .dmghud{bottom:auto;top:calc(max(14px,env(safe-area-inset-top,0px)) + 104px)} }
-/* ---------- driving: the assists presets ---------- */
-.drvdev{margin:-2px 0 6px}
-.assist.lvls button{flex:1 1 22%;padding:5px 4px;font-size:14.5px}
-#board td:last-child,#board th:last-child{font-size:13px;color:var(--muted)}
-/* ---------- the driver display: the front and rear tyres' share of their grip, and the slide ---------- */
-.grip{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:grid;grid-template-columns:150px 92px;grid-template-rows:auto auto;gap:4px 12px;align-items:center;text-shadow:none;transition:opacity .25s}
+#dmgDead{top:30%;max-width:min(560px,calc(100% - 24px));text-align:center;font-weight:800;font-size:22px;background:rgba(196,32,47,.9);color:#fff;padding:10px 18px;border-radius:5px;text-shadow:none}
+
+/* the driver display: the front and rear tyres' share of their grip, and the slide (along the bottom, in the middle) */
+.grip{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:var(--sb);display:grid;grid-template-columns:150px 92px;grid-template-rows:auto auto;gap:4px 12px;align-items:center;text-shadow:none;transition:opacity .25s}
 .grip.dim{opacity:0}
 .gbar{display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px;align-items:center;font-size:12.5px;font-weight:800;color:#fbfbf8;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .gt{position:relative;height:10px;background:rgba(0,0,0,.5);border-radius:3px;overflow:hidden}
@@ -413,20 +397,171 @@ body[data-inspect] #gl:active{cursor:grabbing}
 .gsl .gn{stroke:#fbfbf8;stroke-width:3;stroke-linecap:round}
 .gsl circle{fill:#fbfbf8}
 .gsl .gsa{position:absolute;left:0;right:0;bottom:-4px;text-align:center;font-size:13px;font-weight:800;color:#fbfbf8;text-shadow:0 1px 2px rgba(0,0,0,.6);font-variant-numeric:tabular-nums}
-@media (pointer:coarse) and (orientation:portrait){ .grip{left:auto!important;right:max(10px,env(safe-area-inset-right,0px));top:calc(max(14px,env(safe-area-inset-top,0px)) + 140px);bottom:auto!important;transform:none;grid-template-columns:118px!important;gap:4px} .gsl{grid-row:auto;grid-column:1;justify-self:center} #hud.tswap .grip{right:auto;left:max(10px,env(safe-area-inset-left,0px))!important} }
-@media (pointer:coarse){ .grip{left:max(16px,env(safe-area-inset-left,0px));transform:none;bottom:calc(max(24px,env(safe-area-inset-bottom,0px)) + 96px * var(--tsz,1));grid-template-columns:120px 80px} .gsl,.gsl svg{width:80px} #hud.tswap .grip{left:auto;right:max(16px,env(safe-area-inset-right,0px))} }
-/* ---------- the touch buttons: their size, and the sides swapped ---------- */
-@media (pointer:coarse){
-  .touch [data-t=left],.touch [data-t=right],.touch [data-t=gas],.touch [data-t=brake]{width:calc(78px * var(--tsz,1));height:calc(78px * var(--tsz,1))}
-  .touch [data-t=right]{left:calc(16px + 90px * var(--tsz,1))}
-  .touch [data-t=brake]{right:calc(16px + 90px * var(--tsz,1))}
-  .touch [data-t=hb]{right:calc(16px + 180px * var(--tsz,1))}
-  #hud.tswap .touch [data-t=left]{left:auto;right:calc(16px + 90px * var(--tsz,1))} #hud.tswap .touch [data-t=right]{left:auto;right:16px}
-  #hud.tswap .touch [data-t=gas]{right:auto;left:16px} #hud.tswap .touch [data-t=brake]{right:auto;left:calc(16px + 90px * var(--tsz,1))} #hud.tswap .touch [data-t=hb]{right:auto;left:calc(16px + 180px * var(--tsz,1))}
+
+/* a race: the standings (top right), what the others say and do (left), the race's card at the start, the wait for a
+   start a while off, a banner, the reactions, the car watched */
+.mpstand{position:absolute;right:var(--sr);top:var(--st);min-width:170px;max-width:240px;background:rgba(0,0,0,.42);border-radius:5px;padding:6px 8px;display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
+.mprow{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:baseline;font-size:15px;font-weight:700;line-height:1.25}
+.mprow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mprow small{font-size:13px;opacity:.85}
+.mprow.me{color:var(--marshal)}
+.mprow.tm{box-shadow:inset 3px 0 0 var(--tc);padding-left:6px}
+#mpTags{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.mptag{position:absolute;left:0;top:0;white-space:nowrap;font-weight:800;font-size:14px;background:rgba(0,0,0,.5);color:#fbfbf8;padding:1px 7px;border-radius:3px;will-change:transform}
+.mptag.rx{background:var(--marshal);color:#121212}
+.mpreveal{top:max(22%,calc(var(--st) + 150px));display:grid;gap:4px;min-width:min(420px,calc(100% - 24px));background:rgba(10,12,14,.78);border-radius:8px;padding:10px 14px;text-shadow:none}
+.mprv{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:10px;align-items:baseline;border-left:4px solid var(--tc,transparent);padding-left:8px}
+.mprv small{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--marshal)}
+.mprv b{font-size:18px;line-height:1.2}
+.mpwait{top:52%;font-family:var(--stencil);font-size:34px;line-height:1;text-align:center;color:var(--marshal);background:rgba(10,12,14,.6);padding:6px 14px;border-radius:6px;text-shadow:none}
+.mpbanner{top:32%;transform:translateY(-50%);font-family:var(--stencil);font-size:44px;line-height:1.1;text-align:center;color:#fff;background:rgba(196,32,47,.88);padding:10px 20px;border-radius:6px;text-shadow:none}
+.mpfeed{position:absolute;left:var(--sl);bottom:calc(var(--sb) + 250px);display:flex;flex-direction:column;align-items:flex-start;gap:3px;max-width:min(300px,calc(100% - 32px));text-shadow:none}
+.mpfl{background:rgba(0,0,0,.55);border-radius:4px;padding:2px 8px;font-size:15px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.mpfl b{margin-right:6px;color:var(--marshal)} .mpfl.me b{color:#9ad1ff}
+.mpwatch{pointer-events:auto;bottom:calc(var(--sb) + 76px);display:flex;align-items:center;gap:8px;background:rgba(10,12,14,.72);border-radius:999px;padding:4px 6px;text-shadow:none}
+.mpwatch button{flex:none;background:transparent;border:2px solid rgba(255,255,255,.6);color:#fff;border-radius:999px;min-width:38px;height:36px;font-weight:800;font-size:15px;padding:0 10px}
+.mpwatch .mpwl{flex:none;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--marshal)}
+.mpwatch .mpwn{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mpreact{pointer-events:auto;bottom:calc(var(--sb) + 124px);display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.mpreact button{background:rgba(10,12,14,.78);border:2px solid var(--marshal);color:#fff;border-radius:999px;padding:7px 12px;font-weight:800;font-size:15px;min-height:38px}
+/* (the instruments off at the finish: the watched car's bar and the reactions lower down) */
+#hud.fin .mpwatch{bottom:calc(var(--sb) + 16px)} #hud.fin .mpreact{bottom:calc(var(--sb) + 68px)}
+
+/* the narrow form (a window, not a phone): the driver display over the instruments, the notes under the clock */
+@media (pointer:fine),(pointer:none){
+  #hud[data-form=tall] .notes{top:calc(var(--st) + 100px)}
+  #hud[data-form=tall] #split{top:calc(var(--st) + 248px);font-size:24px}
+  #hud[data-form=tall] .grip{left:auto;right:var(--sr);margin:0;bottom:calc(var(--sb) + 150px)}
+  #hud[data-form=tall] #msg{bottom:auto;top:48%;font-size:19px;max-width:calc(100% - 48px)}
+  #hud[data-form=tall] .mpreact{bottom:auto;top:40%} #hud[data-form=tall] .mpwatch{bottom:auto;top:calc(40% + 96px)}
 }
+
+/* ---------- the touch screen ---------- */
+.touch{display:none}
+@media (pointer:coarse){
+  .touch{display:block}
+  .touch button{pointer-events:auto;position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.28);color:#fff;font-weight:800;font-size:17px;padding:0;touch-action:none;-webkit-user-select:none;user-select:none}
+  .touch button.down{background:rgba(242,192,20,.6)}
+  /* the steering pair at the bottom on one side, the pedals and the handbrake on the other (along the bottom too, or
+     over the steering pair where the two do not fit side by side) */
+  .touch [data-t=left],.touch [data-t=right],.touch [data-t=gas],.touch [data-t=brake]{width:var(--bt);height:var(--bt);bottom:var(--sb)}
+  .touch [data-t=left]{left:var(--sl)} .touch [data-t=right]{left:calc(var(--sl) + 90px * var(--t))}
+  .touch [data-t=gas]{right:var(--sr)} .touch [data-t=brake]{right:calc(var(--sr) + 90px * var(--t))}
+  .touch [data-t=hb]{right:calc(var(--sr) + 180px * var(--t));bottom:calc(var(--sb) + 39px * var(--t) - 32px);width:64px;height:64px;font-size:14px}
+  #hud[data-ped=up] .touch [data-t=gas],#hud[data-ped=up] .touch [data-t=brake]{bottom:calc(var(--sb) + var(--row))}
+  #hud[data-ped=up] .touch [data-t=hb]{bottom:calc(var(--sb) + var(--row) + 39px * var(--t) - 32px)}
+  #hud.tswap .touch [data-t=left]{left:auto;right:calc(var(--sr) + 90px * var(--t))} #hud.tswap .touch [data-t=right]{left:auto;right:var(--sr)}
+  #hud.tswap .touch [data-t=gas]{right:auto;left:var(--sl)} #hud.tswap .touch [data-t=brake]{right:auto;left:calc(var(--sl) + 90px * var(--t))} #hud.tswap .touch [data-t=hb]{right:auto;left:calc(var(--sl) + 180px * var(--t))}
+  /* the small buttons: a row along the top on the right (two rows on a narrow upright phone) */
+  .touch .sm{width:44px;height:44px;font-size:12px;letter-spacing:-.01em;top:var(--st)}
+  .touch .sm.on{border-color:var(--marshal);color:var(--marshal)}
+  #tReset{right:var(--sr)} #tPause{right:calc(var(--sr) + 50px)} #tCam{right:calc(var(--sr) + 100px)} #tHelp{right:calc(var(--sr) + 150px)} #tLights{right:calc(var(--sr) + 200px)}
+  #tReset.wait{opacity:.4}
+  #hud[data-form=short] .touch .sm,#hud[data-form=tall] .touch .sm{width:40px;height:40px;font-size:11.5px}
+  #hud[data-form=short] #tPause,#hud[data-form=tall] #tPause{right:calc(var(--sr) + 45px)} #hud[data-form=short] #tCam,#hud[data-form=tall] #tCam{right:calc(var(--sr) + 90px)}
+  #hud[data-form=short] #tHelp,#hud[data-form=tall] #tHelp{right:calc(var(--sr) + 135px)} #hud[data-form=short] #tLights,#hud[data-form=tall] #tLights{right:calc(var(--sr) + 180px)}
+  #hud[data-sb="2"] #tHelp{right:var(--sr);top:calc(var(--st) + 46px)} #hud[data-sb="2"] #tLights{right:calc(var(--sr) + 45px);top:calc(var(--st) + 46px)}
+  /* (a race's horn and reactions: over the pedals; where the instruments are there, beside them; upright, under the
+     small buttons) */
+  .touch .mpb{width:56px;height:56px;font-size:13px;right:var(--sr);bottom:var(--ov)} .touch #tReact{right:calc(var(--sr) + 64px)}
+  #hud.tswap .touch .mpb{right:auto;left:var(--sl)} #hud.tswap .touch #tReact{left:calc(var(--sl) + 64px)}
+  #hud[data-mpb=gap] .touch .mpb{width:48px;height:48px;right:auto;left:calc(var(--gm) - 51px);bottom:calc(var(--sb) + 39px * var(--t) - 24px)} #hud[data-mpb=gap] .touch #tReact{left:calc(var(--gm) + 3px)}
+  #hud[data-mpb=side] .touch .mpb{width:48px;height:48px;bottom:calc(var(--ov) + 10px);right:calc(var(--sr) + 184px)} #hud[data-mpb=side] .touch #tReact{right:calc(var(--sr) + 238px)}
+  #hud.tswap[data-mpb=side] .touch .mpb{right:auto;left:calc(var(--sl) + 184px)} #hud.tswap[data-mpb=side] .touch #tReact{left:calc(var(--sl) + 238px)}
+  #hud[data-form=tall] .touch .mpb,#hud.tswap[data-form=tall] .touch .mpb{width:40px;height:40px;font-size:11.5px;bottom:auto;left:auto;top:calc(var(--st) + 46px);right:var(--sr)} #hud[data-form=tall] .touch #tReact,#hud.tswap[data-form=tall] .touch #tReact{left:auto;right:calc(var(--sr) + 45px)}
+  #hud[data-form=tall][data-sb="2"] .touch #tHorn{right:calc(var(--sr) + 90px)} #hud[data-form=tall][data-sb="2"] .touch #tReact{right:calc(var(--sr) + 135px)}
+  #hud[data-form=tall][data-nw="1"] .touch #tHorn{top:calc(var(--st) + 92px);right:var(--sr)} #hud[data-form=tall][data-nw="1"] .touch #tReact{top:calc(var(--st) + 92px);right:calc(var(--sr) + 45px)}
+  /* the parts that do not belong on a touch screen, and the sizes that do */
+  #mini{display:none}
+  #speed{font-size:44px} #gear{font-size:40px} .spd small{font-size:15px}
+  .dash{grid-template-areas:"spd gear" "lamps lamps" "bars bars" "et et";column-gap:10px;width:170px}
+  .spd{grid-area:spd} #gear{grid-area:gear} .lamps{grid-area:lamps;min-height:0;margin:0}
+  .bars{grid-area:bars;width:170px;margin-top:6px} .etemp{grid-area:et;margin-top:4px;min-height:16px}
+  .atag{display:none} /* (the assists preset is on its own small button) */
+  .note .nt{font-size:22px}
+  .pn .pg{width:58px;height:58px} .pn.sm .pg{width:42px;height:42px} .pn .pb svg{width:19px;height:19px} .pn.sm .pb svg{width:15px;height:15px} .pn .pt{font-size:10.5px;line-height:19px} .pn .pd{font-size:14px} .pn .pw{font-size:12px;max-width:100px}
+  .pn.sm .pt{font-size:10px;line-height:15px} .pn.sm .pw{font-size:11.5px;max-width:92px}
+  .grip{grid-template-columns:120px 80px} .gsl,.gsl svg{width:80px}
+  .mprow{font-size:13.5px} .mpstand{min-width:140px;max-width:200px;padding:5px 7px}
+
+  /* wide (a tablet on its side): the instruments between the two pairs of buttons, the driver display over the
+     steering pair, the damage panel under the clock, the standings under the small buttons */
+  .dash{right:auto;left:calc(var(--gm) - 85px);bottom:var(--sb)}
+  #hud[data-dash=up] .dash{left:auto;right:var(--sr);bottom:var(--ov)} #hud.tswap[data-dash=up] .dash{right:auto;left:var(--sl)}
+  .grip{left:var(--sl);right:auto;margin:0;bottom:var(--ov)} #hud.tswap .grip{left:auto;right:var(--sr)}
+  .dmghud{bottom:auto;top:calc(var(--st) + 98px)}
+  .mpstand{top:calc(var(--st) + 54px)}
+  .notes{top:var(--st)}
+  #split{top:calc(var(--st) + 150px);font-size:26px} #dmgDead{top:calc(var(--st) + 200px);font-size:20px}
+  .mpfeed{bottom:calc(var(--ov) + 66px)} #hud.tswap .mpfeed{left:auto;right:var(--sr);align-items:flex-end}
+  #msg{bottom:calc(var(--sb) + 112px)}
+  .mpreact{bottom:calc(var(--ov) + 124px)} .mpwatch{bottom:calc(var(--ov) + 72px)}
+  #hud[data-dash=up] #msg{bottom:calc(var(--ov) + 20px)} #hud[data-dash=up] .mpwatch{bottom:calc(var(--sb) + 30px)} #hud[data-dash=up] .mpreact{bottom:calc(var(--ov) + 70px)}
+
+  /* short (a phone on its side): all of it smaller; the notes between the clock and the small buttons, the split and a
+     message under them, the instruments between the buttons or over the pedals, the damage panel under the clock and the
+     driver display over the steering pair */
+  #hud[data-form=short] .notes{left:calc(var(--sl) + 146px);right:calc(var(--sr) + 228px);max-width:none}
+  #hud[data-form=short] .pn.c3,#hud[data-form=short] .pl.c3{display:none}
+  #hud[data-form=short] #split{top:calc(var(--st) + 112px);font-size:18px;max-width:calc(100% - 2 * (var(--sr) + 178px))}
+  #hud[data-form=short] #count{top:46%;font-size:96px}
+  #hud[data-form=short] .dmghud{top:calc(var(--st) + 74px)} #hud[data-form=short] .dmghud svg{width:30px;height:52px} #hud[data-form=short] .dmgw span{font-size:12px}
+  #hud[data-form=short] #msg{bottom:auto;top:calc(var(--st) + 112px);font-size:17px;max-width:calc(100% - 2 * (var(--sr) + 178px))}
+  #hud[data-form=short] #speed{font-size:38px} #hud[data-form=short] #gear{font-size:34px} #hud[data-form=short] .bars{margin-top:4px} #hud[data-form=short] .etemp{margin-top:2px}
+  #hud[data-form=short] .notes.words{width:auto} #hud[data-form=short] .note .nt{white-space:normal;font-size:20px}
+  #hud[data-form=short] .grip{grid-template-columns:104px 72px;gap:3px 8px} #hud[data-form=short] .gsl,#hud[data-form=short] .gsl svg{width:72px} #hud[data-form=short] .gsl{height:46px} #hud[data-form=short] .gsl svg{height:42px}
+  #hud[data-form=short] .mpstand{top:calc(var(--st) + 48px);max-width:170px;padding:4px 6px;gap:1px} #hud[data-form=short] .mprow{font-size:12.5px;line-height:1.2}
+  #hud[data-form=short] .mpfeed{left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 2 * (var(--sr) + 178px));bottom:auto;top:calc(var(--st) + 112px);align-items:center}
+  #hud[data-form=short] .mpreveal{top:calc(var(--st) + 56px);min-width:0;max-width:calc(100% - 2 * (var(--sr) + 160px));padding:6px 10px} #hud[data-form=short] .mprv b{font-size:14.5px} #hud[data-form=short] .mprv{grid-template-columns:5.6em minmax(0,1fr)} #hud[data-form=short] .mprv small{font-size:11.5px}
+  #hud[data-form=short] .mpwait{top:auto;bottom:calc(var(--ov) + 10px);font-size:26px}
+  #hud[data-form=short] .mpbanner{top:40%;font-size:30px}
+  #hud[data-form=short] #dmgDead{top:calc(var(--st) + 56px);font-size:16px;line-height:1.25;padding:6px 12px;max-width:calc(100% - 2 * (var(--sr) + 150px))}
+  #hud[data-form=short] .mpreact{bottom:auto;top:calc(var(--st) + 108px);max-width:calc(100% - 2 * (var(--sr) + 178px))} #hud[data-form=short][data-dash=up] .mpreact{top:calc(var(--st) + 56px)}
+  #hud[data-form=short] .mpreact button{padding:5px 10px;font-size:14px;min-height:34px}
+  #hud[data-form=short] .mpwatch{bottom:auto;top:calc(var(--st) + 112px);max-width:calc(100% - 2 * (var(--sr) + 178px))}
+  #hud.fin[data-form=short] .mpwatch{top:auto;bottom:var(--sb);max-width:calc(100% - 2 * var(--sr))} #hud.fin[data-form=short] .mpreact{top:auto;bottom:calc(var(--sb) + 56px)}
+  #hud.fin[data-form=short][data-mpb=gap] .mpwatch{bottom:calc(var(--sb) + 64px)} #hud.fin[data-form=short][data-mpb=gap] .mpreact{bottom:calc(var(--sb) + 120px)}
+
+  /* tall (a phone held upright): the notes under the clock and the small buttons, the split under them; along the
+     bottom, over the buttons, the driver display on the steering side and the instruments on the other, the damage
+     panel and the standings over those */
+  #hud[data-form=tall]{--nt:calc(var(--st) + 96px)} #hud[data-form=tall][data-nw="1"]:has(#tHorn:not([hidden])){--nt:calc(var(--st) + 138px)}
+  #hud[data-form=tall] .notes{top:var(--nt)}
+  #hud[data-form=tall] #split{top:calc(var(--nt) + 118px);font-size:18px;max-width:calc(100% - 2 * (var(--sl) + 50px))}
+  #hud[data-form=tall] #count{top:42%;font-size:110px}
+  #hud[data-form=tall] .dash{bottom:var(--ov)}
+  #hud[data-form=tall][data-dash=mid] .dash{bottom:var(--sb)}
+  #hud[data-form=tall] .grip{bottom:var(--ov);grid-template-columns:118px;gap:3px} #hud[data-form=tall] .gsl{grid-row:auto;grid-column:1;justify-self:center}
+  #hud[data-form=tall] .dmghud{top:auto;bottom:calc(var(--ov) + 92px);flex-direction:column;align-items:flex-start;gap:4px} #hud[data-form=tall] .dmghud svg{width:30px;height:52px} #hud[data-form=tall] .dmgw span{font-size:12px} #hud.tswap[data-form=tall] .dmghud{left:auto;right:var(--sr);align-items:flex-end}
+  #hud[data-form=tall] .mpstand{top:auto;bottom:calc(var(--ov) + 90px)} #hud.tswap[data-form=tall] .mpstand{right:auto;left:var(--sl)}
+  #hud.fin[data-form=tall] .mpstand{left:var(--sl);right:auto;top:var(--nt);bottom:auto} /* (at the finish, where the pace notes were) */
+  #hud[data-form=tall] .mpfeed{left:0;right:0;margin:0 auto;width:max-content;max-width:calc(100% - 2 * (var(--sl) + 50px));bottom:auto;top:calc(var(--nt) + 118px);align-items:center}
+  #hud[data-form=tall] #msg{bottom:auto;top:calc(var(--nt) + 118px);font-size:17px;max-width:calc(100% - 2 * (var(--sl) + 50px))}
+  #hud[data-form=tall] .mpreact{bottom:auto;top:calc(var(--nt) + 4px)}
+  #hud[data-form=tall] .mpwatch{bottom:auto;top:calc(var(--nt) + 118px)} #hud.fin[data-form=tall] .mpwatch{top:auto;bottom:var(--sb)} #hud.fin[data-form=tall] .mpreact{top:auto;bottom:calc(var(--sb) + 56px)}
+  #hud[data-form=tall] .mpreveal{top:calc(var(--nt) + 40px)} #hud[data-form=tall] .mprv b{font-size:15.5px} #hud[data-form=tall] .mprv{grid-template-columns:6.5em minmax(0,1fr)}
+  #hud[data-form=tall] .mpwait{top:var(--nt);font-size:24px}
+  #hud[data-form=tall] .mpbanner{font-size:28px}
+  #hud[data-form=tall] #dmgDead{top:var(--nt);font-size:17px;line-height:1.25;padding:8px 12px;max-width:calc(100% - 32px)}
+  #hud[data-nw="1"] .dash{width:128px} #hud[data-nw="1"] .bars{width:128px} #hud[data-nw="1"] #speed{font-size:36px} #hud[data-nw="1"] #gear{font-size:32px} #hud[data-nw="1"] .spd small{font-size:13px}
+  #hud[data-nw="1"] .grip{grid-template-columns:104px} #hud[data-nw="1"] .gbar{grid-template-columns:34px minmax(0,1fr)}
+}
+@media (pointer:coarse) and (max-width:480px){ #hud .pn.c3,#hud .pl.c3{display:none} }
+@media (pointer:coarse) and (min-height:740px){ #hud[data-form=tall] .mpreact{top:40%} }
+/* (on a phone on its side the split, a message, the reactions being picked and what the others say share one place: the
+   reactions first (and a stopped car's word), then a message, the split, and what the others say; held upright, a message,
+   the split and what the others say) */
+#hud[data-form=short]:has(#mpReactBar:not([hidden])) #msg,#hud[data-form=short]:has(#mpReactBar:not([hidden])) #split,#hud[data-form=short]:has(#mpReactBar:not([hidden])) .mpfeed,#hud[data-form=short]:has(#dmgDead:not([hidden])) #msg,#hud[data-form=short]:has(#dmgDead:not([hidden])) #split,#hud[data-form=short]:has(#dmgDead:not([hidden])) .mpfeed{visibility:hidden}
+#hud[data-form=short]:has(#msg.on) #split,#hud[data-form=short]:has(#msg.on) .mpfeed,#hud[data-form=short]:has(#split.on) .mpfeed,#hud[data-form=tall]:has(#msg.on) #split,#hud[data-form=tall]:has(#msg.on) .mpfeed,#hud[data-form=tall]:has(#split.on) .mpfeed{visibility:hidden}
+/* (and the car watched while a start is a while off: its bar once the race's card is gone) */
+#hud[data-form=short]:has(#mpReveal:not([hidden])) .mpwatch,#hud[data-form=tall]:has(#mpReveal:not([hidden])) .mpwatch{visibility:hidden}
+
+/* at the finish, while the camera goes round the car: the instruments and the driving controls off the screen (a
+   race's own panels, the messages and the buttons still of use stay) */
+#hud.fin>.clock,#hud.fin>#split,#hud.fin>#notes,#hud.fin>.dash,#hud.fin>#mini,#hud.fin>#grip,#hud.fin>#dmgHud,#hud.fin>#dmgDead,#hud.fin>#count,#hud.fin .touch>button:not(#tPause):not(#tCam):not(#tHorn):not(#tReact){display:none !important}
 /* ---------- the controls sheet ---------- */
-#ctl{z-index:20;padding:16px}
-#ctl .card{width:min(700px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;padding:0;overflow:hidden}
+#ctl{z-index:20;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#ctl .card{width:min(700px,100%);max-height:calc(100vh / var(--us) - 32px);max-height:calc(100dvh / var(--us) - 32px);display:flex;flex-direction:column;padding:0;overflow:hidden}
 #ctl .chead{flex:none;padding:18px 24px 0}
 #ctl .chead h2{font-size:26px}
 .ctabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 0;border-bottom:2px solid var(--ink)}
@@ -463,9 +598,9 @@ body[data-inspect] #gl:active{cursor:grabbing}
 .cmeter output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 .cnote{font-size:13.5px;color:var(--muted);line-height:1.4;margin:8px 0 0}
 .cwarn{font-size:14px;color:var(--ink);margin:8px 0 0;padding:4px 0 4px 10px;border-left:3px solid var(--marshal)}
-@media (max-width:600px){ #ctl{padding:8px} #ctl .chead{padding:14px 14px 0} #ctl .sbody{padding:6px 14px 10px} #ctl .card>.btns{padding:10px 14px 14px} .crow{grid-template-columns:minmax(0,1fr)} .cbind{justify-content:flex-start} .ctabs button{padding:6px 8px 5px;font-size:14.5px} }
+@media (max-width:600px){ #ctl{padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))} #ctl .chead{padding:14px 14px 0} #ctl .sbody{padding:6px 14px 10px} #ctl .card>.btns{padding:10px 14px 14px} .crow{grid-template-columns:minmax(0,1fr)} .cbind{justify-content:flex-start} .ctabs button{padding:6px 8px 5px;font-size:14.5px} }
 /* ---------- overlays ---------- */
-.overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,12,.45);padding:20px}
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,12,.45);padding:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
 .card{background:var(--panel);color:var(--ink);border-radius:6px;padding:24px 28px 26px;width:min(440px,100%);box-shadow:0 24px 60px -20px rgba(0,0,0,.6)}
 .card h2{margin:0;font-size:26px;font-weight:800}
 .card .sub{margin:2px 0 0;color:var(--muted);font-size:16px}
@@ -476,15 +611,15 @@ body[data-inspect] #gl:active{cursor:grabbing}
 /* the results at the finish, docked to one side (along the bottom on an upright screen) so the car can be seen
    past them as the camera goes round it (see Orbit) */
 .overlay.dock,#rally[data-layout="dock"]{place-items:center start;background:none;pointer-events:none;padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
-.overlay.dock .card{pointer-events:auto;width:min(400px,100%);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+.overlay.dock .card{pointer-events:auto;width:min(400px,100%);max-height:calc(100vh / var(--us) - 24px);max-height:calc(100dvh / var(--us) - 24px);overflow-y:auto;overscroll-behavior:contain}
 #finish.dock #finTime{font-size:64px}
 .overlay.dock .btns .ghostbtn,#rally[data-layout="dock"] .btns .ghostbtn{flex:1 1 40%}
 #mpRes.dock .card{width:min(440px,100%)}
-#rally[data-layout="dock"] .card{width:min(440px,100%);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px)}
+#rally[data-layout="dock"] .card{width:min(440px,100%);max-height:calc(100vh / var(--us) - 24px);max-height:calc(100dvh / var(--us) - 24px)}
 #rally[data-layout="dock"] .rgrid{grid-template-columns:minmax(0,1fr)}
 @media (max-aspect-ratio:1/1){
   .overlay.dock,#rally[data-layout="dock"]{place-items:end center}
-  .overlay.dock .card,#mpRes.dock .card,#rally[data-layout="dock"] .card{width:min(560px,100%);max-height:54vh;max-height:54dvh}
+  .overlay.dock .card,#mpRes.dock .card,#rally[data-layout="dock"] .card{width:min(560px,100%);max-height:calc(54vh / var(--us));max-height:calc(54dvh / var(--us))}
   #finish.dock .card{padding:16px 18px 18px} #finish.dock #finTime{font-size:52px;margin:8px 0 4px} #finish.dock #finLines{font-size:15.5px}
 }
 /* (a phone on its side: still at the side, narrower, as the screen is too short for the results along the bottom) */
@@ -492,9 +627,6 @@ body[data-inspect] #gl:active{cursor:grabbing}
   .overlay.dock .card,#mpRes.dock .card,#rally[data-layout="dock"] .card{width:min(340px,56vw)}
   #finish.dock .card{padding:14px 16px 16px} #finish.dock #finTime{font-size:46px;margin:6px 0 4px} #finish.dock #finLines{font-size:14.5px}
 }
-/* at the finish, while the camera goes round the car: the instruments and the driving controls off the screen (a
-   race's own panels, the messages and the buttons still of use stay) */
-#hud.fin>.clock,#hud.fin>#split,#hud.fin>#notes,#hud.fin>.dash,#hud.fin>#mini,#hud.fin>#grip,#hud.fin>#dmgHud,#hud.fin>#dmgDead,#hud.fin>#count,#hud.fin .touch>button:not(#tPause):not(#tCam):not(#tHorn):not(#tReact){display:none !important}
 /* the replay: the broadcast's marks at the top, the controls along the bottom (out of the way while it plays) */
 #replay{position:fixed;inset:0;pointer-events:none;color:#fbfbf8}
 #replay .rpTag,#replay .rpClock{position:absolute;top:max(14px,env(safe-area-inset-top,0px));background:rgba(10,14,12,.66);border-radius:4px;padding:6px 12px}
@@ -524,12 +656,35 @@ body[data-inspect] #gl:active{cursor:grabbing}
 #replay .rpCams button[aria-pressed="true"]{background:#fbfbf8;color:#121212}
 #replay .rpKeys{margin:0;font-size:12.5px;opacity:.62;text-align:center}
 @media (max-width:640px){ #replay .rpPos{display:none} #replay .rpExit{padding:7px 9px;font-size:14px} #replay .rpTag{font-size:15px;max-width:calc(100% - 160px)} #replay .rpTag span:last-child{min-width:0} #replay .rpClock b{font-size:20px} } /* (the camera's name wraps rather than run under the clock) */
+@media (max-width:420px){ #replay .rpTag{flex-wrap:wrap;row-gap:0} #replay .rpTag span:last-child{flex-basis:100%;padding-left:18px} #replay .rpTag span:last-child:not(:empty)::before{content:none} }
 @media (max-width:520px){ #replay .rpRow{flex-wrap:wrap} #replay input[type=range]{order:-1;flex:1 1 100%;margin:4px 2px} #replay .rpExit{margin-left:auto} }
 @media (pointer:coarse){ #replay .rpKeys{display:none} }
 @media (prefers-reduced-motion:reduce){ #replay .rpDot{animation:none} #replay .rpBar{transition:none} }
 .btns .go{margin:0;flex:1 1 100%;font-size:22px;padding:12px}
 .btns .ghostbtn{flex:1}
 @media (prefers-reduced-motion:reduce){ #split,#msg{transition:none} }
+/* a touch screen: everything to be tapped a finger's width */
+@media (pointer:coarse){
+  .ghostbtn,.assist button,.modes button,.ctabs button,.tyres button,.elh .ghostbtn,.mplist .ghostbtn,.mpseed .ghostbtn{min-height:40px}
+  .cond select,.rfield select,.mpgrid select,.mpgrid input,.mpopt select,.mpcode{min-height:42px}
+  .assist.mix button{min-height:36px}
+  .stp{grid-template-columns:40px minmax(0,1fr) 40px} .stp button{min-height:38px}
+  .chip button{min-width:30px;min-height:30px}
+  .cbind .ghostbtn{min-height:34px}
+  .linkbtn{padding:8px 0}
+  .insArrow{width:48px;height:48px}
+  #replay .rpCams button{padding:10px 12px} #replay .rpBtn{height:44px} #replay .rpBtn.sm{width:40px} #replay .rpExit{min-height:44px}
+  #replay input[type=range]{height:34px}
+  .crng input{height:32px}
+}
+@media (pointer:coarse) and (max-width:380px){ .stp{grid-template-columns:34px minmax(0,1fr) 34px} .stp output{font-size:13px} }
+@media (pointer:coarse) and (min-width:601px){ .suh,.sur{grid-template-columns:minmax(0,1fr) 156px 156px} }
+/* the sheets on a short screen: their headings and buttons smaller */
+@media (max-height:500px){
+  #setup .sbody,#ctl .sbody{padding-top:12px} #setup h2,#ctl .chead h2{font-size:21px} #setup .card>.btns,#ctl .card>.btns{padding-top:8px;padding-bottom:10px}
+  #setup .card>.btns .go,#ctl .card>.btns .go{font-size:18px;padding:8px} #ctl .chead{padding-top:12px} .ctabs{margin-top:8px}
+  #rally .rbody{padding-top:14px} #rally .card>.btns{padding-top:8px;padding-bottom:10px} #rally .card h2{font-size:24px} .rbig{font-size:46px}
+}
 </style>
 </head>
 <body data-mode="menu">
@@ -6323,7 +6478,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '0F13';
+const SR86_BUILD = '2CC9';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -6534,7 +6689,7 @@ const camera = new THREE.PerspectiveCamera(68, 1, 0.5, 1400);
 const hemi = new THREE.HemisphereLight(0xdfe9f3, 0x4a4030, 0.75); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1dc, 0.95); sun.castShadow = true; sun.shadow.mapSize.set(Gfx.L.shadow, Gfx.L.shadow);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 120 }); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; scene.add(sun); scene.add(sun.target);
-function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (Particles.mat) Particles.mat.uniforms.uScale.value = h * renderer.getPixelRatio() * 0.5; }
+function resize() { const w = window.innerWidth, h = window.innerHeight; UIFit.fit(); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); if (Particles.mat) Particles.mat.uniforms.uScale.value = h * renderer.getPixelRatio() * 0.5; }
 
 // ---------- textures ----------
 function cnv(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
@@ -16847,7 +17002,41 @@ function driverDisplay(c) {
   const a = clamp(G.slideA, -70, 70), rot = `rotate(${a.toFixed(1)})`; if (e._n._rt !== rot) { e._n._rt = rot; e._n.setAttribute('transform', rot); } setText(e._a, Math.round(Math.abs(G.slideA)) + '\u00b0');
   const dim = mode === 'limit' && Math.max(G.gripF, G.gripR) < 0.75 && Math.abs(G.slideA) < 8; if (e.classList.contains('dim') !== dim) e.classList.toggle('dim', dim);
 }
-function touchLayout() { const T = Ctl.p('touch').tch || { size: 1, swap: false }, h = $('#hud'); if (!h) return; h.style.setProperty('--tsz', String(clamp(T.size, 0.7, 1.5))); h.classList.toggle('tswap', !!T.swap); }
+function touchLayout() { const T = Ctl.p('touch').tch || { size: 1, swap: false }, h = $('#hud'); if (!h) return; h.style.setProperty('--tsz', String(clamp(T.size, 0.7, 1.5))); h.classList.toggle('tswap', !!T.swap); UIFit.fit(); }
+// ---------- fitting the screens to the screen ----------
+// The driving screen and the replay grow with the screen (--hs): a phone's own size, a little larger on a tablet, and in
+// proportion on a computer's (each laid out on a screen 1/--hs the size of the real one and drawn --hs times as large,
+// so its parts keep their places and their shapes); the menus and the sheets (--us) only on a large screen. The driving
+// screen then takes the form that suits the room it has (data-form): wide; short (a phone on its side); tall (a phone
+// held upright, or a narrow window). On a touch screen: the pedals go over the steering buttons where the two pairs do
+// not fit side by side along the bottom (data-ped); the instruments sit between the pairs where there is room, else
+// over the pedals (data-dash), and then a race's horn and reactions between the pairs (data-mpb); and the small buttons
+// go in two rows where one would run into the clock (data-sb); on the narrowest, the instruments narrower (data-nw).
+const UIFit = {
+  hs: 1, us: 1, probe: null,
+  // the screen's safe area (round a notch and the corners), in CSS pixels
+  safe() {
+    let p = this.probe; if (!p) { p = this.probe = document.createElement('div'); p.setAttribute('aria-hidden', 'true'); p.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)'; document.body.append(p); }
+    const cs = getComputedStyle(p); return { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+  },
+  fit() {
+    const W = innerWidth || 1280, H = innerHeight || 720, de = document.documentElement, coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
+    let hs, us = 1;
+    if (coarse) { const r = Math.min(W, H) / 420; hs = r <= 1 ? 1 : Math.min(1.35, 1 + (r - 1) * 0.35); }
+    else { const r = W >= H ? Math.min(W / 1280, H / 720) : Math.min(W / 720, H / 1280); hs = r <= 1 ? Math.max(0.8, r) : Math.min(2.6, 1 + (r - 1) * 0.8); us = clamp(W >= H ? Math.min(W / 1600, H / 1000) : Math.min(W / 1000, H / 1600), 1, 2.4); } // (a screen on its side as one upright)
+    hs = Math.round(hs * 50) / 50; us = Math.round(us * 50) / 50; this.hs = hs; this.us = us;
+    de.style.setProperty('--hs', String(hs)); de.style.setProperty('--us', String(us)); de.classList.toggle('hsc', hs !== 1); de.classList.toggle('usc', us !== 1);
+    const hud = $('#hud'); if (!hud) return;
+    const w = W / hs, h = H / hs, form = w < h && w < 900 ? 'tall' : h < 520 ? 'short' : 'wide', S = this.safe();
+    const T = Ctl.ok ? (Ctl.p('touch').tch || {}) : {}, t = clamp(T.size || 1, 0.7, 1.5);
+    // (the room between the steering pair and the pedals with the handbrake, as the style sheet places them)
+    const inner = w - Math.max(16, S.l) - Math.max(16, S.r) - 168 * t - (180 * t + 64);
+    const ped = coarse && inner < 12 ? 'up' : 'low', dash = coarse && ped === 'low' && inner >= 194 ? 'mid' : 'up';
+    const mpb = coarse && form === 'short' && dash === 'up' ? (inner >= 112 ? 'gap' : 'side') : '', sb = coarse && form === 'tall' && w < 380 ? '2' : '1', nw = coarse && form === 'tall' && w < 340 ? '1' : '';
+    const set = (k, v) => { if (hud.dataset[k] !== v) hud.dataset[k] = v; };
+    set('form', form); set('ped', ped); set('dash', dash); set('mpb', mpb); set('sb', sb); set('nw', nw);
+  }
+};
 
 // ---------- game state ----------
 const G = { state: 'menu', T: null, spec: CARS[0], car: null, mesh: null, ghostMesh: null, time: 0, penalty: 0, prog: 0, finished: false, finT: 0, ghost: null, rec: [], recT: 0, progT: [], splitIdx: [], splits: [], noteK: 0, callFrom: [], camMode: 0, voice: true, paused: false, cd: 0, cdLast: 0, prevThr: 0, waterWas: 0, shake: 0, stuckT: 0, fly: 0, camYaw: 0, finShown: false };
@@ -16915,8 +17104,9 @@ function drawMapCache(T) {
 }
 function drawMap(cv, live) {
   const T = G.T; if (!T || !mapCache) return; const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const W = cv.clientWidth || 200, H = cv.clientHeight || 160; if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const W = cv.clientWidth || 200, H = cv.clientHeight || 160, k = dpr * clamp((cv.getBoundingClientRect().width || W) / W, 1, 3); // (k: drawn as large as it shows, on a screen scaled up)
+  if (cv.width !== Math.round(W * k) || cv.height !== Math.round(H * k)) { cv.width = Math.round(W * k); cv.height = Math.round(H * k); }
+  const g = cv.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0); g.clearRect(0, 0, W, H);
   const { x0, x1, z0, z1 } = mapCache; const pad = 10; const sc = Math.min((W - pad * 2) / (x1 - x0 || 1), (H - pad * 2) / (z1 - z0 || 1));
   const ox = (W - (x1 - x0) * sc) / 2, oz = (H - (z1 - z0) * sc) / 2;
   const X = x => ox + (x1 - x) * sc, Z = z => oz + (z1 - z) * sc;
@@ -17620,7 +17810,7 @@ function updateFlyover(dt) {
     const I = Inspect; I.idle += dt; if (I.idle > 4 && !I.ptrs.size && !REDUCED_MOTION()) I.yaw += dt * 0.22 * Math.min(1, (I.idle - 4) / 2);
     const vh = 25 * Math.PI / 180, hh = Math.atan(Math.tan(vh) * camera.aspect), r = Math.max(4.2, 2.45 / Math.sin(Math.min(vh, hh))) * I.zoom, ang = p.h + I.yaw, cp = Math.cos(I.pitch);
     camLook.set(p.x, p.y + 0.62, p.z); camPos.set(p.x + Math.sin(ang) * cp * r, p.y + 0.62 + Math.sin(I.pitch) * r, p.z + Math.cos(ang) * cp * r); follow = 12;
-    const W = window.innerWidth, H = window.innerHeight, bar = I.bar ? I.bar.offsetHeight : 0; if (!camera.view || !camera.view.enabled || camera.view.offsetY !== bar / 2 || camera.view.fullWidth !== W || camera.view.fullHeight !== H) camera.setViewOffset(W, H, 0, bar / 2, W, H);
+    const W = window.innerWidth, H = window.innerHeight, bar = I.bar ? Math.round(I.bar.getBoundingClientRect().height) : 0; if (!camera.view || !camera.view.enabled || camera.view.offsetY !== bar / 2 || camera.view.fullWidth !== W || camera.view.fullHeight !== H) camera.setViewOffset(W, H, 0, bar / 2, W, H);
   } else {
     const ang = p.h + 2.3 + G.fly * 0.22, r = 6.4;
     camPos.set(p.x + Math.sin(ang) * r, p.y + 1.7 + Math.sin(G.fly * 0.3) * 0.3, p.z + Math.cos(ang) * r); camLook.set(p.x + Math.sin(p.h) * 0.6, p.y + 0.7, p.z + Math.cos(p.h) * 0.6);
@@ -18670,6 +18860,7 @@ function renderCars() {
 }
 function init() {
   Particles.init(); CrowdFx.init(); Skids.init(); Atmos.init(); Precip.init(); CarLights.init(); ScreenFx.init(); resize(); addEventListener('resize', () => { resize(); if (G.state === 'menu') drawMap($('#mapPrev'), false); });
+  { const mq = window.matchMedia && matchMedia('(pointer:coarse)'); if (mq && mq.addEventListener) mq.addEventListener('change', () => UIFit.fit()); } // (a touch screen's laptop folded into a tablet, and back)
   Ctl.load(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init();
   // the sound starts on the first touch or key (browsers allow it no sooner), so its models are warmed up by the time a
   // stage starts
@@ -23962,7 +24153,7 @@ const MP = {
       const row = mel('div', { class: 'mprow' + (f.me ? ' me' : '') + (f.team >= 0 ? ' tm' : '') }, mel('b', { text: String(k + 1) }), mel('span', { text: f.name }), mel('small', { text: gap })); if (f.team >= 0) row.style.setProperty('--tc', MP_TEAMS[f.team].col); el.append(row); });
   },
   tags() {
-    const box = $('#mpTags'); if (!box) return; const W = innerWidth, H = innerHeight, v = this._v || (this._v = new THREE.Vector3());
+    const box = $('#mpTags'); if (!box) return; const k = UIFit.hs || 1, W = innerWidth / k, H = innerHeight / k, v = this._v || (this._v = new THREE.Vector3()); // (in the driving screen's own pixels: see UIFit)
     const F = (this.phase === 'race' || this.phase === 'done') && this.F ? this.F : [];
     for (const r of this.rivals.values()) {
       if (!r.tag) { r.tag = mel('div', { class: 'mptag' }); box.append(r.tag); }
