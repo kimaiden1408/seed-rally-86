@@ -6323,7 +6323,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = 'CC85';
+const SR86_BUILD = '0F13';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -17060,19 +17060,23 @@ const Duel = {
   update(dt, rt) {
     if (!this.on || !this.mesh) return; const T = this.T, running = rt != null ? rt > 0 : G.state === 'run', t = rt != null ? Math.max(0, rt) : running ? G.time : 0, q = this.at(t), p = this.place(q.k);
     const m = this.mesh, prev = this.prevP; this.prevP = p;
-    // (its speed and heading from where it was a frame ago; its height: on the road, or flying where the road drops away
-    // faster than it can fall)
-    const dx = prev ? p.x - prev.x : 0, dz = prev ? p.z - prev.z : 0, v = dt > 0 ? Math.hypot(dx, dz) / dt : 0, hMove = Math.hypot(dx, dz) > 0.02 ? Math.atan2(dx, dz) : p.h;
-    const aLong = dt > 0 ? (v - this.v) / dt : 0; this.v = v;
+    // (its speed and heading from where it was a frame ago - over the time it moved through, the clock it is placed by,
+    // not the frame's: see updateRun; its height: on the road, or flying where the road drops away faster than it can fall)
+    const ct = this.ct; this.ct = t; const span = running && ct != null && t >= ct && t - ct < 0.25 ? t - ct : dt, moved = span > 0;
+    const dx = prev ? p.x - prev.x : 0, dz = prev ? p.z - prev.z : 0, v = moved ? Math.hypot(dx, dz) / span : (this.v || 0), hMove = Math.hypot(dx, dz) > 0.02 ? Math.atan2(dx, dz) : p.h;
+    const aLong = moved ? (v - (this.v || 0)) / span : 0; this.v = v;
     if (this.y == null || !running) { this.y = p.y; this.vy = 0; }
-    else { const yb = this.y + this.vy * dt - 4.9 * dt * dt; if (yb > p.y + 0.02) { this.y = yb; this.vy -= 9.81 * dt; } else { this.vy = clamp((p.y - this.y) / Math.max(dt, 1e-3), -8, 8); this.y = p.y; } }
-    const hh = this.h == null ? hMove : this.h + wrapAngle(hMove - this.h) * Math.min(1, dt * 12); const yaw = dt > 0 && this.h != null ? wrapAngle(hh - this.h) / dt : 0; this.h = hh;
+    else if (moved) { const yb = this.y + this.vy * span - 4.9 * span * span; if (yb > p.y + 0.02) { this.y = yb; this.vy -= 9.81 * span; } else { this.vy = clamp((p.y - this.y) / Math.max(span, 1e-3), -8, 8); this.y = p.y; } }
+    const hh = this.h == null ? hMove : moved ? this.h + wrapAngle(hMove - this.h) * Math.min(1, span * 12) : this.h; const yaw = moved && this.h != null ? wrapAngle(hh - this.h) / span : 0; this.h = hh;
     const air = this.y > p.y + 0.05, aLat = v * yaw;
     m.root.visible = true; m.root.position.set(p.x, this.y, p.z); m.root.rotation.set(0, hh, 0);
-    m.tilt.rotation.set(clamp(-aLong * 0.006, -0.06, 0.06) + (air ? clamp(-this.vy * 0.02, -0.12, 0.12) : 0), 0, clamp(aLat * 0.009, -0.08, 0.08));
-    const R = WHEEL.R; for (const w of m.wheels) { w.a = (w.a || 0) + v / R * dt; w.w.rotation.x = w.a; w.piv.position.y = w.y0 - (air ? 0.06 : 0); }
+    // (the body pitches and rolls on its springs with the braking, the power and the cornering, eased in over a tenth of a
+    // second or so: its pace is known only road point by road point, so its speed changes in steps)
+    if (moved || this.tp == null) { const k = this.tp == null ? 1 : 1 - Math.exp(-span / 0.12); this.tp = (this.tp || 0) + (clamp(-aLong * 0.006, -0.06, 0.06) - (this.tp || 0)) * k; this.tr = (this.tr || 0) + (clamp(aLat * 0.009, -0.08, 0.08) - (this.tr || 0)) * k; }
+    m.tilt.rotation.set(this.tp + (air ? clamp(-this.vy * 0.02, -0.12, 0.12) : 0), 0, this.tr);
+    const R = WHEEL.R; for (const w of m.wheels) { w.a = (w.a || 0) + v / R * (moved ? span : 0); w.w.rotation.x = w.a; w.piv.position.y = w.y0 - (air ? 0.06 : 0); }
     m.sync();
-    crewFrame(m, this.S, dt, camera.position.distanceToSquared(m.root.position), () => crewDuel(m, this.S, v, yaw, aLong, running, !!q.fin));
+    crewFrame(m, this.S, moved ? span : 0, camera.position.distanceToSquared(m.root.position), () => crewDuel(m, this.S, v, yaw, aLong, running, !!q.fin));
     // (dust off loose ground, the voice of its engine)
     const surf = this.R2.pts[clamp(Math.round(q.k), 0, this.R2.pts.length - 1)].surf, loose = surf === 'gravel' || surf === 'snow';
     if (loose && v > 6 && !air && Particles.pos) { let n = v * dt * 0.5; while (n > 0) { if (n < 1 && Math.random() > n) break; n--; const bx = p.x - Math.sin(hh) * 1.6 + (Math.random() - 0.5) * 1.4, bz = p.z - Math.cos(hh) * 1.6 + (Math.random() - 0.5) * 1.4;
@@ -17401,14 +17405,17 @@ const _hv = new THREE.Vector3(), _hd = new THREE.Vector3(), _hq = new THREE.Quat
 // A blow throws the crew about in their belts: each head carries on while the car is stopped or knocked aside, then the
 // harness and neck pull it back (a damped spring, two swings a second). The knock is how much the car's speed at the
 // driver's eye changed this frame beyond what hard driving does (3 g), taken in the car's own axes. It moves the view
-// from the driver's seat and both crew's heads as seen from outside.
-function crewJolt(dt) {
-  const m = G.mesh, J = head.j, now = G.frameN || 0; if (!m || !m.eye || !(dt > 0)) return;
+// from the driver's seat and both crew's heads as seen from outside. (dt: the time the car moved through this frame -
+// see updateRun - for its speed is where it is drawn over that time; span: in a replay, the time between the frames it
+// was recorded at, over which the car's speed changes in one go as it is drawn)
+function crewJolt(dt, span) {
+  const m = G.mesh, J = head.j, now = G.frameN || 0; if (!m || !m.eye) return;
+  if (!(dt > 0)) { if (J.t === now - 1) J.t = now; return; } // (no time for the car this frame: it has not moved)
   m.root.updateMatrixWorld(true); m.eye.getWorldPosition(_hp); m.body.getWorldQuaternion(_hq);
   const live = J.t === now - 1 && _hp.distanceToSquared(J.p) < 9; // frame after frame: not after a reset
   if (live) {
     _hv.subVectors(_hp, J.p).divideScalar(dt);
-    if (J.on) { _hd.subVectors(_hv, J.v); const kn = _hd.length(), dead = 30 * dt;
+    if (J.on) { _hd.subVectors(_hv, J.v); const kn = _hd.length(), dead = 30 * Math.max(dt, span || 0);
       if (kn > dead) { _hd.multiplyScalar((kn - dead) / kn).applyQuaternion(_hq.invert()); J.vx -= _hd.x * 0.12; J.vy -= _hd.y * 0.08; J.vz -= _hd.z * 0.12; } }
     J.v.copy(_hv);
   }
@@ -17978,7 +17985,7 @@ function physics(dt) {
 }
 function showSplit(s) { if (G.rally) return Rally.showSplit(s); if (MP.phase === 'race' || MP.phase === 'done') return; /* (a race shows its own: MP.splits) */ const gh = G.ghost; let txt = 'Split ' + (s + 1) + '  ' + fmtT(G.splits[s]); if (gh && gh.splits && gh.splits[s]) txt += '  ' + fmtD(G.splits[s] - gh.splits[s]); const el = $('#split'); el.textContent = txt; el.classList.toggle('neg', !!(gh && gh.splits && gh.splits[s] && G.splits[s] < gh.splits[s])); el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 4000); }
 function updateRun(dt) {
-  const c = G.car, S = G.phys || G.spec, T = G.T; G.frameN = (G.frameN || 0) + 1; Rec.tick(dt);
+  const c = G.car, S = G.phys || G.spec, T = G.T; G.frameN = (G.frameN || 0) + 1;
   if (G.state === 'countdown') {
     G.cd = MP.phase === 'race' && MP.goAt ? MP.countdown() : G.cd - dt; const n = Math.ceil(G.cd); // (a race against friends counts down by the clock)
     // (a start a while off, in a race against friends: the big count and its beeps only for the last five seconds; the
@@ -17986,6 +17993,11 @@ function updateRun(dt) {
     if (n !== G.cdLast) { G.cdLast = n; if (n > 5) $('#count').textContent = ''; else if (n > 0) { $('#count').textContent = n; Snd.beep(660, 0.18); } else { $('#count').textContent = 'Go'; Snd.beep(1320, 0.45); G.state = 'run'; Rec.mark('go'); setTimeout(() => { if ($('#count').textContent === 'Go') $('#count').textContent = ''; }, 900); } }
   }
   acc += dt; let steps = 0; while (acc >= PH && steps < 16) { physics(PH); acc -= PH; steps++; } if (steps >= 16) acc = 0;
+  // (the time the car has moved through this frame: whole physics steps, three, four or five of them to a frame at 60 a
+  // second and one or two at 144, never quite the frame's own time. What reads the car's motion from where it is drawn
+  // frame to frame - the crew feeling a blow, the driver's head, the replay's clock - goes by this, or a steady drive
+  // would seem to lurch at every frame that took one step more or less)
+  G.physDt = steps * PH; Rec.tick(G.physDt);
   G.engEv = []; processEvents(c);
   // a big bang in the exhaust (the engine model reports each one; see EngineSoundLogic) shows as a flame at the tailpipe
   if (Snd.flame()) { G.mesh.flame.visible = true; G.mesh.flame.scale.setScalar((0.7 + Math.random() * 0.8) * (G.mesh.flame.userData.k || 1)); clearTimeout(G.flT); G.flT = setTimeout(() => { if (G.mesh) G.mesh.flame.visible = false; }, 55); }
@@ -18027,7 +18039,7 @@ function updateRun(dt) {
       : c.es && c.es.run === 'lock' && !G.finished ? 'Hydrolocked: water in the cylinders. ' + (tap ? 'Tap Reset' : 'Press R') + (D && D.mode === 'real' ? ' to pull the plugs and crank the water out (+2 min).' : ' to be pulled out and have it cleared (+30 s).')
       : c.flooded && !G.finished ? ((c.deep || 0) > 0.3 ? 'In the river with the engine flooded' : 'The engine has stalled in the water') + (tap ? ': tap Reset' : ': press R') + ' to be pulled out (+30 s).' : '';
     if (dd && dd.textContent !== txt) dd.textContent = txt; if (dd) dd.hidden = !txt; }
-  animateInterior(m, c, S, dt, !!inp.handbrake && !G.finished, G.camMode === 2 && !orbitOn());
+  animateInterior(m, c, S, G.physDt, !!inp.handbrake && !G.finished, G.camMode === 2 && !orbitOn());
   if (MP.game) MP.frame(dt);
   // ghost
   if (G.ghostMesh && G.ghost && G.state === 'run') {
@@ -18050,7 +18062,7 @@ function updateRun(dt) {
   const orbitNew = Orbit.on && G.orbitAt != null && G.time - G.orbitAt < 2.6;
   if (G.finished && !G.finShown && !orbitNew && ((sp < 0.6 && sinceFin > 1.5) || sinceFin > (MP.phase === 'done' ? 2 : 14))) { // (in a race against friends the results come up as the car slows: the race room follows soon after the last car is in)
   G.finShown = true; if (G.rally) Rally.showResult(); else if (MP.phase === 'done') MP.results(); else { $('#finReplay').hidden = !Replay.can(); showScreen('finish'); } }
-  crewJolt(dt); updateCamera(dt); updateHud(sp);
+  crewJolt(G.physDt); updateCamera(dt); updateHud(sp);
   Rec.frame(c, m, G.wpos, !!inp.handbrake && !G.finished); // (the run as it went, for its replay)
 }
 // ---------- pace notes as signs ----------
@@ -22636,7 +22648,8 @@ Object.assign(CrewAnim.prototype, {
   sense(dt) {
     this.body.updateWorldMatrix(true, false); const e = this.body.matrixWorld.elements, X = [e[0], e[1], e[2]], Y = [e[4], e[5], e[6]], Z = [e[8], e[9], e[10]], p = [e[12], e[13], e[14]];
     this.up = [X[1], Y[1], Z[1]]; this.hit = 0;
-    if (this.prevP && dt > 0 && cv3.len(cv3.sub(p, this.prevP)) < 6) { const v = cv3.mul(cv3.sub(p, this.prevP), 1 / dt);
+    if (!(dt > 0)) return; // (no time has passed for the car - dt is the time it moved through, not the frame's: it has not moved)
+    if (this.prevP && cv3.len(cv3.sub(p, this.prevP)) < 6) { const v = cv3.mul(cv3.sub(p, this.prevP), 1 / dt);
       if (this.vel) { const a = cv3.mul(cv3.sub(v, this.vel), 1 / dt), ab = [cv3.dot(a, X), cv3.dot(a, Y), cv3.dot(a, Z)], kn = cv3.len(ab), dead = 32;
         if (kn > dead) { const f = (kn - dead) / kn * dt; this.knock = cv3.add(this.knock, cv3.mul(ab, f)); this.hit = (kn - dead) * dt; this.lastKnock = ab; }
         const k = 1 - Math.exp(-dt / 0.09); for (let i = 0; i < 3; i++) this.acc[i] += (Math.max(-30, Math.min(30, ab[i])) - this.acc[i]) * k; }
@@ -24456,7 +24469,7 @@ const Replay = {
     // the crew: in full from close by or from inside (a long lens brings them close too)
     const d2 = interior ? 0 : camera.position.distanceToSquared(m.root.position) * Math.pow(Math.min(1, camera.fov / 50), 2);
     animateInterior(m, c, S, dtR, this.hb && this.phase !== 'finish', false, interior ? 0 : d2); // (no camera is in the driver's head here: theirs is seen too)
-    crewJolt(dtR);
+    crewJolt(dtR, 1 / REC_HZ);
     this.camera(dt, dtR);
     // (the sound from far off: falling away with distance, arriving later)
     if (RC.far) { const d = camera.position.distanceTo(_rv.set(c.x, c.yb, c.z)); Snd.dist = 7; Snd.farG = clamp(9 / Math.max(9, d), 0.02, 1); } else { Snd.dist = null; Snd.farG = null; }
