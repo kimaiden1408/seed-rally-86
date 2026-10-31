@@ -810,6 +810,9 @@ html.hsc #hud,html.hsc #replay{inset:auto;left:0;top:0;width:calc(100vw / var(--
     <h2 class="asth">Sound</h2>
     <div class="assist" role="group" aria-label="Listening on"><button id="au_hp" type="button">Headphones</button><button id="au_sp" type="button">Speakers</button></div>
     <p id="audNote" class="small"></p>
+    <h2 class="asth">Screen</h2>
+    <div class="assist" role="group" aria-label="Screen"><button id="fs_auto" type="button">Full screen</button><button id="fs_off" type="button">In a window</button></div>
+    <p id="fsNote" class="small"></p>
     <button id="go" class="go" type="button">Start stage</button>
     <p class="keys" id="keysHelp"></p>
     <p class="keys">Pick a car to hear it fire up and rev. <button id="voiceTest" class="linkbtn" type="button">Hear the co-driver</button> <span id="voiceStatus"></span></p>
@@ -6708,7 +6711,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '9FAB';
+const SR86_BUILD = 'F030';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -15882,7 +15885,10 @@ function EngineDSPDef() {
   class Turbo {
     constructor(sr, K) {
       const I = K.intake, T = Object.assign({}, TURBO[K.cls] || TURBO.A, I.tc || {});
-      this.sr = sr; this.dt = 1 / sr; this.T = T; this.gW = I.boost || 1; this.gS = (I.flutter || 1) * 1.0; this.gV = (I.flutter || 1) * 0.55; // (the surge's level: its chirps clear over a lift's crackle; the valves' hiss and taps under the engine)
+      this.sr = sr; this.dt = 1 / sr; this.T = T; this.gW = I.boost || 1; const fl = I.flutter != null ? I.flutter : 1; this.gS = fl; this.gV = fl * 0.55; // (the surge's level: its chirps clear over a lift's crackle; the valves' hiss and taps under the engine; none where the car has none)
+      // (a diesel's turbo: the engine has no throttle, so its compressor always has the engine to blow into - lifting
+      // only takes the fuel away and the rotor runs down; there is nothing to surge against, no vacuum to open a valve)
+      this.dz = !!(K.mech && K.mech.dz);
       this.vk = I.bov === 'vent' ? 'vent' : I.bov || (K.cls === 'A' ? 'bpv' : 'none');
       let s = 0x2545f491 ^ (Math.round(I.whistle[1] * 7) >>> 0); this.s = s || 1;
       // rotor: shaft speed as a share of full (n), its target, shaft revs per second at full speed, phase
@@ -15954,12 +15960,12 @@ function EngineDSPDef() {
       { const f = Math.min(this.sqF0 * (0.982 + 0.035 * this.sqU) * (1 + 0.012 * this.sqJ), 0.44 * sr), w = TAU * f / sr; this.sqc = Math.cos(w); this.sqs = Math.sin(w); }
       // the throttle as the compressor sees it (anti-lag keeps it cracked, or pipes air round it), and so how much the
       // engine draws from the charge pipes: like a pump, more with revs and with the pressure in them
-      const tc = Math.max(thr, als ? T.als : 0, 0.3 * this.dpE), fe = 0.4 * rn, fa = 4 * (tc * Math.sqrt(tc) + 0.012); this.kT = on ? fe * fa / Math.sqrt(fe * fe + fa * fa) : 0; this.jA = 0.5 * (1 - sm(0.05, 0.3, tc));
+      const tc = this.dz ? 1 : Math.max(thr, als ? T.als : 0, 0.3 * this.dpE), fe = 0.4 * rn, fa = 4 * (tc * Math.sqrt(tc) + 0.012); this.kT = on ? fe * fa / Math.sqrt(fe * fe + fa * fa) : 0; this.jA = 0.5 * (1 - sm(0.05, 0.3, tc));
       // a slow wheel's characteristic is flat about its peak: no rising branch, so no surge below about a quarter speed
       this.h0 = this.Hp - (this.Hp - this.H0) * sm(0.28, 0.6, n);
       // the vacuum behind a shut throttle (none while anti-lag holds air going in), and the valve's target: the vacuum
       // pulls it open, the boost on its face helps; a dump valve's stiffer spring wants more boost behind it
-      this.mt = 1 - sm(0.04, 0.25, Math.max(thr, als ? 0.3 : 0)); this.m += (this.mt - this.m) * this.km;
+      this.mt = this.dz ? 0 : 1 - sm(0.04, 0.25, Math.max(thr, als ? 0.3 : 0)); this.m += (this.mt - this.m) * this.km;
       const p = Math.max(0, this.psi);
       // (its piston has the charge pipes under it and the manifold behind the throttle over it: wide open both carry the
       // boost and the spring holds it shut; shut, the manifold falls to a vacuum and the difference lifts it)
@@ -16478,7 +16484,7 @@ function EngineDSPDef() {
         // ---- intake ----
         const ix = (_du = (this.iin), _dq = this.iduct, _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do); this.iin = 0; this.id1 = this.id1 * this.aiD + ix; this.id2 = this.id2 * this.aiR + ix; let yi = (this.id1 - this.id2);
         if (this.plen) yi = (_bu = (yi), _bq = this.plen, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * 2.2 + yi * 0.25; else { const d = yi - this.hpIx; this.hpIx = yi; yi = yi + d * 1.2; }
-        yi += (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1)), _bq = this.hiss, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * this.thr * (1 - this.thr) * 4 * (0.2 + rn) * 0.05 * (kTb ? 0.3 : 1);
+        if (!dz) yi += (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1)), _bq = this.hiss, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * this.thr * (1 - this.thr) * 4 * (0.2 + rn) * 0.05 * (kTb ? 0.3 : 1); // (the throttle's hiss: a diesel has none)
         if (isc) {
           this.phS += rpm / 60 * isc[0] * isc[1] / sr; if (this.phS > 1) this.phS -= 1; const w = this.phS; yi += ((_sx = (w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)) + 0.45 * (_sx = (2 * w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)) + 0.2 * (_sx = (3 * w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si))) * (0.2 + 0.8 * this.scB) * (0.25 + 0.75 * rn) * 0.06 * isc[2];
           // the blower's relief valve lifts only flat out near the top of the rev range
@@ -18251,6 +18257,7 @@ function placeCar(idx) {
   G.car = makeCar(G.phys || G.spec, G.T, idx);
 }
 function startRun() {
+  FullScr.go(); // (the screen filled again as a stage starts, if the player left full screen in the menu)
   if (Replay.on) Replay.exit(); Inspect.close();
   if (G.show) G.show.mesh.root.visible = false;
   // the car the physics drives: the chosen car with its setup for this stage (in a rally, the one fitted at service)
@@ -19835,6 +19842,37 @@ function renderCars() {
   });
   renderSetupLine();
 }
+// ---------- full screen: the game fills the screen by itself (browsers let a page do that only in answer to the player's
+// own click, tap or key, so it goes at the first of them, and again as each stage starts); 'In a window' leaves it be.
+// Where the browser or the page it is shown in allows no full screen (a phone's browser that keeps it for video, a frame
+// that has not been given it), nothing is asked ----------
+const FullScr = {
+  pref: lsGet('sr86.fs', 'auto') === 'off' ? 'off' : 'auto',
+  on() { return !!(document.fullscreenElement || document.webkitFullscreenElement); },
+  can() { const d = document.documentElement; return !!(d.requestFullscreen || d.webkitRequestFullscreen) && (document.fullscreenEnabled === true || document.webkitFullscreenEnabled === true); },
+  // (only while the player's own act still counts, where the browser says so: asked at any other time it is refused)
+  go() {
+    if (this.pref !== 'auto' || this.on() || !this.can() || (navigator.userActivation && !navigator.userActivation.isActive)) return;
+    const d = document.documentElement; try { const p = d.requestFullscreen ? d.requestFullscreen({ navigationUI: 'hide' }) : d.webkitRequestFullscreen(); if (p && p.catch) p.catch(() => { }); } catch (e) { }
+  },
+  set(v) { this.pref = v; lsSet('sr86.fs', v); if (v === 'auto') this.go(); else if (this.on()) { try { const p = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if (p && p.catch) p.catch(() => { }); } catch (e) { } } this.ui(); },
+  ui() {
+    for (const [id, on] of [['#fs_auto', this.pref === 'auto'], ['#fs_off', this.pref === 'off']]) { const b = $(id); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    const n = $('#fsNote'); if (n) n.textContent = !this.can() ? 'This browser or page can\'t fill the screen, so the game stays in its window.' : this.pref === 'auto' ? 'Fills the screen at your first click, tap or key, and again as each stage starts. ' + (this.kl ? 'Esc pauses as before; hold Esc down to go back to the window.' : 'Esc goes back to the window.') : 'Stays in its window.';
+  },
+  // (full screen, Esc would only take the game out of it: where the browser lets a page keep Esc for itself, it pauses
+  // the stage as it always has, and the browser's own way out is Esc held down)
+  kl: !!(navigator.keyboard && navigator.keyboard.lock),
+  lockEsc() { if (!this.kl) return; try { if (this.on()) { const p = navigator.keyboard.lock(['Escape']); if (p && p.catch) p.catch(() => { }); } else navigator.keyboard.unlock(); } catch (e) { } },
+  init() {
+    // (the first act that counts: a key other than Esc, a click, a touch lifted)
+    const first = e => { if (e.type === 'keydown' && e.key === 'Escape') return; for (const k of ['pointerup', 'keydown', 'touchend']) removeEventListener(k, first, true); this.go(); };
+    for (const k of ['pointerup', 'keydown', 'touchend']) addEventListener(k, first, true);
+    for (const [id, v] of [['#fs_auto', 'auto'], ['#fs_off', 'off']]) { const b = $(id); if (b) b.addEventListener('click', () => this.set(v)); }
+    for (const k of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(k, () => this.lockEsc());
+    this.ui();
+  }
+};
 function init() {
   Particles.init(); CrowdFx.init(); Skids.init(); Atmos.init(); Precip.init(); CarLights.init(); ScreenFx.init(); resize(); addEventListener('resize', () => { resize(); if (G.state === 'menu') drawMap($('#mapPrev'), false); });
   { const mq = window.matchMedia && matchMedia('(pointer:coarse)'); if (mq && mq.addEventListener) mq.addEventListener('change', () => UIFit.fit()); } // (a touch screen's laptop folded into a tablet, and back)
@@ -19859,7 +19897,7 @@ function init() {
   $('#go').addEventListener('click', () => { if (Rally.mode === 'mp') { MP.go(); return; } if (Rally.mode === 'rally') { Rally.go(); return; } if (!G.T) return; if (!$('#seed').value) setSeed('1'); else if ($('#seed').value !== G.T.seed) setSeed($('#seed').value); startRun(); });
   $('#copy').addEventListener('click', e => copyChallenge(e.currentTarget));
   for (const k of ['auto', 'high', 'medium', 'low']) { const bt = $('#gx_' + k); if (bt) bt.addEventListener('click', () => Gfx.set(k)); } Gfx.render();
-  for (const [id, m] of [['#au_hp', 'hp'], ['#au_sp', 'sp']]) { const bt = $(id); if (bt) bt.addEventListener('click', () => Snd.listen(m)); } Snd.listenUI();
+  for (const [id, m] of [['#au_hp', 'hp'], ['#au_sp', 'sp']]) { const bt = $(id); if (bt) bt.addEventListener('click', () => Snd.listen(m)); } Snd.listenUI(); FullScr.init();
   $('#setupBtn').addEventListener('click', () => { if (G.T && G.state === 'menu') { Inspect.close(); SetupUI.open(G.spec, stageEnv(G.T)); } });
   $('#finCopy').addEventListener('click', e => copyChallenge(e.currentTarget));
   $('#finAgain').addEventListener('click', () => startRun());
