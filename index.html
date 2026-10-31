@@ -5474,7 +5474,7 @@ function addDent(D, h, depth, rad) {
       d.d = Math.min(0.6, Math.hypot(d.d, depth) + depth * 0.25); d.r = Math.max(d.r, rad); return d;
     }
   }
-  const d = { x: h.x, y: h.y, z: h.z, nx: h.nx, ny: h.ny, nz: h.nz, d: depth, r: rad, s: Math.random() * 1000 };
+  const d = { x: h.x, y: h.y, z: h.z, nx: h.nx, ny: h.ny, nz: h.nz, d: depth, r: rad, s: Math.floor(Math.random() * 10000) / 10 }; // (s: its own crumple, to a tenth: sent as it is)
   D.dents.push(d); if (D.dents.length > 48) D.dents.shift(); return d;
 }
 // what the dents already push in at a point (m)
@@ -6144,6 +6144,11 @@ function bodyContacts(c, S, T, info, M, D, dt) {
   // another car struck takes the blows as a free body of its weight would (its share of their push, along them; the
   // ground holds it up), as this page sees it: kept with it until its own page has had the blow too (see the race's
   // stepRivals)
+  // (and, in a race, the blow each other car took, for its own page: what it did to that car's motion - its weight times
+  // its change of speed - where it landed, and how fast the two closed there; see the race's blows)
+  if (c.blows) for (const h of hits) if (h.rival && h.rival._dv) { const R = h.rival, D = R._dv; let b = c.blows.find(x => x.r === R && x.at === c.blowN); if (!b) { b = { r: R, at: c.blowN, J: [D[0] * R.m, D[1] * R.m, D[2] * R.m], p: [0, 0, 0], w: 0, dv: 0 }; c.blows.push(b); }
+    const w = h.J || 0; b.p[0] += (c.x + h.r[0]) * w; b.p[1] += (c.yb + h.r[1]) * w; b.p[2] += (c.z + h.r[2]) * w; b.w += w; b.dv = Math.max(b.dv, -(h.vn0 || 0)); }
+  if (c.blows) c.blowN = (c.blowN || 0) + 1;
   for (const h of hits) if (h.rival && h.rival._dv) { const R = h.rival, D = R._dv; R._dv = null; if (R.kv && D[0] * D[0] + D[1] * D[1] + D[2] * D[2] > 1e-10) { R.kv[0] += D[0]; R.kv[1] += D[1]; R.kv[2] += D[2]; R.kT = 1; } }
   for (const h of hits) if (h.mob && h.pen > 0.02) h.mob._kn = h.n;
   for (const h of hits) if (h.mob && h.mob._svs) {
@@ -6173,6 +6178,23 @@ function bodyContacts(c, S, T, info, M, D, dt) {
     if (dvE > 2.5 && !h.mob) c.ev.push(h.kind + ':' + dvE.toFixed(1)); // (a stone that gives is heard as it is thrown off)
   }
   return hits;
+}
+// a blow another car's page felt and this one did not (see the race's blows): Jb, the push it gave this car (N s, in this
+// car's own frame), at pb (m from its centre of gravity, in its frame), the two closing at dv (m/s). Taken as the body
+// takes its own blows (see bodyContacts: its weight along it, its spin about the point it landed), and it dents the body
+// there as a blow of that energy would (half the push times the closing speed, less what bounced back)
+function takeBlow(c, S, Jb, pb, dv) {
+  const K = carSetup(S), m = S.mass, ms = K.ms, Ib = K.Ib, M = bodyAxes(c.Q, new Array(9)), V = c.V, Wv = c.Wv, sh = shellOf(S);
+  const j = Math.hypot(Jb[0], Jb[1], Jb[2]); if (!(j > 1) || !V || !Wv) return 0;
+  const toW = v => [M[0] * v[0] + M[3] * v[1] + M[6] * v[2], M[1] * v[0] + M[4] * v[1] + M[7] * v[2], M[2] * v[0] + M[5] * v[1] + M[8] * v[2]];
+  const J = toW(Jb), r = toW(pb), nx = J[0] / j, ny = J[1] / j, nz = J[2] / j, Ex = M[3], Ey = M[4], Ez = M[5];
+  const ne = nx * Ex + ny * Ey + nz * Ez, a = j / m, b = j * ne * (1 / ms - 1 / m), sv = [0, 0, 0];
+  V[0] += a * nx + b * Ex; V[1] += a * ny + b * Ey; V[2] += a * nz + b * Ez;
+  spinOf(M, Ib, r[1] * nz - r[2] * ny, r[2] * nx - r[0] * nz, r[0] * ny - r[1] * nx, sv); Wv[0] += j * sv[0]; Wv[1] += j * sv[1]; Wv[2] += j * sv[2];
+  const E = 0.5 * j * Math.max(0, dv) * (dv > 2 ? 0.8 : 1), dvE = Math.sqrt(2 * E / m), nb = [Jb[0] / j, Jb[1] / j, Jb[2] / j];
+  if (c.dmg && dvE > 1.2) dmgHit(c, 'car', clamp(pb[0], -sh.hw, sh.hw), pb[1] + sh.hc, pb[2], nb[0], nb[1], nb[2], dvE, -1, nb[1] > 0.7, E);
+  if (dvE > 2.5) c.ev.push('car:' + dvE.toFixed(1));
+  return dvE;
 }
 // the overlap the blows leave (the body into the ground or an object) taken out, a little each step, by a motion of its
 // own that is not kept as speed: each point is given a pace out along its way out (a share of its overlap a step, never
@@ -6711,7 +6733,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = 'F030';
+const SR86_BUILD = 'B91D';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -7350,7 +7372,7 @@ const Atmos = {
   // the stage's light and weather: the clock is set to the chosen time of day, the road wetted, the rain or snow set up
   apply(T, cond) {
     this.T = T; this.cond = cond; this.Rg = regionOf(T); this.W = WEATHER[cond.wx] || WEATHER.clear; this.shPh = ((cond.windDir || 0) * 7.3) % 6.283;
-    this.P = periodHours(this.Rg); this.t = cond.hour != null ? cond.hour : this.P[cond.time]; this.moonAge = cond.moonAge; this.flash = 0; this.bolt = 4 + Math.random() * 10;
+    this.P = periodHours(this.Rg); this.t = cond.hour != null ? cond.hour : this.P[cond.time]; this.t0 = this.t; this.rk = null; this.moonAge = cond.moonAge; this.flash = 0; this.bolt = 4 + Math.random() * 10; // (t0: the hour the stage starts at; rk: the race the weather's clock is set by, see update)
     const a = cond.windDir, W = this.W; this.wind.set(Math.cos(a), Math.sin(a)).multiplyScalar(W.wind); this.u.uWind.value.set(Math.cos(a), Math.sin(a)).multiplyScalar(0.0012 + 0.0006 * W.wind);
     dressRoad(T, cond, this.Rg, this.t); paintLayers(T); // (how wet, the air, the snow, ice, dirt and stones on the road: see makeLayers)
     const E = T.look || (T.look = lookOf(T)); this.seaC = (this.seaC || new THREE.Color()).set(E.sea || '#2e6a86'); // (the sea's own colour, for the far sea: see update)
@@ -7399,8 +7421,15 @@ const Atmos = {
   },
   clock() { return ((this.t + this.Rg.tz) % 24 + 24) % 24; },
   update(dt, running) {
-    if (!this.T) return; const W = this.W, u = this.u; this.tSim += dt;
-    if (running) this.t += dt / 3600;
+    if (!this.T) return; const W = this.W, u = this.u;
+    // the weather's clock: in a race against friends the race's own (the moment of its start, on the clock every page in
+    // it shares; see MP.raceNow), so the showers come and go, the clouds drift, the wind gusts, the lightning strikes and
+    // the sun moves at the same moment for every driver, wherever each is on the stage; otherwise this page's own
+    const rt = typeof MP !== 'undefined' && MP.raceNow ? MP.raceNow() : null;
+    if (rt != null) {
+      const k = MP.raceKey(); if (k !== this.rk) { this.rk = k; const R = mulberry32(strHash('wx:' + k)); this.tBase = 300 + 2000 * R(); this.boltR = mulberry32(strHash('bolt:' + k)); this.boltAt = 4 + 10 * this.boltR(); }
+      this.tSim = this.tBase + rt; if (this.t0 != null) this.t = this.t0 + Math.max(0, rt) / 3600;
+    } else { this.rk = null; this.tSim += dt; if (running) this.t += dt / 3600; }
     // rain and snow swell and ease over a minute or two, the wind gusts; in passing showers the rain (or snow) falls a
     // share of the time, the sky darkening under each shower and clearing between them
     if (W.shower) { const raw = 0.5 + 0.5 * Math.sin(this.tSim * 2 * Math.PI / 230 + this.shPh) * (0.75 + 0.25 * Math.sin(this.tSim * 0.031 + 1.7)); this.showerOn = smooth(1 - W.shower - 0.1, 1 - W.shower + 0.1, raw); this.precipK = this.showerOn * (0.85 + 0.15 * Math.sin(this.tSim * 0.17)); }
@@ -7420,7 +7449,10 @@ const Atmos = {
     this.flash = Math.max(0, this.flash - dt * 4.5);
     PLANT_U.uSwayT.value = this.tSim; PLANT_U.uSway.value = clamp((W.wind * this.gust - 2.5) / 14, 0, 1.1); // (the plants in the wind)
     lmAnimate(this.T.landmarks, dt, this.tSim, W.wind * this.gust, Math.atan2(this.wind.x, this.wind.y), this.dark || 0, camera.position); // (the turbines and pumps turning, the lamps)
-    if (W.lightning) { this.bolt -= dt; if (this.bolt <= 0) { this.bolt = 5 + Math.random() * 18; this.strike(); } }
+    if (W.lightning) {
+      if (rt != null) { // (the race's strikes, drawn from the race's own stream: at the same moments on every page; one long past is let go)
+        let n = 0; while (rt >= this.boltAt && n++ < 50) { const late = rt - this.boltAt; this.boltAt += 5 + this.boltR() * 18; const km = 0.4 + this.boltR() * 5; if (late < 1.5) this.strike(km); } }
+      else { this.bolt -= dt; if (this.bolt <= 0) { this.bolt = 5 + Math.random() * 18; this.strike(); } } }
     const fl = this.flash > 0 ? this.flash * (0.55 + 0.45 * Math.sin(this.tSim * 70)) : 0;
     hemi.intensity = skyI + fl * 1.4;
     // the light thrown back up from the land into the shade: the land's own colour (green off grass, red off red earth,
@@ -7500,7 +7532,7 @@ const Atmos = {
     Precip.light(amb, fogC); if (Particles.mat) { Particles.mat.uniforms.uAmb.value.copy(amb).multiplyScalar(1.1); Particles.mat.uniforms.uFogC.value.copy(fogC); Particles.mat.uniforms.uFogN.value = this.fogNear; Particles.mat.uniforms.uFogF.value = this.fogFar; syncBeams(Particles.mat.uniforms); }
   },
   // lightning: a double flash, and thunder after the time the sound takes to come back from the strike
-  strike() { this.flash = 1; const km = 0.4 + Math.random() * 5; if (G.state !== 'menu' && G.state !== 'rally' && !G.paused) Snd.thunder(km * 2.9, 1 / (0.6 + km)); },
+  strike(at) { this.flash = 1; const km = at != null ? at : 0.4 + Math.random() * 5; if (G.state !== 'menu' && G.state !== 'rally' && !G.paused) Snd.thunder(km * 2.9, 1 / (0.6 + km)); },
   // the directional light sits above the car toward the sun or moon, so its shadows fall the right way
   place(x, y, z) { sun.position.set(x + this.lightDir.x * 80, y + this.lightDir.y * 80, z + this.lightDir.z * 80); sun.target.position.set(x, y, z); }
 };
@@ -24445,11 +24477,20 @@ function crewSafe(m, f) {
 // channel to whoever has this page open) carries it, through presence alone (which every admitted viewer may set):
 //   the lobby room: each host shows the race they hold open (its code, stage, conditions and drivers), so a friend
 //     joins with one tap, or with the race's four-letter code;
-//   a named room per race ('race-' + code): each driver's presence is their car and their state there (15 times a
-//     second while racing: where the car is, how it is turned and moving, its wheels, lamps, revs; its place on the
-//     stage, its time; its dents now and then); the host's carries the race's settings (stage, time, weather, roads,
-//     contact, damage) and, to start a race, the grid and the moment of the start on the host's clock (each page
-//     reckons the host's clock from the timestamps the host's presence carries).
+//   a named room per race ('race-' + code): each driver's presence is their car and their state there (20 times a
+//     second while racing: where the car is, how it is turned and moving and how it is gathering speed, each wheel's
+//     steer, lean and spin, its lamps, revs, any panel swinging loose; its place on the stage, its time; the blows it
+//     gave other cars; and its damage whenever that changes); the host's carries the race's settings (stage, time,
+//     weather, roads, contact, damage) and, to start a race, the grid and the moment of the start on the host's clock
+//     (each page reckons the host's clock from the timestamps the host's presence carries).
+// As the racing games of the big studios do it: each car is its own page's. Its page drives it, works out what every blow
+// does to it and says so; every other page shows it as that page says, carried on along the curve it is driving for the
+// moment its news took to come (its turn and its speeding up or slowing down kept), any difference from where it was
+// drawn eased away. Its damage on every page is its own page's, dent for dent, lamp for lamp, window for window. A car
+// that strikes another feels the blow on its own page and sends the other its half; the other's page takes it, unless it
+// felt the same blow itself (each sees the other a moment off, so one may meet a blow the other misses). A car waiting
+// for its start is no part of the race yet: the others pass through it (it is drawn see-through to them), and it through
+// them. The weather (passing showers, the wind's gusts, lightning) and the sun go by the race's clock, the same for all.
 // Everything heard is checked and clamped: it is another page's, and untrusted. A page that cannot reach the room
 // keeps every other mode and shows the race menu as unavailable.
 // The host also sets the race's rules, for the next race (each race keeps those it started with):
@@ -24465,7 +24506,14 @@ function crewSafe(m, f) {
 //   a new stage after each race, and conditions kept a surprise: the time of day and the weather drawn at the start.
 // Each driver's page also sends, as it races: its times at the splits, its horn (held), a quick reaction (one of
 // MP_REACT, by number: never free text) and, at the end, how its run went for the awards.
-const MP_V = 1, MP_MAX = 8, MP_HZ = 15, MP_CODE = 'abcdefghjkmnpqrstuvwxyz23456789', MP_WIDE = 1.8;
+const MP_V = 2, MP_MAX = 8, MP_HZ = 20, MP_CODE = 'abcdefghjkmnpqrstuvwxyz23456789', MP_WIDE = 1.8;
+// (how far on a car's last state is carried: news older than this is held there; a blow too slight to send on, as the
+// other car's change of speed (m/s); how long two cars that have just met pass through each other once a blow from the
+// other page has been taken, so the one blow is not felt twice (s); how far apart in time a blow this car felt itself and
+// one the other car's page tells of are the same blow (s: each page sees the other a moment off, more so on a slow
+// connection, so each meets the blow at its own moment); how near a car must be, as this page shows it, for a blow from
+// its page to be taken (m))
+const MP_PRED = 0.5, MP_BLOW = 0.25, MP_COOL = 0.5, MP_SAME = 0.6, MP_REACH = 9;
 const MP_FMT = ['side', 'ko', 'rally'], MP_CARS = ['own', 'same', 'each', 'cls'], MP_PTS = [10, 8, 6, 5, 4, 3, 2, 1], MP_GAP = 8;
 const MP_TEAMS = [{ name: 'Red', col: '#e8473b' }, { name: 'Blue', col: '#3d7fe6' }];
 const MP_REACT = ['GG', 'Nice!', 'Sorry!', 'Wait!', 'Go go go!', 'Oops!'];
@@ -24484,6 +24532,9 @@ const MP = {
   // (this race's: the driver's own car while one drawn is driven; the splits and this car's times at them; the car
   // watched; the run's figures for the awards; the horn; the reactions sent and heard)
   ownSpec: null, splitAt: [], sp: [], watch: null, watchOn: false, resHidden: false, st: null, horn: 0, rxN: 0, rxT: 0, feed: [], koAt: -1,
+  // (the blows this car gave the others: gathered over each send, then kept a moment in the presence, numbered; when this
+  // car last felt a blow from each other car, on the race's clock; this page's presence as last set)
+  bl: [], blN: 0, blAcc: new Map(), hitAt: new Map(), crashAt: new Map(), mine: {}, aV: null, aT: 0, dmLast: '',
 
   // ---- reaching the room ----
   async init() {
@@ -24504,7 +24555,7 @@ const MP = {
   off(why) { this.avail = false; this.why = why; this.render(); },
   racing() { return this.phase === 'race' && !!this.game; },
   inRoom() { return !!this.game; },
-  pub(patch) { if (this.game) this.game.presence(patch).catch(() => {}); },
+  pub(patch) { if (!this.game) return; for (const k in patch) { if (patch[k] == null) delete this.mine[k]; else this.mine[k] = patch[k]; } this.game.presence(patch).catch(() => {}); },
   // the race held open, shown in the lobby room (or taken down)
   advertise() {
     if (!this.room) return; const c = this.cfg;
@@ -24531,7 +24582,7 @@ const MP = {
   async enter(code, asHost) {
     if (!this.room) return; await this.leave(true);
     let g; try { g = await this.room.join('race-' + code); } catch (e) { this.note(e && e.code === 'limit_reached' ? 'That race is full.' : 'Could not reach that race.'); return; } // (a page is in one race room at a time: so a limit reached is the room's)
-    Object.assign(this, { game: g, code, round: 0, host: !!asHost, alone: false, endAt: 0, hostPeer: null, phase: 'lobby', jt: Date.now(), cfg: asHost ? this.defaultCfg() : null, lastCfg: null, cfgKey: '', goAt: 0, lgKey: '', lgT: 0, gr: [], slot: -1, stageKey: '' });
+    Object.assign(this, { game: g, code, round: 0, host: !!asHost, alone: false, endAt: 0, hostPeer: null, phase: 'lobby', jt: Date.now(), cfg: asHost ? this.defaultCfg() : null, lastCfg: null, cfgKey: '', goAt: 0, lgKey: '', lgT: 0, gr: [], slot: -1, stageKey: '', mine: {} });
     this.seen.clear(); this.carAt.clear(); this.ckSeen.clear(); g.onPeers(ch => this.onPeers(ch), () => { this.note('The race room closed.'); this.leave(); });
     this.lastCar = G.spec.id;
     this.rdy = 0; this.pub({ v: MP_V, jt: this.jt, car: G.spec.id, rdy: 0, ph: 'lobby', rr: 0, ck: Date.now(), cfg: this.host ? this.cfg : null, s: null, p: 0, ft: null, dm: null });
@@ -24550,7 +24601,7 @@ const MP = {
   async leave(quiet) {
     const g = this.game; if (!g) return;
     const wasRacing = this.phase === 'race' || this.phase === 'done';
-    this.game = null; this.code = ''; this.host = false; this.alone = false; this.endAt = 0; this.hostPeer = null; this.phase = 'off'; this.peers = []; this.cfg = null; this.cfgKey = ''; this.goAt = 0; this.rdy = 0; this.seen.clear(); this.carAt.clear(); this.ckSeen.clear(); window.__mpDmg = null;
+    this.game = null; this.code = ''; this.host = false; this.alone = false; this.endAt = 0; this.hostPeer = null; this.phase = 'off'; this.peers = []; this.cfg = null; this.cfgKey = ''; this.goAt = 0; this.rdy = 0; this.seen.clear(); this.carAt.clear(); this.ckSeen.clear(); window.__mpDmg = null; this.mine = {};
     this.clearRivals(); this.ownCar(); this.raceUI(false); try { await g.leave(); } catch (e) { }
     if (this.room) this.room.presence({ race: null }).catch(() => {});
     if (wasRacing && G.state !== 'menu') toMenu();
@@ -24736,6 +24787,7 @@ const MP = {
     if (!this.ownSpec) this.ownSpec = G.spec; const drawn = c.cs && c.cs[this.slot] ? carById(c.cs[this.slot]) : null; G.spec = drawn || this.ownSpec;
     this.raced[this.code] = c.rd; this.stage(); this.phase = 'race'; this.myFin = null; this.dmVer = -1; this.shown = false;
     this.sp = []; this.watch = null; this.watchOn = false; this.resHidden = false; this.koAt = -1; this.koWatchAt = 0; this.horn = 0; this.feed = []; this.statsReset();
+    this.bl = []; this.blAcc.clear(); this.hitAt.clear(); this.crashAt.clear(); this.aV = null; this.dmLast = ''; this.dmT = 0;
     for (const p of this.peers) if (!p.sameTab && this.gr.includes(p.peer)) this.rivalFor(p);
     if (typeof SetupUI !== 'undefined' && SetupUI.close) try { SetupUI.close(); } catch (e) { }
     startRun();
@@ -24744,7 +24796,7 @@ const MP = {
     // countdown for a page that heard of the start late; a car away later (a rally start, a handicap) that much later
     this.goT = c.go + this.startDelay(c, this.slot) * 1000; this.goPeer = this.hostPeer; this.goMin = Date.now() + 1200; this.goAt = Math.max(this.goMin, this.goT + this.offset(this.goPeer));
     G.cd = this.countdown(); G.cdLast = Math.ceil(G.cd) + 1;
-    this.rdy = 0; this.pub({ ph: 'grid', rr: c.rd, rdy: 0, ft: null, s: this.pack(G.car), p: 0, et: 0, ck: Date.now(), as: G.run ? G.run.lv : null, car: G.spec.id, sp: [], aw: null, hn: 0, rx: null }); // (as: the assists preset driven with, shown with the results)
+    this.rdy = 0; this.pub({ ph: 'grid', rr: c.rd, rdy: 0, ft: null, s: this.pack(G.car), p: 0, et: 0, ck: Date.now(), as: G.run ? G.run.lv : null, car: G.spec.id, sp: [], aw: null, hn: 0, rx: null, dm: null, bl: null, kt: [nightKit(G.T) ? 1 : 0, G.mesh && G.mesh.snorkel ? 1 : 0] }); // (kt: how its car is built, see meshFor) // (as: the assists preset driven with, shown with the results)
     this.reveal(c, drawn);
   },
   // the splits: in a knockout, one for each car to go out (N-2 of them, spread evenly, so the last two race for the
@@ -24768,35 +24820,158 @@ const MP = {
     const keep = this.phase === 'watch' ? this.rdy : 0;
     this.phase = 'lobby'; this.clearRivals(); this.gr = []; this.slot = -1; this.ownCar(); this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true;
     if (G.state !== 'menu') toMenu();
-    this.rdy = keep; this.pub({ ph: 'lobby', rdy: keep, s: null, ft: null, p: 0, car: G.spec.id, sp: null, hn: 0, rx: null }); this.stageSoon(); this.render();
+    this.rdy = keep; this.pub({ ph: 'lobby', rdy: keep, s: null, ft: null, p: 0, car: G.spec.id, sp: null, hn: 0, rx: null, dm: null, bl: null }); this.stageSoon(); this.render();
   },
   // the driver's own car again, after a race in one drawn for them
   ownCar() { if (this.ownSpec) { G.spec = this.ownSpec; this.ownSpec = null; this.lastCar = ''; } },
   // this driver's race over (finished, retired or gone back to the menu)
   onFinish(total) { this.phase = 'done'; this.myFin = total; this.hornOff(); this.pub({ ph: 'fin', ft: Math.round(total * 1000) / 1000, s: this.pack(G.car), ck: Date.now(), as: G.run ? G.run.lv : null, aw: this.statsOut(true) }); speak('Stop, stop.'); this.results(); },
   retire() { if (this.phase !== 'race') return; this.phase = 'done'; this.myFin = null; this.hornOff(); this.pub({ ph: 'out', ft: null, aw: this.statsOut(false) }); },
-  onMenu() { if (this.phase === 'race' || this.phase === 'done') { if (this.phase === 'race') this.retire(); this.phase = 'lobby'; this.clearRivals(); this.rdy = 0; this.ownCar(); this.pub({ ph: 'lobby', s: null, rdy: 0, car: G.spec.id, hn: 0, rx: null }); } this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true; this.render(); },
+  onMenu() { if (this.phase === 'race' || this.phase === 'done') { if (this.phase === 'race') this.retire(); this.phase = 'lobby'; this.clearRivals(); this.rdy = 0; this.ownCar(); this.pub({ ph: 'lobby', s: null, rdy: 0, car: G.spec.id, hn: 0, rx: null, dm: null, bl: null }); } this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true; this.render(); },
 
   // ---- the car's state, packed for the others: where (centre of gravity), turned (quaternion), moving (velocity and spin,
   // in the world), the front wheels' steer, the four struts' lengths, the lamps (brake, side, dipped, main, fog,
-  // reversing, rear fog as bits), revs, throttle and gear ----
+  // reversing, rear fog as bits), revs, throttle and gear; how it is gathering speed (its acceleration in the world over
+  // the last send); each wheel's steer, lean and spin; and any panel swinging loose (its number, its angle) ----
   pack(c) {
-    if (!c) return null; const f2 = v => Math.round(v * 100) / 100, f3 = v => Math.round(v * 1000) / 1000, f4 = v => Math.round(v * 1e4) / 1e4, Q = c.Q, V = c.V || [0, 0, 0], W = c.Wv || [0, 0, 0], st = CarLights.st || {};
+    if (!c) return null; const f1 = v => Math.round(v * 10) / 10, f2 = v => Math.round(v * 100) / 100, f3 = v => Math.round(v * 1000) / 1000, f4 = v => Math.round(v * 1e4) / 1e4, Q = c.Q, V = c.V || [0, 0, 0], W = c.Wv || [0, 0, 0], st = CarLights.st || {}, A = this.accel(c);
     const fl = ((c.lastBrk || 0) > 0.05 ? 1 : 0) | (st.side ? 2 : 0) | (st.dip ? 4 : 0) | (st.main ? 8 : 0) | (st.fog ? 16 : 0) | (c.gear === -1 ? 32 : 0) | (st.rfog ? 64 : 0);
-    const L = i => f3(c.w && c.w[i] ? c.w[i].L || 0 : 0), dl = c.w ? ((c.w[0].delta || 0) + (c.w[1].delta || 0)) / 2 : 0;
-    return [f2(c.x), f2(c.yb), f2(c.z), f4(Q[0]), f4(Q[1]), f4(Q[2]), f4(Q[3]), f2(V[0]), f2(V[1]), f2(V[2]), f3(W[0]), f3(W[1]), f3(W[2]), f3(dl), L(0), L(1), L(2), L(3), fl, Math.round(c.rpm || 0), f2(c.lastThr || 0), c.gear | 0];
+    const w = c.w || [], L = i => f3(w[i] ? w[i].L || 0 : 0), dl = w.length ? ((w[0].delta || 0) + (w[1].delta || 0)) / 2 : 0;
+    const dw = i => f3(w[i] ? w[i].delta || 0 : 0), lb = i => f3(w[i] ? w[i].lb || 0 : 0), om = i => f1(w[i] ? w[i].omega || 0 : 0);
+    const out = [f2(c.x), f2(c.yb), f2(c.z), f4(Q[0]), f4(Q[1]), f4(Q[2]), f4(Q[3]), f2(V[0]), f2(V[1]), f2(V[2]), f3(W[0]), f3(W[1]), f3(W[2]), f3(dl), L(0), L(1), L(2), L(3), fl, Math.round(c.rpm || 0), f2(c.lastThr || 0), c.gear | 0,
+      f1(A[0]), f1(A[1]), f1(A[2]), dw(0), dw(1), dw(2), dw(3), lb(0), lb(1), lb(2), lb(3), om(0), om(1), om(2), om(3)];
+    const H = G.mesh && G.mesh.dv; if (H && H.panels) H.panels.forEach((P, j) => { if (P.st === 'loose' && P.g && j < 16) out.push(j, f3(P.th || 0)); });
+    return out;
+  },
+  // (the car's acceleration in the world over the time since the last send: its velocity then and now; a blow's jolt
+  // held to four g)
+  accel(c) {
+    const V = c.V || [0, 0, 0], t = performance.now(), P = this.aV, dt = P ? (t - this.aT) / 1000 : 0; let A = [0, 0, 0];
+    if (P && dt > 0.02 && dt < 0.5) A = [(V[0] - P[0]) / dt, (V[1] - P[1]) / dt, (V[2] - P[2]) / dt];
+    this.aV = V.slice(); this.aT = t; const l = Math.hypot(A[0], A[1], A[2]); return l > 40 ? A.map(v => v * 40 / l) : A;
   },
   unpack(s) {
-    if (!Array.isArray(s) || s.length < 22) return null; for (let i = 0; i < 22; i++) if (typeof s[i] !== 'number' || !isFinite(s[i])) return null;
+    if (!Array.isArray(s) || s.length < 37 || s.length > 37 + 32) return null; for (let i = 0; i < s.length; i++) if (typeof s[i] !== 'number' || !isFinite(s[i])) return null;
     const ql = Math.hypot(s[3], s[4], s[5], s[6]); if (ql < 0.5) return null;
-    const cl = (v, a) => clamp(v, -a, a);
-    return { x: cl(s[0], 1e5), yb: cl(s[1], 1e4), z: cl(s[2], 1e5), Q: [s[3] / ql, s[4] / ql, s[5] / ql, s[6] / ql], V: [cl(s[7], 150), cl(s[8], 150), cl(s[9], 150)], W: [cl(s[10], 40), cl(s[11], 40), cl(s[12], 40)],
-      steer: cl(s[13], 1), L: [cl(s[14], 1), cl(s[15], 1), cl(s[16], 1), cl(s[17], 1)], fl: clamp(s[18] | 0, 0, 127), rpm: clamp(s[19], 0, 20000), thr: clamp(s[20], 0, 1), gear: clamp(s[21] | 0, -1, 9) };
+    const cl = (v, a) => clamp(v, -a, a), four = (k, a) => [cl(s[k], a), cl(s[k + 1], a), cl(s[k + 2], a), cl(s[k + 3], a)];
+    const o = { x: cl(s[0], 1e5), yb: cl(s[1], 1e4), z: cl(s[2], 1e5), Q: [s[3] / ql, s[4] / ql, s[5] / ql, s[6] / ql], V: [cl(s[7], 150), cl(s[8], 150), cl(s[9], 150)], W: [cl(s[10], 40), cl(s[11], 40), cl(s[12], 40)],
+      steer: cl(s[13], 1), L: four(14, 1), fl: clamp(s[18] | 0, 0, 127), rpm: clamp(s[19], 0, 20000), thr: clamp(s[20], 0, 1), gear: clamp(s[21] | 0, -1, 9),
+      A: [cl(s[22], 40), cl(s[23], 40), cl(s[24], 40)], dw: four(25, 1.2), lb: four(29, 0.6), om: four(33, 400), pn: [] };
+    for (let i = 37; i + 1 < s.length; i += 2) { const j = s[i] | 0; if (j >= 0 && j < 16) o.pn.push([j, cl(s[i + 1], 4)]); }
+    return o;
   },
-  // the car's dents for the others to draw: the sixteen deepest (where, which way, how deep and wide, and each one's own
-  // mark so the same dent is known again as it deepens)
-  digest(D) { if (!D || !D.dents || !D.dents.length) return null; const f3 = v => Math.round(v * 1000) / 1000;
-    return D.dents.slice().sort((a, b) => b.d - a.d).slice(0, 16).map(d => [f3(d.x), f3(d.y), f3(d.z), f3(d.nx), f3(d.ny), f3(d.nz), f3(d.d), f3(d.r), Math.round(d.s * 10) / 10]); },
+  // ---- damage: each car's own page's, sent whole whenever it changes, shown on every other page just as it is sent ----
+  // this car's damage as it shows: every dent (packed, see dentsPack), the fittings torn off, the lamps and windows
+  // broken, the windscreen (crazed, out, and each hole in it: where, how big, its own ragged edge), each panel not shut
+  // (sprung loose, jammed open how far, or gone), the wheels lost, how hard it steams and smokes; what the car is built
+  // with (lamps, fittings and panels, counted), so the other pages can tell their copy of it is the same; and the race
+  dmOut(c) {
+    const D = c && c.dmg, rig = G.mesh, H = rig && rig.dv; if (!D || D.mode === 'off' || !H) return null; const r3 = v => Math.round(v * 1000) / 1000;
+    const pn = []; (H.panels || []).forEach((Q, i) => { if (Q.st !== 'shut') pn.push([i, Q.st === 'loose' ? 1 : Q.st === 'jam' ? 2 : 3, Q.st === 'jam' ? r3(Q.th || 0) : 0]); });
+    const steam = D.mode === 'real' ? clamp(D.rad * 1.5 + (D.temp - 105) / 20, 0, 2.2) : 0, smoke = D.mode === 'real' ? clamp((0.75 - D.eng) * 2, 0, 1.5) : 0;
+    const w = [H.broken.ws ? 1 : 0, H.wsOut ? 1 : 0]; for (const q of H.holes.slice(0, 6)) w.push(r3(q.u), r3(q.v), r3(q.r), Math.round(q.s || 0));
+    return { r: this.round, d: this.dentsPack(D.dents, 48), f: H.fits.map((f, i) => f.gone ? i : -1).filter(i => i >= 0), l: rig.lamps.map((l, i) => l.broken ? i : -1).filter(i => i >= 0),
+      p: Object.keys(H.broken).filter(k => k !== 'ws' && H.broken[k]), w, n: pn, x: H.lost.reduce((m, x, i) => m | (x ? 1 << i : 0), 0), e: [Math.round(steam * 10) / 10, Math.round(smoke * 10) / 10], g: [rig.lamps.length, H.fits.length, (H.panels || []).length] };
+  },
+  // (the damage made to fit in the room the presence has: the shallowest dents left out until it does)
+  fit(o, c) {
+    if (!o) return null; const rest = JSON.stringify(Object.assign({}, this.mine, { dm: 0 })).length; let n = 48;
+    while (n > 0 && rest + JSON.stringify(o).length > 3800) { n = Math.max(0, n - 4); o = Object.assign({}, o, { d: this.dentsPack(c.dmg.dents, n) }); }
+    return o;
+  },
+  // the dents, the deepest n of them (in the order they came), 13 bytes each: where (mm), which way (in 127ths), how deep
+  // (its square root's share of 0.6 m, in 255ths) and wide (0.05 to 1 m, in 255ths), its own crumple (in tenths), as text
+  dentsPack(L, n) {
+    let K = L; if (L.length > n) { const keep = new Set(L.slice().sort((a, b) => b.d - a.d).slice(0, n)); K = L.filter(d => keep.has(d)); }
+    const b = new Uint8Array(K.length * 13), v = new DataView(b.buffer), i16 = x => Math.max(-32767, Math.min(32767, Math.round(x * 1000))), i8 = x => Math.max(-127, Math.min(127, Math.round(x * 127)));
+    K.forEach((d, k) => { const o = k * 13; v.setInt16(o, i16(d.x)); v.setInt16(o + 2, i16(d.y)); v.setInt16(o + 4, i16(d.z)); v.setInt8(o + 6, i8(d.nx)); v.setInt8(o + 7, i8(d.ny)); v.setInt8(o + 8, i8(d.nz));
+      b[o + 9] = Math.round(Math.sqrt(clamp(d.d, 0, 0.6) / 0.6) * 255); b[o + 10] = Math.round(clamp((d.r - 0.05) / 0.95, 0, 1) * 255); v.setUint16(o + 11, Math.round(clamp(d.s || 0, 0, 6553) * 10)); });
+    let t = ''; for (let i = 0; i < b.length; i++) t += String.fromCharCode(b[i]); return btoa(t);
+  },
+  dentsUnpack(t) {
+    let x; try { x = atob(t); } catch (e) { return null; } if (x.length % 13 || x.length > 48 * 13) return null;
+    const b = new Uint8Array(x.length); for (let i = 0; i < x.length; i++) b[i] = x.charCodeAt(i); const v = new DataView(b.buffer), out = [];
+    for (let o = 0; o < b.length; o += 13) { const q = b[o + 9] / 255; out.push({ x: v.getInt16(o) / 1000, y: v.getInt16(o + 2) / 1000, z: v.getInt16(o + 4) / 1000, nx: v.getInt8(o + 6) / 127, ny: v.getInt8(o + 7) / 127, nz: v.getInt8(o + 8) / 127, d: q * q * 0.6, r: 0.05 + 0.95 * b[o + 10] / 255, s: v.getUint16(o + 11) / 10 }); }
+    return out;
+  },
+  // another page's damage, checked (or null)
+  dmCheck(o) {
+    const ints = (L, hi) => Array.isArray(L) ? L.filter(i => Number.isInteger(i) && i >= 0 && i < hi).slice(0, 64) : [], nums = L => Array.isArray(L) && L.every(v => typeof v === 'number' && isFinite(v));
+    if (typeof o.d !== 'string' || o.d.length > 1000) return null; const dents = this.dentsUnpack(o.d); if (!dents) return null;
+    const w = nums(o.w) && o.w.length >= 2 && o.w.length <= 26 ? o.w : [0, 0], n = Array.isArray(o.n) ? o.n.filter(e => Array.isArray(e) && e.length === 3 && Number.isInteger(e[0]) && e[0] >= 0 && e[0] < 16 && [1, 2, 3].includes(e[1]) && typeof e[2] === 'number' && isFinite(e[2])).slice(0, 16) : [];
+    const holes = []; for (let i = 2; i + 3 < w.length; i += 4) holes.push([clamp(w[i], 0, 1), clamp(w[i + 1], 0, 1), clamp(w[i + 2], 0.01, 0.5), clamp(w[i + 3], 0, 1e5)]);
+    return { dents, f: ints(o.f, 64), l: ints(o.l, 64), p: Array.isArray(o.p) ? o.p.filter(k => typeof k === 'string' && /^[A-Za-z0-9]{1,8}$/.test(k)).slice(0, 16) : [], ws: { br: w[0] ? 1 : 0, out: w[1] ? 1 : 0, holes },
+      n: n.map(e => [e[0], e[1], clamp(e[2], 0, 3)]), x: Number.isInteger(o.x) ? o.x & 15 : 0, e: nums(o.e) && o.e.length === 2 ? [clamp(o.e[0], 0, 3), clamp(o.e[1], 0, 2)] : [0, 0], g: nums(o.g) && o.g.length === 3 ? o.g.map(v => v | 0) : null };
+  },
+  // another driver's damage, as its page sent it, onto its car here: what is newly broken breaks now (its glass flying
+  // and its sound heard, when the car is close enough to see and hear it), the body reshaped to its dents. Anything its
+  // page no longer has broken (the car put right) means the car built afresh here and all of its damage put on at once
+  dmApply(r) {
+    r.dmDirty = false; let o = r.dmIn, m = r.mesh, H = m && m.dv; if (!H) return;
+    const A = r.dmS;
+    if (!o) { if (A) this.remesh(r); return; }
+    const lostBack = A && (A.x & ~o.x), back = A && (lostBack || A.f.some(i => !o.f.includes(i)) || A.l.some(i => !o.l.includes(i)) || A.p.some(k => !o.p.includes(k)) || A.h > o.ws.holes.length || (A.out && !o.ws.out) || A.n.some(([i, st]) => { const e = o.n.find(q => q[0] === i); return !e || (st === 3 && e[1] !== 3); }));
+    let quiet = !!r.dmQuiet; if (back) { this.remesh(r); m = r.mesh; H = m.dv; if (!H) return; quiet = true; }
+    r.dmQuiet = false; quiet = quiet || camera.position.distanceTo(m.root.position) > 22;
+    // (built as its own page built it: the same lamps, fittings and panels, counted; if not, its dents alone)
+    const same = !o.g || (o.g[0] === m.lamps.length && o.g[1] === H.fits.length && o.g[2] === (H.panels || []).length);
+    this.asRival(r, px => {
+      const list = o.dents.map(e => { let d = r.dents.get(e.s); if (!d) { d = { s: e.s }; r.dents.set(e.s, d); } Object.assign(d, e); return d; }), keep = new Set(o.dents.map(e => e.s));
+      for (const k of [...r.dents.keys()]) if (!keep.has(k)) r.dents.delete(k);
+      const D = r.D || (r.D = { dents: [], ver: 0, mode: 'real' }); D.dents = list; D.ver++; px.dmg = D;
+      if (same) {
+        for (const [i, st, th] of o.n) { const Q = H.panels && H.panels[i]; if (!Q) continue; const want = st === 1 ? 'loose' : st === 2 ? 'jam' : 'gone';
+          if (Q.st === want) { if (want === 'jam' && Math.abs((Q.th || 0) - th) > 0.004) { Q.th = th; CarDmg.panelPose(Q); } continue; }
+          if (want === 'gone') { if (quiet) CarDmg.panelGone(m, Q); else CarDmg.panelOff(m, px, Q); continue; }
+          const was = Q.st; CarDmg.panelLift(m, Q); Q.st = want; Q.latch = 1; Q.th = want === 'jam' ? th : Q.th || 0; CarDmg.panelPose(Q); if (!quiet && was === 'shut' && want === 'loose') Snd.rip('metal', m, Q.P.latch); }
+        for (const i of o.f) { const f = H.fits[i]; if (f && !f.gone) CarDmg.detach(m, f, null, quiet); }
+        for (const k of o.p) if (H.panes[k] && !H.broken[k]) CarDmg.breakPane(m, k, quiet);
+        for (const i of o.l) { const l = m.lamps[i]; if (l && !l.broken) CarDmg.breakLamp(m, l, quiet); }
+        for (let j = H.holes.length; j < o.ws.holes.length; j++) { const q = o.ws.holes[j]; CarDmg.holeScreen(m, q[0], q[1], q[2], quiet, q[3]); }
+        if (o.ws.out && !H.wsOut) CarDmg.screenOut(m, quiet); if (!H.wsOut) H.broken.ws = o.ws.br;
+        for (let i = 0; i < 4; i++) if ((o.x & (1 << i)) && !H.lost[i]) { if (quiet) { H.lost[i] = 1; m.wheels[i].w.scale.setScalar(1e-3); if (m.wheels[i].w2) m.wheels[i].w2.scale.setScalar(1e-3); } else CarDmg.loseWheel(m, i, px); }
+      }
+      CarDmg.deform(m, D, true);
+    });
+    r.dmS = { f: o.f.slice(), l: o.l.slice(), p: o.p.slice(), h: o.ws.holes.length, out: o.ws.out, x: o.x, n: o.n.map(e => [e[0], e[1]]) }; r.fx = o.e;
+  },
+  // (another driver's car, for the breaking: the damage's work done as if it were the car driven here - its speed and
+  // heading for the pieces thrown off - with none of it told on this driver's screen)
+  asRival(r, fn) {
+    const V = r.V || (r.st && r.st.V) || [0, 0, 0], Q = r.Q, f = qRot(Q, [0, 0, 1]), psi = Math.atan2(f[0], f[2]), sn = Math.sin(psi), co = Math.cos(psi), T = G.T;
+    const px = { psi, u: V[0] * sn + V[2] * co, v: V[0] * co - V[2] * sn, vyb: V[1], V, Q, Wv: r.W, x: r.x, z: r.z, hint: T ? clamp(T.startIdx + (r.p | 0), 0, T.pts.length - 1) : 0, dmg: r.D || { dents: [], mode: 'real' } };
+    const keep = G.car; G.car = px; Damage.mute = true;
+    try { fn(px); } catch (e) { } finally { G.car = keep; Damage.mute = false; }
+  },
+  // a rival's car as its own page has built it: the night's lamp pods or not, a snorkel or not; ready for damage, which
+  // it takes only as its own page sends it (see dmApply)
+  meshFor(r, kit) {
+    const S = r.S, k = kit || [G.T && nightKit(G.T) ? 1 : 0, 0], mesh = buildCarMesh(S, r.ghost, !!k[0]); if (k[1] && !r.ghost) fitSnorkel(mesh);
+    mesh.root.visible = false; scene.add(mesh.root); r.kit = k;
+    try { if (!r.ghost && (window.__mpDmg || 'real') !== 'off') { CarDmg.prep(mesh, S); if (mesh.dv) mesh.dv.slave = true; } } catch (e) { }
+    return mesh;
+  },
+  // (built afresh: its damage cleared here, or its own page's car built otherwise; all its damage then put on again, quietly)
+  remesh(r, kit) {
+    const was = r.mesh, vis = was ? was.root.visible : false; if (was) { this.ghostLook(r, false); dropCarMesh(was); }
+    r.mesh = this.meshFor(r, kit || r.kit); r.mesh.root.visible = vis; r.cab = undefined; r.dents = new Map(); r.D = null; r.dmS = null; r.dmQuiet = true; r.dmDirty = !!r.dmIn; r.gl = false;
+  },
+  // a rival steaming (its radiator holed, its engine hot) and smoking (its engine dying), as its page says
+  fumes(r, m, dt) {
+    const H = m.dv; if (!H || !r.fx) return; m.body.updateMatrixWorld(true); const M = m.body.matrixWorld, Hs = H.H, V = r.V || [0, 0, 0], P = this._fp || (this._fp = new THREE.Vector3()), S = r.S;
+    H.steamT = (H.steamT || 0) - dt * r.fx[0] * 24; while (H.steamT < 0) { H.steamT += 1; P.set((Math.random() - 0.5) * 0.6, 0.75, S.epos === 'mid' ? Hs.zr + 0.5 : Hs.zf - 0.35).applyMatrix4(M); Particles.spawn(P.x, P.y, P.z, V[0] * 0.7 + (Math.random() - 0.5), 0.8 + Math.random(), V[2] * 0.7 + (Math.random() - 0.5), STEAMC, 0.7 + Math.random() * 0.5, 1.4, 0, 0.4); }
+    const E = m.exhaust, ep = E ? (H.exhOff ? E.stub : E.tip) : [0.4, 0.34, Hs.zr - 0.15], f = qRot(r.Q, [0, 0, 1]);
+    H.smokeT = (H.smokeT || 0) - dt * r.fx[1] * (0.4 + (r.st ? r.st.thr : 0)) * 22; while (H.smokeT < 0) { H.smokeT += 1; P.set(ep[0], ep[1], ep[2]).applyMatrix4(M); Particles.spawn(P.x, P.y, P.z, V[0] * 0.6 - f[0] * 1.5, 0.5, V[2] * 0.6 - f[2] * 1.5, SMOKEC, 0.9 + Math.random() * 0.6, 1.8, 0, 0.45); }
+  },
+  // a rival drawn see-through (it is a ghost to this car: one of the two is waiting for its start or has just been put
+  // back on the road), or solid again: its materials swapped for see-through copies (one copy of each material for all)
+  ghostLook(r, on) {
+    on = !!on; if (!!r.gl === on || !r.mesh) return; r.gl = on; const C = this.gmC || (this.gmC = new Map());
+    const sw = mt => { let g = C.get(mt); if (!g) { g = mt.clone(); g.transparent = true; g.opacity = 0.3 * (mt.opacity != null ? mt.opacity : 1); g.depthWrite = false; g.userData = { shared: true }; C.set(mt, g); } return g; };
+    r.mesh.root.traverse(o => { if (!o.material || o.isPoints || (Array.isArray(o.material) ? o.material : [o.material]).some(mt => !mt || mt.isShaderMaterial)) return; const u = o.userData; // (the lamps' own materials left as they are)
+      if (on) { if (u.gm0) return; u.gm0 = o.material; u.gcs = o.castShadow; o.material = Array.isArray(o.material) ? o.material.map(sw) : sw(o.material); o.castShadow = false; }
+      else if (u.gm0) { o.material = u.gm0; o.castShadow = u.gcs; delete u.gm0; delete u.gcs; } });
+  },
 
   // ---- the other drivers' cars ----
   take(p) {
@@ -24807,7 +24982,11 @@ const MP = {
     const ck = mpNum(P.ck, 0, 1e15), st = ck !== r.ck || !r.st ? this.unpack(P.s) : null;
     if (st) { r.st = st; r.ck = ck; r.hc = mpNum(P.hc, -1e13, 1e13); r.at = p.updatedAt || Date.now(); if (!r.pose) r.pose = { x: st.x, yb: st.yb, z: st.z, Q: st.Q.slice() }; }
     r.ph = ['grid', 'run', 'fin', 'out', 'lobby'].includes(P.ph) ? P.ph : r.ph; r.gh = P.gh === 1; r.p = mpNum(P.p, 0, 1e5) || 0; r.et = mpNum(P.et, 0, 1e6); r.ft = mpNum(P.ft, 0, 1e6); r.by = p.by;
-    if (Array.isArray(P.dm) && JSON.stringify(P.dm) !== r.dmKey) { r.dmKey = JSON.stringify(P.dm); this.dentsFor(r, P.dm); }
+    // its car as its page built it (the night's lamp pods, a snorkel), and its damage as its page has it (this race's)
+    { const kt = this.kitOf(P); if (kt && r.kit && !r.ghost && (kt[0] !== r.kit[0] || kt[1] !== r.kit[1])) this.remesh(r, kt); }
+    { const dm = P.dm && typeof P.dm === 'object' && !Array.isArray(P.dm) && P.dm.r === this.round ? P.dm : null, k = dm ? JSON.stringify(dm) : ''; if (k !== r.dmKey) { r.dmKey = k; r.dmIn = dm ? this.dmCheck(dm) : null; r.dmDirty = true; } }
+    // the blows its page says it gave: one at this car taken, one between two others heard (see blowIn)
+    if (Array.isArray(P.bl)) this.blowsIn(r, P.bl); else if (r.blN === undefined) r.blN = -1;
     // its times at the splits, its horn, the figures of its run, and a reaction (each shown once, by its number)
     r.sp = Array.isArray(P.sp) ? P.sp.slice(0, 8).map(v => mpNum(v, 0, 1e5)).filter(v => v != null) : [];
     r.hn = P.hn === 1 ? 1 : 0; r.aw = this.statsIn(P.aw);
@@ -24822,13 +25001,12 @@ const MP = {
   // (in a rally start the other cars are ghosts: see-through, and never struck)
   rivalFor(p) {
     if (this.rivals.has(p.peer)) return this.rivals.get(p.peer);
-    const carId = this.carOf(p), S = (carId && carById(carId)) || CARS[0], ghost = !!(this.rc && this.rc.fm === 'rally');
-    const mesh = buildCarMesh(S, ghost, G.T ? nightKit(G.T) : false); mesh.root.visible = false; scene.add(mesh.root);
-    try { if (!ghost && (window.__mpDmg || 'real') !== 'off') CarDmg.prep(mesh, S); } catch (e) { }
-    const r = { peer: p.peer, by: p.by, carId: S.id, S, mesh, ghost, m: S.mass + 160, st: null, pose: null, at: 0, x: 0, yb: 0, z: 0, Q: [0, 0, 0, 1], V: [0, 0, 0], W: [0, 0, 0], M: new Array(9).fill(0), ph: 'grid', p: 0, et: null, ft: null, tag: null, dents: new Map(), dmKey: '', sp: [], hn: 0, aw: null, rxN: undefined };
-    this.rivals.set(p.peer, r); this.take(p); return r;
+    const carId = this.carOf(p), S = (carId && carById(carId)) || CARS[0], ghost = !!(this.rc && this.rc.fm === 'rally'), P = p.presence || {}, kt = this.kitOf(P);
+    const r = { peer: p.peer, by: p.by, carId: S.id, S, mesh: null, ghost, m: S.mass + 160, st: null, pose: null, at: 0, x: 0, yb: 0, z: 0, Q: [0, 0, 0, 1], V: [0, 0, 0], W: [0, 0, 0], M: new Array(9).fill(0), ph: 'grid', p: 0, et: null, ft: null, tag: null, dents: new Map(), dmKey: '', sp: [], hn: 0, aw: null, rxN: undefined, blN: undefined, kit: null };
+    r.mesh = this.meshFor(r, kt); this.rivals.set(p.peer, r); this.take(p); return r;
   },
-  dropRival(peer) { const r = this.rivals.get(peer); if (!r) return; this.voiceDrop(r); this.hornDrop(r); dropCarMesh(r.mesh); if (r.tag) r.tag.remove(); this.rivals.delete(peer); if (this.watch === peer) this.watch = null; },
+  kitOf(P) { return Array.isArray(P.kt) && P.kt.length === 2 ? [P.kt[0] ? 1 : 0, P.kt[1] ? 1 : 0] : null; },
+  dropRival(peer) { const r = this.rivals.get(peer); if (!r) return; this.voiceDrop(r); this.hornDrop(r); this.ghostLook(r, false); dropCarMesh(r.mesh); if (r.tag) r.tag.remove(); this.rivals.delete(peer); if (this.watch === peer) this.watch = null; },
   // a rival's engine, heard: a light voice of its own (two oscillators on its firing note and an octave under it, through
   // a filter that opens with its throttle), fading with distance and set left or right as the camera sees it; muffled
   // with the rest of the outside from the driver's seat
@@ -24849,56 +25027,133 @@ const MP = {
     v.g.gain.setTargetAtTime(att * (0.03 + 0.06 * s.thr), t, 0.06); if (v.pn) v.pn.pan.setTargetAtTime(clamp(w.x / d, -1, 1) * 0.85, t, 0.06);
   },
   clearRivals() { for (const k of [...this.rivals.keys()]) this.dropRival(k); if (G.car) G.car.rivals = null; const t = $('#mpTags'); if (t) t.textContent = ''; const s = $('#mpStand'); if (s) s.hidden = true; },
-  // a rival's dents, as its own page sent them: the same dent kept as the same object (the body is reshaped only where a
-  // dent is new or has changed)
-  dentsFor(r, list) {
-    const seen = new Set(), out = [];
-    for (const e of list.slice(0, 16)) { if (!Array.isArray(e) || e.length < 9 || e.some(v => typeof v !== 'number' || !isFinite(v))) continue; const k = String(e[8]); seen.add(k);
-      let d = r.dents.get(k); if (!d) { d = { x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 1, d: 0, r: 0.3, s: e[8] }; r.dents.set(k, d); }
-      Object.assign(d, { x: clamp(e[0], -4, 4), y: clamp(e[1], -1, 3), z: clamp(e[2], -4, 4), nx: clamp(e[3], -1, 1), ny: clamp(e[4], -1, 1), nz: clamp(e[5], -1, 1), d: clamp(e[6], 0, 0.6), r: clamp(e[7], 0.05, 1) }); out.push(d); }
-    for (const k of [...r.dents.keys()]) if (!seen.has(k)) r.dents.delete(k);
-    r.D = { dents: out }; r.dmDirty = true;
+  // where a car is t seconds on from a state of it (s): as the racing games do it, carried on along the curve it was
+  // driving - its velocity turned at its rate of turn (about the upright), and gathering or losing speed as it was (its
+  // acceleration less the part of it that only bends its path, kept up for a quarter of a second at most, and never
+  // past a stop); its pitch and roll carried on only a moment; up and down as it was moving, with its fall if it is in
+  // the air. Into o: { x, yb, z, Q, V }
+  predict(s, t, o) {
+    const V = s.V, W = s.W, A = s.A || [0, 0, 0], wy = W[1];
+    // (the part of the acceleration that turns the path: the rate of turn across the velocity)
+    let ax = A[0] - wy * V[2], az = A[2] + wy * V[0];
+    const v2 = V[0] * V[0] + V[2] * V[2], av = ax * V[0] + az * V[2]; let ta = Math.min(t, 0.25);
+    if (av < 0 && v2 > 0.01) ta = Math.min(ta, v2 / -av); // (slowing: only to a stop)
+    const th = wy * t, S = Math.abs(th) > 1e-4 ? Math.sin(th) / wy : t, C = Math.abs(th) > 1e-4 ? (1 - Math.cos(th)) / wy : wy * t * t / 2, cs = Math.cos(th), sn = Math.sin(th);
+    const g = ta < t ? ta * ta / 2 + ta * (t - ta) : t * t / 2;
+    o.x = s.x + V[0] * S + V[2] * C + ax * g; o.z = s.z - V[0] * C + V[2] * S + az * g;
+    // (up and down: its own vertical speed, and in the air its fall; on the ground a bump's jolt is not carried on)
+    const fall = A[1] < -6 && A[1] > -13 ? A[1] : 0, ty = Math.min(t, 0.35); o.yb = s.yb + V[1] * ty + 0.5 * fall * ty * ty;
+    o.V[0] = V[0] * cs + V[2] * sn + ax * ta; o.V[2] = -V[0] * sn + V[2] * cs + az * ta; o.V[1] = V[1] + fall * ty;
+    // its turn: about the upright for the whole time, its pitch and roll for a tenth of a second at most (a body
+    // rocking on its springs swings back)
+    const q = s.Q, tq = Math.min(t, 0.1), rx = W[0] * tq, rz = W[2] * tq, ry = wy * t;
+    const yh = ry / 2, qy = [0, Math.sin(yh), 0, Math.cos(yh)], ta2 = Math.hypot(rx, rz), qt = ta2 > 1e-9 ? [rx / ta2 * Math.sin(ta2 / 2), 0, rz / ta2 * Math.sin(ta2 / 2), Math.cos(ta2 / 2)] : [0, 0, 0, 1];
+    const mul = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
+    const Q = mul(qt, mul(qy, q)), ql = Math.hypot(Q[0], Q[1], Q[2], Q[3]) || 1; o.Q[0] = Q[0] / ql; o.Q[1] = Q[1] / ql; o.Q[2] = Q[2] / ql; o.Q[3] = Q[3] / ql;
+    return o;
   },
-  // where each rival is now: its last state carried on by its own motion for as long as it has been on its way (from
-  // the moment its page sent it, on that page's clock set to this one's through the race's clock: never more than 0.4 s),
-  // every physics step. Where a new state puts it somewhere else than it was drawn, the difference is taken out over a
-  // tenth of a second or so (at once if it is far out); its turn is eased the same way
+  // the race's clock now (ms since its start, on the clock every page in it shares), or null
+  raceMs() { const c = this.phase === 'watch' ? this.cfg : this.rc || this.cfg; if (!c || !c.go || c.ph !== 'race' && this.phase === 'watch' || (this.phase !== 'race' && this.phase !== 'done' && this.phase !== 'watch')) return null;
+    const gp = this.phase === 'watch' ? this.hostPeer : this.goPeer || this.hostPeer, off = !gp || gp === this.my ? 0 : this.clk.has(gp) ? this.offset(gp) : null; return off == null ? null : Date.now() - off - c.go; },
+  // (for the weather: the race's clock in seconds, and which race it is)
+  raceNow() { const t = this.raceMs(); return t == null ? null : t / 1000; },
+  raceKey() { const c = this.rc || this.cfg; return this.code + ':' + (c ? c.rd : 0); },
+  // where each rival is now: its last state carried on along its curve (see predict) for as long as it has been on its
+  // way (from the moment its page sent it, on that page's clock set to this one's through the race's clock: never more
+  // than MP_PRED), every physics step. When a new state comes, the picture does not jump: the difference between where
+  // the last state put the car now and where the new one does (and how each turns it) is eased away over a tenth of a
+  // second or so (at once if it is far out)
   stepRivals(dt) {
-    const now = Date.now(), live = [], me = this.hcMe;
+    const now = Date.now(), live = [], me = this.hcMe, c = G.car, rnow = this.raceMs();
+    // the blows this car gave the others last step, gathered for the next send (see sendBlows)
+    if (c && c.blows && c.blows.length) { for (const b of c.blows) { const R = b.r; if (!R || !R.peer) continue; let e = this.blAcc.get(R.peer); if (!e) this.blAcc.set(R.peer, e = { r: R, J: [0, 0, 0], p: [0, 0, 0], w: 0, dv: 0, t: rnow });
+        for (let i = 0; i < 3; i++) { e.J[i] += b.J[i]; e.p[i] += b.p[i]; } e.w += b.w; e.dv = Math.max(e.dv, b.dv); if (rnow != null) this.felt(R.peer, rnow); } c.blows.length = 0; }
+    const qmul = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
+    const fE = Math.exp(-dt / 0.08), fQ = Math.exp(-dt / 0.07), fk = Math.exp(-dt * 1.5);
     for (const r of this.rivals.values()) {
       const s = r.st; if (!s || r.ph === 'lobby' || r.ph === 'out') continue;
-      const age = r.ck && r.hc != null && me != null ? (now - (r.ck - r.hc + me)) / 1000 : (now - r.at) / 1000 + 0.05;
-      const a = clamp(age, 0, 0.4), w = s.W, q = s.Q;
-      const px = s.x + s.V[0] * a, py = s.yb + s.V[1] * a, pz = s.z + s.V[2] * a;
-      const dq = [0.5 * a * (w[0] * q[3] + w[1] * q[2] - w[2] * q[1]), 0.5 * a * (w[1] * q[3] + w[2] * q[0] - w[0] * q[2]), 0.5 * a * (w[2] * q[3] + w[0] * q[1] - w[1] * q[0]), -0.5 * a * (w[0] * q[0] + w[1] * q[1] + w[2] * q[2])];
-      let Q = [q[0] + dq[0], q[1] + dq[1], q[2] + dq[2], q[3] + dq[3]];
-      const P = r.pose || (r.pose = { x: px, yb: py, z: pz, Q: Q.slice() }), E = r.err || (r.err = [0, 0, 0]), KV = r.kv || (r.kv = [0, 0, 0]), KX = r.kx || (r.kx = [0, 0, 0]);
+      const sent = r.ck && r.hc != null && me != null ? r.ck - r.hc + me : r.at - 50, age = Math.max(0, (now - sent) / 1000);
+      const N = r.pr || (r.pr = { x: 0, yb: 0, z: 0, Q: [0, 0, 0, 1], V: [0, 0, 0] }); this.predict(s, Math.min(age, MP_PRED), N);
+      const E = r.err || (r.err = [0, 0, 0]), qE = r.qerr || (r.qerr = [0, 0, 0, 1]), KV = r.kv || (r.kv = [0, 0, 0]), KX = r.kx || (r.kx = [0, 0, 0]);
       // the blows it took on this page (see bodyCars): their push carried on (KV, its speed; KX, how far it has moved it)
       // until a state comes that its page sent well after the first of them (a page meets a blow a moment earlier or later
       // than another, as each sees the other a little off), which has had them itself. A long shove is taken a piece at a
       // time so: each piece let go as the rival's own page answers it
       if (r.kT === 1) { r.kT = now; if (!r.kT0) r.kT0 = now; }
-      if (r.stSeen !== s) { r.stSeen = s; const sent = r.ck && r.hc != null && me != null ? r.ck - r.hc + me : r.at - 50;
-        if (!r.kT0 || sent > r.kT0 + 150) { KV.fill(0); KX.fill(0); r.kT0 = 0; }
-        E[0] = P.x - px - KX[0]; E[1] = P.yb - py - KX[1]; E[2] = P.z - pz - KX[2]; if (Math.hypot(E[0], E[1], E[2]) > 5) E.fill(0); }
-      const f = Math.exp(-dt * 10), k = 1 - f, fk = Math.exp(-dt * 1.5); E[0] *= f; E[1] *= f; E[2] *= f;
+      if (r.stUsed !== s) {
+        // (the picture kept where it was: what the old state said now, less what the new one says, eased away from here)
+        if (r.stUsed && r.pose) { const O = r.po || (r.po = { x: 0, yb: 0, z: 0, Q: [0, 0, 0, 1], V: [0, 0, 0] }); this.predict(r.stUsed, Math.min(Math.max(0, (now - r.sentUsed) / 1000), MP_PRED), O);
+          E[0] += O.x - N.x; E[1] += O.yb - N.yb; E[2] += O.z - N.z; const nq = [-N.Q[0], -N.Q[1], -N.Q[2], N.Q[3]], q = qmul(qE, qmul(O.Q, nq)); for (let i = 0; i < 4; i++) qE[i] = q[i]; }
+        r.stUsed = s; r.sentUsed = sent;
+        if (!r.kT0 || sent > r.kT0 + 150) { E[0] += KX[0]; E[1] += KX[1]; E[2] += KX[2]; KV.fill(0); KX.fill(0); r.kT0 = 0; }
+        if (Math.hypot(E[0], E[1], E[2]) > 5 || Math.abs(qE[3]) < 0.95) { E.fill(0); qE[0] = qE[1] = qE[2] = 0; qE[3] = 1; } // (far out: at once)
+      }
+      E[0] *= fE; E[1] *= fE; E[2] *= fE;
+      { if (qE[3] < 0) for (let i = 0; i < 4; i++) qE[i] = -qE[i]; for (let i = 0; i < 3; i++) qE[i] *= fQ; qE[3] = Math.sqrt(Math.max(0, 1 - qE[0] * qE[0] - qE[1] * qE[1] - qE[2] * qE[2])); }
       { const kl = Math.hypot(KV[0], KV[1], KV[2]); if (kl > 10) for (let i = 0; i < 3; i++) KV[i] *= 10 / kl; } // (never more than a hard blow's worth)
       for (let i = 0; i < 3; i++) { KV[i] *= fk; KX[i] += KV[i] * dt; }
-      P.x = px + E[0] + KX[0]; P.yb = py + E[1] + KX[1]; P.z = pz + E[2] + KX[2];
-      if (Q[0] * P.Q[0] + Q[1] * P.Q[1] + Q[2] * P.Q[2] + Q[3] * P.Q[3] < 0) Q = Q.map(v => -v);
-      const kq = Q[0] * P.Q[0] + Q[1] * P.Q[1] + Q[2] * P.Q[2] + Q[3] * P.Q[3] < 0.9 ? 1 : k * 2.5; // (far out of turn: at once)
-      for (let i = 0; i < 4; i++) P.Q[i] += (Q[i] - P.Q[i]) * Math.min(1, kq); const ql = Math.hypot(P.Q[0], P.Q[1], P.Q[2], P.Q[3]) || 1; for (let i = 0; i < 4; i++) P.Q[i] /= ql;
-      const RV = r.Vk || (r.Vk = [0, 0, 0]); RV[0] = s.V[0] + KV[0]; RV[1] = s.V[1] + KV[1]; RV[2] = s.V[2] + KV[2];
+      const P = r.pose || (r.pose = { x: 0, yb: 0, z: 0, Q: [0, 0, 0, 1] }); P.x = N.x + E[0] + KX[0]; P.yb = N.yb + E[1] + KX[1]; P.z = N.z + E[2] + KX[2];
+      { const q = qmul(qE, N.Q), ql = Math.hypot(q[0], q[1], q[2], q[3]) || 1; for (let i = 0; i < 4; i++) P.Q[i] = q[i] / ql; }
+      const RV = r.Vk || (r.Vk = [0, 0, 0]); RV[0] = N.V[0] + KV[0]; RV[1] = N.V[1] + KV[1]; RV[2] = N.V[2] + KV[2];
       r.x = P.x; r.yb = P.yb; r.z = P.z; r.Q = P.Q; r.V = RV; r.W = s.W; bodyAxes(r.Q, r.M);
-      // (a car whose last word is more than a second old is not struck: its page may be gone, or its news held up)
-      if (Math.max(age, (now - r.at) / 1000) < 1 && r.ph !== 'fin') live.push(r);
+      // only a car racing can be struck: not one still waiting for its start (a handicap, a late start), nor one over the
+      // finish; nor one whose last word is more than a second old (its page may be gone, or its news held up); nor one
+      // that has just been put back on the road, or that has just had a blow from this car taken by its page
+      if (age < 1 && (now - r.at) < 1000 && this.away(r, rnow) && !(r.cool > now)) live.push(r);
     }
     // a car just put back on the road is a ghost: it passes through the other cars and they through it (each page leaves
     // a ghost out of its own car's knocks), until it has been back two seconds and is clear of every one of them
-    const c = G.car; if (c && c.ghost && G.time - (c.ghostAt || 0) > 2 && !this.overlaps(c, live)) { c.ghost = false; this.pub({ gh: 0 }); }
-    // (past the finish a car is out of the fight: the cars pulling up at the stop line pass through each other)
-    // (in a rally start the cars are ghosts to each other)
-    if (c) c.rivals = this.cfg && this.cfg.ct && this.phase === 'race' && !G.finished && !c.ghost && !(this.rc && this.rc.fm === 'rally') ? live.filter(r => !r.gh && !r.ghost) : null;
+    if (c && c.ghost && G.time - (c.ghostAt || 0) > 2 && !this.overlaps(c, live)) { c.ghost = false; this.pub({ gh: 0 }); }
+    // (this car meets the others only while it is racing itself: never while it waits on the grid; past the finish a car
+    // is out of the fight, the cars pulling up at the stop line pass through each other; in a rally start the cars are
+    // ghosts to each other)
+    if (c) { const on = !!(this.cfg && this.cfg.ct && this.phase === 'race' && G.state === 'run' && !G.finished && !c.ghost && !(this.rc && this.rc.fm === 'rally'));
+      c.rivals = on ? live.filter(r => !r.gh && !r.ghost) : null; if (on && !c.blows) c.blows = []; if (!on && c.blows) c.blows = null; }
+  },
+  // (a rival away from its start, racing: by its page's word, or by the race's clock once its start has come - its word
+  // that it has gone takes a moment to arrive)
+  away(r, rnow) { if (r.ph === 'run') return true; if (r.ph !== 'grid' || rnow == null || !this.rc) return false; const k = this.gr.indexOf(r.peer); return k >= 0 && rnow >= this.startDelay(this.rc, k) * 1000 + 30; },
+  // ---- blows between cars: each felt on both cars ----
+  // (when this car last met each other car, on the race's clock: the last two seconds' worth)
+  felt(peer, t) { let L = this.hitAt.get(peer); if (!L) this.hitAt.set(peer, L = []); if (!L.length || t - L[L.length - 1] > 100) L.push(t); while (L.length && t - L[0] > 2000) L.shift(); },
+  // the blows this car gave each other car since the last send, as that car's page needs them: the push it gave that car
+  // (N s) and where it landed (m from its centre of gravity), both in that car's own frame as this page shows it, how fast
+  // the two closed, and when, on the race's clock; each numbered, and kept two seconds in the presence (a page that
+  // misses one presence has it in the next). Returns the list when it has changed
+  sendBlows(rnow) {
+    for (const [peer, e] of this.blAcc) { const r = e.r, k = this.gr.indexOf(peer), j = Math.hypot(e.J[0], e.J[1], e.J[2]);
+      if (k < 0 || !r || !r.M || e.w <= 0 || j / (r.m || 1300) < MP_BLOW) continue;
+      const M = r.M, toB = v => [M[0] * v[0] + M[1] * v[1] + M[2] * v[2], M[3] * v[0] + M[4] * v[1] + M[5] * v[2], M[6] * v[0] + M[7] * v[1] + M[8] * v[2]];
+      const Jb = toB(e.J), pb = toB([e.p[0] / e.w - r.x, e.p[1] / e.w - r.yb, e.p[2] / e.w - r.z]), r2 = v => Math.round(v * 100) / 100;
+      this.blN++; this.bl.push({ at: rnow, e: [this.blN, k, Math.round(e.t != null ? e.t : rnow), Math.round(Jb[0]), Math.round(Jb[1]), Math.round(Jb[2]), r2(pb[0]), r2(pb[1]), r2(pb[2]), r2(e.dv)] }); }
+    this.blAcc.clear(); const keep = this.bl.filter(b => rnow - b.at < 2000).slice(-6), ch = keep.length !== this.bl.length || this.blSent !== this.blN; this.bl = keep;
+    if (!ch) return undefined; this.blSent = this.blN; return this.bl.map(b => b.e);
+  },
+  // another car's page's list of the blows it gave: each one not yet heard (by its number) acted on
+  blowsIn(r, L) {
+    const ok = L.filter(e => Array.isArray(e) && e.length === 10 && e.every(v => typeof v === 'number' && isFinite(v))).slice(0, 8), top = ok.reduce((m, e) => Math.max(m, e[0] | 0), -1);
+    if (r.blN === undefined) { r.blN = top; return; } // (those it gave before this page heard of it are past)
+    for (const e of ok) if ((e[0] | 0) > r.blN) this.blowIn(r, e); if (top > r.blN) r.blN = top;
+  },
+  // one blow (e: its number, the grid place of the car struck, when (race's ms), the push (N s) and where it landed (m),
+  // in the struck car's frame, how fast the two closed (m/s)). At this car: taken (see takeBlow) unless this car felt a
+  // blow from that one at about the same moment itself, or that car is not near this one as this page shows it (its page
+  // had it somewhere it was not), or this car is not racing; and the two cars then pass through each other a moment, so
+  // the one blow is not felt twice. Between two other cars: heard
+  blowIn(r, e) {
+    const k = e[1] | 0, t = e[2], rnow = this.raceMs(), c = G.car; if (rnow == null || Math.abs(rnow - t) > 1500) return;
+    const Jb = [clamp(e[3], -6e4, 6e4), clamp(e[4], -6e4, 6e4), clamp(e[5], -6e4, 6e4)], pb = [clamp(e[6], -3, 3), clamp(e[7], -2, 3), clamp(e[8], -4, 4)], dv = clamp(e[9], 0, 40);
+    if (k === this.slot && (this.gr[k] === this.my || this.gr[k] === this.meIn)) {
+      if ((this.hitAt.get(r.peer) || []).some(f => Math.abs(f - t) < MP_SAME * 1000)) return;
+      if (!c || this.phase !== 'race' || G.state !== 'run' || G.finished || c.ghost || !this.cfg || !this.cfg.ct || (this.rc && this.rc.fm === 'rally')) return;
+      if (!r.pose || !this.away(r, rnow) || Math.hypot(r.pose.x - c.x, r.pose.z - c.z) > MP_REACH) return;
+      takeBlow(c, G.phys || G.spec, Jb, pb, dv); this.felt(r.peer, t); r.cool = Date.now() + MP_COOL * 1000; return;
+    }
+    // (a crash between two others, heard once whichever of their pages tells of it, from where it was, fainter the further)
+    const peer = this.gr[k]; if (!peer || peer === r.peer || dv < 1.5 || !Snd.CH || !Snd.CH.on) return;
+    const key = r.peer < peer ? r.peer + '|' + peer : peer + '|' + r.peer, last = this.crashAt.get(key); if (last != null && Math.abs(last - t) < 400) return; this.crashAt.set(key, t);
+    const v = this.rivals.get(peer), at = v && v.pose ? v.pose : r.pose; if (!at) return;
+    const pan = Snd.panOf(at.x, at.yb, at.z), g = clamp(10 / Math.max(10, Snd.d || 50), 0, 1); if (g > 0.05) Snd.chs('impact', { kind: 'car', v: dv, pan, surf: 0, loose: false, g });
   },
   // does this car's body overlap any of these cars' (the same test the knocks use)
   overlaps(c, list) {
@@ -24922,6 +25177,8 @@ const MP = {
   // its lamps lit as its page says, its dents
   drawRivals(dt) {
     for (const r of this.rivals.values()) {
+      // (its damage as its page last sent it, first: the car may be built afresh for it)
+      if (r.dmDirty) this.dmApply(r);
       // (in a rally start a car waiting for its start is not drawn: they all wait on the line)
       const m = r.mesh, s = r.st; if (!s || !r.pose || r.ph === 'lobby' || r.ph === 'out' || (r.ghost && r.ph === 'grid')) { m.root.visible = false; if (r.vx) this.voice(r, s, false); this.hornAt(r, false); continue; }
       this.voice(r, s, G.state === 'run' || G.state === 'countdown'); this.hornAt(r, r.hn === 1 && (G.state === 'run' || G.state === 'countdown'));
@@ -24929,19 +25186,26 @@ const MP = {
       for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (w.x0 == null) { w.x0 = w.piv.position.x - KW[i].lx; w.z0 = w.piv.position.z - KW[i].lz; } }
       const off = qRot(Q, [0, hc - rideY, 0]); m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(r.pose.x - off[0], r.pose.yb - off[1], r.pose.z - off[2]); m.tilt.rotation.set(0, 0, 0);
       const fw = qRot(Q, [0, 0, 1]), om = (s.V[0] * fw[0] + s.V[1] * fw[1] + s.V[2] * fw[2]) / wheelOf(r.S).R;
-      for (let i = 0; i < 4; i++) { const w = m.wheels[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - s.L[i], w.z0 + KW[i].lz); w.piv.rotation.set(0, i < 2 ? s.steer : 0, 0); w.a = (w.a || 0) + om * dt; w.w.rotation.x = w.a; }
+      // (each wheel as its page has it: steered, leaning (a bent corner's toe and camber with it), and turning at its own
+      // pace - spinning up or locked)
+      for (let i = 0; i < 4; i++) { const w = m.wheels[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - s.L[i], w.z0 + KW[i].lz); w.piv.rotation.set(0, s.dw ? s.dw[i] : i < 2 ? s.steer : 0, -(s.lb ? s.lb[i] : 0)); w.a = (w.a || 0) + (s.om ? s.om[i] : om) * dt; w.w.rotation.x = w.a; }
       ckBogies(m, null);
+      // (a panel swinging loose, at the angle its page has it)
+      if (s.pn && s.pn.length && m.dv && m.dv.panels) for (const [j, th] of s.pn) { const P = m.dv.panels[j]; if (P && P.g && P.st === 'loose') { P.th = th; CarDmg.panelPose(P); } }
       // (past the haze a rival is not drawn at all, and from a little way off without its cabin: the seats, cage and crew
       // are lost behind the glass by then)
       const dc = camera.position.distanceTo(m.root.position); if (dc > (scene.fog ? scene.fog.far : 1e9) + 10) { m.root.visible = false; continue; }
       if (r.cab === undefined) r.cab = m.root.getObjectByName('InteriorMesh') || null; if (r.cab) r.cab.visible = dc < 45;
       m.root.visible = true; m.sync();
+      // see-through while it is a ghost to this car and near it: one of the two waiting for its start while the other is
+      // away, or put back on the road a moment ago (they pass through each other)
+      { const c = G.car, wait = !this.away(r, this.raceMs()), meWait = G.state === 'countdown', d = c ? Math.hypot(r.pose.x - c.x, r.pose.z - c.z) : 99; this.ghostLook(r, !r.ghost && c && (r.gh || c.ghost || wait !== meWait) && d < (r.gl ? 20 : 16)); }
+      if (r.fx && (r.fx[0] > 0.01 || r.fx[1] > 0.01) && dc < 160) this.fumes(r, m, dt);
       // (its crew at work, from close by: see crew.js)
       crewFrame(m, r.S, dt, dc * dc, () => crewRival(m, r, s));
       CarLights.remote(m, s.fl);
       // (its lamps' faces and glows left out with the car when it is out of view: their bounds, with room for the glow)
       if (m._faces && !m._faces.frustumCulled) { m._faces.frustumCulled = true; const g = m._glow; if (g) { g.geometry.computeBoundingSphere(); g.geometry.boundingSphere.radius += 1.5; g.frustumCulled = true; } }
-      if (r.dmDirty && m.dv && r.D) { r.dmDirty = false; m.vel = s.V; try { CarDmg.deform(m, r.D); } catch (e) { } }
     }
   },
 
@@ -24951,9 +25215,12 @@ const MP = {
     this.hcMe = !this.goPeer || this.goPeer === this.my ? 0 : this.clk.has(this.goPeer) ? this.offset(this.goPeer) : null; // (this page's clock less the race's)
     this.sendT += dt;
     // (sent on after the finish too, while the car pulls up at the stop line, so the others see it stop)
-    if ((this.phase === 'race' || this.phase === 'done') && c && this.sendT >= 1 / MP_HZ) { this.sendT = 0; const T = G.T;
-      this.pub({ s: this.pack(c), ck: now, hc: this.hcMe == null ? null : Math.round(this.hcMe), ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : G.state === 'countdown' ? 'grid' : 'run', p: Math.max(0, G.prog - T.startIdx), et: Math.round((G.time + G.penalty) * 100) / 100, gh: c.ghost ? 1 : 0 }); }
-    this.dmT -= dt; if (this.phase === 'race' && c && c.dmg && this.dmT <= 0 && c.dmg.ver !== this.dmVer) { this.dmT = 0.5; this.dmVer = c.dmg.ver; this.pub({ dm: this.digest(c.dmg) }); }
+    // (and the blows it has given the others since the last send: see sendBlows)
+    if ((this.phase === 'race' || this.phase === 'done') && c && this.sendT >= 1 / MP_HZ) { this.sendT = 0; const T = G.T, rnow = this.raceMs(), bl = rnow != null ? this.sendBlows(rnow) : undefined;
+      const o = { s: this.pack(c), ck: now, hc: this.hcMe == null ? null : Math.round(this.hcMe), ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : G.state === 'countdown' ? 'grid' : 'run', p: Math.max(0, G.prog - T.startIdx), et: Math.round((G.time + G.penalty) * 100) / 100, gh: c.ghost ? 1 : 0 };
+      if (bl !== undefined) o.bl = bl.length ? bl : null; this.pub(o); }
+    // its damage, whenever it has changed (looked at five times a second)
+    this.dmT -= dt; if ((this.phase === 'race' || this.phase === 'done') && c && this.dmT <= 0) { this.dmT = 0.2; const o = this.dmOut(c), k = o ? JSON.stringify(o) : ''; if (k !== this.dmLast) { this.dmLast = k; this.pub({ dm: this.fit(o, c) }); } }
     if (this.phase === 'race' && c && G.state === 'run' && !G.finished) { this.splits(); this.stats(dt, c); }
     this.knockedOut();
     this.standT -= dt; if (this.standT <= 0) { this.standT = 0.25; this.F = this.phase === 'race' || this.phase === 'done' ? this.field() : null; this.standings(); if (this.phase === 'done') this.results(); }
@@ -26131,7 +26398,7 @@ const Damage = {
     const n = $('#dmgNote'); if (n) n.textContent = DMG_NOTES[m] + (lk ? (window.__mpDmg ? ' Set by the host for this race.' : ' Set for this rally.') : '');
   },
   // damage messages wait their turn on the message line, so a big crash's list of breakages can be read
-  say(t) { if (typeof Replay !== 'undefined' && Replay.on) return; if (!this.q.includes(t)) this.q.push(t); }, // (a replay's breakages go untold)
+  say(t) { if (this.mute || (typeof Replay !== 'undefined' && Replay.on)) return; if (!this.q.includes(t)) this.q.push(t); }, // (a replay's breakages go untold; nor another driver's, in a race: see the race's damage)
   tick(dt) { this.qT -= dt; if (this.qT <= 0 && this.q.length) { flash(this.q.shift()); this.qT = 2.1; } }
 };
 
@@ -26381,8 +26648,9 @@ const CarDmg = {
     if (typeof ScreenFx !== 'undefined' && ScreenFx.rig === rig) ScreenFx.bend(rig); // (the windscreen's water, dirt and cracks bent with the glass)
     H.seen = new Map(dents.map(d => [d, { x: d.x, y: d.y, z: d.z, nx: d.nx, ny: d.ny, nz: d.nz, d: d.d, r: d.r, s: d.s }]));
     H.ver = D.ver; H.defN = (H.defN || 0) + 1; // (how many times it has been reshaped: the replay's record of it, see Rec)
-    // a lamp crushed in by more than a couple of centimetres is smashed
-    for (const l of rig.lamps) { if (l.broken) continue; let m = 0; for (const d of dents) { const q = (l.p[0] - d.x) ** 2 + (l.p[1] - d.y) ** 2 + (l.p[2] - d.z) ** 2; if (q < d.r * d.r) { const f = 1 - q / (d.r * d.r); m += d.d * f * f; } } if (m > 0.025) this.breakLamp(rig, l, quiet); }
+    // a lamp crushed in by more than a couple of centimetres is smashed (another driver's car, in a race: as its own page
+    // says, lamp by lamp - see the race's damage)
+    if (!H.slave) for (const l of rig.lamps) { if (l.broken) continue; let m = 0; for (const d of dents) { const q = (l.p[0] - d.x) ** 2 + (l.p[1] - d.y) ** 2 + (l.p[2] - d.z) ** 2; if (q < d.r * d.r) { const f = 1 - q / (d.r * d.r); m += d.d * f * f; } } if (m > 0.025) this.breakLamp(rig, l, quiet); }
   },
   breakLamp(rig, l, quiet) {
     if (l.broken) return; l.broken = true; rig._ok = null; CarLights.glowFor(rig);
@@ -27152,7 +27420,7 @@ function ChassisDSPDef() {
     // (how loud each kind is against the engine: a crash louder than the car at full throttle, a window bursting, a
     // landing and a tyre striking a rock loud, a part landing on the road no louder than the car)
     event(k, a) {
-      a = a || {}; if (k === 'impact') { this.vg = 2.8; this.impact(a.kind, a.v || 0, a.pan || 0, a.surf || 0, !!a.loose); this.vg = 1; return; }
+      a = a || {}; if (k === 'impact') { this.vg = 2.8 * (a.g != null ? clamp(a.g, 0, 1) : 1); this.impact(a.kind, a.v || 0, a.pan || 0, a.surf || 0, !!a.loose); this.vg = 1; return; } // (g: how near, for a crash between two other cars)
       this.vg = k === 'glass' || k === 'splash' ? 2 : k === 'land' || k === 'hydro' ? 1.8 : k === 'rockwheel' || k === 'rip' ? 1.5 : 1; this.event0(k, a); this.vg = 1;
     }
     event0(k, a) {
