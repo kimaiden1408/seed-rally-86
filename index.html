@@ -4151,35 +4151,44 @@ const CARS_G4 = [
 // estimated from vehicles built the same way: centres of gravity from where the loads sit, the trucks' leaf springs
 // from their spacing on the frame, inertias from the bodies' sizes.
 //   a six-wheeled 2.5-tonne army truck with a decontamination body: 6.80 x 2.50 x 2.90 m, 6.1 t empty, 11.5 t gross;
-//   7.4-litre diesel six, 180 hp, 490 Nm; five-speed manual and two-speed transfer box, locking rear differentials, air-
-//   over-hydraulic drum brakes; single 11.00-20 tyres all round; 95 km/h. Its wheelbase (3.90 m to the middle of the
+//   five-speed manual and two-speed transfer box, locking rear differentials; single 11.00-20 tyres all round; 95 km/h.
+//   Its engine, in the family's later trucks: an inline six of 7,412 cc (110 x 130 mm), naturally aspirated, two valves
+//   a cylinder worked by pushrods from a gear-driven camshaft, direct injection from an in-line pump with its mechanical
+//   governor; 183 hp, 51 kgf m (500 Nm). Its brakes: air over hydraulic, on two circuits (the foot valve sends air to an
+//   air-hydraulic booster for each) and a parking brake held off by air, set by a knob on the dash (see S.air and
+//   airStep). Its wheelbase (3.90 m to the middle of the
 //   bogie, the bogie's axles 1.32 m apart) and its 1.80 m track from the family it comes from. In service with about
 //   1,900 litres of water in its tank and its pumps, heater and hoses aboard: about 8.9 t, 37% on the front axle, the
 //   centre of gravity about 1.25 m up. Leaf springs on solid axles, the rear bogie on walking beams
 //   a light tactical vehicle with an integrated shelter body: 5.95 x 2.195 x 2.75 m (3.0 m over its roof gear), 7.0 t
-//   gross, 0.40 m under its axles; 3.0-litre turbo-diesel V6, 225 hp at 3,200, 500 Nm from 1,750; eight-speed automatic,
+//   gross, 0.40 m under its axles; 3.0-litre turbo-diesel V6, 225 hp at 3,200, 500 Nm from 1,750; eight-speed automatic
+//   (its maker's own, direct in fifth: 3.795, 2.473, 1.613, 1.177, 1.000, 0.831, 0.571 in eighth; seventh between),
 //   full-time four-wheel drive; 37 x 12.50R16.5 run-flat tyres on independent suspension; 130 km/h; turning radius 9.2 m.
 //   About 6.2 t with its crew and equipment, 47% on the front axle
-//   a high-roof van ambulance: 5.13 x 1.92 m, 2.45 m over its fibreglass roof, wheelbase 3.20 m, tracks 1.685 / 1.66 m,
-//   2,185 kg empty; 2.5-litre turbo-diesel four, 170 hp at 3,600, 441 Nm at 2,000-2,500; five-speed automatic, rear-wheel
-//   drive; 215/70R16 tyres; turning circle 11.3 m. About 2.75 t with its stretcher, equipment and crew, half on each
-//   axle, the centre of gravity about 0.82 m up under the tall roof. Struts in front, leaf springs on a solid rear axle
+//   a high-roof van ambulance of the 2009 model year: 5.13 x 1.92 m, 2.45 m over its fibreglass roof, wheelbase 3.20 m,
+//   tracks 1.685 / 1.66 m, 2,185 kg empty; a 2,497 cc turbo-diesel four (91 x 96 mm, common rail, variable-geometry
+//   turbo), 170 hp at 3,800, 392 Nm (40 kgf m) at 2,000-2,500; five-speed automatic (3.730, 2.308, 1.519, 1.000, 0.840;
+//   final drive 2.929), rear-wheel drive; 215/70R16 tyres; turning circle 11.3 m. About 2.75 t with its stretcher,
+//   equipment and crew, half on each axle, the centre of gravity about 0.82 m up under the tall roof. Struts in front,
+//   leaf springs on a solid rear axle
 const CARS_SP = [
-  { id: 'caisson_6x6', name: 'Caisson 6x6', num: 51, drive: 'Six-wheel drive: front axle locked in, locking rear differentials', motor: '7.4-litre diesel six, 180 hp', engine: 'Front-mounted inline six-cylinder diesel, direct injection, naturally aspirated', litres: 7.4,
-    mass: 10200, wf: 0.4, wb: 4.83, track: [1.72, 1.78], yawK: 1.13, lock: 0.4, idle: 650, redline: 3000, cyl: 6, boost: 'na', na: 1, fs: 0.333, rigidC: true, lever: 'H', shiftUp: 0.7, shiftDown: 0.6, clutchK: 0.42, shiftMin: 0.4, shiftDn: 0.3,
-    tq: [[600, 330], [800, 380], [1000, 430], [1200, 465], [1500, 488], [1700, 490], [2000, 482], [2300, 468], [2600, 452], [2900, 442], [3000, 330], [3100, 120]],
+  { id: 'caisson_6x6', name: 'Caisson 6x6', num: 51, drive: 'Six-wheel drive: front axle locked in, locking rear differentials', motor: '7.4-litre diesel six, 183 hp', engine: 'Front-mounted inline six-cylinder diesel, pushrods and a gear-driven camshaft, direct injection from an in-line pump, naturally aspirated', litres: 7.412,
+    mass: 10200, wf: 0.4, wb: 4.83, track: [1.72, 1.78], yawK: 1.13, lock: 0.4, idle: 550, redline: 3000, cyl: 6, boost: 'na', na: 1, fs: 0.333, rigidC: true, lever: 'H', shiftUp: 0.7, shiftDown: 0.6, clutchK: 0.42, shiftMin: 0.4, shiftDn: 0.3,
+    tq: [[500, 335], [700, 390], [900, 430], [1100, 462], [1300, 484], [1500, 495], [1800, 500], [2000, 497], [2200, 489], [2400, 477], [2600, 464], [2800, 451], [2900, 443], [3000, 330], [3100, 130]],
     gears: [6.06, 3.5, 1.8, 1.0, 0.785], final: 6.72, len: 8.32, width: 2.5, tyres: [240, 240], tyreSize: ['9.00-20', '9.00-20 twin'], rollR: 0.495, aero: [5.6, -0.4, 0.5], sideA: 18, sideZ: -0.3,
-    wheel: { R: 0.51, I: 16, mu: 300, muR: 640, kt: 900000, ct: 2600, sx: 0.48, sy: 0.85, Fz0: 9500, ca: 0.75, tk: [6, 2.6] }, tandem: { d: 0.61, lim: 0.26, dual: true }, tyreSet: { all: 'xc' }, hbT: 3000, brkC: 7,
+    wheel: { R: 0.51, I: 16, mu: 300, muR: 640, kt: 900000, ct: 2600, sx: 0.48, sy: 0.85, Fz0: 9500, ca: 0.75, tk: [6, 2.6], ulim: 0.03 }, tandem: { d: 0.61, lim: 0.26, dual: true }, tyreSet: { all: 'xc' }, hbT: 3000, brkC: 7,
+    air: { V: 50, p0: 7.6, cut: [7.0, 8.4], comp: 0.28, vc: [1.2, 2.0], tl: [0.03, 0.07], tx: [0.05, 0.07], tf: [0.08, 0.11], te: [0.07, 0.09], crack: 0.4, ref: 7.7,
+      vs: 2.0, ts: [0.4, 0.22], sp: [1.5, 4.5], warn: 4.5, pop: 2.8, reach: 0.5, push: 0.1, drag: [6, 1.2] },
     diff: { f: { pre: 15 }, r: { pre: 300, ramp: 0.8, coast: 0.3 } }, diffType: { f: 'Open', r: 'Locking differentials on both bogie axles' },
     crewEra: { era: 'classic', turns: 5.5, wheel: { r: 0.255, t: 0.017, dish: 0.035, style: 'truck' }, hub: 0.42, tilt: 0.95, helmet: ['open', 'open'], mic: [true, true], hans: false,
       seat: 'plain', colors: { rim: '#a1a892', spoke: '#a1a892', wpad: '#99a08a', hub: '#8d947e', knob: '#1b1b1d', seatM: '#7d8565', seatB: '#717959', seatS: '#59604a', belt: '#3b4031' } },
     susp: { fF: 2.3, fR: 2.55, travel: 0.1, droop: 0.09, arbF: 0, arbR: 0, leafF: 0.47, leafR: 0.53, rcF: 0.8, rcR: 0.9, camF: 0, camR: 0, gainF: 0, gainR: 0, solidF: true, solidR: true, caster: 4, kpi: 8, toeR: 0, ack: 0.8,
       antiDive: 0.08, antiSquat: 0.2, hcg: 1.28, bias: 0.42, brake: 0.7, Ie: 1.5, gyP: 4.2, gyR: 0.75, zB: 0.2, zR: 0.32 },
-    note: 'A long six-wheeled army truck carrying a water tank and decontamination gear: over ten tonnes on a 180 hp diesel, so it pulls hard in the low gears and little more than 100 km/h flat out. It needs room to turn, its tall load leans and it will roll over long before the tyres let go: brake early, turn in gently and let all six wheels drag it through mud and snow.' },
+    note: 'A long six-wheeled army truck carrying a water tank and decontamination gear: over ten tonnes on a 183 hp diesel, so it pulls hard in the low gears and little more than 100 km/h flat out. It needs room to turn, its tall load leans and it will roll over long before the tyres let go: brake early, turn in gently and let all six wheels drag it through mud and snow. Its air brakes come on a moment after the pedal, and the handbrake is a knob on the dash the driver has to reach and pull.' },
   { id: 'limber_4x4', name: 'Limber 4x4', num: 52, drive: 'Full-time four-wheel drive, lockable centre and rear differentials, automatic', motor: '3.0-litre turbo-diesel V6, 225 hp', engine: 'Front-mounted V6 turbo-diesel, common-rail injection, variable-geometry turbo', litres: 2.959,
-    mass: 6200, wf: 0.47, wb: 3.925, track: [1.86, 1.86], yawK: 1.13, lock: 0.47, idle: 700, redline: 4000, cyl: 6, boost: 'turbo', na: 0.45, spool: [1100, 1900], lag: 0.5, fs: 0.4, lever: 'auto', tc: { k: 0.0095, tr: 2.0 }, shiftUp: 0.35, shiftDown: 0.3,
+    mass: 6200, wf: 0.47, wb: 3.925, track: [1.86, 1.86], yawK: 1.13, lock: 0.47, idle: 700, redline: 4000, cyl: 6, boost: 'turbo', na: 0.45, spool: [1100, 1900], lag: 0.5, fs: 0.4, lever: 'auto', tc: { k: 0.0095, tr: 2.0 }, shiftUp: 0.35, shiftDown: 0.3, upK: 0.47,
     tq: [[700, 260], [1000, 330], [1250, 420], [1500, 480], [1750, 500], [2500, 500], [3200, 500], [3600, 440], [3900, 350], [4100, 240]],
-    gears: [4.714, 3.143, 2.106, 1.667, 1.285, 1.0, 0.839, 0.667], final: 4.56, len: 5.95, width: 2.195, tyres: [318, 318], tyreSize: ['37x12.50R16.5', '37x12.50R16.5'], rollR: 0.455, aero: [4.6, -0.3, 0.5], sideA: 13, sideZ: -0.25,
+    gears: [3.795, 2.473, 1.613, 1.177, 1.0, 0.831, 0.689, 0.571], final: 4.56, len: 5.95, width: 2.195, tyres: [318, 318], tyreSize: ['37x12.50R16.5', '37x12.50R16.5'], rollR: 0.455, aero: [4.6, -0.3, 0.5], sideA: 13, sideZ: -0.25,
     wheel: { R: 0.47, I: 9, mu: 150, kt: 600000, ct: 1800, sx: 0.42, sy: 0.75, Fz0: 10800, ca: 0.8, tk: [4.5, 2.2] }, tyreSet: { all: 'mt' }, hbT: 2500, brkC: 4.5,
     diff: { f: { pre: 30, ramp: 0.2 }, c: { pre: 80, ramp: 0.35 }, r: { pre: 60, ramp: 0.35 } }, diffType: { f: 'Open', c: 'Lockable centre differential', r: 'Lockable rear differential' },
     crewEra: { era: 'golden', turns: 3.8, wheel: { r: 0.19, t: 0.017, dish: 0.03, style: 'car' }, hub: 0.47, tilt: 0.55, helmet: ['full', 'open'], mic: [false, true], hans: false,
@@ -4188,9 +4197,9 @@ const CARS_SP = [
       antiDive: 0.15, antiSquat: 0.2, hcg: 1.08, bias: 0.6, brake: 0.95, Ie: 0.45, gyP: 2.9, gyR: 0.62, zB: 0.28, zR: 0.45 },
     note: 'A light tactical vehicle with a tall box body and its roof gear: over six tonnes on big run-flat tyres and long-travel independent suspension. It shrugs off rocks and ruts that would break a rally car, but it sits high and leans: carry your speed smoothly and let the automatic gearbox and the four-wheel drive do the work.' },
   { id: 'palanquin_25d', name: 'Palanquin 25D', num: 53, drive: 'Rear-wheel drive, open differential, automatic', motor: '2.5-litre turbo-diesel four, 170 hp', engine: 'Front-mounted inline four turbo-diesel, common-rail injection, variable-geometry turbo', litres: 2.497,
-    mass: 2750, wf: 0.5, wb: 3.2, track: [1.685, 1.66], yawK: 0.98, lock: 0.62, idle: 750, redline: 4200, cyl: 4, boost: 'turbo', na: 0.45, spool: [1200, 2000], lag: 0.45, fs: 0, lever: 'auto', tc: { k: 0.0076, tr: 2.1 }, shiftUp: 0.4, shiftDown: 0.35,
-    tq: [[750, 200], [1000, 260], [1500, 360], [2000, 441], [2500, 441], [3000, 420], [3600, 333], [3900, 280], [4200, 190]],
-    gears: [3.52, 2.04, 1.4, 1.0, 0.73], final: 3.91, len: 5.125, width: 1.92, tyres: [215, 215], tyreSize: ['215/70R16', '215/70R16'], rollR: 0.343, aero: [1.75, -0.25, 0.5], sideA: 10, sideZ: -0.15,
+    mass: 2750, wf: 0.5, wb: 3.2, track: [1.685, 1.66], yawK: 0.98, lock: 0.62, idle: 750, redline: 4400, cyl: 4, boost: 'turbo', na: 0.45, spool: [1200, 2000], lag: 0.45, fs: 0, lever: 'auto', tc: { k: 0.0076, tr: 2.1 }, shiftUp: 0.4, shiftDown: 0.35, upK: 0.47,
+    tq: [[750, 180], [1000, 235], [1250, 290], [1500, 335], [1750, 372], [2000, 392], [2500, 392], [3000, 368], [3400, 340], [3800, 314], [4100, 270], [4400, 170]],
+    gears: [3.73, 2.308, 1.519, 1.0, 0.84], final: 2.929, len: 5.125, width: 1.92, tyres: [215, 215], tyreSize: ['215/70R16', '215/70R16'], rollR: 0.343, aero: [1.75, -0.25, 0.5], sideA: 10, sideZ: -0.15,
     wheel: { R: 0.354, I: 1.9, mu: 52, muR: 75, kt: 300000, ct: 600, sx: 0.32, sy: 0.6, Fz0: 7000, ca: 0.9, tk: [1.6, 1.3] }, tyreSet: { all: 'rd', snow: 'rdW' }, hbT: 1600, brkC: 2,
     diff: { r: { pre: 15, ramp: 0.05 } }, diffType: { r: 'Open' },
     crewEra: { era: 'golden', turns: 3.6, wheel: { r: 0.19, t: 0.017, dish: 0.03, style: 'car' }, hub: 0.45, tilt: 0.85, helmet: ['full', 'open'], mic: [false, true], hans: false,
@@ -4255,7 +4264,7 @@ const IDLE = {
   shallop_22: [1300, 'stop', 130, 0.9], carrack_24: [1300, 'stop', 130, 0.8], felucca_14t: [1000, 'stop', 60, 0.6], barque_21t: [1000, 'stop', 50, 0.6],
   ketch_30: [1100, 'stop', 80, 0.6], galliot_v8: [750, 'stop', 25, 0.4], yawl_20t: [950, 'stop', 40, 0.5], polacca_v4: [1100, 'stop', 90, 0.8],
   // (the diesels: a truck's mechanical governor and the electronic control of the newer two hold their idle closely)
-  caisson_6x6: [650, 'ecu', 15, 0.5], limber_4x4: [700, 'ecu', 10, 0.4], palanquin_25d: [750, 'ecu', 12, 0.4]
+  caisson_6x6: [550, 'ecu', 15, 0.5], limber_4x4: [700, 'ecu', 10, 0.4], palanquin_25d: [750, 'ecu', 12, 0.4]
 };
 for (const S of CARS) { const r = IDLE[S.id]; if (r) S.idle = r[0]; }
 // The engine's rotating inertia (kg m2): crankshaft, flywheel and clutch together. It sets how fast the revs rise and
@@ -4498,6 +4507,61 @@ function worldInfoTo(info, c, x, z, o) {
 }
 // the pads' grip on a disc at its temperature (°C): full up to about 650, then fading (70% at 800, 55% at 900)
 const brakeFade = t => 1 - 0.45 * smooth(650, 900, t);
+// ---- air brakes (S.air: the truck's; pressures in bar above the air outside, volumes in litres, times in seconds) ----
+// The engine turns a single-cylinder compressor at the crank's speed (A.comp litres a turn, filling less the higher the
+// pressure it pumps against), filling the tanks (A.V) until the governor unloads it at A.cut[1]: then the air dryer
+// purges its canister in one sharp blast, and the compressor turns idle (A.drag: what it takes from the crank, loaded
+// and idle, N m) until the tanks are down to A.cut[0]. The brake pedal works the foot valve: it lets air from the tanks
+// into each circuit's line in proportion to its travel (all the tanks hold at full travel) and, as it comes up, out of
+// its exhaust. Each circuit (0 the front axle's, 1 the bogie's) drives an air-hydraulic booster whose chamber (A.vc
+// with its line) fills from the line, so the wheels' brakes follow a moment late: the line fills (A.tl) then the
+// chamber (A.tf), each a lag, the bogie's longer line later still; they empty again through the exhaust (A.tx, A.te).
+// The brakes push with the air in the chamber (nothing until it passes A.crack, full at A.ref), so they weaken as the
+// tanks run down, and every application costs the tanks the air it took. The parking brake is springs held off by air
+// (A.sp: all the springs' force with the chamber below the first figure, none above the second): the knob on the dash
+// pulled out (the driver's hand needs A.reach after the handbrake is pressed to get there) lets the chamber's air out
+// (A.ts[1]) and the springs put the brake on; pushed back in (A.push), the tanks fill the chamber again (A.ts[0], A.vs)
+// and lift the springs off, so it cannot come off until there is air to do it. Below A.warn the low-air warning sounds;
+// below A.pop the knob pops out by itself, and goes back in only once the tanks hold enough. What is heard is told to
+// the sound as events: each circuit's exhaust (air:x:circuit:from:to, :r carrying one on), the knob pulled (air:park:chamber) and pushed in
+// (air:free:tanks), the dryer's purge (air:dry:tanks)
+function airInit(S) { const A = S.air; return { p: A.p0, l: [0, 0], ch: [0, 0], x: [0, 0], xp: [0, 0], s: A.p0, load: true, knob: 0, kt: 0, pt: 0, popped: false, kF: 0, kR: 0, kP: 0 }; }
+function airStep(c, S, brk, hb, run, rpm, dt) {
+  const A = S.air, a = c.air || (c.air = airInit(S));
+  // the compressor and its governor (turning only while the engine runs)
+  if (run && rpm > 250) {
+    if (a.load) { a.p += A.comp * rpm / 60 * Math.max(0, 0.9 - 0.05 * a.p) * 1.013 / A.V * dt; if (a.p >= A.cut[1]) { a.load = false; c.ev.push('air:dry:' + a.p.toFixed(2)); } }
+    else if (a.p <= A.cut[0]) a.load = true;
+  }
+  // the service brakes: the foot valve's delivery, each circuit's line and booster chamber
+  const tgt = clamp(brk, 0, 1) * a.p;
+  for (let k = 0; k < 2; k++) {
+    let l = a.l[k], ch = a.ch[k];
+    l += (tgt - l) * Math.min(1, dt / (tgt > l ? A.tl[k] : A.tx[k]));
+    const ch0 = ch; ch += (l - ch) * Math.min(1, dt / (l > ch ? A.tf[k] : A.te[k]));
+    if (ch > ch0) a.p = Math.max(0, a.p - (ch - ch0) * A.vc[k] / A.V); // (the air the chamber took, out of the tanks)
+    // (an exhaust begun - the pedal come up more than a little - heard from the chamber's pressure down to where it stops;
+    // the pedal coming up further while it is under way carries it on further: :r)
+    if (!a.x[k] && tgt < ch - 0.35) { a.x[k] = 1; a.xp[k] = tgt; c.ev.push('air:x:' + k + ':' + ch.toFixed(2) + ':' + tgt.toFixed(2)); }
+    else if (a.x[k] && tgt < a.xp[k] - 0.3) { a.xp[k] = tgt; c.ev.push('air:x:' + k + ':' + ch.toFixed(2) + ':' + tgt.toFixed(2) + ':r'); }
+    else if (a.x[k] && tgt > ch - 0.08) a.x[k] = 0;
+    a.l[k] = l; a.ch[k] = ch;
+  }
+  // the parking brake's knob: pulled once the hand has reached it, pushed in as the handbrake is let go (it will not stay
+  // in without the air to hold it); popping out by itself when the tanks run down
+  if (a.knob) { if (!hb && a.p > A.pop + 0.6) { if ((a.pt += dt) >= A.push) { a.knob = 0; a.pt = 0; a.popped = false; c.ev.push('air:free:' + a.p.toFixed(2)); } } else a.pt = 0; }
+  else if (a.p < A.pop) { a.knob = 1; a.popped = true; a.kt = 0; c.ev.push('air:park:' + a.s.toFixed(2)); }
+  else if (hb) { if ((a.kt += dt) >= A.reach) { a.knob = 1; a.kt = 0; c.ev.push('air:park:' + a.s.toFixed(2)); } }
+  else a.kt = 0;
+  // the springs' chamber: emptying through its quick-release valve, or filling from the tanks
+  const s0 = a.s;
+  if (a.knob) a.s -= a.s * Math.min(1, dt / A.ts[1]);
+  else if (a.p > a.s) { a.s += (a.p - a.s) * Math.min(1, dt / A.ts[0]); a.p = Math.max(0, a.p - (a.s - s0) * A.vs / A.V); }
+  // what each does: the service brakes' share of their full force at each axle, the springs' share of theirs
+  const kc = 1 / (A.ref - A.crack); a.kF = clamp((a.ch[0] - A.crack) * kc, 0, 1.3); a.kR = clamp((a.ch[1] - A.crack) * kc, 0, 1.3);
+  a.kP = clamp((A.sp[1] - a.s) / (A.sp[1] - A.sp[0]), 0, 1);
+  return a;
+}
 // a tyre's load at a deflection p: its sidewall, then past 7 cm the rim crushing it against the ground (four times as stiff)
 const tyreLoad = (kt, p) => kt * Math.min(p, 0.07) + (p > 0.07 ? 3 * kt * (p - 0.07) : 0);
 const HBS = [0.08, 20]; // hydraulic bump stop: the length of travel it works over (m), its strength against the main bump damping
@@ -4677,7 +4741,7 @@ function setupSpec(S, su, env) {
     karbF: su.aF * 1000, karbR: su.aR * 1000, camF: su.camF, camR: su.camR, toeF: su.toeF, toeR: su.toeR, rhF: su.rhF / 1000, rhR: su.rhR / 1000, bias: su.bias / 100, brake: K0.sp.brake * su.bp / 100 });
   const diff = {}; for (const a in b.diff) { const q = (su.diff && su.diff[a]) || b.diff[a]; diff[a] = { pre: q.pre, ramp: q.pow / 100, coast: q.coa / 100, kv: q.vis }; }
   const E = Object.create(S), key = TYRE_C[su.c] && tyresFor(S, env.surface).includes(su.c) ? su.c : tyreFor(env, S), C = TYRE_C[key];
-  Object.assign(E, { _sp: null, _el: null, susp, diff, final: su.fd || S.final, hbT: 1700 * su.hb / 100, lock: (su.lock || S.lock * 180 / Math.PI) * Math.PI / 180, setup: su, base: S, snorkel: !!su.snk });
+  Object.assign(E, { _sp: null, _el: null, susp, diff, final: su.fd || S.final, hbT: (S.hbT || 1700) * su.hb / 100, lock: (su.lock || S.lock * 180 / Math.PI) * Math.PI / 180, setup: su, base: S, snorkel: !!su.snk });
   const dcg = (su.rhF * S.wf + su.rhR * (1 - S.wf)) / 1000;
   if (dcg) { const h = S.hull || {}; E.hull = Object.assign({}, h, { floor: (h.floor != null ? h.floor : 0.26) + dcg, belt: (h.belt || 0.95) + dcg, roof: (h.roof || 1.32) + dcg }); }
   // the tyres: their compound, cold pressures and the temperature they were set at; how readily they puncture (lower
@@ -5035,6 +5099,10 @@ function stepCar(c, S, inp, dt, T, opts) {
     wh.ux = clamp((wh.ux + dt * slipV) / (1 + dt * avx / WH.sx), -WH.sx * 6, WH.sx * 6);
     wh.uy = clamp((wh.uy + dt * (vy + dvy)) / (1 + dt * avx / WH.sy), -WH.sy * 4, WH.sy * 4);
     if (bog) { wh.ux2 = clamp(((wh.ux2 || 0) + dt * slipV) / (1 + dt * avx / WH.sx), -WH.sx * 6, WH.sx * 6); wh.uy2 = clamp(((wh.uy2 || 0) + dt * (vy - dvy)) / (1 + dt * avx / WH.sy), -WH.sy * 4, WH.sy * 4); }
+    // (WH.ulim: near a standstill the tread's wind-up is the carcass's own deflection, a few centimetres at most before it
+    // slides, not the slip it carried at speed - so a wheel held by its brakes as the vehicle stops springs it back that
+    // far and no further)
+    if (WH.ulim && avx < 3) { const ul = WH.ulim + (WH.sx * 6 - WH.ulim) * avx / 3; wh.ux = clamp(wh.ux, -ul, ul); if (bog) wh.ux2 = clamp(wh.ux2, -ul, ul); }
     wh.slipL = slipV; wh.slipT = vy;
     if (wh.Fz <= 0) { wh.Fx = 0; wh.Fy = 0; wh.Mz = 0; wh.Mk = 0; wh.rho = 0; wh.fF = 0; wh.fL = 0; wh.ux *= 0.8; wh.uy *= 0.8; if (bog) { wh.ux2 *= 0.8; wh.uy2 *= 0.8; } continue; }
     const Fzc = Math.min(wh.Fz, Fzn * 4), Dw = DR ? DR.w[i] : null;
@@ -5120,7 +5188,7 @@ function stepCar(c, S, inp, dt, T, opts) {
   else if (c.limT > 0) Te *= 1 - (c.limK || 1);
   // a downshift blips the throttle (the driver's heel, or the gearbox's own blip): the engine brought up to the lower
   // gear's speed by the time the dogs go in, so they meet the road's speed without a snatch. c.blip: how far it opened
-  c.blip = 0; const fr = engineDrag(S, c.rpm, we, thrIn);
+  c.blip = 0; const fr = engineDrag(S, c.rpm, we, thrIn) + (S.air && c.air && !eOff ? S.air.drag[c.air.load ? 0 : 1] : 0); // (and the brakes' compressor: see airStep)
   if (c.shiftT > 0 && c.shiftDn && c.gear > 0 && !S.tc && !eOff && !(DR && DR.eng <= 0)) {
     const wsD = Math.abs(S.fs / 2 * (W[0].omega + W[1].omega) + (1 - S.fs) / 2 * (W[2].omega + W[3].omega)), need = (wsD * Math.abs(Gr) - we) * SP.Ie / Math.max(c.shiftT, dt); // (the driven wheels' speed)
     if (need > 0) { const full = Math.max(1, engineTorque(S, c.rpm, c.boost * (DR ? DR.turbo : 1)) * kE), tb = Math.min(need, full); c.blip = clamp(tb / full, 0, 1); Te = tb + fr; }
@@ -5136,12 +5204,14 @@ function stepCar(c, S, inp, dt, T, opts) {
   // disc; a stage driven hard keeps them at 350-500 °C. Driven harder (big stops one after another, steep descents, or
   // dragging them with the left foot) they pass 650 °C, where the pads start to fade: at 800 °C they grip about 30% less,
   // at 900 °C nearly half
-  const bT = brkIn * m * g * SP.brake * R0, aT0 = T.air != null ? T.air : 15, BT = c.brk || (c.brk = [aT0 + 100, aT0 + 100, aT0 + 100, aT0 + 100]), vAir = Math.min(60, au), aK4 = Math.pow(aT0 + 273.15, 4);
+  // (air brakes: each axle's brakes follow their circuit's air, and the parking brake is springs held off by air)
+  const AB = S.air ? airStep(c, S, brkIn, hb, !eOff, c.rpm, dt) : null;
+  const bT = (AB ? 1 : brkIn) * m * g * SP.brake * R0, aT0 = T.air != null ? T.air : 15, BT = c.brk || (c.brk = [aT0 + 100, aT0 + 100, aT0 + 100, aT0 + 100]), vAir = Math.min(60, au), aK4 = Math.pow(aT0 + 273.15, 4);
   for (let i = 0; i < 4; i++) {
     const G = K.W[i], wh = W[i]; wh.omega += dt * (-wh.Fx * R0) / IW[i];
-    const Tp = bT * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(BT[i]);
+    const Tp = bT * (AB ? (G.front ? AB.kF : AB.kR) : 1) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(BT[i]);
     let Tb = Tp + ((wh.ty ? wh.ty.crr : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? 0.16 : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
-    if (!G.front && hb) Tb += S.hbT || 1700;
+    if (!G.front && (AB ? AB.kP > 0 : hb)) Tb += (S.hbT || 1700) * (AB ? AB.kP : 1);
     const w0 = Math.abs(wh.omega), d = Tb * dt / IW[i]; if (w0 <= d) wh.omega = 0; else wh.omega -= Math.sign(wh.omega) * d;
     const tB = BT[i], Pin = Tp * (w0 + Math.abs(wh.omega)) / 2, Pout = (8 + 1.3 * vAir) * (tB - aT0) + 1.13e-8 * (Math.pow(tB + 273.15, 4) - aK4);
     // (a heavy vehicle's brakes, S.brkC times a rally car's in their mass and the air over them: a truck's drums)
@@ -5191,7 +5261,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const cK = S.clutchK || 1;
     let engage = dsRpm < 1500 * cK ? smooth((1050 + 2700 * thrIn) * cK, (2100 + 3300 * thrIn) * cK, c.rpm) * (thrIn > 0.05 || dsRpm > 900 * cK ? 1 : 0) : 1;
     if (dsRpm < 1500 * cK && dsRpm > 900 * cK && thrIn <= 0.05) engage = Math.max(engage, smooth(900 * cK, 1500 * cK, dsRpm));
-    if (c.shiftT > 0 || hold || (hb && kR > 0) || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0))) engage = 0;
+    if (c.shiftT > 0 || hold || ((AB ? AB.kP > 0.05 : hb) && kR > 0) || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0))) engage = 0;
     if (es.jolt > 0) engage = 1; // (hydrolocked in gear: the clutch snatches the driven wheels before the driver dips it)
     const cap = 1.9 * S.tmax * engage * (inp.clutch != null ? clamp(inp.clutch, 0, 1) : 1), iE = (locked ? 1e-4 : 1) / SP.Ie; // (locked: as good as immovable)
     for (let it = 0; it < 2; it++) {
@@ -5327,7 +5397,8 @@ function stepCar(c, S, inp, dt, T, opts) {
     // an automatic's own schedule, read off the road's speed (its turbine's): up early on a light throttle and near the
     // red line flat out, down when the throttle goes to the floor and the lower gear has room (kickdown) or as the car slows
     const up = c.gear + 1, dn = c.gear - 1, thr = clamp(inp.throttle, 0, 1), r = roadRpm(S.gears[c.gear - 1]);
-    if (up <= nG && gOk(up) && r > S.redline * (0.42 + 0.52 * thr) && roadRpm(S.gears[up - 1]) > 0.3 * S.redline) { c.gear = up; c.shiftT = S.shiftUp || 0.3; c.shiftDn = false; c.ev.push('up'); }
+    // (S.upK: a diesel's gearbox, its power falling away well before its governor, shifts up flat out at its power's peak)
+    if (up <= nG && gOk(up) && r > S.redline * (0.42 + (S.upK || 0.52) * thr) && roadRpm(S.gears[up - 1]) > 0.3 * S.redline) { c.gear = up; c.shiftT = S.shiftUp || 0.3; c.shiftDn = false; c.ev.push('up'); }
     else if (dn >= 1 && gOk(dn) && ((thr > 0.9 && roadRpm(S.gears[dn - 1]) < 0.84 * S.redline) || r < S.redline * (0.22 + 0.2 * thr))) { c.gear = dn; c.shiftT = S.shiftDown || 0.3; c.shiftDn = true; c.ev.push('down'); }
   } else if (inp.auto !== false && c.gear > 0 && c.shiftT <= 0) {
     if (!gOk(c.gear)) { let g2 = c.gear + 1; while (g2 <= nG && !gOk(g2)) g2++; if (g2 > nG || roadRpm(S.gears[g2 - 1]) < 0.3 * S.redline) { g2 = c.gear - 1; while (g2 > 1 && !gOk(g2)) g2--; } c.gear = Math.max(1, Math.min(nG, g2)); c.shiftT = 0.15; }
@@ -6637,7 +6708,7 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = 'D417';
+const SR86_BUILD = '9FAB';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -10015,11 +10086,11 @@ class RallyCarKit {
         '#include <color_fragment>',
         'vec3 dLight = vec3(0.0);',
         'float dk = floor(vDial.z + 0.5);',
-        'if ((dk > 0.5 && dk < 3.5) || (dk > 6.5 && dk < 7.5)) {',
+        'if ((dk > 0.5 && dk < 3.5) || (dk > 6.5 && dk < 8.5)) {',
         // q: across the face 0-1; the atlas holds the faces by day on top and their lit scales below, one column per dial
-        // (the speedometer, face 7, in the fourth)
-        '  vec2 q = clamp(vDial.xy, 0.0, 1.0); float col = dk > 6.5 ? 3.0 : dk - 1.0;',
-        '  vec3 paint = texture2D(uDialTex, vec2((col + q.x) * 0.25, 0.5 + q.y * 0.5)).rgb, glow = texture2D(uDialTex, vec2((col + q.x) * 0.25, q.y * 0.5)).rgb;',
+        // (the speedometer, face 7, in the fourth; an air brakes' pressure gauge, face 8, in the fifth)
+        '  vec2 q = clamp(vDial.xy, 0.0, 1.0); float col = dk > 7.5 ? 4.0 : dk > 6.5 ? 3.0 : dk - 1.0;',
+        '  vec3 paint = texture2D(uDialTex, vec2((col + q.x) * 0.2, 0.5 + q.y * 0.5)).rgb, glow = texture2D(uDialTex, vec2((col + q.x) * 0.2, q.y * 0.5)).rgb;',
         // the red line: from the car's limit to the end of the scale, a band just inside the ticks
         '  vec2 c = q - 0.5; float rr = length(c) * 2.0, th = atan(c.y, c.x); if (th < -1.5708) th += 6.283185; float f = (3.926991 - th) / 4.712389;',
         '  float red = vDial.w < 1.0 ? step(vDial.w, f) * step(f, 1.0) * step(0.81, rr) * step(rr, 0.87) : 0.0;',
@@ -10085,13 +10156,15 @@ class RallyCarKit {
   static dialTexture() {
     if (RallyCarKit._dialTex !== undefined) return RallyCarKit._dialTex;
     if (typeof document === 'undefined' || !document.createElement) return (RallyCarKit._dialTex = null);
-    const S = 512, cv = document.createElement('canvas'); cv.width = S * 4; cv.height = S * 2; const x = cv.getContext('2d');
+    const S = 512, cv = document.createElement('canvas'); cv.width = S * 5; cv.height = S * 2; const x = cv.getContext('2d');
     if (!x) return (RallyCarKit._dialTex = null);
     const dials = [
       { max: 10, major: 1, minor: 0.5, label: (v) => String(v), units: ['\u00d71000', 'r/min'] },
       { max: 2, major: 0.5, minor: 0.25, label: (v) => (v % 1 ? '' : String(v)), units: ['BOOST', 'bar'] },
       { max: 8, major: 2, minor: 1, label: (v) => String(v), units: ['OIL', 'bar'] },
-      { max: 120, major: 20, minor: 10, label: (v) => String(v), units: ['km/h', ''] }];
+      { max: 120, major: 20, minor: 10, label: (v) => String(v), units: ['km/h', ''] },
+      // (an air brakes' tanks, in kgf/cm2 as the truck's gauge reads them: red below where the low-air warning sounds)
+      { max: 10, major: 2, minor: 1, label: (v) => String(v), units: ['AIR', 'kgf/cm\u00b2'], low: 4.5 }];
     const lamps = [['#0e2a14', '#3dff6a'], ['#0b1838', '#4a86ff'], ['#0e2a14', '#3dff6a'], ['#3a2606', '#ffa31a']];
     // the lamps' symbols, simplified: two small lamps back to back (lights on); a lamp shining left with level rays (main
     // beam) or with rays dipped and crossed by a wavy line (front fog); a lamp shining right, level rays crossed (rear fog)
@@ -10114,6 +10187,7 @@ class RallyCarKit {
       x.fillStyle = lit ? '#000' : '#202023'; x.fillRect(ox, oy, S, S);
       if (!lit) { x.fillStyle = '#3a3a3e'; x.beginPath(); x.arc(cx, cy, R * 0.94, 0, Math.PI * 2); x.fill(); x.fillStyle = '#0c0c0d'; x.beginPath(); x.arc(cx, cy, R * 0.87, 0, Math.PI * 2); x.fill(); }
       const ink = lit ? '#8dffaa' : '#ecebe4', ang = v => Math.PI * 1.25 - v / D.max * Math.PI * 1.5; // the needle's sweep, as seen from the seat
+      if (D.low) { x.strokeStyle = lit ? '#ff3a24' : '#b3170f'; x.lineWidth = R * 0.07; x.lineCap = 'butt'; x.beginPath(); x.arc(cx, cy, R * 0.835, -ang(0), -ang(D.low), false); x.stroke(); }
       for (let v = 0; v <= D.max + 1e-6; v += D.minor) {
         const major = Math.abs(v / D.major - Math.round(v / D.major)) < 1e-6, a = ang(v), r0 = R * (major ? 0.64 : 0.7), r1 = R * 0.8;
         x.strokeStyle = ink; x.lineWidth = major ? 9 : 5; x.lineCap = 'butt'; x.beginPath(); x.moveTo(cx + Math.cos(a) * r0, cy - Math.sin(a) * r0); x.lineTo(cx + Math.cos(a) * r1, cy - Math.sin(a) * r1); x.stroke();
@@ -10769,7 +10843,7 @@ class RallyCarKit {
     body.bone = 0; body.group = '';
 
     // ---- cockpit: bones 0 cabin, 1 steering wheel, 2 rev needle, 3 boost needle, 4 driver's head, 5 co-driver's head ----
-    let eyeAt = null, steerAt = null, tachAt = null, boostAt = null, headAt = null, coHeadAt = null, bayInfo = null, cabInfo = null, hoodAt = null, tailAt = null, scrInfo = null, crewR = null, speedo = 0; const crewAt = [];
+    let eyeAt = null, steerAt = null, tachAt = null, boostAt = null, airAt = null, headAt = null, coHeadAt = null, bayInfo = null, cabInfo = null, hoodAt = null, tailAt = null, scrInfo = null, crewR = null, speedo = 0; const crewAt = [];
     if (!ghost) {
       const ws = wsInfo || { zBase: 0.6 + zOff, yBase: 0.92, zTop: zOff, yTop: 1.34 };
       const CP = D.cockpit || {}, cs = CP.cage === 'lite' ? 4 : 6; // cage tube segments
@@ -11126,7 +11200,7 @@ class RallyCarKit {
       };
       // (yR, zR: the inside of the rim's flat top, the yellow centre mark left out)
       if (scrKind) { const rIn = CE.wheel.r - CE.wheel.t - 0.004, yR = wy + rIn * Math.cos(steerAt.rot[0]), zR = wz + rIn * Math.sin(steerAt.rot[0]); tachAt = boostAt = display(scrKind, seatZ + 0.09, yR, zR); scrInfo = { kind: scrKind, scale: CK_SCR[scrKind].scale }; }
-      else if (CP.gauges) for (const q of CP.gauges) { const gg = gauge(xd + q.x, q.r, q.bone || 0, q.dial, q.dial === 1 ? Math.min(1, S.redline / 10000) : 2, q.y, q.z, q.bone ? null : (q.at != null ? q.at : 0.3)); if (q.bone === 2) tachAt = gg; else if (q.bone === 3) boostAt = gg; }
+      else if (CP.gauges) for (const q of CP.gauges) { const gg = gauge(xd + q.x, q.r, q.bone || 0, q.dial, q.dial === 1 ? Math.min(1, S.redline / 10000) : 2, q.y, q.z, q.bone ? null : (q.at != null ? q.at : 0.3)); if (q.bone === 2) tachAt = gg; else if (q.bone === 3) boostAt = gg; else if (q.bone === 6) airAt = gg; } // (bone 6: an air brakes' pressure gauge)
       else { tachAt = gauge(xd + 0.09, 0.075, 2, 1, Math.min(1, S.redline / 10000)); boostAt = gauge(xd - 0.1, 0.05, 3, S.boost === 'na' ? 3 : 2, 2); }
       speedo = CP.speedo || 0; // (a speedometer's full scale, km/h: bone 3's needle reads the road speed)
       eyeAt = [xd, eyeY, seatZ + 0.09]; crewAt.push([eyeAt[0], eyeAt[1], eyeAt[2], 0.17]); // and the driver's view
@@ -11314,7 +11388,7 @@ class RallyCarKit {
       const glassMesh = new THREE.Mesh(geo(glass, false, false), this.mats.glass); glassMesh.name = 'GlassMesh'; glassMesh.renderOrder = 2; bodyG.add(glassMesh);
       const cabBone = new THREE.Bone(); cabBone.name = 'CabinBone'; bodyG.add(cabBone);
       const pivot = (P, name) => { const g = new THREE.Group(); g.name = name; g.position.set(P.pos[0], P.pos[1], P.pos[2]); g.rotation.set(P.rot[0], P.rot[1], P.rot[2]); bodyG.add(g); const bn = new THREE.Bone(); bn.name = name + 'Bone'; g.add(bn); return bn; };
-      I.wheel = pivot(steerAt, 'SteeringColumn'); I.tach = pivot(tachAt, 'RevGauge'); I.boost = pivot(boostAt, 'BoostGauge'); I.head = pivot(headAt, 'DriverHead'); I.cohead = pivot(coHeadAt, 'CodriverHead');
+      I.wheel = pivot(steerAt, 'SteeringColumn'); I.tach = pivot(tachAt, 'RevGauge'); I.boost = pivot(boostAt, 'BoostGauge'); I.head = pivot(headAt, 'DriverHead'); I.cohead = pivot(coHeadAt, 'CodriverHead'); if (airAt) I.air = pivot(airAt, 'AirGauge');
       cabMesh = new THREE.SkinnedMesh(geo(cab, true, true), this.mats.interior); cabMesh.name = 'InteriorMesh'; cabMesh.receiveShadow = true; bodyG.add(cabMesh);
       // the crew: a skinned mesh of their own (crew.js), on bones under the body (the steering wheel's bone shared with the cabin's mesh)
       if (crewR) { const R = crewR, bn = R.bones.map(d => d.parent === 'WHEEL' ? I.wheel : Object.assign(new THREE.Bone(), { name: 'Crew' + d.name }));
@@ -11334,7 +11408,7 @@ class RallyCarKit {
     }
     root.updateMatrixWorld(true);
     bodyMesh.bind(new THREE.Skeleton([bodyBone].concat(wheels.map(w => w.w), wipers, wheels.filter(w => w.w2).map(w => w.w2))));
-    if (cabMesh) cabMesh.bind(new THREE.Skeleton([I.cabBone, I.wheel, I.tach, I.boost, I.head, I.cohead]));
+    if (cabMesh) cabMesh.bind(new THREE.Skeleton([I.cabBone, I.wheel, I.tach, I.boost, I.head, I.cohead].concat(I.air ? [I.air] : [])));
     if (crewMesh) { const sk = new THREE.Skeleton(crewBones); crewMesh.bind(sk); if (crewLow) crewLow.bind(sk); }
     const flame = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9 })); flame.name = 'BackfireFlame'; flame.position.set(exX, exY, exZ - 0.18); flame.visible = false; bodyG.add(flame);
     // the rig holds the animated parts (not in userData, so clone() and toJSON() stay safe)
@@ -15233,7 +15307,7 @@ const SP_CARS = {
     ],
     windows: [{ pts: [[1.445, 2.19, 0.03], [0.715, 2.19, 0.03], [0.715, 1.92, 0.02], [1.445, 1.92, 0.02]], frame: 0.025 }],
     shut: [1.495, 0.6], handles: [0.735], numZ: 1.055, frame: 'body', cockpit: { cage: 'none', screen: 'dials', road: true, parts: 'spTruckCab', seatZ: 0.775, flatFloor: true, hbAt: { dash: [0.34, -0.27] }, leverAt: [[0.0, 0.0, 0.6], [0.0, 0.6, 0.42]], speedo: 120, inner: { dash: '#66704c', shell: '#5c6646', floor: '#2b2d27' },
-      gauges: [{ x: -0.328, y: -0.075, z: 0.032, r: 0.055, bone: 3, dial: 7 }, { x: -0.472, y: -0.075, z: 0.032, r: 0.055, bone: 2, dial: 1 }, { x: -0.27, y: -0.165, z: 0.032, r: 0.022, dial: 3, at: 0.5 },
+      gauges: [{ x: -0.328, y: -0.075, z: 0.032, r: 0.055, bone: 3, dial: 7 }, { x: -0.472, y: -0.075, z: 0.032, r: 0.055, bone: 2, dial: 1 }, { x: -0.27, y: -0.165, z: 0.032, r: 0.022, bone: 6, dial: 8 },
         { x: -0.335, y: -0.165, z: 0.032, r: 0.022, dial: 3, at: -0.3 }, { x: -0.4, y: -0.165, z: 0.032, r: 0.022, dial: 3, at: 0.9 }, { x: -0.465, y: -0.165, z: 0.032, r: 0.022, dial: 3, at: 0.1 }, { x: -0.53, y: -0.165, z: 0.032, r: 0.022, dial: 3, at: -0.6 }] }, wipers: { at: 'top', x: [-0.27, 0.4], len: 0.38, park: -0.38, t: 0.74 },
     hullBox: { zf: 3.415, zr: -4.905, hw: 1.25, floor: 0.62, belt: 1.75, roof: 2.7, rw: 1.0, rzf: 1.535, rzr: -4.83 },
     aero: [['spTruck', {}]]
@@ -15386,6 +15460,7 @@ function animateInterior(m, c, S, dt, hbOn, interior, d2) {
   else I.wheel.rotation.z = -(c.delta || 0) * 13;
   const nAng = v => Math.PI * 0.75 - clamp(v, 0, 1) * Math.PI * 1.5;
   I.tach.rotation.z += (nAng((c.rpm || 0) / 10000) - I.tach.rotation.z) * Math.min(1, dt * 20);
+  if (I.air) I.air.rotation.z += (nAng((c.air ? c.air.p : 0) * 1.0197 / 10) - I.air.rotation.z) * Math.min(1, dt * 8); // (an air brakes' tanks: kgf/cm2, of 10)
   // the second gauge: boost, or on an engine without a turbo or blower its oil pressure (about 1.4 bar hot at idle,
   // rising with the revs to about 6 bar), out of the gauge's 8
   const second = m.speedo ? clamp(Math.hypot(c.u || 0, c.v || 0) * 3.6 / m.speedo, 0, 1) : S.boost === 'na' ? clamp((0.9 + 5.2 * (c.rpm || 0) / S.redline) / 8, 0, 1) : (c.boost || 0) * 0.85;
@@ -16135,7 +16210,7 @@ function EngineDSPDef() {
   class EngineDSP {
     constructor(sr, cfg) {
       this.sr = sr; this.cfg = cfg; this.seed = 0x9e3779b9 ^ ((cfg.cyl * 7919) >>> 0); const K = cfg, n = K.cyl, M = K.mech, I = K.intake;
-      this.P = { rpm: 900, thr: 0, load: 0, spool: 0, sc: 0, gear: 0, tq: 0, wheel: 0, cut: 0, on: 1, mis: 0, wet: 0, leak: 0, chip: 0, crack: 0, st: 0, crank: 0 };
+      this.P = { rpm: 900, thr: 0, load: 0, spool: 0, sc: 0, gear: 0, tq: 0, wheel: 0, cut: 0, on: 1, mis: 0, wet: 0, leak: 0, chip: 0, crack: 0, st: 0, crank: 0, cmp: 0 };
       // water: cylinders that failed to fire this cycle (a wet ignition, a charge quenched by water), and the tailpipe under
       // water - the exhaust gurgling out in bubbles (each a burst of low noise, its pitch by its size) and the note muffled
       this.misC = new Uint8Array(cfg.cyl); this.bub = 0; this.bubBP = new BQ().set('bp', 260, 1.2, sr); this.bubD = Math.exp(-1 / (0.035 * sr)); this.wz = 0; this.wz2 = 0; this.wA = 1 - Math.exp(-TAU * 260 / sr);
@@ -16144,6 +16219,8 @@ function EngineDSPDef() {
       // seat), injection, intake valve opening (20° before overlap TDC), suction (20° after), exhaust valve seating (25°
       // after), intake valve seating (45° after bottom centre) and combustion (knock through the block)
       const ev = []; K.fire.forEach((f, c) => { ev.push({ a: (f + 130) % 720, t: 0, c }, { a: (f + 330) % 720, t: 5, c }, { a: (f + 340) % 720, t: 4, c }, { a: (f + 380) % 720, t: 1, c }, { a: (f + 385) % 720, t: 2, c }, { a: (f + 585) % 720, t: 2, c }, { a: (f + 12) % 720, t: 3, c }); });
+      // (an air brakes' compressor geared to the crank: a stroke each turn, its discharge valve slapping open at the top)
+      if (M.cmp) ev.push({ a: M.cmp[0] % 720, t: 6, c: 0 }, { a: (M.cmp[0] + 360) % 720, t: 6, c: 0 });
       ev.sort((p, q) => p.a - q.a); this.ev = ev; this.ei = 0; this.th = 0; this.base = 0; this.next = ev[0].a;
       this.prim = K.prim.map(L => new Duct(sr, L, 620, K.gP != null ? K.gP : -0.32, 0.55)); this.inp = new Float32Array(n); this.carry = new Float32Array(n);
       this.pLP = K.primLP ? K.primLP.map(f => 1 - Math.exp(-TAU * f / sr)) : null; this.pZ = new Float32Array(n); // a long pipe smears its pulse
@@ -16189,6 +16266,10 @@ function EngineDSPDef() {
       this.hpp = 0; this.phHP = 0; this.hpBP = new BQ().set('bp', 3600, 2.5, sr); this.hpD = Math.exp(-1 / (0.0006 * sr));
       this.inj = 0; this.injBP = new BQ().set('bp', M.inj ? M.inj[0] : 3000, 2.2, sr); this.injD = Math.exp(-1 / ((M.inj && M.inj[0] < 2000 ? 0.0009 : 0.00035) * sr));
       this.phFP = 0; this.phDS = 0;
+      // the air brakes' compressor (M.cmp: [its top dead centre in the crank's degrees, how loud, the band its head and
+      // valves ring in]): each stroke against the tanks a knock (the discharge valve slapping open, the piston turning
+      // over against the air it squeezed) and a thump down its delivery pipe; turning idle, only a faint tick
+      this.cmpE = 0; this.cmpBP = new BQ().set('bp', M.cmp ? M.cmp[2] : 700, 2.4, sr); this.cmpLB = new BQ().set('bp', 150, 1.3, sr); this.cmpD = Math.exp(-1 / (0.007 * sr));
       this.phG1 = 0; this.phG2 = 0; this.phSh = 0; this.phD = 0; this.phFan = 0; this.fanBP = new BQ().set('bp', 2000, 3, sr);
       // gearbox and driveline (box: seq, paddle or H, with how hard it rattles, clunks and clacks): the casing struck (an
       // excitation dying in a millisecond, ringing through the case's modes), the driveline's thump (its slack taken up), a
@@ -16206,7 +16287,7 @@ function EngineDSPDef() {
     ftz() {
       this.thr = ftz(this.thr); this.load = ftz(this.load); this.spool = ftz(this.spool); this.scB = ftz(this.scB); this.tq = ftz(this.tq); this.wheel = ftz(this.wheel); this.lastThr = ftz(this.lastThr); this.popHeat = ftz(this.popHeat);
       this.bd1 = ftz(this.bd1); this.bd2 = ftz(this.bd2); this.bn = ftz(this.bn); this.wg = ftz(this.wg); this.wgX = ftz(this.wgX); this.wgVv = ftz(this.wgVv); this.wgK = ftz(this.wgK); this.wgHit = ftz(this.wgHit); this.jUm = ftz(this.jUm);
-      this.clk = ftz(this.clk); this.inj = ftz(this.inj); this.hpp = ftz(this.hpp); this.csE = ftz(this.csE); this.thE = ftz(this.thE); this.air = ftz(this.air); this.bub = ftz(this.bub); for (let k = 0; k < 4; k++) this.cs[k].ftz();
+      this.clk = ftz(this.clk); this.inj = ftz(this.inj); this.hpp = ftz(this.hpp); this.csE = ftz(this.csE); this.thE = ftz(this.thE); this.air = ftz(this.air); this.bub = ftz(this.bub); for (let k = 0; k < 4; k++) this.cs[k].ftz(); this.cmpE = ftz(this.cmpE); this.cmpBP.ftz(); this.cmpLB.ftz();
     }
     // the tailpipe and its silencer torn off: the gas leaves straight from a shorter pipe, unsilenced and louder
     open(on) {
@@ -16320,7 +16401,7 @@ function EngineDSPDef() {
       const on = P.on, cam = M.cam, fp = M.fp, ds = M.ds || 0, inj = M.inj;
       // (the car's figures the samples use, read once a block)
       const kTb = K.turbo, kFlow = K.flow, kSteep = K.steep, kEmph = K.emph, kSil = K.silMix, kBankW = K.bankW, kFinal = K.final || 4.8, tr = K.trim, tr0 = tr[0], tr1 = tr[1], tr2 = tr[2], tr3 = tr[3];
-      const itb = I.itb, isc = I.sc, popoff = I.popoff, mValve = M.valve, mKnock = M.knock, mComp = M.comp || 1, mCm = M.cm, mPin = M.pinion, mWhine = M.whine, teeth = M.teeth, mHpp = M.hpp, mFan = M.fan, dz = !!M.dz;
+      const itb = I.itb, isc = I.sc, popoff = I.popoff, mValve = M.valve, mKnock = M.knock, mComp = M.comp || 1, mCm = M.cm, mPin = M.pinion, mWhine = M.whine, teeth = M.teeth, mHpp = M.hpp, mFan = M.fan, dz = !!M.dz, mCmp = M.cmp;
       for (let s = 0; s < n; s++) {
         if ((this.kc++ & 31) === 0) {
           this.ftz(); this.coef();
@@ -16354,6 +16435,8 @@ function EngineDSPDef() {
               // overlap at idle on open trumpets: with the throttles all but shut, burnt gas pushes back up the inlet as the
               // inlet valve opens - the chuff a racing engine spits from its trumpets at idle
               if (itb && this.iK > 0) this.iin += lope * this.iK * (0.6 + 0.8 * (_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296)) * 0.12 * (1 - this.thr); }
+            // (the compressor's stroke: pumping, a knock and the draw on the air cleaner it shares with the engine; idle, a tick)
+            else if (e.t === 6) { const k = P.cmp; if (k > 0.01) { this.cmpE = Math.max(this.cmpE, k * (0.85 + 0.3 * (_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296))); if (k > 0.5) this.iin -= 0.1 * k; } }
             else if (inj) this.inj = Math.max(this.inj, 0.4 + 0.6 * this.load);
           }
           if (++this.ei >= this.ev.length) { this.ei = 0; this.base += 720; } this.next = this.base + this.ev[this.ei].a;
@@ -16435,7 +16518,8 @@ function EngineDSPDef() {
           this.phD += this.wheel * kFinal * mPin / sr; if (this.phD > 1) this.phD -= 1; gear += (_sx = (this.phD), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)) * 0.25 * mWhine * Math.min(1, this.wheel / 25) * (0.3 + 0.7 * Math.abs(this.tq));
         }
         let fan = 0; if (mFan) { this.phFan += rpm / 60 * mFan[0] * mFan[1] / sr; if (this.phFan > 1) this.phFan -= 1; fan = ((_sx = (this.phFan), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)) * 0.5 + (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1)), _bq = this.fanBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * 1.4) * rn * rn * mFan[2]; }
-        const mo = click * mValve * 2.5 + block * mKnock * (0.3 + rn) * 7 + fan * 0.05 + cd + tick + pumps; this.lm += (mo - this.lm) * this.aY; o2[s] = this.lm * tr2 * (on ? 1 : 0.15) + sts;
+        let cmp = 0; if (mCmp) { this.cmpE *= this.cmpD; const x = ((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1) * this.cmpE; cmp = ((_bu = (x), _bq = this.cmpBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + (_bu = (x), _bq = this.cmpLB, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * 1.6) * mCmp[1]; }
+        const mo = click * mValve * 2.5 + block * mKnock * (0.3 + rn) * 7 + fan * 0.05 + cd + tick + pumps + cmp; this.lm += (mo - this.lm) * this.aY; o2[s] = this.lm * tr2 * (on ? 1 : 0.15) + sts;
         // ---- gearbox and driveline ----
         if (this.dogT > 0 && (this.dogT -= 1 / sr) <= 0) { this.kick(this.dogA * this.box.clack); this.thE = Math.max(this.thE, this.dogA * 0.7); }
         if (this.shCut > 0) this.shCut -= 1 / sr;
@@ -16710,10 +16794,12 @@ const ENGINE_CFG = {
   // The special vehicles' diesels (mech.dz): no throttle, so the intake draws the same whatever the pedal and every
   // pulse leaves at a fair pressure; the charge lights by itself, all at once, so each firing knocks through the block
   // (the clatter, hardest light and slow); the injection pump's or injectors' ticks; no pops on a lift and no flutter.
-  // a truck's naturally aspirated inline six, firing 1-5-3-6-2-4 into a cast manifold and up a vertical stack through a
-  // big silencer; pushrods, gear-driven cam and pump on an iron block; a truck's five-speed box whining on its straight teeth
+  // a truck's naturally aspirated inline six of 7.4 litres, firing 1-5-3-6-2-4 into a cast manifold and up a vertical
+  // stack through a big silencer; two valves a cylinder on pushrods from a camshaft driven, with the in-line injection
+  // pump and the brakes' air compressor, by a train of gears off the crank (their whine); the pump's plungers knock
+  // with each injection; the compressor knocks once a turn while it pumps (cmp); a five-speed box whining on its teeth
   caisson_6x6: { cyl: 6, fire: [0, 480, 240, 600, 120, 360], prim: [0.32, 0.26, 0.22, 0.22, 0.26, 0.32], bias: [0.03, -0.02, 0.02, -0.03, 0.02, -0.02], cov: 0.03, lope: 0.1, rise: 3, decay: 34, flow: 0.36, turbo: 0, main: 3.6, mainLoss: 0.5, sil: [1600, 0.7], silMix: 0.42, emph: 0.4, steep: 0.12, als: 0, pop: 0,
-    intake: { L: 0.55, plenum: 120 }, mech: { dz: true, vt: 'pushrod', lash: 0.45, valve: 0.07, blk: 'iron', knock: 0.3, comp: 1.9, cam: ['chain+gear', 24, 0.004], inj: [2600, 0.16], fp: [300, 0.0015], cm: 24, teeth: [10, 14, 18, 22, 26], pinion: 8, whine: 1.6 }, pos: 'front', exit: 'rear', trim: [1.30, 2.40, 2.60, 1.50] },
+    intake: { L: 0.55, plenum: 120 }, mech: { dz: true, vt: 'pushrod', lash: 0.45, valve: 0.07, blk: 'iron', knock: 0.3, comp: 1.9, cam: ['gear', 28, 0.0045], inj: [1800, 0.18], fp: [300, 0.0015], cmp: [100, 0.25, 820], cm: 24, teeth: [10, 14, 18, 22, 26], pinion: 8, whine: 1.6 }, pos: 'front', exit: 'rear', trim: [1.30, 2.40, 2.60, 1.50] },
   // a 60-degree turbo-diesel V6 firing evenly, 1-2-3-4-5-6, each bank into the turbine of a variable-geometry turbo;
   // common-rail injectors ticking and their high-pressure pump; a quiet modern silencer; an eight-speed automatic
   limber_4x4: { cyl: 6, fire: [0, 120, 240, 360, 480, 600], prim: [0.34, 0.3, 0.34, 0.3, 0.34, 0.3], bank: [0, 1, 0, 1, 0, 1], sec: [0.4, 0.42], bias: [0.02, -0.02, 0.01, -0.01, 0.02, -0.02], cov: 0.025, lope: 0.08, rise: 3, decay: 32, flow: 0.3, turbo: 0.65, main: 3.2, mainLoss: 0.5, sil: [2000, 0.8], silMix: 0.3, emph: 0.42, steep: 0.12, als: 0, pop: 0,
@@ -16765,7 +16851,7 @@ const _stTst = {};
 // model (each kind of turbo valve and of anti-lag, the supercharger, a throttle per cylinder or a plenum, a pipe per
 // bank, each camshaft drive, injection, the pumps, the fan, each gearbox and starter); the last two also get the full
 // script, for the turbo's own swings
-const REHEARSE_CARS = { tour: ['mamba_tc', 'tasman_6r', 'acrobat_2t', 'avocet_16t', 'halvik_4t', 'galliot_v8', 'vespera_sc', 'petrel_m4', 'carrack_24', 'felucca_14t'], full: ['sentai_gt4', 'avocet_16t'] };
+const REHEARSE_CARS = { tour: ['mamba_tc', 'tasman_6r', 'acrobat_2t', 'avocet_16t', 'halvik_4t', 'galliot_v8', 'vespera_sc', 'petrel_m4', 'carrack_24', 'felucca_14t', 'caisson_6x6'], full: ['sentai_gt4', 'avocet_16t'] };
 function engineCfg(S) {
   const K = Object.assign({}, ENGINE_CFG[S.id] || ENGINE_CFG.ardent_5t, { red: S.redline, final: S.final * gearK(S), idle: S.idle || 950, cls: S.cls, box: boxOf(S), alsKind: alsKindOf(S), lag: S.lag, litres: litresOf(S), Ie: carSetup(S).sp.Ie });
   const sc = STARTER_CFG[S.id] || ['dd', 220, 9.5, 'efi']; K.st = { kind: sc[0], rpm: sc[1], cr: sc[2], fuel: sc[3] };
@@ -16796,7 +16882,9 @@ class EngineSoundLogic {
       // engine not running, so the starter turns it
       st: c.starter || (es && es.run === 'stall' && es.crank > 0.9) ? 1 : 0, crank: c.cranking || (es && es.run === 'stall') ? 1 : 0,
       // the turbo's damage: a holed intercooler or pipe (the boost lost through it), a chipped compressor wheel, a cracked turbine housing
-      leak: D && S.boost !== 'na' && S.boost !== 'sc' ? clamp((1 - D.turbo) / 0.45, 0, 1) : 0, chip: D && D.cwheel ? 1 : 0, crack: D && D.crack ? 1 : 0 };
+      leak: D && S.boost !== 'na' && S.boost !== 'sc' ? clamp((1 - D.turbo) / 0.45, 0, 1) : 0, chip: D && D.cwheel ? 1 : 0, crack: D && D.crack ? 1 : 0,
+      // the air brakes' compressor: pumping (the governor has it loaded) or turning idle (see airStep)
+      cmp: c.air ? (c.air.load ? 1 : 0.15) : 0 };
     for (const e of evs || []) {
       if (e === 'up' || e === 'down') {
         out.push(['shift', { dir: e === 'up' ? 1 : -1, dur: Math.max(0.03, c.shiftT > 0 ? c.shiftT : e === 'up' ? S.shiftUp || 0.12 : S.shiftDown || 0.08) }]);
@@ -17009,8 +17097,10 @@ const Snd = {
     const crowdP = crowdAt ? this.panOf(crowdAt.x, c.y + 1, crowdAt.z) : 0, cheer = clamp(Math.pow(crowdNear, 0.7) * (0.35 + 0.65 * smooth(4, 22, sp)) * (1 + 0.5 * (c.slideAmt || 0)), 0, 1);
     // steam boiling off the hot exhaust and engine: how much, and where (over the hot parts)
     const es = c.es; let siz = 0, sizP = 0; if (es && es.steamR > 0.0005) { siz = clamp(es.steamR * 40, 0, 1.5); const EL = engLayout(S), z = EL.hot[0], sn = Math.sin(c.psi), cs = Math.cos(c.psi); sizP = this.panOf(c.x + sn * z, c.y + 0.5, c.z + cs * z) * (inside ? 0.6 : 1); this.panOf(c.x, c.y + 0.5, c.z); }
+    const bz = !!(S.air && c.air && c.air.p < S.air.warn && !(c.es && c.es.run === 'lock')); // (an air-braked truck's low-air buzzer)
     CH.post({ t: 'p', p: { siz, sizP, v: sp, view, open, carG: view === 3 ? 1.5 : 1, rough: E.rough, shake: E.shake, scr: c.scrape || 0, scrK, water: c.inWater || 0, wet: T.wet || 0, rain: (T.snowing > 0 && !W.snow ? 0 : W.rain || 0) * Atmos.precipK, wind: (W.wind || 0) * Atmos.gust,
-      day: smooth(-6, 3, Atmos.sunEl == null ? 30 : Atmos.sunEl), warm: clamp((tC - 5) / 25, 0, 1), woods: T.bio && T.bio.woods != null ? T.bio.woods : 0.5, snow: T.surface === 'snow' ? 1 : 0, crowd: crowdNear, crowdP, cheer, surf: SURF_CODE[c.surfName] || 2, on: 1, cue: Ctl.ok ? Ctl.feel.cue : 0, w } });
+      day: smooth(-6, 3, Atmos.sunEl == null ? 30 : Atmos.sunEl), warm: clamp((tC - 5) / 25, 0, 1), woods: T.bio && T.bio.woods != null ? T.bio.woods : 0.5, snow: T.surface === 'snow' ? 1 : 0, crowd: crowdNear, crowdP, cheer, surf: SURF_CODE[c.surfName] || 2, on: 1, cue: Ctl.ok ? Ctl.feel.cue : 0, w,
+      buzz: bz ? 1 : 0, buzzP: bz && G.mesh && G.mesh.cab ? this.panLocal(G.mesh, [G.mesh.cab.xd - 0.3, G.mesh.cab.dTop - 0.1, G.mesh.cab.dashRear]) : 0 } });
     if (this.RV) { // the space around: its share by the country and where the listener is
       const id = T.type ? T.type.id : 'fast', wd = T.bio && T.bio.woods != null ? T.bio.woods : 0.5, rock = ROCKY_SOUND.has(id) ? 1 : T.land && T.land.hilly ? 0.5 : 0;
       // (more where the trees stand close round the car, less out in the open: see probe())
@@ -17018,7 +17108,7 @@ const Snd = {
       const rv = (0.08 + 0.22 * wd + 0.12 * rock) * (T.surface === 'snow' ? 0.65 : 1) * (0.75 + 0.4 * loc) * (view === 1 ? 0.08 + 0.3 * open : view === 2 ? 1.7 : view === 3 ? 0.85 : 1);
       this.set(this.RV.chS.gain, rv, 0.15); this.set(this.RV.enS.gain, rv * 0.8, 0.15);
     }
-    if (inp.handbrake && !E.hb && G.state === 'run') ev.push(['lever', {}]); E.hb = !!inp.handbrake;
+    if (inp.handbrake && !E.hb && G.state === 'run' && !S.air) ev.push(['lever', {}]); E.hb = !!inp.handbrake;
     for (const [k, a] of ev) CH.post({ t: 'ev', k, a });
   },
   // a blow: where it landed, as heard from the camera (the hardest of this frame's dents of that kind, else the side of
@@ -17030,6 +17120,19 @@ const Snd = {
     return this.panOf(c.x, c.y + 0.5, c.z);
   },
   land(v, interior, loose) { if (this.CH && this.CH.on) { this.chs('land', { v, loose }); return; } this.impact('land', v * 2.2, interior, loose); },
+  // the truck's air brakes (see airStep): a circuit's air let out of the foot valve's exhaust under the driver's feet or
+  // the bogie's valve on the frame behind the cab, the parking brake's chamber emptying through its quick-release valve
+  // under the cab (and the knob's click), the knob pushed back in (the click, the air rushing through the valve on the
+  // dash), the dryer's purge on the frame beside the cab. Each a jet (see the chassis model's jet): from what pressure,
+  // down to what, how fast the volume behind it empties (s), the bore it leaves through (m), and how much of it comes
+  // through the floor into the cab
+  air(p, c) {
+    if (!(this.CH && this.CH.on) || !G.mesh || !G.mesh.cab) return; const K = G.mesh.cab, k = p[1], v1 = parseFloat(p[2]) || 0, F = K.floorY, z = K.seatZ, xd = K.xd;
+    if (k === 'x') { const rear = p[2] === '1', p0 = parseFloat(p[3]) || 0, p1 = parseFloat(p[4]) || 0; this.chs('air', { k, cid: rear ? 1 : 0, re: p[5] === 'r', p0, p1, tau: rear ? 0.16 : 0.12, D: rear ? 0.02 : 0.018, g: rear ? 0.8 : 1, pan: this.panLocal(G.mesh, rear ? [-0.4, F - 0.5, z - 0.7] : [xd, F - 0.2, z + 0.55]), ks: rear ? 0.2 : 0.9 }); }
+    else if (k === 'park') this.chs('air', { k, p0: v1, p1: 0, tau: 0.22, D: 0.022, g: 1.2, pan: this.panLocal(G.mesh, [0, F - 0.55, z - 0.6]), ks: 0.35, clk: this.panLocal(G.mesh, [xd + 0.34, K.dTop - 0.27, K.dashRear]) });
+    else if (k === 'free') this.chs('air', { k, p0: v1, p1: 0, tau: 0.3, D: 0.012, g: 0.35, pan: this.panLocal(G.mesh, [xd + 0.34, K.dTop - 0.27, K.dashRear]), ks: 1 });
+    else if (k === 'dry') this.chs('air', { k, p0: v1, p1: 0, tau: 0.2, D: 0.025, g: 1.8, pan: this.panLocal(G.mesh, [-xd - 0.25, F - 0.45, z + 0.2]), ks: 0.4 });
+  },
   rockWheel(i, v) { if (this.CH && this.CH.on) { this.chs('rockwheel', { i, v }); return; } this.impact('rock', v, G.camMode === 2, false); },
   // a stone met by a tyre (i: which) or the body (-1) and thrown off
   stoneHit(i, v) { if (this.CH && this.CH.on) { this.chs('stone', { i, v }); return; } if (this.on) this.stones(v > 6 ? 3 : 1, 0.1, G.camMode === 2, clamp(v / 8, 0.4, 1.4)); },
@@ -18266,6 +18369,7 @@ function processEvents(c) {
     else if (n === 'rockw') { Snd.rockWheel(parseInt(e.split(':')[2], 10) || 0, val); G.shake = Math.min(1, G.shake + val * 0.05); }
     else if (n === 'stone') { const wi = parseInt(e.split(':')[2], 10); Snd.stoneHit(isNaN(wi) ? -1 : wi, val); G.shake = Math.min(1, G.shake + val * 0.008); }
     else if (n === 'esys') engineEvent(c, e.split(':'));
+    else if (n === 'air') Snd.air(e.split(':'), c);
     else if (['wall', 'bank', 'hit', 'bale', 'rock', 'post', 'chev', 'island', 'crowd', 'rail', 'tree', 'pole', 'car', 'block'].includes(n)) { if (n === 'block') n = 'wall'; Snd.impact(n, val, G.camMode === 2, looseUnder(c), c); G.shake = Math.min(1, G.shake + val * 0.05); if (n === 'bale') burstDust(10, 1); ScreenFx.impact(n, val, c.surfName, looseUnder(c), G.T.wet || 0); }
   }
   c.ev.length = 0;
@@ -25287,13 +25391,14 @@ const mel = (tag, attrs, ...kids) => el(tag, attrs, ...kids); // (the rally menu
 const REC_HZ = 30, REC_CH = 512, REC_MAX = REC_HZ * 60 * 20; // (a frame each thirtieth of a second, twenty minutes at most)
 // a frame's slots: the car's state (Rec.frame), then each wheel's (RW slots), then each opening panel's angle (RP)
 const RK = ('t x y z yb psi q0 q1 q2 q3 u v vyb r ax ay lf pitch roll hint rpm gear thr brk boost delta slide airT inWater deep limT shiftT blip flare turboB tcl limK ' +
-  'starter cranking flags scrape scrapeK surf esRun esMis esWet esCrank esSteam esTail esBub esTc wpos lights time phase cd steam smoke vx vy vz wy dTurbo dCrack dCwheel dWheels gPitch gRoll landV').split(' ');
+  'starter cranking flags scrape scrapeK surf esRun esMis esWet esCrank esSteam esTail esBub esTc wpos lights time phase cd steam smoke vx vy vz wy dTurbo dCrack dCwheel dWheels gPitch gRoll landV ' +
+  'airP airC').split(' '); // (airP, airC: an air-braked truck's tanks and whether its compressor is pumping)
 const RI = Object.fromEntries(RK.map((k, i) => [k, i]));
 const RWK = 'L delta lb omega Fz slipL slipT surf onRock comp g gRaw x z rho pool wet vyw'.split(' '), RW = RWK.length, RWI = Object.fromEntries(RWK.map((k, i) => [k, i]));
 const RP = 8, RW0 = RK.length, RP0 = RW0 + 4 * RW, RN = RP0 + RP;
 // (slots taken from the nearer frame rather than eased between the two: counts, names and switches)
 const RSTEP = new Uint8Array(RN);
-for (const k of ['hint', 'gear', 'starter', 'cranking', 'flags', 'scrapeK', 'surf', 'esRun', 'lights', 'phase', 'dTurbo', 'dCrack', 'dCwheel', 'dWheels', 'landV']) RSTEP[RI[k]] = 1;
+for (const k of ['hint', 'gear', 'starter', 'cranking', 'flags', 'scrapeK', 'surf', 'esRun', 'lights', 'phase', 'dTurbo', 'dCrack', 'dCwheel', 'dWheels', 'landV', 'airC']) RSTEP[RI[k]] = 1;
 for (let w = 0; w < 4; w++) for (const k of ['surf', 'onRock']) RSTEP[RW0 + w * RW + RWI[k]] = 1;
 // the switches: on its roof or side, stuck there, on the ground, the engine flooded, the handbrake held, a downshift,
 // a recovery (the car put back: no easing into it), off the road
@@ -25338,7 +25443,7 @@ const Rec = {
     const real = D && D.mode === 'real'; F[o + 56] = real ? clamp(D.rad * 1.5 + (D.temp - 105) / 20, 0, 2.2) : 0; F[o + 57] = real ? clamp((0.75 - D.eng) * 2, 0, 1.5) * (0.4 + (c.lastThr || 0)) : 0;
     F[o + 58] = V[0]; F[o + 59] = V[1]; F[o + 60] = V[2]; F[o + 61] = Wv[1];
     F[o + 62] = D ? D.turbo : 1; F[o + 63] = D && D.crack ? 1 : 0; F[o + 64] = D && D.cwheel ? 1 : 0; let wb = 0; if (D) for (let i = 0; i < 4; i++) wb |= (D.w[i].flat ? 1 << i : 0) | (D.w[i].off ? 16 << i : 0); F[o + 65] = wb;
-    F[o + 66] = c.gPitch || 0; F[o + 67] = c.gRoll || 0; F[o + 68] = c.landV || 0;
+    F[o + 66] = c.gPitch || 0; F[o + 67] = c.gRoll || 0; F[o + 68] = c.landV || 0; F[o + 69] = c.air ? c.air.p : 0; F[o + 70] = c.air && c.air.load ? 1 : 0;
     for (let i = 0; i < 4; i++) { const w = c.w[i], b = o + RW0 + i * RW, mx = w.mix;
       F[b] = w.L; F[b + 1] = w.delta || 0; F[b + 2] = w.lb || 0; F[b + 3] = w.omega || 0; F[b + 4] = w.Fz || 0; F[b + 5] = w.slipL || 0; F[b + 6] = w.slipT || 0; F[b + 7] = this.sid(w.surf); F[b + 8] = w.onRock ? 1 : 0;
       F[b + 9] = w.comp || 0; F[b + 10] = w.g || 0; F[b + 11] = w.gRaw != null ? w.gRaw : w.g || 0; F[b + 12] = w.x; F[b + 13] = w.z; F[b + 14] = w.rho || 0; F[b + 15] = mx ? mx.pool : 0; F[b + 16] = mx ? mx.wet : -1; F[b + 17] = w.vyw || 0; }
@@ -25436,7 +25541,7 @@ const Replay = {
   shadow(c) {
     const o = {}; for (const k of Object.keys(c)) { const v = c[k]; if (v === null || typeof v !== 'object') o[k] = v; }
     const sh = v => v ? Object.assign({}, v) : v;
-    o.Q = (c.Q || [0, 0, 0, 1]).slice(); o.V = (c.V || [0, 0, 0]).slice(); o.Wv = (c.Wv || [0, 0, 0]).slice(); o.brk = (c.brk || [0, 0, 0, 0]).slice(); o.ev = []; o.info = sh(c.info); o._sync = sh(c._sync);
+    o.Q = (c.Q || [0, 0, 0, 1]).slice(); o.V = (c.V || [0, 0, 0]).slice(); o.Wv = (c.Wv || [0, 0, 0]).slice(); o.brk = (c.brk || [0, 0, 0, 0]).slice(); o.air = c.air ? { p: c.air.p, load: c.air.load } : null; o.ev = []; o.info = sh(c.info); o._sync = sh(c._sync);
     o.w = c.w.map(w => { const x = {}; for (const k of Object.keys(w)) { const v = w[k]; x[k] = Array.isArray(v) ? v.slice() : v && typeof v === 'object' ? sh(v) : v; } x.mix = sh(w.mix) || { pool: 0, wet: 0 }; return x; });
     o.tyre = (c.tyre || []).map(sh); o.es = c.es ? Object.assign(sh(c.es), { told: sh(c.es.told), _sa: 0, _st: 0 }) : null;
     const D = c.dmg; o.dmg = D ? Object.assign(sh(D), { dents: [], hits: [], ev: [], news: [], w: D.w.map(sh), steer: sh(D.steer), shaft: sh(D.shaft), lost: (D.lost || []).slice(), punct: (D.punct || []).slice() }) : null;
@@ -25507,6 +25612,7 @@ const Replay = {
     c.scrape = X[RI.scrape]; c.scrapeKind = Rec.str[X[RI.scrapeK]] || ''; c.surfName = Rec.str[X[RI.surf]] || c.surfName;
     if (c.es) { const e = c.es; e.run = Rec.str[X[RI.esRun]] || 'run'; e.mis = X[RI.esMis]; e.wet = X[RI.esWet]; e.crank = X[RI.esCrank]; e.steamR = X[RI.esSteam]; e.tailSteam = X[RI.esTail]; e.bub = X[RI.esBub]; e.Tc = X[RI.esTc]; }
     c.V[0] = X[RI.vx]; c.V[1] = X[RI.vy]; c.V[2] = X[RI.vz]; c.Wv[1] = X[RI.wy]; c.gPitch = X[RI.gPitch]; c.gRoll = X[RI.gRoll]; c.landV = X[RI.landV];
+    if (c.air) { c.air.p = X[RI.airP]; c.air.load = X[RI.airC] > 0.5; }
     const D = c.dmg; if (D) { D.turbo = X[RI.dTurbo]; D.crack = X[RI.dCrack]; D.cwheel = X[RI.dCwheel]; const wb = X[RI.dWheels] | 0; for (let i = 0; i < 4; i++) { D.w[i].flat = wb & (1 << i) ? 1 : 0; D.w[i].off = wb & (16 << i) ? 1 : 0; } }
     for (let i = 0; i < 4; i++) { const w = c.w[i], b = RW0 + i * RW;
       w.L = X[b]; w.delta = X[b + 1]; w.lb = X[b + 2]; w.omega = X[b + 3]; w.Fz = X[b + 4]; w.slipL = X[b + 5]; w.slipT = X[b + 6]; w.surf = Rec.str[X[b + 7]] || w.surf; w.onRock = X[b + 8] > 0.5;
@@ -26828,7 +26934,7 @@ function ChassisDSPDef() {
     { v: 0, view: 0, crowd: 0, cheer: 0, day: 0, warm: 0.8, woods: 1, wind: 2, snow: 0, w: wh({ vr: 0, vs: 0 }) },
     { v: 0, view: 1, day: 1, warm: 0.9, woods: 1, wind: 10, rain: 1, w: wh({ vr: 0, vs: 0 }) },
     { v: 30, view: 0, day: 1, warm: 0.5, wind: 3, rain: 0, open: 1, w: wh({ s: 1, vr: 30 }) },
-    { v: 30, view: 1, open: 0, w: wh({ s: 2, vr: 30 }) }
+    { v: 30, view: 1, open: 0, buzz: 1, buzzP: 0.3, w: wh({ s: 2, vr: 30 }) }
   ];
   const WARME = [];
   for (const [k, n, a] of [[5, 'impact', { kind: 'rock', v: 12, surf: 2, loose: true }], [15, 'impact', { kind: 'wall', v: 9 }], [25, 'impact', { kind: 'island', v: 6 }], [35, 'impact', { kind: 'rail', v: 14 }],
@@ -26838,7 +26944,9 @@ function ChassisDSPDef() {
     [155, 'bump', { i: 0, v: 3 }], [160, 'top', { i: 2, v: 2 }], [165, 'knock', { i: 1, v: 1 }], [170, 'rockwheel', { i: 3, v: 8 }], [175, 'glass', { type: 'pane', big: true, pan: 0.5 }], [180, 'glass', { type: 'ws' }],
     [185, 'glass', { type: 'lamp' }], [190, 'rip', { kind: 'metal' }], [195, 'rip', { kind: 'plastic' }], [200, 'rip', { kind: 'light' }], [205, 'debris', { kind: 'metal', v: 5, g: 0.5 }], [210, 'debris', { kind: 'tyre', v: 4 }],
     [215, 'debris', { kind: 'plastic', v: 3 }], [220, 'splash', { v: 0.8 }], [225, 'wiper', {}], [230, 'lever', {}], [240, 'horn', null], [245, 'whistle', null], [250, 'bird', null], [255, 'owl', null],
-    [258, 'steam', { v: 30, pan: 0.2 }], [262, 'hydro', { sev: 2 }], [266, 'hydro', { sev: 0 }], [270, 'horn2', { pat: [0, 0.15, 0.25, 0.4, 0.5, 1.2], f: 450, f2: 560, g: 0.05, pan: 0.3 }], [276, 'mwh', { pat: [0, 0.3, 0.4, 0.9], g: 0.02, pan: -0.2 }]]) WARME[k] = [n, a];
+    [258, 'steam', { v: 30, pan: 0.2 }], [262, 'hydro', { sev: 2 }], [266, 'hydro', { sev: 0 }], [270, 'horn2', { pat: [0, 0.15, 0.25, 0.4, 0.5, 1.2], f: 450, f2: 560, g: 0.05, pan: 0.3 }], [276, 'mwh', { pat: [0, 0.3, 0.4, 0.9], g: 0.02, pan: -0.2 }],
+    [281, 'air', { k: 'x', p0: 7.5, p1: 0, tau: 0.12, D: 0.018, g: 1, pan: 0.2, ks: 0.35 }], [286, 'air', { k: 'park', p0: 7.5, p1: 0, tau: 0.22, D: 0.022, g: 1.2, pan: -0.1, ks: 0.18, clk: 0.3 }],
+    [291, 'air', { k: 'free', p0: 7, p1: 0, tau: 0.3, D: 0.012, g: 0.35, pan: 0.3, ks: 1 }], [296, 'air', { k: 'dry', p0: 8.4, p1: 0, tau: 0.2, D: 0.025, g: 1.8, pan: -0.4, ks: 0.4 }]]) WARME[k] = [n, a];
   const EASE = ['wind', 'rain', 'water', 'wet', 'crowd', 'cheer', 'warm', 'day', 'woods', 'snow'];
   // what a blow is against (see impact()): [the contact's rise s, the crush's time s (base, and per 12 m/s), the shell's
   // level, how bright its crush]
@@ -26874,6 +26982,16 @@ function ChassisDSPDef() {
   class Song { constructor() { this.on = false; this.notes = null; this.t = 0; this.k = 0; this.ph = 0; this.g = 0; this.gl = 0.7; this.gr = 0.7; this.vib = 0; this.vibF = 0; this.flat = 0; this.am = 0; } }
   // a spectator's air horn: a compressed-air reed blaring one note (or two), buzzing with overtones through the trumpet;
   // one blast, or a spectator's run of them (pat: each blast's start and end, seconds)
+  // a jet of compressed air let out through a valve (the truck's air brakes: see the game's airStep): the pressure behind
+  // it falling as the volume it comes from empties, from p0 toward p1 (bar above the air outside) with time constant
+  // tau; the air leaving at the speed that pressure ratio gives it once expanded (choked at the valve above about 1.9
+  // to 1, and faster beyond as the jet expands outside it); its sound's power the flow (the air leaving each moment, as
+  // the pressure falls toward where the valve shuts) times that speed to a high power (Lighthill's: the seventh, while
+  // the jet is slower than sound; more gently, the shock cells' noise, once it is faster), its band centred where a
+  // Strouhal number of 0.2 puts it for the bore D (m) of the jet as it leaves the valve's port - a hiss that falls in
+  // pitch as it dies away, stopping short when a valve laps partway. g: how big the jet against a brake circuit's
+  // (age: samples since it began, for its onset; t: since its pressure last set off toward p1; cid: which circuit's)
+  class Jet { constructor() { this.f = new BQ(); this.lo = new BQ(); this.on = false; this.t = 0; this.age = 0; this.cid = -1; this.p0 = 0; this.p1 = 0; this.tau = 0.1; this.D = 0.01; this.g = 1; this.ka = 1; this.ks = 0; this.gl = 0.7; this.gr = 0.7; } }
   class Horn { constructor() { this.on = false; this.t = 0; this.dur = 0; this.f = 330; this.f2 = 0; this.p1 = 0; this.p2 = 0; this.bp = new BQ(); this.g = 0; this.gl = 0.7; this.gr = 0.7; this.pat = null; this.pk = 0; } }
   // a tick: a stone on the floor, a rattle, a raindrop - a short burst of noise through a narrow band, never a ringing note
   class Tick { constructor() { this.bp = new BQ(); this.on = false; this.t = 0; this.n = 0; this.atk = 1; this.pk = 0; this.e = 0; this.d = 1; this.ka = 1; this.ks = 0; this.gl = 0.7; this.gr = 0.7; } }
@@ -26891,7 +27009,7 @@ function ChassisDSPDef() {
     constructor(sr) {
       this.sr = sr; this.seed = (0x2545f491 ^ (Math.random() * 1e9 | 0)) || 1;
       // what the car and the stage are doing (set each frame, eased toward here)
-      this.P = { v: 0, view: 0, open: 0, carG: 1, rough: 0, shake: 0, scr: 0, scrK: 0, water: 0, wet: 0, rain: 0, wind: 0, day: 1, warm: 0.5, woods: 0.5, snow: 0, crowd: 0, crowdP: 0, cheer: 0, air: 0, surf: 2, siz: 0, sizP: 0, on: 1 };
+      this.P = { v: 0, view: 0, open: 0, carG: 1, rough: 0, shake: 0, scr: 0, scrK: 0, water: 0, wet: 0, rain: 0, wind: 0, day: 1, warm: 0.5, woods: 0.5, snow: 0, crowd: 0, crowdP: 0, cheer: 0, air: 0, surf: 2, siz: 0, sizP: 0, on: 1, buzz: 0, buzzP: 0 };
       this.W = [0, 1, 2, 3].map(i => new Wheel(i));
       this.BU = []; for (let i = 0; i < 96; i++) this.BU.push(new Burst()); this.bui = 0; this.dly = 0; this.vg = 1; // dly: a delay (samples) for what is set off next; vg: its loudness
       this.TK = []; for (let i = 0; i < 112; i++) this.TK.push(new Tick()); this.tki = 0;
@@ -26900,7 +27018,9 @@ function ChassisDSPDef() {
       this.react = 0; this.sqA = 0; this.sqG = 0; this.sqTF = 820; this.sqF = 820; this.sqVF = 5; this.sqP1 = 0; this.sqP2 = 0; this.sqL = 0; this.sqS = 0; this.sqK = 0; this.sqBP = new BQ(); this.sqNB = new BQ().set('bp', 1000, 3, sr);
       this.K = []; for (let i = 0; i < 16; i++) this.K.push(new Crackle()); this.ki = 0;
       this.Sg = [new Song(), new Song(), new Song(), new Song()]; this.Hn = [new Horn(), new Horn(), new Horn(), new Horn()];
-      this.e = { ins: 0, op: 0, wind: 0, rain: 0, water: 0, wet: 0, scr: 0, crowd: 0, cheer: 0, v: 0, rough: 0, shake: 0, far: 0, carG: 1, warm: 0, day: 1, woods: 0, snow: 0, siz: 0, on: 1 };
+      // the air brakes' jets, and the low-air warning's buzzer on the dash (its strike's phase, the edge softened, its housing)
+      this.JT = [new Jet(), new Jet(), new Jet(), new Jet(), new Jet()]; this.bzPh = 0; this.bzZ = 0; this.bzBP = new BQ().set('bp', 2100, 2.2, sr); this.bzL = 0.7; this.bzR = 0.7;
+      this.e = { ins: 0, op: 0, wind: 0, rain: 0, water: 0, wet: 0, scr: 0, crowd: 0, cheer: 0, v: 0, rough: 0, shake: 0, far: 0, carG: 1, warm: 0, day: 1, woods: 0, snow: 0, siz: 0, on: 1, buzz: 0 };
       // steam: the sizzle's band, its crackle (how strong the hiss is this moment, a burst at each drop) and where it is
       this.sizF = new BQ().set('bp', 4300, 0.55, sr); this.sizG = 0; this.sizR = 700 / sr; this.sizD = Math.exp(-1 / (0.004 * sr)); this.sizL = 0.7; this.sizRt = 0.7;
       this.P0 = Object.assign({}, this.P); this.E0 = Object.assign({}, this.e); for (const w of this.W) w.T0 = Object.assign({}, w.tg);
@@ -27097,6 +27217,20 @@ function ChassisDSPDef() {
         this.dly = 0; return;
       }
       if (k === 'wiper') { this.burst('bp', 1100, 1.4, 0.001, 0.006, 0.02, 0.2, 0, 1); this.burst('lp', 160, 0.7, 0.003, 0.02, 0.018, 0.2, 0, 1); return; } // the blades at the end of a sweep
+      if (k === 'air') { // the air brakes (see Jet): a jet, and with the parking brake's knob its click in the cab (pulled out: the
+        // springs then slamming the shoes on through the frame; pushed in: the air rushing through the valve on the dash);
+        // the dryer's purge valve snapping open
+        // (a circuit's exhaust carried on - the pedal coming up further - its jet's pressure set off again toward the new mark)
+        const cid = a.cid != null ? a.cid : -1, on = a.re && cid >= 0 ? this.JT.find(q => q.on && q.cid === cid && q.t >= 0) : null;
+        if (on) { const pn = on.p1 + (on.p0 - on.p1) * Math.exp(-on.t / this.sr / on.tau); on.p0 = pn; on.p1 = Math.max(0, Math.min(pn, a.p1 || 0)); on.t = 0; return; }
+        const j = this.JT.find(q => !q.on) || this.JT[0], pp = clamp(pan, -1, 1); j.on = true; j.t = -this.dly; j.age = -this.dly; j.cid = cid; j.p0 = Math.max(0, a.p0 || 0); j.p1 = Math.max(0, Math.min(j.p0, a.p1 || 0));
+        j.tau = a.tau || 0.12; j.D = a.D || 0.01; j.g = a.g || 1; j.ka = a.ka != null ? a.ka : 1; j.ks = a.ks || 0; j.gl = Math.sqrt((1 + pp) / 2); j.gr = Math.sqrt((1 - pp) / 2); j.f.z1 = j.f.z2 = j.lo.z1 = j.lo.z2 = 0;
+        const kp = clamp(a.clk != null ? a.clk : pan, -1, 1);
+        if (a.k === 'park' || a.k === 'free') { this.burst('bp', 2300 + 300 * r(), 1.4, 0.0004, 0.0035, 0.035, kp, 0, 1); this.burst('lp', 480, 0.8, 0.0008, 0.008, 0.025, kp, 0, 1); }
+        if (a.k === 'park') { this.dly += Math.round(0.14 * this.sr); this.thump(100, 62, 0.004, 0.045, 0.1, pan, 0.25, 0.9); this.burst('bp', 520 + 80 * r(), 1.1, 0.002, 0.02, 0.04, pan, 0.4, 0.8); this.dly -= Math.round(0.14 * this.sr); }
+        if (a.k === 'dry') this.burst('bp', 1300 + 200 * r(), 0.8, 0.0004, 0.008, 0.06, pan, 1, 0.2);
+        return;
+      }
       if (k === 'lever') { this.burst('bp', 900 + 200 * r(), 1.3, 0.0008, 0.01, 0.05, -0.1, 0, 1); this.burst('lp', 220, 0.7, 0.002, 0.02, 0.04, -0.1, 0, 1); return; } // the handbrake's lever yanked up to its stop
     }
     // a blow (v: the closing speed, m/s). Real crashes, measured, are not one bang: while the car is being stopped (the
@@ -27180,6 +27314,7 @@ function ChassisDSPDef() {
       e.cheer += ((P.cheer || 0) - e.cheer) * ks; e.warm += ((P.warm || 0) - e.warm) * ks; e.day += ((P.day || 0) - e.day) * ks; e.woods += ((P.woods || 0) - e.woods) * ks; e.snow += ((P.snow || 0) - e.snow) * ks;
       e.v += (P.v - e.v) * kc; e.rough += (P.rough - e.rough) * kc; e.shake += (P.shake - e.shake) * kc; e.scr += (P.scr - e.scr) * kc; e.on += ((P.on ? 1 : 0) - e.on) * kc;
       e.siz += ((P.siz || 0) - e.siz) * kc; { const p = clamp(P.sizP || 0, -1, 1); this.sizL = Math.sqrt((1 + p) / 2); this.sizRt = Math.sqrt((1 - p) / 2); }
+      e.buzz += ((P.buzz || 0) - e.buzz) * (1 - Math.exp(-n / (0.004 * sr))); { const p = clamp(P.buzzP || 0, -1, 1); this.bzL = Math.sqrt((1 + p) / 2); this.bzR = Math.sqrt((1 - p) / 2); }
       this.kc = kc; this.wetK = Math.min(Math.max(e.wet, 0), 1); this.sqS = 0; this.sqK = 0;
       for (let wi = 0; wi < 4; wi++) this.wheelCtl(this.W[wi]);
       // the squeal's level and note: higher with more slip, higher and steadier for a locked wheel; hushed on a wet road
@@ -27302,7 +27437,7 @@ function ChassisDSPDef() {
       };
       rest(this);
       for (const b of this.BU) b.on = false; for (const c of this.K) c.on = false; this.react = 0; this.sizG = 0;
-      for (const q of this.Sg) q.on = false; for (const h of this.Hn) h.on = false; this.pend.length = 0; for (const q of this.TK) q.on = false; this.sqA = 0; this.sqG = 0;
+      for (const q of this.Sg) q.on = false; for (const h of this.Hn) h.on = false; for (const j of this.JT) { j.on = false; j.cid = -1; } this.bzPh = 0; this.bzZ = 0; this.pend.length = 0; for (const q of this.TK) q.on = false; this.sqA = 0; this.sqG = 0;
       Object.assign(this.P, this.P0); Object.assign(this.e, this.E0);
       for (const w of this.W) { Object.assign(w.tg, w.T0); w.on = 0; w.vr = 0; w.vs = 0; w.rho = 0; w.ld = 1; w.dv = 0; w.fl = 0; w.wt.fill(0); w.rb1 = 0; w.rb2 = 0; w.ph = 0; w.sqF = 0; w.fl1 = 0; w.fl2 = 0; w.wph = 0; w.cob = 0; }
       this.rgE[0] = 0; this.rgE[1] = 0; this.rfE = 0; this.rainLo = 0; this.scG = 1; this.scGT = 1; this.scT = 0; this.scSG = 0; this.scSGT = 0; this.scST = 0; this.leafS[0] = 1; this.leafS[1] = 1; for (const w of this.W) w.sg = 0;
@@ -27317,7 +27452,7 @@ function ChassisDSPDef() {
         this.AL.fill(0); this.AR.fill(0); this.SL.fill(0); this.SR.fill(0); this.ML.fill(0); this.MR.fill(0); this.j0 = 0;
         for (let k = 0; k < 4; k++) this.tyre(this.W[k], m);
         this.squealSnd(m); this.scrape(m); this.rattles(m); this.country(m); this.ticks(m); this.bursts(m); this.grit(m);
-        this.waterSnd(m); this.steamSnd(m); this.airSnd(m); this.songs(m); this.crowdSnd(m);
+        this.waterSnd(m); this.steamSnd(m); this.airSnd(m); this.jets(m); this.buzzSnd(m); this.songs(m); this.crowdSnd(m);
         this.mix(oL, oR, s0, m);
       }
     }
@@ -27454,6 +27589,34 @@ function ChassisDSPDef() {
       const wash = lv.wash, spray = lv.spray, k = water * 0.5 * clamp(lv.v / 8, 0, 2); let d = this.wdF;
       for (let j = 0; j < m; j++) { const y = T1[j] * wash + T2[j] * spray; d += (N[j] - d) * 0.01; AL[j] += y; AR[j] += y; SL[j] += d * k; SR[j] += d * k; }
       this.wdF = d;
+    }
+    // ---- the air brakes' jets (see Jet): each block, the pressure behind it, the jet's speed, its loudness and its band ----
+    jets(m) {
+      const JT = this.JT, sr = this.sr, half = sr / 2, N = this.N, Y = this.Y, AL = this.AL, AR = this.AR, SL = this.SL, SR = this.SR;
+      for (let q = 0; q < JT.length; q++) {
+        const j = JT[q]; if (!j.on) continue; if (j.t + m <= 0) { j.t += m; j.age += m; continue; } // not begun yet
+        const ts = Math.max(0, j.t + m / 2) / sr, ta = Math.max(0, j.age + m / 2) / sr, x = (j.p0 - j.p1) * Math.exp(-ts / j.tau), p = j.p1 + x, pr = (p + 1.013) / 1.013;
+        // (the flow against a brake circuit's at the start of its release; the speed against sound's, the level they give)
+        const U = pr > 1.0002 ? Math.sqrt(2 * 1005 * 293 * (1 - Math.pow(pr, -0.2857))) : 0, r = U / 313, fl = Math.sqrt(x / j.tau / 62.5), lv = fl * (r < 1 ? Math.pow(r, 3.5) : r);
+        const A = 0.045 * j.g * lv * Math.min(1, ta / 0.004), fc = clamp(0.2 * U / j.D, 300, 11000);
+        if ((A < 2e-5 && ta > 0.01) || ts > 7 * j.tau + 0.05) { j.on = false; continue; }
+        j.f.set('bp', fc | 0, 0.7, sr); j.lo.set('lp', (fc * 0.3) | 0, 0.7, sr);
+        const gB = A / (0.577 * Math.sqrt(Math.min(1, fc / 0.7 / half))), gL = 0.4 * A / (0.577 * Math.sqrt(Math.min(1, fc * 0.36 / half)));
+        this.noise(N, m); const t0 = j.t; for (let k = 0; k < m; k++) if (t0 + k < 0) N[k] = 0;
+        const f = j.f, lo = j.lo, gal = j.ka * j.gl, gar = j.ka * j.gr, gsl = j.ks * j.gl, gsr = j.ks * j.gr;
+        for (let k = 0; k < m; k++) { const x = N[k], y = f.run(x) * gB + lo.run(x) * gL; Y[k] = y; AL[k] += y * gal; AR[k] += y * gar; SL[k] += y * gsl; SR[k] += y * gsr; }
+        j.t = t0 + m; j.age += m;
+      }
+    }
+    // ---- the low-air warning: an electric buzzer on the dash - its armature striking its contact a couple of hundred times
+    // a second, each strike ringing the little housing ----
+    buzzSnd(m) {
+      const a = this.e.buzz; if (a < 1e-4) return;
+      const Y = this.Y, T1 = this.T1, SL = this.SL, SR = this.SR, w = 228 / this.sr; let ph = this.bzPh, z = this.bzZ;
+      for (let k = 0; k < m; k++) { ph += w; if (ph >= 1) ph -= 1; z += ((ph < 0.16 ? 1 : -0.19) - z) * 0.35; Y[k] = z; }
+      this.bzPh = ph; this.bzZ = z; this.bzBP.proc(Y, T1, m);
+      const g = a * 0.15 * (0.12 + 0.88 * this.lv.ins), gl = this.bzL * g, gr = this.bzR * g; // (shut in the cab: outside, only a trace)
+      for (let k = 0; k < m; k++) { const y = T1[k] * 2.2 + Y[k] * 0.35; SL[k] += y * gl; SR[k] += y * gr; }
     }
     // ---- steam: water boiling off hot metal - a hiss in a high band whose strength jumps as each drop bursts ----
     steamSnd(m) {
