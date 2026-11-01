@@ -77,7 +77,7 @@ html.usc #inspectBar{transform:scale(var(--us));transform-origin:50% 100%}
 .car[aria-checked="true"]{border-left-color:var(--marshal);background:var(--rowhover)}
 .roundel{width:42px;height:42px;border-radius:50%;background:#fbfbf8;color:#121212;border:3px solid #121212;display:grid;place-items:center;font-family:var(--stencil);font-size:24px;line-height:1}
 .cinfo{display:flex;flex-direction:column;min-width:0}
-.cname{font-weight:800;font-size:19px;line-height:1.1}
+.cname{font-weight:800;font-size:19px;line-height:1.1;padding-right:34px;overflow-wrap:anywhere} /* (clear of the colour stripe: a build's own name can be long) */
 .cspec{font-size:14px;color:var(--muted)}
 .cnote{font-size:14.5px;line-height:1.3;margin-top:2px;display:none}
 .car[aria-checked="true"] .cnote{display:block}
@@ -280,6 +280,71 @@ body[data-mode="menu"]:not([data-inspect]) #inspectFab{display:block}
 @media (min-width:821px){ body[data-mode="menu"]:not([data-inspect]) #inspectFab{display:none} }
 body[data-inspect] #gl{touch-action:none;cursor:grab}
 body[data-inspect] #gl:active{cursor:grabbing}
+/* the workshop: a panel of the car's parts beside the car (a sheet under it on a tall screen) */
+body[data-workshop] #gl{touch-action:none;cursor:grab}
+body[data-workshop] #inspectFab{display:none!important}
+body[data-workshop] #gl:active{cursor:grabbing}
+#workshop{position:fixed;z-index:6;top:0;right:0;bottom:0;width:min(480px,48vw);display:flex;flex-direction:column;background:var(--panel);color:var(--ink);box-shadow:-12px 0 30px -18px rgba(0,0,0,.55);padding:max(10px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) 14px}
+html.usc #workshop{transform:scale(var(--us));transform-origin:100% 0;height:calc(100vh / var(--us));bottom:auto}
+.wsHead{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.wsHead .ghostbtn{flex:0 0 auto;padding:6px 12px}
+.wsTitle{display:grid;min-width:0}
+.wsTitle small{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wsName{font:inherit;font-size:22px;font-weight:800;color:var(--ink);background:transparent;border:0;border-bottom:2px solid var(--line);padding:0 2px;min-width:0;width:100%}
+.wsName:focus{border-bottom-color:var(--marshal);outline:none}
+.wsState{font-size:13px;font-weight:700;color:var(--muted);text-align:right;max-width:9em}
+.wsState[data-dirty="1"]{color:var(--livery)}
+.wsFig{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 0 4px}
+.wsTile{border:2px solid var(--line);border-radius:5px;padding:3px 6px;display:grid;min-width:0}
+.wsTile small{font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wsTile b{font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wsTile span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wsTile span.wsDelta{color:var(--ink);font-weight:700}
+.wsNote{margin:2px 0 6px}
+.wsNote:empty{display:none}
+.wsTabs{display:flex;gap:2px;overflow-x:auto;border-bottom:2px solid var(--ink);scrollbar-width:none;flex:0 0 auto}
+.wsTabs::-webkit-scrollbar{display:none}
+.wsTabs button{flex:1 0 auto;background:transparent;color:var(--ink);border:0;border-radius:4px 4px 0 0;padding:7px 10px;font-size:15px;font-weight:800}
+.wsTabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.wsBody{flex:1 1 auto;overflow-y:auto;padding:2px 2px 10px;min-height:0;overscroll-behavior:contain}
+.wsSec{font-size:15px;font-weight:800;margin:14px 0 2px;border-bottom:1px solid var(--line);padding-bottom:2px}
+.wsRow{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.7fr);gap:10px;align-items:center;padding:5px 0}
+.wsL{display:grid;font-size:15px;font-weight:700;min-width:0}
+.wsL small{font-size:12px;font-weight:400;color:var(--muted);line-height:1.25}
+.wsSeg{display:flex;flex-wrap:wrap;gap:4px;margin:0}
+.wsSeg button{flex:1 1 auto;padding:4px 6px;font-size:14px;min-height:34px}
+.wsRange{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.wsRange input{width:100%;accent-color:var(--marshal);min-height:30px}
+.wsRange output{font-size:14px;font-weight:800;min-width:78px;text-align:right}
+.wsCurve{width:100%;height:auto;display:block;margin:4px 0}
+.wsBodies{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px}
+.wsBodyBtn{display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:8px;text-align:left;background:transparent;color:var(--ink);border:2px solid var(--line);border-radius:5px;padding:5px 8px}
+.wsBodyBtn[aria-pressed="true"]{border-color:var(--marshal);background:rgba(242,192,20,.18)}
+.wsBodyBtn b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wsBodyBtn small{grid-column:2;font-size:12px;color:var(--muted)}
+.wsSw{grid-row:1/3;width:18px;height:28px;border-radius:3px;background:linear-gradient(var(--c1) 0 60%,var(--c2) 60%);border:1px solid var(--line)}
+.wsBtns{display:flex;gap:8px;margin:8px 0;align-items:center}
+.wsBtns .ghostbtn{flex:0 1 auto;padding:7px 12px}
+.wsSwatches{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.wsSwatch{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);padding:0}
+.wsSwatch[aria-pressed="true"]{outline:3px solid var(--marshal);outline-offset:1px}
+.wsSwatches input[type=color]{width:36px;height:30px;border:0;padding:0;background:transparent}
+.wsNum{font:inherit;font-size:16px;font-weight:800;width:84px;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:4px 6px}
+.wsFoot{display:flex;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:2px solid var(--line);align-items:center;flex:0 0 auto}
+.wsFoot .ghostbtn{flex:0 1 auto;padding:8px 12px}
+.wsFoot .ghostbtn:disabled{opacity:.45}
+.wsFoot .ghostbtn:disabled:hover{background:transparent;color:var(--ink)}
+.wsGo{margin:0;width:auto;flex:1 1 auto;font-size:19px;padding:9px 14px;box-shadow:0 3px 0 #9d7c06}
+.wsAsk{flex:1 1 100%;font-weight:700}
+.wsShare{display:grid;gap:4px;width:100%}
+.wsCode{font:inherit;font-size:13px;flex:1 1 auto;min-width:0;color:var(--ink);background:var(--paper);border:2px solid var(--line);border-radius:4px;padding:6px}
+.cuRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:stretch}
+.cuRow .ghostbtn{flex:0 0 auto;padding:4px 10px;font-size:15px;align-self:center}
+.cuNew{margin-top:4px}
+@media (max-aspect-ratio:1/1){ #workshop{left:0;right:0;top:auto;width:auto;height:64vh;border-radius:12px 12px 0 0;box-shadow:0 -12px 30px -18px rgba(0,0,0,.55);padding-top:8px}
+  html.usc #workshop{transform-origin:50% 100%;height:calc(64vh / var(--us));top:auto;bottom:0;left:calc(50vw - 50vw / var(--us));right:auto;width:calc(100vw / var(--us))} }
+@media (max-width:540px){ .wsFig{gap:4px} .wsTile{padding:2px 4px} .wsTile b{font-size:15px} .wsTile span{display:none} .wsRow{grid-template-columns:1fr;gap:3px} .wsTabs button{flex:1 1 auto;font-size:14px;padding:6px 3px} .wsName{font-size:19px} .wsTitle small{display:none} }
+@media (max-height:520px) and (min-aspect-ratio:1/1){ #workshop{width:min(460px,58vw);padding-top:6px} .wsTitle small,.wsTile span,.wsNote{display:none} .wsName{font-size:18px} .wsFig{margin:6px 0 4px;gap:4px} .wsTile{padding:1px 5px} .wsTile:nth-child(n+5){display:none} .wsTile b{font-size:15px} .wsRow{padding:3px 0} .wsTabs button{flex:1 1 auto;font-size:14px;padding:5px 3px} .wsFoot{padding-top:6px} .wsGo{font-size:17px;padding:7px 10px} .wsFoot .ghostbtn{padding:6px 10px} }
 #inspectBar{position:fixed;z-index:5;left:0;right:0;bottom:0;margin:0 auto;max-width:640px;background:var(--panel);color:var(--ink);border-radius:10px 10px 0 0;padding:10px max(12px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));box-shadow:0 -10px 30px -16px rgba(0,0,0,.5);display:grid;gap:8px}
 #inspectBar[hidden]{display:none}
 .insRow{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center}
@@ -833,8 +898,8 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     </div>
   </section>
   <section class="entrycol" aria-label="Car and times">
-    <h2 class="elh">Entry list <span class="elb"><button id="setupBtn" class="ghostbtn" type="button">Setup</button><button id="inspectBtn" class="ghostbtn" type="button">View car</button></span></h2>
-    <div class="assist cls" role="group" aria-label="Class"><button id="cls_G4" type="button">Group 4 <small>1970s</small></button><button id="cls_B" type="button">Group B <small>1980s</small></button><button id="cls_A" type="button">Group A <small>1990s</small></button><button id="cls_F2" type="button">F2 kit car <small>late 90s</small></button><button id="cls_WRC" type="button">WRC <small>2000s</small></button><button id="cls_R2" type="button">Rally2 <small>2020s</small></button><button id="cls_SP" type="button">Special <small>work vehicles</small></button></div>
+    <h2 class="elh">Entry list <span class="elb"><button id="setupBtn" class="ghostbtn" type="button">Setup</button><button id="inspectBtn" class="ghostbtn" type="button">View car</button><button id="wsBtn" class="ghostbtn" type="button">Workshop</button></span></h2>
+    <div class="assist cls" role="group" aria-label="Class"><button id="cls_G4" type="button">Group 4 <small>1970s</small></button><button id="cls_B" type="button">Group B <small>1980s</small></button><button id="cls_A" type="button">Group A <small>1990s</small></button><button id="cls_F2" type="button">F2 kit car <small>late 90s</small></button><button id="cls_WRC" type="button">WRC <small>2000s</small></button><button id="cls_R2" type="button">Rally2 <small>2020s</small></button><button id="cls_SP" type="button">Special <small>work vehicles</small></button><button id="cls_CU" type="button">Custom <small>your builds</small></button></div>
     <div id="cars" role="radiogroup" aria-label="Choose your car"></div>
     <p id="setupLine" class="small"></p>
     <div id="boardWrap">
@@ -4610,7 +4675,7 @@ function boostStep(c, S, thr, dt) {
 // itself falls away, a 2-litre engine pulled like a 1-litre one and a heavy car could not get going or climb from rest.)
 // A Roots supercharger's boost is the crank's, and an engine without either has only its curve
 const NA_BMEP = { B: 8.5, G4: 8.5, A: 9.5, F2: 9.5, WRC: 10.5, R2: 10.5, SP: 7.5 };
-function naTorque(S, rpm) { const pk = S._naPk || (S._naPk = (NA_BMEP[S.cls] || 9) * 1e5 * litresOf(S) / 1000 / (4 * Math.PI)); return pk * (0.8 + 0.2 * smooth(S.idle || 900, 0.6 * S.redline, rpm)); }
+function naTorque(S, rpm) { const pk = S._naPk || (S._naPk = (S.bmep || NA_BMEP[S.cls] || 9) * 1e5 * litresOf(S) / 1000 / (4 * Math.PI)); /* (S.bmep: a built engine's own, see cuSpec) */ return pk * (0.8 + 0.2 * smooth(S.idle || 900, 0.6 * S.redline, rpm)); }
 function engineTorque(S, rpm, boost) { const full = engineCurve(S, rpm); if (S.boost === 'sc' || S.boost === 'na') return full;
   const t0 = Math.min(full, Math.max(S.na * full, naTorque(S, rpm))); return t0 + (full - t0) * boost; }
 // ---- idle ----
@@ -4686,7 +4751,7 @@ function idleTorque(c, S, thr, dt, fr) {
 // against a rev-limiting rotor arm in the distributor
 const LIMITER = { R2: [0.55, 0.035], WRC: [0.8, 0.05], A: [1, 0.07], F2: [1, 0.07], B: [1, 0.08], G4: [0.8, 0.06], SP: [0.5, 0.12] }; // (SP: a diesel's governor, easing the fuel off)
 // (a soft cut cuts more of the firings the further past the limit the revs go, all of them 2% past it)
-function limiterHit(c, S) { const L = LIMITER[S.cls] || LIMITER.A; if ((c.limT || 0) <= 0 && c.ev) c.ev.push('lim'); c.limT = L[1]; c.limK = Math.min(1, L[0] + (1 - L[0]) * Math.max(0, c.rpm - S.redline) / (0.02 * S.redline)); }
+function limiterHit(c, S) { const L = S.lim || LIMITER[S.cls] || LIMITER.A; /* (S.lim: a built engine's era's, see cuSpec) */ if ((c.limT || 0) <= 0 && c.ev) c.ev.push('lim'); c.limT = L[1]; c.limK = Math.min(1, L[0] + (1 - L[0]) * Math.max(0, c.rpm - S.redline) / (0.02 * S.redline)); }
 // what the engine loses to itself (Nm). On the throttle, its friction as before (the torque curves are what the engine
 // gives at full load). Off it, everything that turns the engine over against a shut throttle: the friction of its
 // pistons, bearings and valve gear, rising steeply with the revs (a mean pressure of 0.9 + 0.12 N + 0.04 N^2 bar, N in
@@ -4697,8 +4762,8 @@ function limiterHit(c, S) { const L = LIMITER[S.cls] || LIMITER.A; if ((c.limT |
 // anti-lag working than without
 function litresOf(S) { return S._L || (S._L = S.litres || +(((S.motor || '').match(/([\d.]+)-litre/) || [0, 2])[1])); }
 function engineDrag(S, rpm, we, thr) {
-  if (thr >= 0.05) return 12 + 0.035 * we;
-  const N = rpm / 1000, ret = S.als && S.cls === 'R2' && thr < 0.1 && rpm > S.spool[0] * 0.8;
+  if (thr >= 0.05) return (12 + 0.035 * we) * (S.fricK || 1); // (S.fricK: a built engine's against its size, see cuSpec)
+  const N = rpm / 1000, ret = S.als && (S.alsKind ? S.alsKind === 'ret' : S.cls === 'R2') && thr < 0.1 && rpm > S.spool[0] * 0.8;
   return (0.9 + 0.12 * N + 0.04 * N * N + (ret ? 0.3 : 0.8)) * 7.958 * litresOf(S);
 }
 // The engine on its own, out of gear (the showroom's run-up, the start line): the same torque, boost, friction, idle
@@ -5556,7 +5621,8 @@ function stepCar(c, S, inp, dt, T, opts) {
       const Pin = on ? tw.P + 0.016 * wh.Fz * va * Math.pow(S.pOpt / Math.max(0.8, tw.p), 0.8) : 0;
       tw.T += WH.tk ? dt * (Pin - hA * WH.tk[1] * K.NT[i] * (tw.T - aT)) / (TYRE_CAP * WH.tk[0] * K.NT[i]) : dt * (Pin - hA * (tw.T - aT)) / TYRE_CAP; tw.P = 0; tw.p = hotP(S.pCold[i], tw.T, S.pSet); } }
   // engine
-  const ratio = c.gear > 0 ? (DR && DR.lost.includes(c.gear) ? 0 : S.gears[c.gear - 1]) : c.gear < 0 ? (DR && DR.box <= 0 ? 0 : -3.3) : 0; const Gr = ratio * S.final * gearK(S);
+  // (a CVT left to itself runs at the ratio its control has set, c.cvtR: see the gearbox below; shifted by hand, at its steps)
+  const ratio = c.gear > 0 ? (DR && DR.lost.includes(c.gear) ? 0 : S.cvt && c.cvtR && inp.auto !== false ? c.cvtR : S.gears[c.gear - 1]) : c.gear < 0 ? (DR && DR.box <= 0 ? 0 : -3.3) : 0; const Gr = ratio * S.final * gearK(S);
   let we = c.rpm * Math.PI / 30;
   if (c.rpm >= S.redline) limiterHit(c, S); // (the rev limiter: see LIMITER)
   c.limT -= dt; c.shiftT -= dt;
@@ -5564,7 +5630,7 @@ function stepCar(c, S, inp, dt, T, opts) {
   // the engine's air, heat and water (its power as a share of what it is rated at; stalled or hydrolocked, none)
   const kE = engineSys(c, S, T, D, thrIn, dt), es = c.es, eOff = es.run !== 'run', locked = es.run === 'lock';
   c.flooded = eOff && (locked || es.inWater);
-  let Te = thrIn > 0.02 ? engineTorque(S, c.rpm, c.boost * (DR ? DR.turbo : 1)) * thrIn * (DR ? engineFactor(DR, dt) : 1) * kE : 0;
+  let Te = thrIn > 0.02 ? engineTorque(S, c.rpm, c.boost * (DR ? DR.turbo : 1)) * thrIn * (DR ? engineFactor(DR, dt) : 1) * kE * (S.cvtEta || 1) : 0; // (S.cvtEta: what a CVT loses, see cuGearing)
   if (DR) { engineStep(c, S, DR, thrIn, dt); if (DR.eng <= 0) { Te = 0; thrIn = 0; } }
   if (eOff) { Te = 0; thrIn = 0; }
   if (c.shiftT > 0 && !S.tc) Te = 0; // (an automatic shifts under load: its converter carries the drive through)
@@ -5621,7 +5687,11 @@ function stepCar(c, S, inp, dt, T, opts) {
   // each other) and passes it nearly solid at speed, where it stops pulling as the slip goes; driven from the wheels on
   // the overrun it holds the engine back only weakly. Its pull at a slip ratio sr: k times the impeller's speed squared,
   // full below 0.6 and falling away to nothing as the speeds meet. No clutch to dip and no blip.
-  if (S.tc && c.gear !== 0 && k2 > 0) {
+  // (a CVT's converter locks up once the car is moving and the turbine has caught the engine up: a clutch across it then
+  // carries the drive solid, as the clutch of a manual car does; it lets go again as the car slows to a crawl)
+  if (S.tc && S.tc.lock && c.gear > 0 && k2 > 0 && !(DR && DR.eng <= 0) && !eOff) { const wt0 = Gr * (kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega), r0 = wt0 * 30 / Math.PI;
+    c.lockup = c.lockup ? r0 > 1100 && !hold : r0 > 1700 && wt0 > 0.88 * Math.max(1, we); } else c.lockup = false;
+  if (S.tc && c.gear !== 0 && k2 > 0 && !c.lockup) {
     const ws = kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega, wt = Gr * ws, wp = Math.max(0, we), C = S.tc;
     if (!(hold || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0)))) {
       let Tp, Tt;
@@ -5644,6 +5714,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const cK = S.clutchK || 1;
     let engage = dsRpm < 1500 * cK ? smooth((1050 + 2700 * thrIn) * cK, (2100 + 3300 * thrIn) * cK, c.rpm) * (thrIn > 0.05 || dsRpm > 900 * cK ? 1 : 0) : 1;
     if (dsRpm < 1500 * cK && dsRpm > 900 * cK && thrIn <= 0.05) engage = Math.max(engage, smooth(900 * cK, 1500 * cK, dsRpm));
+    if (c.lockup) engage = 1; // (a CVT's converter locked up)
     if (c.shiftT > 0 || hold || ((AB ? AB.kP > 0.05 : hb) && kR > 0) || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0))) engage = 0;
     if (es.jolt > 0) engage = 1; // (hydrolocked in gear: the clutch snatches the driven wheels before the driver dips it)
     // (inp.clutchT: the most torque the traction control lets the clutch pass pulling away, N m)
@@ -5777,7 +5848,26 @@ function stepCar(c, S, inp, dt, T, opts) {
   // gearbox
   const roadRpm = r0 => Math.abs(c.u) / R0 * 30 / Math.PI * S.final * gearK(S) * r0;
   const gOk = gi => !(DR && DR.lost.includes(gi)), nG = S.gears.length;
-  if (S.tc && inp.auto !== false && c.gear > 0 && c.shiftT <= 0) {
+  if (S.cvt && inp.auto !== false && c.gear > 0) {
+    // a CVT: its ratio moves continuously between its lowest and highest (S.cvt), so the engine turns at the revs the
+    // throttle asks for - near its power peak flat out (S.cvtRpm), little above idle on a light throttle - whatever the
+    // road speed; braking it moves low, ready to pull again; it moves about its whole range in under a second. Driven
+    // hard it keeps the revs up (c.cvtHot: how hard it has been driven lately, held under braking and falling over six
+    // seconds off the throttle), so a lift or a brake into a corner leaves the engine near its peak and a turbo spooled
+    // for the way out, as a driver holds a lower gear; cruising it settles to low revs. The step it is nearest shows as
+    // its gear
+    const lo = S.cvt[0], hi = S.cvt[1], thr = clamp(inp.throttle, 0, 1), idl = S.idle || 900, pk = Math.min(S.cvtRpm || 0.8 * S.redline, 0.94 * S.redline);
+    c.cvtHot = Math.max(thr, (c.cvtHot || 0) - (inp.brake > 0.1 ? 0 : dt / 6)); const dem = Math.max(thr, 0.9 * c.cvtHot);
+    const rt = dem > 0.04 ? idl * 1.5 + (pk - idl * 1.5) * Math.pow(dem, 0.7) : inp.brake > 0.2 ? 0.5 * S.redline : idl * 1.3;
+    // (it follows the driven wheels' speed, their slip and all, but smoothed over a third of a second: a burst of
+    // wheelspin revs the engine as in a fixed gear rather than shifting at once, which would cut the drive, let the
+    // wheels grip and shift back, a surge after each slip; and its pulleys move the ratio by a share of itself, about
+    // twice it in 0.4 s)
+    const wr = Math.abs(kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega) * S.final * gearK(S);
+    c.cvtW = c.cvtW == null ? wr : c.cvtW + (wr - c.cvtW) * Math.min(1, dt / 0.33); const ww = c.rpm > 0.97 * S.redline ? Math.max(wr, c.cvtW) : c.cvtW; // (near the limiter, at once)
+    const want = ww > 0.5 ? clamp(rt * Math.PI / 30 / ww, hi, lo) : lo, R = c.cvtR || lo, st = 1.8 * dt;
+    c.cvtR = clamp(R * Math.exp(clamp(Math.log(want / R), -st, st)), hi, lo); let gi = 1; for (let i = 1; i <= nG; i++) if (Math.abs(Math.log(S.gears[i - 1] / c.cvtR)) < Math.abs(Math.log(S.gears[gi - 1] / c.cvtR))) gi = i; c.gear = gi;
+  } else if (S.tc && inp.auto !== false && c.gear > 0 && c.shiftT <= 0) {
     // an automatic's own schedule, read off the road's speed (its turbine's): up early on a light throttle and near the
     // red line flat out, down when the throttle goes to the floor and the lower gear has room (kickdown) or as the car slows
     const up = c.gear + 1, dn = c.gear - 1, thr = clamp(inp.throttle, 0, 1), r = roadRpm(S.gears[c.gear - 1]);
@@ -5869,15 +5959,21 @@ function dentAt(D, x, y, z) { let m = 0; for (const d of D.dents) { const ex = x
 // for the rear window) place it.
 const CAB_CRUSH = 480e3, CAB_MAX = 0.18;
 function cabinPush(D, h, S, Hs, Ex) {
-  const fr = h.nz < 0, W = S.hull && S.hull[fr ? 'ws' : 'rws'];
+  const fr = h.nz < 0, W = S.hull && S.hull[fr ? 'ws' : 'rws'], U = S.dur || DUR_DEF, cabF = CAB_CRUSH * U.cab, cabM = CAB_MAX * U.cabMax;
   const y = W ? W[0] - 0.1 : Hs.belt - 0.05, z = W ? W[1] + (fr ? 0.05 : -0.05) : fr ? Hs.rzf + 0.55 : Hs.rzr - 0.4, xw = W ? W[2] + 0.06 : Hs.hw - 0.22;
   const s = clamp(h.x / Math.max(0.25, xw - 0.15), -1, 1), nx = h.nx * 0.3, ny = h.ny * 0.5, nz = h.nz, L = Math.hypot(nx, ny, nz) || 1; let most = 0;
-  for (const [sx, w] of [[1, (1 + s) / 2], [-1, (1 - s) / 2]]) { const dep = Math.min(CAB_MAX, 2 * w * Ex / CAB_CRUSH); if (dep < 0.004) continue;
+  for (const [sx, w] of [[1, (1 + s) / 2], [-1, (1 - s) / 2]]) { const dep = Math.min(cabM, 2 * w * Ex / cabF); if (dep < 0.004) continue;
     addDent(D, { k: h.k, x: sx * xw, y, z, nx: nx / L, ny: ny / L, nz: nz / L }, dep, 0.65); D.ver++; most = Math.max(most, dep); } // (a pillar bends back from its foot)
   return most;
 }
+// how a car stands up to blows where it was built with fewer panels or a lighter cage (S.dur, see cuDurability): what
+// each zone holds against a car with all of them (roof, side, either end, underneath), the cabin's frame and how far
+// it can give, how hard a blow from below must be to hole the sump, strip the gearbox or break a driveshaft, how much
+// less a blow to a nose with no bumper needs to reach the radiator and the steering; and the engine, with the bonnet
+// off, open to a blow at the nose
+const DUR_DEF = { roof: 1, side: 1, cab: 1, cabMax: 1, endF: 1, endR: 1, under: 1, sump: 4, box: 5, shaft: 7, radF: 0, steerF: 0, open: false };
 function applyHits(c, S) {
-  const D = c.dmg, K = carSetup(S), HU = carHull(S), Hs = carShape(S), real = D.mode === 'real'; if (!D.hits.length) return;
+  const D = c.dmg, K = carSetup(S), HU = carHull(S), Hs = carShape(S), real = D.mode === 'real', U = S.dur || DUR_DEF; if (!D.hits.length) return;
   for (const h of D.hits) {
     const e = h.dv - (h.k === 'roll' || h.k === 'scrape' ? 1 : DMG_DV0); if (e <= 0) continue;
     if (h.w >= 0) { if (real) wheelStrike(D, h.w, h.dv); D.ev.push(h); continue; } // a tyre struck a rock: the tyre and rim take it
@@ -5886,7 +5982,8 @@ function applyHits(c, S) {
     // on them flattens and scuffs; earth banks and guard rails give more than stone walls, rocks and trees
     const roll = h.k === 'roll' || h.k === 'scrape', soft = h.k === 'bank' ? 0.45 : h.k === 'rail' ? 0.8 : 1;
     let depth, rad, Ex = 0;
-    if (h.E != null) { const zone = crushZone(h, Hs), Z = CRUSH[zone]; depth = Math.min(Z[1], h.E / Z[0]) * soft; rad = clamp(0.2 + 0.055 * Math.sqrt(h.E / 1000), 0.2, 0.75);
+    if (h.E != null) { const zone = crushZone(h, Hs), Z0 = CRUSH[zone], kz = zone === 'end' ? (h.z > 0 ? U.endF : U.endR) : U[zone] || 1, Z = kz === 1 ? Z0 : [Z0[0] * kz, Z0[1] / Math.sqrt(kz)];
+      depth = Math.min(Z[1], h.E / Z[0]) * soft; rad = clamp(0.2 + 0.055 * Math.sqrt(h.E / 1000), 0.2, 0.75);
       // (an end's crumple zone takes what it still has room for: less where an earlier blow has crushed it already)
       if (zone === 'end' && !roll && Math.abs(h.nz) > 0.5) { const room = Math.max(0, Math.min(Z[1], 0.6 - dentAt(D, h.x, h.y, h.z))); depth = Math.min(depth, Math.max(room, 0.02) * soft); Ex = Math.max(0, h.E - Z[0] * room) * soft; } }
     else if (h.k === 'scrape') { depth = 0.003 + 0.003 * (h.dv - 1.6); rad = 0.3; }
@@ -5904,20 +6001,22 @@ function applyHits(c, S) {
     const front = h.z > HU.zf - 0.5 && h.nz < -0.3, rear = h.z < HU.zr + 0.5 && h.nz > 0.3, mid = Math.abs(h.x) < HU.hw * 0.75, EL = engLayout(S);
     // radiator: in the nose, or behind the cabin with the engine mid-mounted (a blow below it, on the lip under the nose,
     // does not reach it)
-    if ((S.epos === 'mid' ? rear : front) && mid && h.dv > 4.5 && h.y + 0.1 > EL.rad[1]) { const was = D.rad; D.rad = Math.min(1, D.rad + (h.dv - 4.5) / 8); if (was < 0.05 && D.rad >= 0.05) dmgNews(D, 'Radiator holed: watch the temperature'); }
+    if ((S.epos === 'mid' ? rear : front) && mid && h.dv > 4.5 + (front ? U.radF : 0) && h.y + 0.1 > EL.rad[1]) { const was = D.rad; D.rad = Math.min(1, D.rad + (h.dv - 4.5) / 8); if (was < 0.05 && D.rad >= 0.05) dmgNews(D, 'Radiator holed: watch the temperature'); }
     // intercooler and turbo pipework
-    if ((S.boost === 'turbo' || S.boost === 'twin') && (S.epos === 'mid' ? rear : front) && h.dv > 6 && h.y + 0.1 > Math.min(EL.icP[1], 0.35)) { const was = D.turbo; D.turbo = Math.max(0.55, D.turbo - (h.dv - 6) * 0.05); if (was === 1) dmgNews(D, 'Intercooler damaged: less boost'); }
+    if ((S.boost === 'turbo' || S.boost === 'twin') && (S.epos === 'mid' ? rear : front) && h.dv > 6 + (front ? U.radF : 0) && h.y + 0.1 > Math.min(EL.icP[1], 0.35)) { const was = D.turbo; D.turbo = Math.max(0.55, D.turbo - (h.dv - 6) * 0.05); if (was === 1) dmgNews(D, 'Intercooler damaged: less boost'); }
     // steering rack: a hard blow to the front
-    if (front && h.dv > 7) { D.steer.off += (Math.random() < 0.5 ? -1 : 1) * (h.dv - 7) * 0.003; D.steer.lock = Math.max(0.6, D.steer.lock - (h.dv - 7) * 0.02); dmgNews(D, 'Steering knocked out of true'); }
+    // (with the bonnet off, a blow at the nose reaches a front engine itself)
+    if (front && U.open && S.epos === 'front' && h.dv > 6 && !h.under) { const was = D.eng; D.eng = Math.max(0, D.eng - (h.dv - 6) / 28); if (was > 0.9 && D.eng <= 0.9) dmgNews(D, 'The engine took the blow: no bonnet over it'); }
+    if (front && h.dv > 7 + U.steerF) { D.steer.off += (Math.random() < 0.5 ? -1 : 1) * (h.dv - 7) * 0.003; D.steer.lock = Math.max(0.6, D.steer.lock - (h.dv - 7) * 0.02); dmgNews(D, 'Steering knocked out of true'); }
     // from below: sump, gearbox, driveshafts
     if (h.under) {
       const sumpZ = S.epos === 'front' ? K.a - 0.2 : S.epos === 'mid' ? -0.55 : -K.b - 0.2, boxZ = S.epos === 'front' ? 0.1 : S.epos === 'mid' ? -K.b + 0.1 : -K.b + 0.35;
-      if (Math.abs(h.z - sumpZ) < 0.55 && h.dv > 4) { const was = D.sump; D.sump = Math.min(1, D.sump + (h.dv - 4) / 7); if (was === 0) dmgNews(D, 'Sump holed: losing oil'); }
-      if (Math.abs(h.z - boxZ) < 0.55 && h.dv > 5) {
-        D.box = Math.max(0, D.box - (h.dv - 5) / 12);
-        if (Math.random() < (h.dv - 5) / 8) { const g = 2 + Math.floor(Math.random() * (S.gears.length - 1)); if (!D.lost.includes(g)) { D.lost.push(g); dmgNews(D, `Gearbox: ${ordinalG(g)} gear gone`); } }
+      if (Math.abs(h.z - sumpZ) < 0.55 && h.dv > U.sump) { const was = D.sump; D.sump = Math.min(1, D.sump + (h.dv - U.sump) / 7); if (was === 0) dmgNews(D, 'Sump holed: losing oil'); }
+      if (Math.abs(h.z - boxZ) < 0.55 && h.dv > U.box) {
+        D.box = Math.max(0, D.box - (h.dv - U.box) / 12);
+        if (Math.random() < (h.dv - U.box) / 8) { const g = 2 + Math.floor(Math.random() * (S.gears.length - 1)); if (!D.lost.includes(g)) { D.lost.push(g); dmgNews(D, `Gearbox: ${ordinalG(g)} gear gone`); } }
       }
-      if (h.dv > 7 && Math.random() < (h.dv - 7) / 10) { const fr = h.z > 0 ? 'f' : 'r'; if ((fr === 'f' ? S.fs > 0 : S.fs < 1) && D.shaft[fr]) { D.shaft[fr] = 0; dmgNews(D, `${fr === 'f' ? 'Front' : 'Rear'} driveshaft broken`); } }
+      if (h.dv > U.shaft && Math.random() < (h.dv - U.shaft) / 10) { const fr = h.z > 0 ? 'f' : 'r'; if ((fr === 'f' ? S.fs > 0 : S.fs < 1) && D.shaft[fr]) { D.shaft[fr] = 0; dmgNews(D, `${fr === 'f' ? 'Front' : 'Rear'} driveshaft broken`); } }
     }
   }
   D.hits.length = 0; dmgState(D, S);
@@ -6242,7 +6341,11 @@ const ROAD_FIXES = [
   { k: 'screen', name: 'Kick out the smashed windscreen', need: (D, V) => !!(V && V.panes && V.panes.ws && !V.wsOut), mins: () => 2, fix: () => {} },
   // a bonnet, boot lid or door whose latch has gone is pushed shut (a bent one as near shut as it goes) and strapped
   { k: 'strap', name: 'Strap down the loose panels', need: (D, V) => !!(V && V.panels && V.panels.some(p => p.st === 'loose')), mins: (D, V) => 2 * V.panels.filter(p => p.st === 'loose').length, fix: () => {} },
-  { k: 'spare', name: 'Fit the spare wheels', need: D => D.w.some(w => w.flat && !w.off), mins: D => 4 * D.w.filter(w => w.flat && !w.off).length, fix: D => { for (const w of D.w) if (w.flat && !w.off) { w.flat = 0; w.rim = 0; } } },
+  // (as many as the car carries: D.spares, set from the car before the jobs are listed; a car built with none has to
+  // run on to service on its flat tyres)
+  { k: 'spare', name: 'Fit the spare wheels', label: D => { const n = D.spares == null ? 4 : D.spares, f = D.w.filter(w => w.flat && !w.off).length; return n >= f ? (f === 1 ? 'Fit the spare wheel' : 'Fit the spare wheels') : `Fit the spare wheel${n > 1 ? 's' : ''}: you carry ${n} for ${f} flat tyres`; },
+    need: D => D.w.some(w => w.flat && !w.off) && (D.spares == null || D.spares > 0), mins: D => 4 * Math.min(D.spares == null ? 4 : D.spares, D.w.filter(w => w.flat && !w.off).length),
+    fix: D => { let n = D.spares == null ? 4 : D.spares; for (const w of D.w) if (w.flat && !w.off && n > 0) { w.flat = 0; w.rim = 0; n--; } } },
   { k: 'tape', name: 'Patch the radiator and top up', need: D => D.rad > 0.05, mins: () => 6, fix: D => { D.rad *= 0.35; D.cool = Math.max(D.cool, 0.85); } },
   { k: 'pull', name: 'Pull the worst bent corner roughly straight', need: D => D.w.some(w => w.arm > 0 && !w.off && (Math.abs(w.toe) > 0.01 || Math.abs(w.cam) > 0.01)), mins: () => 8, fix: D => { const w = D.w.filter(w => w.arm > 0 && !w.off).sort((a, b) => Math.abs(b.toe) + Math.abs(b.cam) - Math.abs(a.toe) - Math.abs(a.cam))[0]; if (w) { w.toe *= 0.3; w.cam *= 0.4; } } }
 ];
@@ -7164,7 +7267,460 @@ function stagePace(T, S, wet, tyre) {
 
 // ==== END CORE ====
 
-const SR86_BUILD = '3047';
+// ---- the workshop: cars built from parts ----
+// A build takes the body of any car on the entry list (its shell and glass, wheelbase, tracks, suspension geometry and
+// the room inside it) and puts everything else together from parts: the engine (where it sits and which way, how its
+// cylinders stand and how many, its size, fuel, valve gear, era and tune, how it is charged and how hard), the
+// drivetrain (the driven wheels, the differentials, the gearbox and its gearing), the chassis (suspension, brakes,
+// tyres, track, ballast), the panels and fittings it keeps or leaves off, its aerodynamics and its paint. cuSpec makes
+// a build into a car the physics drives: its weight, balance, centre of gravity and turning inertia added up part by
+// part; its torque curve worked out from how its engine is built; its gearing from its power and drag; and how well it
+// stands up to blows from what it kept.
+//
+// Each body's own parts are known (cuStockBuild: the build that is the car on the entry list), so what the body
+// itself weighs and where (its shell, cabin, suspension, wheels and fuel) is what is left of the car once its own
+// engine, drivetrain and fittings are taken out. A build adds its own parts to that. Rebuilt from its own parts, each
+// car comes out at its own weight and balance exactly, and its engine close to its own figures (cuCheck).
+const CU_V = 1;
+const CU_STOCK = CARS.slice(); // (the cars on the entry list, before any build joins it)
+const CU_BODY = {}; // what the page knows of each body's shape and paint (filled from the car kit: see custom.js)
+const CU_SPEC = {}; // the built cars on the page, by id (the player's own and other drivers' in a race)
+// every choice a build makes, its values (a list) or its range [min, max, step], in the order a build code lists them
+const CU_KEYS = [
+  ['body', null], ['name', null], ['num', [1, 99, 1]],
+  ['pos', ['front', 'fmid', 'mid', 'rear']], ['mount', ['trans', 'long']], ['layout', ['inline', 'vee', 'flat', 'w', 'rotary']], ['cyl', [1, 16, 1]], ['litres', [0.5, 8.5, 0.05]],
+  ['fuel', ['petrol', 'diesel']], ['cams', ['pushrod', 'single', 'twin']], ['tech', ['70s', '80s', '90s', '00s', '20s']], ['tune', ['road', 'sport', 'race']],
+  ['asp', ['na', 'turbo', 'biturbo', 'sc', 'twin']], ['tsize', ['small', 'medium', 'large']], ['boost', [0.2, 2.6, 0.05]], ['als', [0, 1, 1]], ['restr', [0, 50, 1]], ['rev', [-2500, 1500, 50]],
+  ['cool', ['water', 'air']], ['exh', ['quiet', 'sport', 'open']], ['fly', ['standard', 'light']],
+  ['drive', ['FWD', 'RWD', 'AWD']], ['split', [0.25, 0.65, 0.01]], ['cdiff', ['open', 'viscous', 'plate', 'active', 'locked']], ['fdiff', ['open', 'viscous', 'plate', 'locked']], ['rdiff', ['open', 'viscous', 'plate', 'locked']], ['hbcut', [0, 1, 1]],
+  ['box', ['H', 'seq', 'paddle', 'auto', 'cvt']], ['gears', [3, 8, 1]], ['spread', ['close', 'medium', 'wide']], ['gearing', ['short', 'medium', 'long']],
+  ['susp', ['stock', 'gravel', 'tarmac', 'raid', 'road']], ['brakes', ['stock', 'small', 'medium', 'large']], ['tyreF', [145, 335, 5]], ['tyreR', [145, 335, 5]], ['track', [-4, 14, 1]], ['ballast', [0, 200, 5]], ['bpos', ['front', 'middle', 'rear']],
+  ['bonnet', ['steel', 'light', 'off']], ['bumpF', [0, 1, 1]], ['bumpR', [0, 1, 1]], ['boot', ['steel', 'light', 'off']], ['doors', ['steel', 'light', 'off']], ['cage', ['none', 'light', 'full']], ['glass', ['glass', 'plastic']],
+  ['trim', ['stripped', 'full']], ['spare', [0, 2, 1]], ['guard', ['none', 'light', 'full']], ['flaps', [0, 1, 1]],
+  ['aero', ['stock', 'none', 'lip', 'wing', 'big', 'max']], ['c1', null], ['c2', null], ['c3', null], ['roof', ['base', 'band']]
+];
+// what each era of engine building gives (see cuEngine): bmep, the mean pressure on the pistons of an atmospheric race
+// engine with twin cams at its torque peak (bar), rising as breathing, combustion and engine management improved; off,
+// a turbo engine's off boost (its low compression); up, how much faster its pistons may run (m/s, lighter parts);
+// eta, how much of each bar of boost reaches the cylinders (the intercooler cooling the charge better); sp and lag, the
+// turbos' spool (a share of the revs) and their lag (s), from big slow single turbos to small quick ones on ball
+// bearings; lim, how its rev limiter cuts (see LIMITER); ign, how readily its ignition shorts when wet; fuel, how it is
+// fed (for the starter); idle, how its idle is held (see IDLE)
+const CU_TECH = {
+  '70s': { bmep: 14.4, off: 8.5, up: 0, eta: 0.8, sp: 1.12, lag: 0.9, lim: [0.8, 0.06], ign: 0.9, fuel: 'carb', idle: 'stop', st: 'dd' },
+  '80s': { bmep: 14.9, off: 8.5, up: 0.5, eta: 0.87, sp: 1.08, lag: 0.65, lim: [1, 0.08], ign: 0.8, fuel: 'mech', idle: 'stop', st: 'dd' },
+  '90s': { bmep: 15.5, off: 9.5, up: 1, eta: 0.92, sp: 1, lag: 0.48, lim: [1, 0.07], ign: 0.5, fuel: 'efi', idle: 'ecu', st: 'red' },
+  '00s': { bmep: 15.8, off: 10.5, up: 1.5, eta: 0.95, sp: 0.82, lag: 0.36, lim: [0.8, 0.05], ign: 0.15, fuel: 'efi', idle: 'ecu', st: 'race' },
+  '20s': { bmep: 16.2, off: 10.5, up: 1.5, eta: 0.97, sp: 0.88, lag: 0.38, lim: [0.55, 0.035], ign: 0.1, fuel: 'efi', idle: 'ecu', st: 'race' }
+};
+// the tune: k, its share of a race engine's mean pressure (milder cams and compression); pk, where its torque peaks (a
+// share of the red line: low for a road engine, high for a race one; a turbo engine's lower, a diesel's lower still);
+// up, how fast its pistons may go at the red line (m/s; a diesel's upD); beta, bore over stroke (a race engine's
+// short stroke); lo, how far its torque falls below the peak; fr, how much is left at the red line; idle (rpm) and lope
+// (how hard its cams make it hunt at idle); rot, a rotary's red line
+const CU_TUNE = {
+  road: { k: 0.76, pk: 0.55, pkT: 0.42, up: 18.5, upD: 12, beta: 0.95, lo: 0.42, fr: 0.74, idle: 850, lope: 0.15, rot: 7500 },
+  sport: { k: 0.88, pk: 0.64, pkT: 0.48, up: 21.5, upD: 12.8, beta: 1.03, lo: 0.55, fr: 0.78, idle: 1000, lope: 0.4, rot: 8500 },
+  race: { k: 1, pk: 0.72, pkT: 0.54, up: 24.5, upD: 13.6, beta: 1.1, lo: 0.72, fr: 0.82, idle: 1250, lope: 0.75, rot: 9400 }
+};
+// a diesel's mean pressure without boost (bar), by tune
+const CU_DBMEP = { road: 8.0, sport: 8.6, race: 9.2 };
+// a turbo's size: its spool and lag against a medium one's, and how much of its boost it still gives at the red line
+const CU_TSIZE = { small: { sp: 0.8, lag: 0.72, top: 0.48 }, medium: { sp: 1, lag: 1, top: 0.25 }, large: { sp: 1.24, lag: 1.38, top: 0.1 } };
+// the panels and fittings each class's cars were built with
+const CU_KIT0 = {
+  G4: { bonnet: 'steel', boot: 'steel', doors: 'steel', cage: 'light', glass: 'glass', trim: 'stripped', spare: 2, guard: 'light' },
+  B: { bonnet: 'light', boot: 'light', doors: 'light', cage: 'full', glass: 'plastic', trim: 'stripped', spare: 2, guard: 'full' },
+  A: { bonnet: 'steel', boot: 'steel', doors: 'steel', cage: 'full', glass: 'plastic', trim: 'stripped', spare: 2, guard: 'full' },
+  F2: { bonnet: 'light', boot: 'light', doors: 'steel', cage: 'full', glass: 'plastic', trim: 'stripped', spare: 2, guard: 'full' },
+  WRC: { bonnet: 'light', boot: 'light', doors: 'light', cage: 'full', glass: 'plastic', trim: 'stripped', spare: 2, guard: 'full' },
+  R2: { bonnet: 'light', boot: 'light', doors: 'light', cage: 'full', glass: 'plastic', trim: 'stripped', spare: 2, guard: 'full' },
+  SP: { bonnet: 'steel', boot: 'steel', doors: 'steel', cage: 'none', glass: 'glass', trim: 'full', spare: 1, guard: 'none' }
+};
+// what the panels and fittings weigh on a car of about 4.2 by 1.8 m (kg; a bigger body's in proportion to its plan):
+// a pressed steel bonnet and one of glass fibre or carbon, the boot lid or tailgate, the doors (two or four), the roll
+// cage (a bolted-in hoop with its stays, or a welded-in cage of many tubes), the side and rear windows in glass or in
+// polycarbonate, a road car's seats, carpets and trim, each spare wheel, the plates under the engine and gearbox, the
+// bumpers and the mudflaps
+const CU_KG = { bonnet: { steel: 14, light: 5, off: 0 }, boot: { steel: 11, light: 4, off: 0 }, doors: { steel: 36, light: 14, off: 0 }, doors4: { steel: 58, light: 22, off: 0 },
+  cage: { none: 0, light: 20, full: 44 }, glass: { glass: 18, plastic: 7 }, trim: { stripped: 0, full: 82 }, spare: 21, guard: { none: 0, light: 12, full: 28 }, bumpF: 9, bumpR: 7, flaps: 2,
+  aero: { none: 0, lip: 3, wing: 9, big: 16, max: 26 } };
+// aerodynamic parts, each against a body with none (CdA m2, downforce coefficient times area (+ down), its front share):
+// lip spoilers front and rear; a rear wing on posts; a big wing with a splitter and dive planes; a racing wing high on
+// tall posts with a deep splitter. A bumper off adds drag and front lift, the bonnet off more (the air through the bay)
+const CU_AERO = { none: [0, 0, 0.5], lip: [0.02, 0.28, 0.5], wing: [0.07, 0.48, 0.38], big: [0.11, 0.78, 0.42], max: [0.24, 1.25, 0.4] };
+const cuR = (v, s) => Math.round(v / s) * s, cuR3 = v => Math.round(v * 1000) / 1000;
+function cuBody(id) { return CU_STOCK.find(S => S.id === id) || null; }
+// what is known of a body's shape, in the axles' frame (z forward from the front axle, the rear axle at -wb): the nose
+// and tail, the cabin's middle, how many doors and whether its rear opens as a tailgate (see custom.js); a body the page
+// has not measured (as in the tests) from its length
+function cuShape(S0) {
+  const I = CU_BODY[S0.id] || {}, wb = S0.wb, oh = Math.max(0.3, (S0.len || 4) - wb), a0 = wb * (1 - S0.wf), H = S0.hull;
+  const nose = H && H.zf != null ? H.zf - a0 : oh * 0.56, tail = H && H.zr != null ? H.zr - a0 : -wb - oh * 0.44;
+  const cab = H && H.rzf != null ? (H.rzf + H.rzr) / 2 - a0 : S0.cls === 'SP' ? -0.25 * wb : -0.45 * wb;
+  return { nose, tail, cab, doors: I.doors || 2, hatch: I.hatch != null ? I.hatch : true, area: clamp((S0.len || 4.2) * (S0.width || 1.8) / (4.2 * 1.8), 0.7, 3), lift: (ENG_LAY[S0.id] && ENG_LAY[S0.id].lift) || 0 };
+}
+// the build that is the car on the entry list: its engine, drivetrain, chassis and fittings as built
+function cuStockBuild(S0) {
+  const t = [S0.motor, S0.engine, S0.drive].join(' ').toLowerCase(), L = ENG_LAY[S0.id] || {}, cls = S0.cls, K = CU_KIT0[cls] || CU_KIT0.A;
+  const layout = /flat/.test(t) ? 'flat' : /\bv\d/.test(t) ? 'vee' : 'inline', mount = /transverse/.test(t) ? 'trans' : 'long';
+  const pos = L.pos === 'mid' ? 'mid' : L.pos === 'rear' ? 'rear' : mount === 'trans' || /ahead of the front axle/.test(t) || (S0.fs > 0 && layout !== 'vee' && cls !== 'SP') ? 'front' : 'fmid';
+  const fuel = cls === 'SP' ? 'diesel' : 'petrol', cams = /pushrod/.test(t) ? 'pushrod' : /single cam/.test(t) || (L.cool === 'air' && !/twin cam/.test(t)) ? 'single' : 'twin';
+  const tech = { G4: '70s', B: '80s', A: '90s', F2: '90s', WRC: '00s', R2: '20s' }[cls] || (S0.id === 'caisson_6x6' ? '70s' : S0.id === 'limber_4x4' ? '20s' : '00s');
+  const asp = S0.boost === 'na' ? 'na' : S0.boost === 'sc' ? 'sc' : S0.boost === 'twin' ? 'twin' : /twin-turbo|twin turbo/.test(t) ? 'biturbo' : 'turbo';
+  const rm = t.match(/(\d\d) mm intake restrictor/), d = S0.diff || {}, dk = q => !q ? 'open' : q.pre >= 1000 ? 'locked' : q.kv ? 'viscous' : q.ramp ? 'plate' : 'open';
+  const drive = S0.fs >= 1 ? 'FWD' : S0.fs <= 0 ? 'RWD' : 'AWD';
+  const box = S0.tc ? 'auto' : S0.lever === 'paddle' ? 'paddle' : S0.lever === 'H' ? 'H' : S0.lever === 'sequential' || ['A', 'F2', 'WRC', 'R2'].includes(cls) ? 'seq' : 'H';
+  const g = S0.gears, sp = g[0] / g[g.length - 1] / Math.pow(Math.max(1, g.length - 1) / 5, 0.6);
+  const B = { v: CU_V, body: S0.id, name: S0.name, num: S0.num, pos, mount, layout, cyl: S0.cyl || 4, litres: cuR(litresOf(S0), 0.05), fuel, cams, tech, tune: 'race',
+    asp, tsize: cls === 'B' ? 'large' : 'medium', boost: 1, als: S0.als ? 1 : 0, restr: rm ? +rm[1] : cls === 'A' && asp !== 'na' ? 40 : 0, rev: 0, cool: L.cool === 'air' ? 'air' : 'water', exh: cls === 'SP' ? 'quiet' : ['WRC', 'R2'].includes(cls) ? 'sport' : 'open', fly: (S0.susp && S0.susp.Ie || 0.1) <= 0.07 ? 'light' : 'standard',
+    drive, split: drive === 'AWD' ? S0.fs : 0.5, cdiff: S0.rigidC ? 'locked' : drive === 'AWD' ? (d.c && d.c.pre >= 1000 ? 'locked' : d.c && d.c.ramp && d.c.kv ? 'active' : dk(d.c)) : 'viscous', fdiff: dk(d.f), rdiff: dk(d.r), hbcut: S0.hbCut ? 1 : 0,
+    box, gears: g.length, spread: sp < 2.85 ? 'close' : sp < 3.55 ? 'medium' : 'wide', gearing: 'medium',
+    susp: 'stock', brakes: 'stock', tyreF: S0.tyres[0], tyreR: S0.tyres[1], track: 0, ballast: 0, bpos: 'middle',
+    bonnet: K.bonnet, bumpF: 1, bumpR: 1, boot: K.boot, doors: K.doors, cage: K.cage, glass: K.glass, trim: K.trim, spare: K.spare, guard: K.guard, flaps: CU_BODY[S0.id] && CU_BODY[S0.id].flaps != null ? CU_BODY[S0.id].flaps : cls === 'SP' ? 0 : 1,
+    aero: 'stock', c1: (CU_BODY[S0.id] || {}).c1 || '#f1efe8', c2: (CU_BODY[S0.id] || {}).c2 || '#0f6e6e', c3: (CU_BODY[S0.id] || {}).c3 || '#e8762d', roof: (CU_BODY[S0.id] || {}).roof || 'band' };
+  // the tune, boost and rev limit that give this engine its own torque and red line (the closest tune for an
+  // atmospheric engine; the boost that makes its peak for a charged one)
+  const pk = S0.tmax || Math.max(...S0.tq.map(p => p[1])); let pw = 0; for (let r = 1000; r <= S0.redline; r += 50) pw = Math.max(pw, engineCurve(S0, r) * r * Math.PI / 30);
+  if (asp === 'na') { let best = null; for (const tu of ['road', 'sport', 'race']) { const C = Object.assign({}, B, { tune: tu }); C.rev = clamp(cuR(S0.redline - cuEngine(Object.assign({}, C, { rev: 0 })).red0, 50), -2500, 1500);
+    const E = cuEngine(C), e = Math.abs(E.tmax / pk - 1) + Math.abs(E.pmax / pw - 1); if (!best || e < best[1]) best = [tu, e]; } B.tune = best[0]; }
+  else { if (cls === 'SP') B.tune = 'sport'; let lo = 0.2, hi = 2.6; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (cuEngine(Object.assign({}, B, { boost: m })).tmax < pk) lo = m; else hi = m; } B.boost = cuR((lo + hi) / 2, 0.05); }
+  B.rev = clamp(cuR(S0.redline - cuEngine(Object.assign({}, B, { rev: 0 })).red0, 50), -2500, 1500);
+  // (its figures rounded as a build's are: see cuClean)
+  for (const [k, R] of CU_KEYS) if (R && typeof R[0] === 'number' && typeof B[k] === 'number') B[k] = cuR3(clamp(Math.round(B[k] / R[2]) * R[2], R[0], R[1]));
+  return B;
+}
+// a build made safe and whole: every choice one it can take (anything else, or missing, from the body's own build),
+// and every choice that depends on another made to fit it (a rotary's rotors, a diesel's aspiration, the drive's
+// differentials). Returns null for anything that is not a build of a known body
+function cuClean(B0) {
+  if (!B0 || typeof B0 !== 'object') return null; const S0 = cuBody(B0.body); if (!S0) return null;
+  const D = cuStockBuild(S0), B = { v: CU_V, body: S0.id };
+  for (const [k, R] of CU_KEYS) { if (k === 'body') continue; const v = B0[k];
+    if (k === 'name') B.name = typeof v === 'string' ? v.replace(/[^A-Za-z0-9 .'&-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || D.name : D.name;
+    else if (k === 'c1' || k === 'c2' || k === 'c3') B[k] = typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : D[k];
+    else if (typeof R[0] === 'number') B[k] = typeof v === 'number' && isFinite(v) ? cuR3(clamp(Math.round(v / R[2]) * R[2], R[0], R[1])) : D[k];
+    else B[k] = R.includes(v) ? v : D[k]; }
+  B.litres = cuR3(B.litres); B.split = cuR3(B.split); B.boost = cuR3(B.boost);
+  // engines as they are built: a rotary has 1-4 rotors of 0.4-0.8 litres, runs on petrol and is cooled by water; a vee
+  // and a flat engine have an even number of cylinders (a W engine 8, 12 or 16); each cylinder 0.12-1.3 litres
+  if (B.layout === 'rotary') { B.cyl = clamp(B.cyl, 1, 4); B.litres = cuR3(clamp(B.litres, 0.4 * B.cyl, 0.8 * B.cyl)); B.fuel = 'petrol'; B.cool = 'water'; B.cams = 'twin'; }
+  else {
+    const ok = { inline: [2, 3, 4, 5, 6, 8], vee: [2, 4, 6, 8, 10, 12, 16], flat: [2, 4, 6, 8, 12], w: [8, 12, 16] }[B.layout];
+    if (!ok.includes(B.cyl)) B.cyl = ok.reduce((p, q) => Math.abs(q - B.cyl) < Math.abs(p - B.cyl) ? q : p);
+    B.litres = cuR3(clamp(cuR(B.litres, 0.05), Math.max(0.5, 0.12 * B.cyl), Math.min(8.5, 1.3 * B.cyl)));
+  }
+  if (B.fuel === 'diesel') { if (B.asp === 'sc' || B.asp === 'twin') B.asp = 'turbo'; B.als = 0; }
+  if (B.asp === 'na') B.als = 0; if (B.asp === 'sc') B.als = 0;
+  if (B.restr && B.restr < 20) B.restr = 0; B.restr = B.restr ? clamp(B.restr, 20, 50) : 0;
+  if (B.drive !== 'AWD') B.hbcut = 0;
+  if (B.box === 'H') B.gears = clamp(B.gears, 3, 7); else if (B.box === 'seq') B.gears = clamp(B.gears, 4, 8); else if (B.box === 'paddle') B.gears = clamp(B.gears, 5, 8); else if (B.box === 'cvt') B.gears = 7;
+  // (a special vehicle keeps its own suspension, tyres and brakes: they are built for its weight)
+  if (S0.cls === 'SP') { B.susp = 'stock'; B.brakes = 'stock'; B.tyreF = D.tyreF; B.tyreR = D.tyreR; }
+  return B;
+}
+// The engine as built: its torque curve at full boost (N m against rpm), red line, idle and turbo. The atmospheric
+// torque at its peak is the mean pressure on its pistons (by era, tune and valve gear) times its displacement; below
+// the peak it falls away the more, the hotter its cams, above it towards what is left at the red line. Boost adds to
+// that: each bar of it fills the cylinders again (less the heat of compression an intercooler leaves), the turbo
+// giving less of it near the red line the smaller it is; a Roots blower's from low revs, less what it takes to turn.
+// An intake restrictor caps the air it can breathe, and so its power. The red line is where its pistons reach the
+// speed its tune and era allow, over its stroke (a turbo engine's a little lower, a diesel's far lower); a rotary's by
+// its tune alone. A rotary's chambers each fire once a turn: its torque is an engine's of twice its size.
+function cuEngine(B) {
+  const T = CU_TECH[B.tech] || CU_TECH['90s'], U = CU_TUNE[B.tune] || CU_TUNE.race, dz = B.fuel === 'diesel', rot = B.layout === 'rotary', n = B.cyl, L = B.litres, Leq = rot ? 2 * L : L;
+  const turbo = B.asp === 'turbo' || B.asp === 'biturbo' || B.asp === 'twin', sc = B.asp === 'sc' || B.asp === 'twin', boosted = B.asp !== 'na', Z = CU_TSIZE[B.tsize] || CU_TSIZE.medium;
+  const beta = dz ? 0.88 : U.beta, stroke = Math.cbrt(4 * (L / n / 1000) / (Math.PI * beta * beta));
+  let up = dz ? U.upD : (U.up + T.up - (B.cams === 'pushrod' ? 2 : B.cams === 'single' ? 1 : 0)) * (turbo ? 0.82 : 1);
+  const red0 = clamp(Math.round((rot ? U.rot : 30 * up / stroke) / 100) * 100, dz ? 2200 : 4500, dz ? 5200 : 11000), red = clamp(red0 + (B.rev || 0), dz ? 2000 : 4000, dz ? 5500 : 11500);
+  const camK = B.cams === 'pushrod' ? 0.92 : B.cams === 'single' ? 0.9 : 1, exK = B.exh === 'quiet' ? 0.96 : B.exh === 'open' ? 1.03 : 1;
+  const bmep = (dz ? CU_DBMEP[B.tune] || 8.6 : (rot ? 11 * U.k : T.bmep * U.k * camK) * (boosted ? 0.88 : 1)) * exK;
+  const Tna = bmep * Leq * 7.9577; // (N m: bar times litres over 4 pi)
+  // (two valves a cylinder breathe less at high revs: the peak earlier, less left at the red line; so for the older
+  // engines' carburettors and injection)
+  const simple = B.cams !== 'twin' && !rot, fr0 = U.fr + ({ '70s': -0.06, '80s': -0.03, '00s': 0.01, '20s': 0.02 }[B.tech] || 0) - (simple ? 0.05 : 0);
+  const rpk = (dz ? (boosted ? 0.45 : 0.58) : turbo ? U.pkT : sc ? (U.pk + U.pkT) / 2 : rot ? 0.7 : U.pk) * (simple && !dz ? 0.92 : 1) * red0;
+  const top = dz ? 0.1 : Z.top, fr = dz ? (boosted ? 0.85 : 0.88) : turbo ? 1 - (1 - fr0) * (0.85 + 0.6 * top) : fr0;
+  const lo = dz ? 0.35 : turbo ? 0.5 : rot ? 0.4 : U.lo, hi = (1 - fr) / Math.pow(red0 / rpk - 1, 2), eta = dz ? 0.9 * T.eta : T.eta;
+  // (the restrictor's cap on its power: about 220 kW through 34 mm at the World Rally engines' boost; a wider one lets
+  // more through, less than its area would say (the boost allowed then was the limit too), and the older engines made
+  // less of the air it let through)
+  const Pcap = B.restr ? 220e3 * Math.pow(B.restr / 34, 1.5) * ({ '70s': 0.72, '80s': 0.8, '90s': 0.85, '00s': 1, '20s': 1.09 }[B.tech] || 1) : 0;
+  const curve = r => { const x = r / rpk; let f = x < 1 ? 1 - lo * Math.pow(1 - Math.max(x, 0.18), 2) : 1 - hi * Math.pow(x - 1, 2); f = Math.max(f, 0.3);
+    let t = Tna * f;
+    if (turbo) t *= 1 + eta * B.boost * (1 - top * Math.pow(Math.max(0, (r - rpk) / (red0 - rpk)), 2));
+    else if (sc) t *= 1 + 0.78 * eta * B.boost * smooth(600, 2600, r);
+    if (Pcap) { const w = r * Math.PI / 30, P = t * w; t = t / Math.pow(1 + Math.pow(P / Pcap, 8), 1 / 8); }
+    return t; };
+  const rpms = []; for (let r = 1000; r < red; r += Math.max(250, Math.round((red - 1000) / 11 / 50) * 50)) rpms.push(r); rpms.push(red);
+  const tq = rpms.map(r => [r, Math.round(curve(r))]); let tmax = 0, pmax = 0, prpm = 0, trpm = 0;
+  for (let r = 1000; r <= red; r += 50) { const t = curve(r), p = t * r * Math.PI / 30; if (t > tmax) { tmax = t; trpm = r; } if (p > pmax) { pmax = p; prpm = r; } }
+  // the turbo's spool (where it starts and where it is fully up, as shares of the red line) and lag: by era and size,
+  // a pair of smaller ones quicker, a twin-charged engine's turbo bigger (its blower carries it low down), a diesel's
+  // low and quick (a variable vane turbo from the 2000s)
+  let spool = null, lag = 0;
+  if (turbo) { let s0 = 0.36, s1 = 0.58; if (dz) { s0 = 0.2; s1 = 0.4; } const k = (dz ? 1 : T.sp) * Z.sp * (B.asp === 'biturbo' ? 0.88 : B.asp === 'twin' ? 1.08 : 1);
+    spool = [cuR(s0 * k * red0, 50), cuR(Math.min(0.9, s1 * k) * red0, 50)]; lag = cuR3(T.lag * Z.lag * (B.asp === 'biturbo' ? 0.8 : 1) * (dz ? 0.8 : 1)); }
+  const idle = dz ? (Leq > 5 ? 550 : 750) : rot ? 1000 : Math.max(U.idle, B.tech === '70s' && B.tune === 'race' ? 1200 : 0) + (boosted && B.tune === 'race' ? -100 : 0);
+  return { tq, tmax: Math.round(tmax), trpm, pmax, prpm, red, red0, idle, spool, lag, bmep, Tna, rpk, curve };
+}
+// the family an engine belongs to: its cylinders, how they stand, its fuel and how it is charged
+const cuFam = B => [B.layout, B.cyl, B.fuel, B.asp === 'biturbo' ? 'turbo' : B.asp].join(':');
+// The engine as built on its body. Where it is of the same family as the body's own engine, the model's curve takes on
+// that engine's own character (the body's engine's curve against the model's of it, at the same share of the red
+// line), and its turbo that engine's spool and lag (as the model changes them): the body's own engine rebuilt is that
+// engine exactly, and a bigger, harder-boosted or higher-revving one of its family keeps its character. Any other
+// engine is the model's alone.
+function cuEngineOn(B) {
+  const E = cuEngine(B), S0 = cuBody(B.body); if (!S0) return E; const B0 = cuBare(S0).B; if (cuFam(B) !== cuFam(B0)) return E;
+  const E0 = cuEngine(B0), kx = E.red0 / E0.red0, P = [];
+  for (const [r, t] of S0.tq) { const r1 = Math.round(r * kx / 10) * 10; P.push([r1, t / E0.curve(r) * E.curve(r1), t / E0.curve(r)]); }
+  // (revved past the body's own red line: on along the model's curve with the last of the character; short of it, the
+  // curve cut at the new red line)
+  let last = P[P.length - 1]; for (let r = last[0] + 500; r < E.red; r += 500) P.push([r, E.curve(r) * last[2], last[2]]);
+  const at = r => { for (let i = 1; i < P.length; i++) if (r <= P[i][0]) { const [r0, t0] = P[i - 1], [r1, t1] = P[i]; return t0 + (t1 - t0) * (r - r0) / Math.max(1, r1 - r0); } const q = P[P.length - 1]; return q[0] < r ? E.curve(r) * q[2] : q[1]; };
+  const tq = P.map(p => [p[0], Math.round(p[1])]); if (!tq.some(p => p[0] === E.red)) { tq.push([E.red, Math.round(at(E.red))]); tq.sort((p, q) => p[0] - q[0]); }
+  let tmax = 0, pmax = 0, prpm = 0, trpm = 0; for (let r = tq[0][0]; r <= E.red; r += 50) { const t = at(r), p = t * r * Math.PI / 30; if (t > tmax) { tmax = t; trpm = r; } if (p > pmax) { pmax = p; prpm = r; } }
+  const O = Object.assign({}, E, { tq, tmax: Math.round(tmax), trpm, pmax, prpm, curve: at, idle: (S0.idle || E0.idle) + E.idle - E0.idle, fam: true });
+  if (E.spool && E0.spool && S0.spool) { O.spool = [cuR(S0.spool[0] * E.spool[0] / E0.spool[0], 50), cuR(S0.spool[1] * E.spool[1] / E0.spool[1], 50)]; O.lag = cuR3(S0.lag * E.lag / E0.lag); }
+  return O;
+}
+// what the engine weighs dressed (kg: block and heads, crank and flywheel, manifolds, ancillaries; its turbos,
+// intercooler and pipes or its blower; an air-cooled engine's fan for its water jacket), how long it is along its
+// crank, how wide, and how high its middle stands
+function cuEngineMass(B) {
+  const n = B.cyl, L = B.litres, dz = B.fuel === 'diesel';
+  if (B.layout === 'rotary') return { m: 30 + 22 * n + (B.asp !== 'na' ? 16 : 0), len: 0.12 * n + 0.22, w: 0.5, y: 0.4 };
+  const iron = dz || B.cams === 'pushrod' || (B.tech === '70s' && B.cams !== 'twin');
+  let m = (30 + 34 * Math.pow(L, 0.8) + 6 * n) * ({ inline: 1, vee: 1.04, flat: 1.06, w: 1.1 }[B.layout] || 1) * (iron ? 1.15 : 1) * (dz ? (L > 5 ? 2.1 : 1.45) : 1);
+  m += { na: 0, turbo: 16, biturbo: 24, sc: 16, twin: 30 }[B.asp] || 0; if (B.cool === 'air') m -= 2;
+  const len = B.layout === 'flat' ? 0.05 * n + 0.24 : B.layout === 'vee' ? 0.045 * n + 0.28 : B.layout === 'w' ? 0.035 * n + 0.32 : 0.1 * n + 0.14;
+  const w = B.layout === 'flat' ? 0.68 : B.layout === 'vee' || B.layout === 'w' ? 0.6 : 0.42, y = B.layout === 'flat' ? 0.4 : B.layout === 'vee' ? 0.45 : B.layout === 'w' ? 0.47 : 0.48;
+  return { m, len, w, y };
+}
+// Every part's weight and place (m, z forward from the front axle, y up from the road, own: its own turning inertia
+// about the vertical, kg m2): the engine where its position and mounting put it, the gearbox beside a transverse engine
+// or behind a longitudinal one (in front of the rear axle behind a rear engine), the differentials at their axles,
+// the propshaft between, the radiator and intercooler where its position cools them, the exhaust along the car, the
+// panels and fittings, the ballast where it is bolted down
+function cuParts(B, S0, E) {
+  const X = cuShape(S0), wb = S0.wb, P = [], add = (k, m, z, y, own) => { if (m > 0) P.push({ k, m, z, y: y + (k === 'engine' || k === 'box' ? X.lift : 0), own: own || 0 }); };
+  const M = cuEngineMass(B), Le = M.len, tr = B.mount === 'trans';
+  let ze, zg; // the engine's middle, the gearbox's
+  if (B.pos === 'front') { if (tr) { ze = 0.06; zg = 0.02; } else { ze = 0.52 - Le / 2; zg = ze - Le / 2 - 0.25; } }
+  else if (B.pos === 'fmid') { if (tr) { ze = -0.28; zg = -0.3; } else { ze = 0.1 - Le / 2; zg = ze - Le / 2 - 0.25; } }
+  else if (B.pos === 'mid') { if (tr) { ze = -wb + 0.42; zg = -wb + 0.36; } else { ze = -wb + 0.14 + Le / 2; zg = -wb - 0.12; } }
+  else { if (tr) { ze = -wb - 0.3; zg = -wb - 0.26; } else { ze = -wb - 0.02 - Le / 2; zg = -wb + 0.32; } }
+  add('engine', M.m, ze, M.y, M.m * (Le * Le + M.w * M.w) / 12);
+  const auto = B.box === 'auto' || B.box === 'cvt', kgB = ({ H: 32, seq: 40, paddle: 44, auto: 70, cvt: 76 }[B.box] || 40) * clamp(Math.pow(E.tmax / 350, 0.35), 0.7, 1.8);
+  add('box', kgB, zg, 0.36);
+  const fr = B.drive !== 'RWD', rr = B.drive !== 'FWD', eng = B.pos === 'front' || B.pos === 'fmid';
+  if (fr) add('fdiff', eng ? 12 : 16, 0, 0.32); if (rr) add('rdiff', eng ? 30 : 16, -wb, 0.32);
+  if (B.drive === 'AWD') add('centre', 12, zg, 0.32);
+  if ((eng && rr) || (!eng && fr)) add('shaft', 11, eng ? (zg - wb) / 2 : zg / 2, 0.3);
+  // cooling: a radiator sized to the power (an air-cooled engine's oil cooler), in the nose of a front-engined car, at
+  // the back by the engine of a mid-engined one, in the nose of a water-cooled rear engine
+  const kw = E.pmax / 1000, zr = B.pos === 'mid' ? -wb + 0.6 : X.nose - 0.3, kgR = B.cool === 'air' ? 6 : 6 + 0.045 * kw;
+  add('cool', kgR, zr, 0.45); if (B.asp !== 'na' && B.asp !== 'sc') add('ic', 6 + 0.02 * kw, B.pos === 'front' || B.pos === 'fmid' ? X.nose - 0.18 : -wb + 0.3, 0.4);
+  add('exhaust', 9 + 2 * Math.sqrt(B.cyl * B.litres), (ze + X.tail) / 2, 0.22);
+  // the panels and fittings
+  const A = X.area, bay = (X.nose + 0.2) / 2 - 0.1;
+  add('bonnet', CU_KG.bonnet[B.bonnet] * A, bay + 0.15, 0.82); add('boot', CU_KG.boot[B.boot] * A, (X.tail - wb) / 2, 0.95);
+  add('doors', (X.doors > 2 ? CU_KG.doors4 : CU_KG.doors)[B.doors] * A, X.cab, 0.72); add('cage', CU_KG.cage[B.cage] * A, X.cab, 0.92); add('glass', CU_KG.glass[B.glass] * A, X.cab - 0.2, 1.02);
+  add('trim', CU_KG.trim[B.trim] * A, X.cab - 0.1, 0.45); add('spare', CU_KG.spare * B.spare * (S0.wheel ? 3 : 1), eng ? (X.tail - wb) / 2 : bay, 0.38);
+  add('guard', CU_KG.guard[B.guard] * A, eng ? 0.1 : -wb + 0.2, 0.14); add('bumpF', B.bumpF ? CU_KG.bumpF * A : 0, X.nose - 0.08, 0.36); add('bumpR', B.bumpR ? CU_KG.bumpR * A : 0, X.tail + 0.08, 0.38);
+  add('flaps', B.flaps ? CU_KG.flaps : 0, -wb / 2, 0.2);
+  const ak = B.aero === 'stock' ? cuStockAero(S0)[0] : B.aero; add('aero', CU_KG.aero[ak] || 0, X.tail + 0.15, 1.1);
+  add('ballast', B.ballast, B.bpos === 'front' ? -0.25 : B.bpos === 'rear' ? -wb + 0.25 : -wb * 0.5, 0.16);
+  return P;
+}
+// the body's own aerodynamic kit as built (its level, and the figures of the body with none: its own less the kit's)
+function cuStockAero(S0) {
+  const a = S0.aero, lv = S0.cls === 'SP' ? 'none' : a[1] >= 0.34 ? 'big' : a[1] >= 0.1 ? 'wing' : a[1] >= -0.15 ? 'lip' : 'none', k = CU_AERO[lv];
+  return [lv, [a[0] - k[0], a[1] - k[1]]];
+}
+// the body by itself (the car less its own engine, drivetrain and fittings): weight, its middle (z, y) and its own
+// turning inertia about the vertical
+function cuBare(S0) {
+  if (S0._cuBare) return S0._cuBare;
+  const B = cuStockBuild(S0), E = cuEngine(B), wb = S0.wb, a0 = wb * (1 - S0.wf), zc = -a0, yc = carSetup(S0).sp.hcg;
+  E.tmax = 0; E.pmax = 0; for (let r = 1000; r <= S0.redline; r += 50) { const t = engineCurve(S0, r); E.tmax = Math.max(E.tmax, t); E.pmax = Math.max(E.pmax, t * r * Math.PI / 30); } // (its own engine's figures)
+  const P = cuParts(B, S0, E);
+  let m = S0.mass, mz = m * zc, my = m * yc, I = m * a0 * (wb - a0) * S0.yawK;
+  for (const p of P) { m -= p.m; mz -= p.m * p.z; my -= p.m * p.y; I -= p.m * (p.z - zc) * (p.z - zc) + p.own; }
+  const z = mz / m, y = my / m; I -= m * (z - zc) * (z - zc);
+  return S0._cuBare = { m, z, y, I, B };
+}
+// how the build stands up to blows (see the damage model): what each zone of the body holds while it gives (against
+// the car as built with all its panels and a full cage), the cabin's frame, how hard a blow from below has to be to
+// hole the sump, strip the gearbox or break a driveshaft, and how much less hard to reach the radiator and the
+// steering through a nose with no bumper; plastic windows that bend rather than break; the engine open to a blow and
+// to the water where the bonnet is off
+function cuDurability(B) {
+  const cg = { none: 0.42, light: 0.72, full: 1 }[B.cage], dr = { steel: 1, light: 0.86, off: 0.6 }[B.doors], gd = { none: 0, light: 1, full: 2 }[B.guard];
+  return { roof: cg, side: cg * dr, cab: { none: 0.45, light: 0.75, full: 1 }[B.cage], cabMax: { none: 1.8, light: 1.3, full: 1 }[B.cage],
+    endF: (B.bumpF ? 1 : 0.75) * (B.bonnet === 'off' ? 0.88 : B.bonnet === 'light' ? 0.96 : 1), endR: (B.bumpR ? 1 : 0.78) * (B.boot === 'off' ? 0.9 : 1),
+    under: [0.55, 0.8, 1][gd], sump: [2.5, 3.3, 4][gd], box: [3.5, 4.3, 5][gd], shaft: [5.5, 6.3, 7][gd], radF: B.bumpF ? 0 : -1.5, steerF: B.bumpF ? 0 : -1,
+    poly: B.glass === 'plastic', open: B.bonnet === 'off', doorsOff: B.doors === 'off', cage: B.cage };
+}
+// A build made into a car the physics drives: a copy of its body's car with what the build changes in place. What it
+// leaves as the body's car had it stays exactly so (its engine's curve, its gear ratios, its differentials, its
+// suspension and brakes); what it changes is built afresh. Weight, balance and inertia are always added up part by part.
+function cuSpec(B0, id) {
+  const B = cuClean(B0); if (!B) return null; const S0 = cuBody(B.body), bare = cuBare(S0), K0 = bare.B, E = cuEngineOn(B), P = cuParts(B, S0, E), wb = S0.wb, sp0 = carSetup(S0).sp;
+  const same = (...ks) => ks.every(k => B[k] === K0[k]);
+  // weight, balance, centre of gravity and turning inertia, part by part
+  let m = bare.m, mz = bare.m * bare.z, my = bare.m * bare.y; for (const p of P) { m += p.m; mz += p.m * p.z; my += p.m * p.y; }
+  const zc = mz / m, yc = my / m, wf = clamp(1 + zc / wb, 0.25, 0.8), a = wb * (1 - wf), b = wb * wf;
+  let I = bare.I + bare.m * (bare.z - zc) * (bare.z - zc); for (const p of P) I += p.m * (p.z - zc) * (p.z - zc) + p.own;
+  const S = JSON.parse(JSON.stringify(S0, (k, v) => k.startsWith('_') ? undefined : v));
+  for (const k of ['hull', 'epos', 'diffType']) delete S[k];
+  const turbo = B.asp === 'turbo' || B.asp === 'biturbo' || B.asp === 'twin', tk = CU_TECH[B.tech], dz = B.fuel === 'diesel';
+  Object.assign(S, { id, name: B.name, num: B.num, cls: S0.cls, cu: B, body: S0.id, mass: Math.round(m), wf: cuR3(wf), yawK: cuR3(clamp(I / (m * a * b), 0.6, 1.6)),
+    cyl: B.cyl, litres: B.litres, tq: E.tq, tmax: E.tmax, redline: E.red, idle: E.idle, boost: B.asp === 'na' ? 'na' : B.asp === 'sc' ? 'sc' : B.asp === 'twin' ? 'twin' : 'turbo',
+    epos: B.pos === 'fmid' ? 'front' : B.pos, spares: B.spare, dur: cuDurability(B) });
+  // (the engine management of its era: how a turbo engine pulls off boost, its rev limiter, its anti-lag; the body's
+  // own where it keeps its own engine)
+  if (!E.fam || !same('tech')) Object.assign(S, { bmep: dz ? 7.5 : tk.off, lim: dz ? [0.5, 0.12] : tk.lim, alsKind: B.tech === '20s' ? 'ret' : 'air', na: 0.45 });
+  S.turbo = S.boost === 'turbo' ? 0.8 : S.boost === 'twin' ? 0.6 : S.boost === 'sc' ? 0.3 : 0;
+  if (turbo) { S.spool = E.spool; S.lag = E.lag; S.als = !!B.als; } else { delete S.spool; delete S.lag; S.als = false; }
+  // the drive and its differentials: each as the body's car had it if left so, else as chosen; the centre's for
+  // four-wheel drive (none at all, the axles turning together, if locked; cut by the handbrake if chosen)
+  S.fs = B.drive === 'FWD' ? 1 : B.drive === 'RWD' ? 0 : B.split;
+  const DF = { open: { pre: 15 }, viscous: { pre: 20, kv: 35 }, plate: { pre: 60, ramp: 0.55, coast: 0.35 }, locked: { pre: 3000 } }, DC = { open: { pre: 10 }, viscous: { pre: 30, kv: 40 }, plate: { pre: 100, ramp: 0.4 }, active: { pre: 120, ramp: 0.35, kv: 25 } };
+  const d0 = S0.diff || {}; S.diff = {}; delete S.rigidC;
+  if (S.fs > 0) S.diff.f = same('fdiff') && d0.f && S0.fs > 0 ? d0.f : DF[B.fdiff]; if (S.fs < 1) S.diff.r = same('rdiff') && d0.r && S0.fs < 1 ? d0.r : DF[B.rdiff];
+  if (B.drive === 'AWD') { if (same('cdiff') && K0.drive === 'AWD') { if (S0.rigidC) S.rigidC = true; if (d0.c) S.diff.c = d0.c; } else if (B.cdiff === 'locked') S.rigidC = true; else S.diff.c = DC[B.cdiff]; }
+  S.hbCut = !!B.hbcut;
+  // the gearbox and its gearing (see cuGearing)
+  for (const k of ['tc', 'cvt', 'cvtRpm', 'cvtEta', 'lever', 'shiftUp', 'shiftDown', 'upK', 'shiftMin', 'shiftDn', 'clutchK']) delete S[k];
+  Object.assign(S, cuGearing(B, S, E, S0, K0));
+  // (its friction on the throttle as its size makes it, against the body's own engine's or a 2-litre rally engine's)
+  { const leq = b => b.layout === 'rotary' ? 2 * b.litres : b.litres, fk = cuR3(clamp(Math.pow(leq(B) / (E.fam ? leq(K0) : 2), 0.85), 0.2, 3.5)); if (Math.abs(fk - 1) > 0.01) S.fricK = fk; else delete S.fricK; }
+  // the clutch let in at revs the engine pulls at (a rally engine's 2,000-5,000 rpm, lower for one whose torque comes
+  // low down and runs out early); the body's car's own for its own engine
+  if (!(E.fam && same('litres', 'tune', 'tech'))) { const k = cuR3(clamp(Math.min(E.trpm / 4500, E.red / 8000), 0.35, 1.1)); if (Math.abs(k - 1) > 0.02) S.clutchK = k; else delete S.clutchK; }
+  // the engine's turning inertia: crank, flywheel and clutch (a light flywheel and a race clutch less; a big engine and
+  // a diesel more; an automatic's torque converter, full of oil, in place of the flywheel, more, sized to the engine);
+  // the body's car's own if unchanged
+  const auto = B.box === 'auto' || B.box === 'cvt', Ie = E.fam && same('litres', 'fly', 'box') ? sp0.Ie : ((B.fly === 'light' ? 0.02 : 0.05) + (B.fly === 'light' ? 0.02 : 0.025) * B.litres) * (dz ? 1.4 + Math.max(0, B.litres - 3) * 0.9 : 1) + (auto ? 0.04 + 0.02 * B.litres : 0);
+  // the suspension kit (a special vehicle keeps its own), the brakes, the tyres and the tracks
+  const SK = { gravel: { travel: 0.16, droop: 0.15, fF: 1.9, fR: 1.85 }, tarmac: { travel: 0.1, droop: 0.09, fF: 2.4, fR: 2.4 }, raid: { travel: 0.24, droop: 0.21, fF: 1.6, fR: 1.55 }, road: { travel: 0.12, droop: 0.12, fF: 1.45, fR: 1.5 } }[B.susp];
+  const BK = { small: { brake: 1.1, brkC: 0.8 }, medium: { brake: 1.3, brkC: 1 }, large: { brake: 1.5, brkC: 1.28 } }[B.brakes];
+  S.susp = Object.assign({}, S0.susp, SK || {}, { hcg: cuR3(yc), Ie: cuR3(Ie), bias: cuR3(clamp(sp0.bias + (wf - S0.wf) * 0.7, 0.3, 0.8)) }, BK ? { brake: BK.brake } : {});
+  if (BK) S.brkC = cuR3((S0.brkC || 1) * BK.brkC);
+  // (anti-roll bars for a car driven at the other end: an engineer's starting balance for the new drive)
+  if (B.drive !== K0.drive && S0.cls !== 'SP') Object.assign(S.susp, B.drive === 'FWD' ? { arbF: 0.16, arbR: 0.24 } : B.drive === 'RWD' ? { arbF: 0.13, arbR: 0.03 } : { arbF: 0.1, arbR: 0.07 });
+  // (a body's pitch inertia grows and shrinks with how far its weight lies from its middle, as its turning inertia does)
+  const kI = clamp((I / m) / (S0.mass * wb * (1 - S0.wf) * wb * S0.wf * S0.yawK / S0.mass), 0.7, 1.4); S.susp.gyP = cuR3(((S0.susp && S0.susp.gyP) || 1.25) * kI);
+  S.tyres = same('tyreF', 'tyreR') ? S0.tyres.slice() : [B.tyreF, B.tyreR]; if (S0.tyreSize && !same('tyreF', 'tyreR')) S.tyreSize = S0.tyreSize.map((t, i) => /^\d+\//.test(t) ? t.replace(/^\d+/, String(S.tyres[i])) : t);
+  S.track = [cuR3(S0.track[0] + B.track / 100), cuR3(S0.track[1] + B.track / 100)];
+  S.width = cuR3(S0.width + Math.max(0, Math.max(S.track[0] + S.tyres[0] / 1000, S.track[1] + S.tyres[1] / 1000) - Math.max(S0.track[0] + S0.tyres[0] / 1000, S0.track[1] + S0.tyres[1] / 1000)));
+  // the aerodynamics: the body's own kit, or the body with none and the kit chosen; and what a bumper or the bonnet
+  // left off lets in (drag, and lift at the nose)
+  const [lv0, bare0] = cuStockAero(S0), ak = B.aero === 'stock' ? lv0 : B.aero, K = CU_AERO[ak] || CU_AERO.none, own = B.aero === 'stock';
+  let cd = own ? S0.aero[0] : bare0[0] + K[0], cl = own ? S0.aero[1] : bare0[1] + K[1]; const bal = own ? S0.aero[2] : ak === 'none' ? 0.5 : K[2], front = cl * bal;
+  let dF = 0; if (!B.bumpF) { cd += 0.025; dF -= 0.05; } if (!B.bumpR) cd += 0.012; if (B.bonnet === 'off') { cd += 0.04; dF -= 0.08; }
+  cl += dF; S.aero = [cuR3(Math.max(0.3, cd)), cuR3(cl), cuR3(Math.abs(cl) > 0.02 ? clamp((front + dF) / cl, -1, 2) : 0.5)];
+  // the words on the entry list and in the car's sheet
+  Object.assign(S, cuWords(B, S, E)); S.note = `Built in the workshop on the ${S0.name} body`;
+  S.tmax = Math.max(...S.tq.map(q => q[1]));
+  return S;
+}
+// gears: n ratios from first to top, spread out as asked (wider with more of them), the steps closing up towards the
+// top as a rally gearbox's do; the final drive putting the red line in top gear at a speed short of, near or at the
+// car's top speed (where its power meets its drag and rolling resistance). An automatic's top gear is an overdrive (the
+// gear below it reaches that speed); a CVT's ratio runs continuously over a wide range (its seven steps are for
+// shifting by hand). Both pull away through a torque converter sized to stall near 2,200 rpm (a sporting one higher).
+// A gearbox of the body's car's own kind, number of gears and spread keeps its own ratios, its final drive moved as
+// the power, red line and drag move the model's.
+// the revs a CVT holds flat out: the lowest at which the engine gives all but 1.5% of its most power, so an engine
+// whose power is flat at the top is held well clear of its rev limiter
+function cuCvtRpm(S) {
+  const red = S.redline, r0 = S.idle || 900, P = r => r * engineCurve(S, r); let pm = 0;
+  for (let r = r0; r <= red; r += 25) pm = Math.max(pm, P(r));
+  for (let r = r0; r <= red; r += 25) if (P(r) >= 0.985 * pm) return Math.round(Math.min(r, 0.94 * red));
+  return Math.round(0.8 * red);
+}
+function cuGearing(B, S, E, S0, K0) {
+  const n = B.box === 'cvt' ? 7 : B.gears, auto = B.box === 'auto' || B.box === 'cvt', R = wheelOf(S).R, gk = gearK(S);
+  const ratios = (C, nn) => { const span = ({ close: 2.6, medium: 3.2, wide: 4 }[C.spread] || 3.2) * (nn <= 3 ? 0.88 : nn === 4 ? 0.94 : nn >= 8 ? 1.08 : 1), au = C.box === 'auto' || C.box === 'cvt', top = C.box === 'cvt' ? 0.55 : au ? (nn >= 5 ? 0.75 : 1) : 0.95, R1 = C.box === 'cvt' ? 6.2 : span, g = [];
+    for (let i = 1; i <= nn; i++) g.push(cuR3(top * Math.pow(R1, Math.pow((nn - i) / (nn - 1), 1.12)))); return g; };
+  const finalOf = (C, Ex, g, mass, cdA) => { const au = C.box === 'auto' && g.length >= 5, vt = cuVmax(Ex.pmax, cdA, mass) * ({ short: 0.66, medium: 0.76, long: 0.88 }[C.gearing] || 0.76) * (C.fuel === 'diesel' ? 1.2 : 1);
+    return Ex.red * Math.PI / 30 * R / ((au ? g[g.length - 2] : g[g.length - 1]) * vt * gk); };
+  let gears = ratios(B, n), fin = finalOf(B, E, gears, S.mass, S.aero ? S.aero[0] : 0.85), own = false;
+  // (a CVT's lowest ratio is a manual gearbox's first gear, its highest over six times taller: an overdrive the
+  // revs come down to on a light throttle)
+  if (B.box === 'cvt') { const M = Object.assign({}, B, { box: 'H', spread: 'medium' }), g6 = ratios(M, 6); fin = finalOf(M, E, g6, S.mass, S.aero ? S.aero[0] : 0.85); gears = []; for (let i = 0; i < 7; i++) gears.push(cuR3(g6[0] * Math.pow(1 / 6.2, i / 6))); }
+  if (S0 && K0 && B.box === K0.box && n === S0.gears.length && B.spread === K0.spread && B.box !== 'cvt') {
+    own = true; const E0 = cuEngineOn(K0), g0 = ratios(K0, n), f0 = finalOf(Object.assign({}, K0, { gearing: 'medium' }), E0, g0, S0.mass, S0.aero[0]);
+    gears = S0.gears.slice(); fin = S0.final * fin / f0;
+  }
+  const o = { gears, final: cuR3(clamp(fin, 1.8, 9)), lever: B.box === 'seq' ? 'sequential' : B.box };
+  if (own && B.box === K0.box) { for (const k of ['tc', 'shiftUp', 'shiftDown', 'upK', 'shiftMin', 'shiftDn', 'clutchK']) if (S0[k] != null) o[k] = JSON.parse(JSON.stringify(S0[k])); if (S0.lever) o.lever = S0.lever; }
+  else Object.assign(o, { shiftUp: { H: 0.16, seq: 0.06, paddle: 0.05, auto: 0.3, cvt: 0.3 }[B.box], shiftDown: { H: 0.13, seq: 0.05, paddle: 0.045, auto: 0.25, cvt: 0.25 }[B.box] });
+  // (the converter sized to stall at its revs with the torque the engine has there: a turbo engine off boost, so the
+  // engine can spin up to where its turbo comes in; a CVT's, which can go no lower than its lowest ratio to pull away,
+  // stalls at half its power peak at least, as a driver slips a clutch, and locks up once moving)
+  if (auto && !o.tc) { const turbo = B.asp === 'turbo' || B.asp === 'biturbo' || B.asp === 'twin', rs = Math.max((B.tune === 'race' ? 3000 : B.tune === 'sport' ? 2600 : 2200) * (B.fuel === 'diesel' ? 0.75 : 1), turbo && E.spool ? E.spool[0] + 300 : 0, B.box === 'cvt' ? 0.5 * E.prpm : 0), ws = rs * Math.PI / 30;
+    const Ts = turbo ? Math.min(E.curve(rs), (B.fuel === 'diesel' ? 7.5 : (CU_TECH[B.tech] || CU_TECH['90s']).off) * B.litres * 7.9577 * 1.15) : E.curve(rs);
+    o.tc = { k: cuR3(Math.max(0.0005, Ts / (ws * ws)) * 10) / 10, tr: 2 }; if (B.box === 'cvt') o.tc.lock = true; if (B.fuel === 'diesel') o.upK = 0.47; }
+  // (a CVT's belt and the pump that squeezes its pulleys take a share of the drive: some 7% more than gears do)
+  if (B.box === 'cvt') { o.cvt = [gears[0], gears[n - 1]]; o.cvtRpm = cuCvtRpm(S); o.cvtEta = 0.93; }
+  if (!auto) delete o.tc;
+  return o;
+}
+// the top speed (m/s) where the power (W) meets the drag (CdA, m2) and the tyres' rolling resistance on a car of this mass
+function cuVmax(P, cdA, mass) { const rho = 1.2, crr = 0.016 * mass * 9.81, Pw = P * 0.92; let v = 30;
+  for (let i = 0; i < 40; i++) { const f = 0.5 * rho * cdA * v * v * v + crr * v - Pw, d = 1.5 * rho * cdA * v * v + crr; v = clamp(v - f / d, 10, 120); } return v; }
+// what the entry list and the car's sheet say of it
+function cuWords(B, S, E) {
+  const nw = ['', 'single', 'twin', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', '', '', '', 'sixteen'][B.cyl] || String(B.cyl);
+  const kind = B.layout === 'rotary' ? (B.cyl === 1 ? 'single-rotor rotary' : nw + '-rotor rotary') : B.layout === 'vee' ? 'V' + B.cyl : B.layout === 'w' ? 'W' + B.cyl : B.layout === 'flat' ? 'flat ' + nw : nw === 'twin' ? 'twin' : 'inline ' + nw;
+  const ch = { na: '', turbo: 'turbo ', biturbo: 'twin-turbo ', sc: 'supercharged ', twin: 'twin-charged ' }[B.asp], hp = Math.round(E.pmax / 745.7 / 5) * 5;
+  const where = { front: 'front-mounted', fmid: 'front-mid-mounted', mid: 'mid-mounted', rear: 'rear-mounted' }[B.pos], dz = B.fuel === 'diesel' ? 'diesel ' : '';
+  const motor = `${B.litres.toFixed(1)}-litre ${ch}${dz}${kind.replace(/^inline /, '')}, ${where}, about ${hp} hp`;
+  const valves = B.layout === 'rotary' ? 'ports in the housings' : B.cams === 'pushrod' ? 'pushrods' : B.cams === 'single' ? 'single cam' + (B.layout === 'inline' ? '' : ' per bank') : 'twin cams' + (B.layout === 'inline' ? '' : ' per bank');
+  const engine = `${where.charAt(0).toUpperCase() + where.slice(1)} ${B.mount === 'trans' ? 'transverse' : 'longitudinal'} ${kind}${dz ? ' diesel' : ''}, ${valves}${B.asp === 'na' ? '' : ', ' + ch.trim()}${B.cool === 'air' ? ', air-cooled' : ''}${B.restr ? `, ${B.restr} mm intake restrictor` : ''}`;
+  const dw = { open: 'open', viscous: 'viscous', plate: 'plate limited slip', locked: 'locked', active: 'active' };
+  const drive = B.drive === 'AWD' ? `Four-wheel drive, ${Math.round(B.split * 100)}:${Math.round(100 - B.split * 100)}${B.cdiff === 'locked' ? ', no centre differential' : ''}` : B.drive === 'RWD' ? `Rear-wheel drive, ${dw[B.rdiff]}` : `Front-wheel drive, ${dw[B.fdiff]}`;
+  const diffType = {}; if (S.fs > 0) diffType.f = cap1(dw[B.fdiff]); if (S.fs < 1) diffType.r = cap1(dw[B.rdiff]); if (B.drive === 'AWD') diffType.c = B.cdiff === 'locked' ? 'None: the axles turn together' : cap1(dw[B.cdiff]) + (B.hbcut ? '; the handbrake cuts the rear drive' : '');
+  return { motor, engine, drive, diffType };
+}
+// the build as a short code for sharing (and for a friend's page to build the same car): its choices in order
+function cuCode(B) { const C = cuClean(B); if (!C) return ''; return 'C' + CU_V + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(CU_KEYS.map(([k]) => C[k]))))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function cuDecode(s) {
+  try { if (typeof s !== 'string' || s.length > 1200) return null; const m = s.trim().match(/^C(\d+)\.([A-Za-z0-9_-]+)$/); if (!m || +m[1] !== CU_V) return null;
+    const a = JSON.parse(decodeURIComponent(escape(atob(m[2].replace(/-/g, '+').replace(/_/g, '/'))))); if (!Array.isArray(a) || a.length !== CU_KEYS.length) return null;
+    const B = {}; CU_KEYS.forEach(([k], i) => { B[k] = a[i]; }); return cuClean(B); } catch (e) { return null; }
+}
+// A quick estimate of a car's pace in a straight line on dry tarmac, for the workshop's figures: from rest, launched at
+// two thirds of its revs (a turbo engine waiting for its boost as the revs rise, an automatic's and a CVT's converter
+// slipping), the driven tyres' grip with the weight that shifts onto them as it pulls away, the gear changes (the
+// drive cut through a manual's shift; an automatic and a CVT pulling through theirs, a CVT holding its power peak),
+// drag and rolling resistance. Returns the time to 100 km/h (s, or null) and the top speed (km/h): where the power runs
+// out against the drag, or the red line in top gear if that comes first
+function cuEstimate(S) {
+  const R = wheelOf(S).R, gk = gearK(S), m = S.mass + 80, g = 9.81, K = carSetup(S), hcg = K.sp.hcg, wb = S.wb, cd = S.aero[0], cl = S.aero[1], dt = 0.01;
+  const n = S.gears.length, cvt = !!S.cvt, auto = !!S.tc, shift = auto || cvt ? 0 : S.shiftUp || 0.12, mu = 1.1, crr = 0.015;
+  let pk = 0, prpm = 0; for (let r = 1000; r <= S.redline; r += 50) { const p = engineCurve(S, r) * r * Math.PI / 30; if (p > pk) { pk = p; prpm = r; } }
+  const boostAt = r => S.boost === 'na' || S.boost === 'sc' ? 1 : smooth(S.spool ? S.spool[0] : 2500, S.spool ? S.spool[1] : 4000, r);
+  let v = 0, t = 0, gi = 0, cut = 0, t100 = null, a = 0;
+  for (; t < 60 && t100 == null; t += dt) {
+    const ratio = cvt ? clamp(prpm * Math.PI / 30 * R / Math.max(0.1, v) / (S.final * gk), S.cvt[1], S.cvt[0]) : S.gears[gi], G = ratio * S.final * gk;
+    let rpm = v / R * G * 30 / Math.PI; const launch = (auto || cvt ? 0.45 : 0.65) * S.redline; if (rpm < launch) rpm = launch;
+    if (!cvt && rpm >= S.redline * 0.985 && gi < n - 1) { gi++; cut = shift; continue; }
+    rpm = Math.min(rpm, S.redline);
+    const T = engineTorque(S, rpm, boostAt(rpm)), Fe = cut > 0 ? 0 : T * G / R * 0.9 * (S.cvtEta || 1) * (auto && v < 8 ? 1.4 : 1);
+    const down = 0.5 * 1.2 * cl * v * v, tr = m * a * hcg / wb, Nf = m * g * S.wf - tr + down * (S.aero[2] || 0.5), Nr = m * g * (1 - S.wf) + tr + down * (1 - (S.aero[2] || 0.5));
+    const grip = mu * (S.fs >= 1 ? Nf : S.fs <= 0 ? Nr : Nf + Nr), F = Math.min(Fe, grip) - 0.5 * 1.2 * cd * v * v - crr * m * g;
+    a = F / (m * 1.06); v = Math.max(0, v + a * dt); cut -= dt; if (v >= 100 / 3.6) t100 = t;
+  }
+  const vp = cuVmax(pk, cd, S.mass), vr = cvt ? Infinity : S.redline * Math.PI / 30 * R / (S.gears[n - 1] * S.final * gk);
+  return { t100, vmax: Math.min(vp, vr) * 3.6, pk, prpm };
+}
+
+const SR86_BUILD = '70FD';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -11103,7 +11659,9 @@ class RallyCarKit {
   }
   getAvailableCars() { return Object.keys(this.designs).map(id => ({ id, name: this.designs[id].name, layout: this.designs[id].layout })); }
   // Physics configuration straight from the simulation's spec table (the same objects the game steps)
-  getCarPhysicsConfig(id) { const S = this.specs.find(c => c.id === id); return S ? RallyCarKit.physicsConfig(S, this.designs[id]) : null; }
+  // (a car built in the workshop is no class's: its spec is the workshop's, see CU_SPEC)
+  specOf(id) { return this.specs.find(c => c.id === id) || CU_SPEC[id] || null; }
+  getCarPhysicsConfig(id) { const S = this.specOf(id); return S ? RallyCarKit.physicsConfig(S, this.designs[id]) : null; }
   static physicsConfig(S, D) {
     const id = S.id;
     const curve = r => { const P = S.tq; if (r <= P[0][0]) return P[0][1]; for (let i = 1; i < P.length; i++) if (r <= P[i][0]) { const [r0, t0] = P[i - 1], [r1, t1] = P[i]; return t0 + (t1 - t0) * (r - r0) / (r1 - r0); } return P[P.length - 1][1]; };
@@ -11130,11 +11688,11 @@ class RallyCarKit {
     };
   }
   // the design as built: fitted to its published dimensions when it carries fit targets
-  fittedDesign(id) { const D = this.designs[id], S = this.specs.find(c => c.id === id); if (!D || !S || !D.fit) return D; this._fit = this._fit || {}; return this._fit[id] || (this._fit[id] = ckFitDesign(D, S)); }
+  fittedDesign(id) { const D = this.designs[id], S = this.specOf(id); if (!D || !S || !D.fit) return D; this._fit = this._fit || {}; return this._fit[id] || (this._fit[id] = ckFitDesign(D, S)); }
   // GroupBCarFactory returns the THREE.Group (its rig on car.rig); GroupACarFactory returns the rig, whose root is the Group.
   buildCar(id, options = {}) { const rig = this.buildRig(id, options); return this.returnsRig ? rig : rig.root; }
   buildRig(id, options = {}) {
-    const D0 = this.designs[id], S = this.specs.find(c => c.id === id); if (!D0 || !S) throw new Error(this.label + ': unknown car ' + id);
+    const D0 = this.designs[id], S = this.specOf(id); if (!D0 || !S) throw new Error(this.label + ': unknown car ' + id);
     const D = this.fittedDesign(id);
     const ghost = !!options.ghost, num = options.num != null ? options.num : S.num;
     const L = Object.assign({}, D.livery), li = options.liveryIndex || 0;
@@ -12051,13 +12609,14 @@ class RallyCarKit {
       cab.tag = 'cage';
       mir(sd => { const f = F[sd];
         tube(at(N.foot, sd), at(N.top, sd), 0.022, IN.cage, cs);
-        for (const [A, B] of [...legs(f), ...rails(f)]) tube(at(A, sd), at(B, sd), 0.02, IN.cage, A === N.aFoot ? csH : cs); // (the leg's foot, under the dash, plainer)
-        tube(at(f.doorF, sd), at(N.doorR, sd), 0.02, IN.cage, csH);
+        // (CP.hoop: a bolted-in hoop behind the seats with its stays and diagonal, and none of the rest)
+        if (!CP.hoop) for (const [A, B] of [...legs(f), ...rails(f)]) tube(at(A, sd), at(B, sd), 0.02, IN.cage, A === N.aFoot ? csH : cs); // (the leg's foot, under the dash, plainer)
+        if (!CP.hoop) tube(at(f.doorF, sd), at(N.doorR, sd), 0.02, IN.cage, csH);
         tube(at(N.top, sd), at(N.stay, sd), 0.018, IN.cage, csH);
       });
       tube(at(N.top, 1), at(N.top, -1), 0.022, IN.cage, cs);
       tube(at(N.diag, 1), at(N.top, -1), 0.02, IN.cage, csH);
-      for (const [A, B] of chain([at(F[1].aTop, 1), ...F.hdr, at(F[-1].aTop, -1)])) tube(A, B, 0.02, IN.cage, cs); // the header
+      if (!CP.hoop) for (const [A, B] of chain([at(F[1].aTop, 1), ...F.hdr, at(F[-1].aTop, -1)])) tube(A, B, 0.02, IN.cage, cs); // the header
       cab.tag = '';
       // (the cage's padding where a helmet could strike it: smooth foam sleeves in the crew's mesh, crew.js)
       crewPads(CR, cageSegs);
@@ -12127,7 +12686,7 @@ class RallyCarKit {
       bayInfo = (() => {
         body.group = 'bay';
         const out = { front: [], rear: [] }, cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v)), nCyl = S.cyl || 4, boost = S.boost || 'na';
-        const eKind = /flat/i.test(eText) ? 'flat' : /\bV\d/.test(eText) ? 'vee' : 'inline', trans = /transverse/i.test(eText), turbo = boost === 'turbo' || boost === 'twin', blower = boost === 'sc' || boost === 'twin';
+        const eKind = /flat/i.test(eText) ? 'flat' : /\b[VW]\d/.test(eText) ? 'vee' : 'inline', trans = /transverse/i.test(eText), turbo = boost === 'turbo' || boost === 'twin', blower = boost === 'sc' || boost === 'twin';
         const aircooled = typeof ENG_LAY !== 'undefined' && ENG_LAY[id] && ENG_LAY[id].cool === 'air', icTop = typeof ENG_LAY !== 'undefined' && ENG_LAY[id] && ENG_LAY[id].ic === 'top';
         const BC = { alu: col('#8e9398'), iron: col('#3b3c3f'), black: col('#161616'), turbo: col('#5a4434'), wall: C.base.map(v => v * 0.8), cell: col('#a9aeb2'), shelf: col('#1d1d1f'),
           cam: col({ G4: '#7d2418', B: '#8a1d17', A: '#1e1e21', F2: '#b4b8bc', WRC: '#222326', R2: '#2d2e31', SP: '#2e3128' }[S.cls] || '#222326') };
@@ -16300,7 +16859,7 @@ const carFactory = { G4: carFactoryG4, B: carFactoryB, A: carFactoryA, F2: carFa
 if (typeof window !== 'undefined') window.carFactory = carFactory; // in the console: carFactory.debugInspectCar('ardent_5t'), 'veloce_hr', 'esker_kr', 'vireo_4t' or 'avocet_16t'
 // each car's plan for collisions, measured off its body: bumper to bumper about the centre of gravity, arch to arch,
 // and the floor's height (the body is drawn about the middle of the wheelbase; the physics frame is the centre of gravity)
-for (const S of CARS) {
+function carHullFrom(S) {
   try { const D = factoryFor(S.id).fittedDesign(S.id), rb = D.ribs, L = (D.fit && D.fit.L) || S.len, zc = (rb[0].z + rb[rb.length - 1].z) / 2 + S.wb * (1 - S.wf) - S.wb / 2;
     const zOff = S.wb * (1 - S.wf) - S.wb / 2, roof = rb.filter(r => r.r != null);
     S.hull = { zf: zc + L / 2, zr: zc - L / 2, hw: ((D.fit && D.fit.W) || S.width) / 2, floor: Math.min(...rb.map(r => r.f)), belt: Math.max(...rb.map(r => r.b)),
@@ -16310,11 +16869,12 @@ for (const S of CARS) {
     const i0 = rb.findIndex(r => r.r != null), i1 = rb.length - 1 - rb.slice().reverse().findIndex(r => r.r != null);
     if (i0 > 0) { const A = rb[i0 - 1], B = rb[i0]; S.hull.ws = [A.b + 0.055, A.z + zOff, A.wb / 2 - 0.14, B.r + 0.02, B.z + zOff]; }
     if (i0 >= 0 && i1 < rb.length - 1) { const A = rb[i1], B = rb[i1 + 1]; S.hull.rws = [B.b + 0.055, B.z + zOff, B.wb / 2 - 0.14, A.r + 0.02, A.z + zOff]; } } catch (e) { /* the spec's length and width will do */ }
+  // (a special vehicle's plan is its own, from its design: a truck's loft is only its cab and bonnet, its platform and
+  // the gear on it reaching far behind; heights over the road, places along it from the centre of gravity)
+  const D = designFor(S.id), H = D && D.hullBox; if (!H) return; const zOff = S.wb * (1 - S.wf) - S.wb / 2;
+  S.hull = Object.assign(S.hull || {}, { zf: H.zf + zOff, zr: H.zr + zOff, hw: H.hw, floor: H.floor, belt: H.belt, roof: H.roof, rw: H.rw, rzf: H.rzf + zOff, rzr: H.rzr + zOff });
 }
-// (a special vehicle's plan is its own, from its design: a truck's loft is only its cab and bonnet, its platform and the
-// gear on it reaching far behind; heights over the road, places along it from the centre of gravity)
-for (const S of CARS_SP) { const H = SP_CARS[S.id].hullBox, zOff = S.wb * (1 - S.wf) - S.wb / 2;
-  S.hull = Object.assign(S.hull || {}, { zf: H.zf + zOff, zr: H.zr + zOff, hw: H.hw, floor: H.floor, belt: H.belt, roof: H.roof, rw: H.rw, rzf: H.rzf + zOff, rzr: H.rzr + zOff }); }
+for (const S of CARS) carHullFrom(S);
 // a snorkel on a car (rig.screen: the windscreen's corners in the body's frame): a black pipe from the top of the front wing
 // up the windscreen pillar on the co-driver's side to a ram head over the roof's front edge, its mouth facing forward
 function fitSnorkel(rig) {
@@ -16328,7 +16888,7 @@ function fitSnorkel(rig) {
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.04, 10), mat); foot.position.copy(pts[0]).add(new THREE.Vector3(0, -0.03, 0)); g.add(foot);
   rig.body.add(g); rig.snorkel = g;
 }
-function buildCarMesh(S, ghost, night) { const r = factoryFor(S.id).buildCar(S.id, { ghost, num: S.num, night: !!night }), rig = r.isObject3D ? r.rig : r; rig.root.userData.carRoot = true; return Object.assign({}, rig); }
+function buildCarMesh(S, ghost, night) { const r = factoryFor(S.id).buildCar(S.id, { ghost, num: S.num, night: !!night }), rig = r.isObject3D ? r.rig : r; rig.root.userData.carRoot = true; if (S.cu) cuStrip(rig, S); return Object.assign({}, rig); }
 // a stage run in the dark (from dusk to dawn) gets the night kit: the lamp pods the crews fitted for night stages
 const NIGHT_TIMES = ['dusk', 'evening', 'night', 'midnight', 'dawn'], nightKit = T => !!T && NIGHT_TIMES.includes(stageCond(T).time);
 // throw a car model away: out of whichever scene holds it (the driven car sits in the cockpit scene while you look from
@@ -17730,7 +18290,7 @@ function boxOf(S) {
 }
 // Anti-lag by era: the modern cars hold the throttle open and retard the ignition; the older ones pipe air round the
 // engine into the manifold
-const alsKindOf = S => (S.cls === 'R2' ? 'ret' : 'air');
+const alsKindOf = S => S.alsKind || (S.cls === 'R2' ? 'ret' : 'air'); // (S.alsKind: a built engine's era's, see cuSpec)
 // The starter each engine is turned over by, and what it needs before it fires: [kind (see STARTER in the engine model),
 // cranking speed (rpm, on average: about 200-250 for a warm engine; a big engine and a heavy flywheel turn slower, a
 // light high-torque starter faster), compression ratio, fuel (efi: electronic injection, firing within a turn or two;
@@ -17761,7 +18321,7 @@ const _stTst = {};
 // script, for the turbo's own swings
 const REHEARSE_CARS = { tour: ['mamba_tc', 'tasman_6r', 'acrobat_2t', 'avocet_16t', 'halvik_4t', 'galliot_v8', 'vespera_sc', 'petrel_m4', 'carrack_24', 'felucca_14t', 'caisson_6x6'], full: ['sentai_gt4', 'avocet_16t'] };
 function engineCfg(S) {
-  const K = Object.assign({}, ENGINE_CFG[S.id] || ENGINE_CFG.ardent_5t, { red: S.redline, final: S.final * gearK(S), idle: S.idle || 950, cls: S.cls, box: boxOf(S), alsKind: alsKindOf(S), lag: S.lag, litres: litresOf(S), Ie: carSetup(S).sp.Ie });
+  const K = Object.assign({}, ENGINE_CFG[S.id] || ENGINE_CFG.ardent_5t, { red: S.redline, final: S.final * gearK(S), idle: S.idle || 950, cls: S.sndCls || S.cls, box: boxOf(S), alsKind: alsKindOf(S), lag: S.lag, litres: litresOf(S), Ie: carSetup(S).sp.Ie });
   const sc = STARTER_CFG[S.id] || ['dd', 220, 9.5, 'efi']; K.st = { kind: sc[0], rpm: sc[1], cr: sc[2], fuel: sc[3] };
   K.st.Tst = sc[4] || _stTst[S.id] || (_stTst[S.id] = EngineDSPDef().Starter.tst(K)); return K;
 }
@@ -17885,7 +18445,7 @@ const Snd = {
   // where it has got to is the same curve)
   set(p, v, tc) { tc = tc || 0.03; if (p._v === v && p._tc === tc) return; p._v = v; p._tc = tc; p.setTargetAtTime(v, this.ctx.currentTime, tc); },
   setCar(S) {
-    if (!this.on) return; this.spec = S; if (this.carId === S.id && this.fd === S.final) return; this.fd = S.final; // (the final drive sets the gear whine)
+    if (!this.on) return; this.spec = S; if (this.carId === S.id && this.fd === S.final && this.cuV === S.cuV) return; this.fd = S.final; this.cuV = S.cuV; // (the final drive sets the gear whine; S.cuV: a car rebuilt in the workshop)
     if (this.N) { if (this.N.node && this.post) this.post({ t: 'end' }); for (const k in this.N) { const n = this.N[k]; if (!n || typeof n !== 'object') continue; try { if (n.stop) n.stop(); } catch (e) { } try { if (n.disconnect) n.disconnect(); } catch (e) { } if (n.pn && n.dl) for (const q of Object.values(n)) try { if (q && q.disconnect) q.disconnect(); } catch (e) { } } this.N = null; this.post = null; } // (a source's way to the listener is let go of node by node)
     this.P = ENGINE_SND[S.id] || ENGINE_SND.ardent_5t; this.carId = S.id; this.logic = new EngineSoundLogic(S, this.P, boxOf(S)); this.pops = 0;
     if (this.dsp) { try { this.dspCar(S); this.set(this.cabin.frequency, 20000, 0.05); return; } catch (e) { this.dsp = null; } }
@@ -19099,13 +19659,16 @@ async function submitOnline(key, t, carId, lv) {
   if (!Online.db || !Online.uid) return 'off';
   const cur = (Online.mine && Online.mine.runs) || {}; const prev = cur[key]; if (prev && typeof prev.t === 'number' && prev.t <= t) return 'slower';
   const runs = Object.assign({}, cur); runs[key] = { t: Math.round(t * 1000) / 1000, car: carId, at: Date.now() }; if (lv) runs[key].lv = lv;
+  { const S = carById(carId); if (S && S.cu) runs[key].cn = S.name.slice(0, 20); } // (a build's name, for the others who do not have it)
   try { await Online.db.doc('times/' + Online.uid).set({ runs }); return 'saved'; } catch (e) { return 'err'; }
 }
+// the car a time was set in, as the board shows it (a build: its name and its class)
+const boardCar = (id, cn) => { const S = carById(id); return S ? (S.cu ? S.name + ' (custom)' : S.name) : typeof cn === 'string' && /^cu_/.test(id || '') ? cn.replace(/[^A-Za-z0-9 .'&-]/g, '').slice(0, 20) + ' (custom)' : ''; };
 function boardRows() {
   const seed = G.T ? G.T.seed : '', key = runKey(seed); const rows = [];
-  if (Online.ready) { for (const d of Online.docs) { const r = d.data && d.data.runs && d.data.runs[key]; if (r && typeof r.t === 'number' && isFinite(r.t) && r.t > 5) rows.push({ name: d.id === Online.uid ? 'You' : (Online.names[d.id] || 'Someone'), car: (carById(r.car) || {}).name || '', t: r.t, lv: r.lv, me: d.id === Online.uid }); } }
+  if (Online.ready) { for (const d of Online.docs) { const r = d.data && d.data.runs && d.data.runs[key]; if (r && typeof r.t === 'number' && isFinite(r.t) && r.t > 5) rows.push({ name: d.id === Online.uid ? 'You' : (Online.names[d.id] || 'Someone'), car: boardCar(r.car, r.cn), t: r.t, lv: r.lv, me: d.id === Online.uid }); } }
   const lb = lsGet('sr86.best', {})[key];
-  if (lb && !rows.some(r => r.me)) rows.push({ name: 'You', car: (carById(lb.car) || {}).name || '', t: lb.t, lv: lb.lv, me: true, local: true });
+  if (lb && !rows.some(r => r.me)) rows.push({ name: 'You', car: boardCar(lb.car), t: lb.t, lv: lb.lv, me: true, local: true });
   rows.sort((a, b) => a.t - b.t); return rows;
 }
 // the stage times, each with the assists it was driven with
@@ -19233,7 +19796,7 @@ function startRun() {
   if (G.ghost && G.ghost.f && G.ghost.f.length && !(G.T.sss && SSS_KINDS[G.T.sss.kind].duel)) { G.ghostMesh = buildCarMesh(carById(G.ghost.car) || G.spec, true); scene.add(G.ghostMesh.root); }
   // (a super special: the crew on the other lane - the rally's pairing, else a quick crew in a car of your class)
   Duel.drop(); SSFlags.reset(); if (G.T.sss) { const dz = G.rally && Rally.cur && Rally.cur.duel; if (dz) Duel.init(G.T, dz.S, dz.t, dz.inc, dz.name);
-    else { const cls = G.spec.cls || 'B', pool = CARS.filter(S => (S.cls || 'B') === cls && S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
+    else { const cls = rivalCls(G.spec), pool = stockOf(cls).filter(S => S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
       Duel.init(G.T, S, stagePace(G.T, S, G.T.wet || 0).t * (RALLY_PACE[G.T.surface] || 1.35) * 0.95, null, 'The other car'); } }
   placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
@@ -19782,11 +20345,12 @@ function updateFlyover(dt) {
   if (G.show && G.show.warmed !== G.show.mesh && G.fly > 1.2) { G.show.warmed = G.show.mesh; Gfx.warmBg(G.show.mesh); }
   Gfx.warmBgTick();
   const p = T.pts[T.startIdx]; let follow = 3;
-  if (Inspect.on) { // the viewer's own orbit, framed to fit the screen's shape and centred above the bar
-    const I = Inspect; I.idle += dt; if (I.idle > 4 && !I.ptrs.size && !REDUCED_MOTION()) I.yaw += dt * 0.22 * Math.min(1, (I.idle - 4) / 2);
+  if (Inspect.on || Workshop.on) { // the viewer's own orbit (or the workshop's), framed to fit the screen's shape and centred above the bar (beside the workshop's panel)
+    const I = Workshop.on ? Workshop : Inspect; I.idle += dt; if (I.idle > 4 && !I.ptrs.size && !REDUCED_MOTION()) I.yaw += dt * 0.22 * Math.min(1, (I.idle - 4) / 2);
     const vh = 25 * Math.PI / 180, hh = Math.atan(Math.tan(vh) * camera.aspect), r = Math.max(4.2, 2.45 / Math.sin(Math.min(vh, hh))) * I.zoom, ang = p.h + I.yaw, cp = Math.cos(I.pitch);
     camLook.set(p.x, p.y + 0.62, p.z); camPos.set(p.x + Math.sin(ang) * cp * r, p.y + 0.62 + Math.sin(I.pitch) * r, p.z + Math.cos(ang) * cp * r); follow = 12;
-    const W = window.innerWidth, H = window.innerHeight, bar = I.bar ? Math.round(I.bar.getBoundingClientRect().height) : 0; if (!camera.view || !camera.view.enabled || camera.view.offsetY !== bar / 2 || camera.view.fullWidth !== W || camera.view.fullHeight !== H) camera.setViewOffset(W, H, 0, bar / 2, W, H);
+    const W = window.innerWidth, H = window.innerHeight, bar = Workshop.on ? 0 : I.bar ? Math.round(I.bar.getBoundingClientRect().height) : 0, fr = Workshop.on ? Workshop.frame().map(Math.round) : [0, bar / 2];
+    if (!camera.view || !camera.view.enabled || camera.view.offsetX !== fr[0] || camera.view.offsetY !== fr[1] || camera.view.fullWidth !== W || camera.view.fullHeight !== H) camera.setViewOffset(W, H, fr[0], fr[1], W, H);
   } else {
     const ang = p.h + 2.3 + G.fly * 0.22, r = 6.4;
     camPos.set(p.x + Math.sin(ang) * r, p.y + 1.7 + Math.sin(G.fly * 0.3) * 0.3, p.z + Math.cos(ang) * r); camLook.set(p.x + Math.sin(p.h) * 0.6, p.y + 0.7, p.z + Math.cos(p.h) * 0.6);
@@ -20383,7 +20947,7 @@ function updateHud(sp) {
   const c = G.car, S = G.phys || G.spec, T = G.T;
   setText(hud$('#time'), fmtT(G.finished ? G.finT : G.time + G.penalty));
   setText(hud$('#speed'), Math.round(sp * 3.6));
-  setText(hud$('#gear'), c.gear === -1 ? 'R' : c.gear === 0 ? 'N' : c.gear);
+  setText(hud$('#gear'), c.gear === -1 ? 'R' : c.gear === 0 ? 'N' : G.spec && G.spec.cvt && inp.auto !== false ? 'D' : c.gear); // (a CVT left to itself: drive)
   { const rb = hud$('#rpmBar'); setXf(rb, `scaleX(${clamp(c.rpm / S.redline, 0, 1)})`); rb.classList.toggle('hot', c.rpm > S.redline * 0.9); }
   setXf(hud$('#boostBar'), `scaleX(${clamp(c.boost, 0, 1)})`);
   // the engine: its coolant's temperature (an air-cooled engine's oil), and what water is doing to it
@@ -20477,12 +21041,12 @@ const Inspect = {
   on: false, yaw: 2.3, pitch: 0.24, zoom: 1, idle: 9, ptrs: new Map(), pinch0: 0, zoom0: 1, bar: null,
   open() { if (G.state !== 'menu') return; this.on = true; this.idle = 9; this.bar = $('#inspectBar'); $('#menu').hidden = true; this.bar.hidden = false; document.body.dataset.inspect = '1'; this.label(); $('#insNext').focus({ preventScroll: true }); },
   close() { if (!this.on) return; this.on = false; this.ptrs.clear(); this.bar.hidden = true; delete document.body.dataset.inspect; if (camera.view && camera.view.enabled) camera.clearViewOffset(); if (G.state === 'menu') $('#menu').hidden = false; },
-  step(d) { const cls = G.spec.cls || 'B', list = CARS.filter(S => (S.cls || 'B') === cls), S = list[(list.indexOf(G.spec) + d + list.length) % list.length]; pickCar(S); renderCars(); startDemo(S); this.label(); },
+  step(d) { const cls = clsOf(G.spec), list = cls === 'CU' ? CU.cars() : CARS.filter(S => clsOf(S) === cls), S = list[(list.indexOf(G.spec) + d + list.length) % list.length]; pickCar(S); renderCars(); startDemo(S); this.label(); },
   label() {
     const S = G.spec, Lv = designFor(S.id).livery, car = this.bar.querySelector('.insCar');
     $('#insNum').textContent = S.num; $('#insName').textContent = S.name; $('#insSpec').textContent = `${S.drive}, ${S.motor.charAt(0).toLowerCase() + S.motor.slice(1)}, ${S.mass} kg`;
     car.style.setProperty('--c1', Lv.base); car.style.setProperty('--c2', Lv.band); car.style.setProperty('--c3', Lv.pin);
-    for (const c of CLASSES) { const t = $('#insCls_' + c); if (t) t.setAttribute('aria-pressed', (S.cls || 'B') === c ? 'true' : 'false'); }
+    for (const c of CLASSES) { const t = $('#insCls_' + c); if (t) t.setAttribute('aria-pressed', clsOf(S) === c ? 'true' : 'false'); }
   },
   init() {
     for (const id of ['#inspectBtn', '#inspectFab']) { const b = $(id); if (b) b.addEventListener('click', () => this.open()); }
@@ -20829,14 +21393,16 @@ const ControlsUI = {
 // ---------- menu UI ----------
 // The entry list shows one class at a time (Group 4, Group B, Group A, F2 kit cars, World Rally Cars or Rally2 cars); each class remembers its last car.
 const CLASSES = ['G4', 'B', 'A', 'F2', 'WRC', 'R2', 'SP'];
-function pickCar(S) { const k = CARS.indexOf(S); G.spec = S; lsSet('sr86.car', k); lsSet('sr86.car' + (S.cls || 'B'), k); }
+function pickCar(S) { const k = CARS.indexOf(S); G.spec = S; lsSet('sr86.car', k); lsSet('sr86.car' + clsOf(S), k); }
+// (the Custom class: the garage's builds; with none yet, the workshop opens on the car picked now to build one)
 function pickClass(cls) {
-  if ((G.spec.cls || 'B') === cls) return; const k = lsGet('sr86.car' + cls, -1);
-  pickCar(CARS[k] && CARS[k].cls === cls ? CARS[k] : CARS.find(S => (S.cls || 'B') === cls)); renderCars(); startDemo(G.spec);
+  if (clsOf(G.spec) === cls) return; const k = lsGet('sr86.car' + cls, -1);
+  if (cls === 'CU') { const L = CU.cars(); if (!L.length) { Workshop.open({ body: G.spec.id }); return; } pickCar(CARS[k] && L.includes(CARS[k]) ? CARS[k] : L[0]); renderCars(); startDemo(G.spec); return; }
+  pickCar(CARS[k] && clsOf(CARS[k]) === cls ? CARS[k] : CARS.find(S => clsOf(S) === cls)); renderCars(); startDemo(G.spec);
 }
 function renderCars() {
-  const box = $('#cars'); box.textContent = ''; const cls = G.spec.cls || 'B', list = CARS.filter(S => (S.cls || 'B') === cls);
-  for (const c of CLASSES) { const t = $('#cls_' + c); if (t) t.setAttribute('aria-pressed', c === cls ? 'true' : 'false'); }
+  const box = $('#cars'); box.textContent = ''; const cls = clsOf(G.spec), list = cls === 'CU' ? CU.cars() : CARS.filter(S => clsOf(S) === cls);
+  for (const c of CLASSES.concat('CU')) { const t = $('#cls_' + c); if (t) t.setAttribute('aria-pressed', c === cls ? 'true' : 'false'); }
   list.forEach((S, j) => {
     const b = document.createElement('button'); b.className = 'car'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', S === G.spec ? 'true' : 'false'); b.tabIndex = S === G.spec ? 0 : -1;
     const Lv = designFor(S.id).livery; b.style.setProperty('--c1', Lv.base); b.style.setProperty('--c2', Lv.band); b.style.setProperty('--c3', Lv.pin);
@@ -20845,10 +21411,13 @@ function renderCars() {
     b.addEventListener('click', () => { pickCar(S); renderCars(); box.querySelector('[aria-checked="true"]').focus(); startDemo(S); });
     b.addEventListener('keydown', e => {
       const step = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0; if (!step) return;
-      e.preventDefault(); const n = (j + step + list.length) % list.length; pickCar(list[n]); renderCars(); box.children[n].focus();
+      e.preventDefault(); const n = (j + step + list.length) % list.length; pickCar(list[n]); renderCars(); box.querySelectorAll('.car')[n].focus();
     });
-    box.appendChild(b);
+    // (a build: the workshop's button beside it)
+    if (S.cu) box.appendChild(el('div', { class: 'cuRow' }, b, el('button', { type: 'button', class: 'ghostbtn', 'aria-label': 'Change the ' + S.name + ' in the workshop', onclick: () => Workshop.open({ id: S.id }) }, 'Change')));
+    else box.appendChild(b);
   });
+  if (cls === 'CU') box.appendChild(el('button', { type: 'button', class: 'ghostbtn cuNew', onclick: () => Workshop.open({ body: CU_STOCK.includes(G.spec) ? G.spec.id : G.spec.body }) }, 'Build another car'));
   renderSetupLine();
 }
 // ---------- full screen: the game fills the screen by itself (browsers let a page do that only in answer to the player's
@@ -20890,7 +21459,8 @@ function init() {
   // stage starts
   const wake = () => { removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true); Snd.init(); };
   addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
-  for (const c of CLASSES) { const t = $('#cls_' + c); if (t) t.addEventListener('click', () => pickClass(c)); }
+  for (const c of CLASSES.concat('CU')) { const t = $('#cls_' + c); if (t) t.addEventListener('click', () => pickClass(c)); }
+  Workshop.init();
   $('#voiceTest').addEventListener('click', () => { Snd.init(); Snd.mute(false); G.voice = true; Voice.say('Left 4 tightens 2, over crest, 150', true); });
   // the link can carry conditions: #seed or #seed/time/weather
   const hp = (location.hash || '').replace('#', '').split('/'), hr = (hp[0] || '').split('@'); let seed = (hr[0] || '').replace(/\D/g, '').slice(0, 6); if (!seed) seed = String(10000 + Math.floor(Math.random() * 89999));
@@ -23647,7 +24217,7 @@ const CREW_DRIVE = {
 const crewEra = S => (S && S.crewEra) || CREW_ERA[S && S.cls] || CREW_ERA.B;
 // what the car shifts with: 'H' (a gate), 'seq' (a sequential lever), 'paddle' (paddles behind the wheel)
 // ('auto': an automatic's selector, set in drive and left there: the hand never goes to it)
-const crewLever = (S, CP) => { const L = (CP && CP.lever) || (S.lever === 'auto' ? 'auto' : S.lever === 'paddle' ? 'paddle' : S.lever === 'H' ? 'H' : S.lever === 'sequential' || ['A', 'F2', 'WRC', 'R2'].includes(S.cls) ? 'sequential' : 'H'); return L === 'sequential' ? 'seq' : L; };
+const crewLever = (S, CP) => { const L = (CP && CP.lever) || (S.lever === 'auto' || S.lever === 'cvt' ? 'auto' : S.lever === 'paddle' ? 'paddle' : S.lever === 'H' ? 'H' : S.lever === 'sequential' || ['A', 'F2', 'WRC', 'R2'].includes(S.cls) ? 'sequential' : 'H'); return L === 'sequential' ? 'seq' : L; };
 
 // ---- small vector helpers (arrays [x, y, z]) ----
 const cv3 = {
@@ -25502,7 +26072,7 @@ const MP_FMT = ['side', 'ko', 'rally'], MP_CARS = ['own', 'same', 'each', 'cls']
 const MP_TEAMS = [{ name: 'Red', col: '#e8473b' }, { name: 'Blue', col: '#3d7fe6' }];
 const MP_REACT = ['GG', 'Nice!', 'Sorry!', 'Wait!', 'Go go go!', 'Oops!'];
 const MP_TIE = 'Equal points: more wins goes ahead, then more second places, and so on.';
-const MP_FMT_NAME = { side: 'Side by side', ko: 'Knockout', rally: 'Rally start' }, MP_CLASS = { G4: 'Group 4', B: 'Group B', A: 'Group A', F2: 'F2 kit car', WRC: 'WRC', R2: 'Rally2', SP: 'Special' };
+const MP_FMT_NAME = { side: 'Side by side', ko: 'Knockout', rally: 'Rally start' }, MP_CLASS = { G4: 'Group 4', B: 'Group B', A: 'Group A', F2: 'F2 kit car', WRC: 'WRC', R2: 'Rally2', SP: 'Special', CU: 'Custom' };
 // this build of the game, by a mark made from its code: shown with the races, since only players on the same build meet
 // (a page left open on an older version, or a friend sent an older shared version, is in rooms of its own)
 const MP_BUILD = typeof SR86_BUILD !== 'undefined' ? SR86_BUILD : '';
@@ -25539,7 +26109,8 @@ const MP = {
   off(why) { this.avail = false; this.why = why; this.render(); },
   racing() { return this.phase === 'race' && !!this.game; },
   inRoom() { return !!this.game; },
-  pub(patch) { if (!this.game) return; for (const k in patch) { if (patch[k] == null) delete this.mine[k]; else this.mine[k] = patch[k]; } this.game.presence(patch).catch(() => {}); },
+  // (a page's car, as it says: a car built in the workshop goes with its build's code, cb, for the others' pages to build)
+  pub(patch) { if (!this.game) return; if (patch.car != null) { const S = carById(patch.car); patch.cb = S && S.cu ? cuCode(S.cu) : null; } for (const k in patch) { if (patch[k] == null) delete this.mine[k]; else this.mine[k] = patch[k]; } this.game.presence(patch).catch(() => {}); },
   // the race held open, shown in the lobby room (or taken down)
   advertise() {
     if (!this.room) return; const c = this.cfg;
@@ -25739,11 +26310,11 @@ const MP = {
     const T = G.T;
     if (c0.sc && T) { o.tm = pick(TIMES); o.wx = pick(wxFor(T)); }
     // the cars
-    const own = D.map(p => (p.sameTab ? (this.ownSpec || G.spec).id : mpStr(p.presence.car, /^[a-z0-9_]{1,24}$/, 24)) || CARS[0].id);
+    const own = D.map(p => (p.sameTab ? (this.ownSpec || G.spec).id : this.carOf(Object.assign({}, p, { peer: null }))) || CARS[0].id);
     let cs = null;
-    if (c0.cr === 'same') { const id = pick(CARS).id; cs = gr.map(() => id); }
-    else if (c0.cr === 'each') { const pool = CARS.map(S => S.id); cs = gr.map(() => { const id = pick(pool); if (pool.length > 1) pool.splice(pool.indexOf(id), 1); return id; }); }
-    else if (c0.cr === 'cls') { const cls = c0.cc || pick(CLASSES), pool = CARS.filter(S => (S.cls || 'B') === cls).map(S => S.id); cs = gr.map(() => { const id = pick(pool.length ? pool : CARS.map(S => S.id)); if (pool.length > 1) pool.splice(pool.indexOf(id), 1); return id; }); }
+    if (c0.cr === 'same') { const id = pick(CU_STOCK).id; cs = gr.map(() => id); } // (the cars drawn: the entry list's, never a player's build)
+    else if (c0.cr === 'each') { const pool = CU_STOCK.map(S => S.id); cs = gr.map(() => { const id = pick(pool); if (pool.length > 1) pool.splice(pool.indexOf(id), 1); return id; }); }
+    else if (c0.cr === 'cls') { const cls = c0.cc || pick(CLASSES), pool = stockOf(cls).map(S => S.id); cs = gr.map(() => { const id = pick(pool.length ? pool : CU_STOCK.map(S => S.id)); if (pool.length > 1) pool.splice(pool.indexOf(id), 1); return id; }); }
     const cars = gr.map((p, k) => carById(cs ? cs[k] : own[k]) || CARS[0]);
     // the handicap: each car's ideal time on this stage in these conditions (set on this page's stage first), against the
     // slowest's
@@ -25992,7 +26563,7 @@ const MP = {
   },
   // the car a driver races in: the one drawn for its place on this race's grid, else the one it says it has
   carOf(p) { const c = this.rc, k = this.gr.indexOf(p.peer); if (c && c.cs && k >= 0 && (this.phase === 'race' || this.phase === 'done') && c.cs[k]) return c.cs[k];
-    return mpStr(p.presence && p.presence.car, /^[a-z0-9_]{1,24}$/, 24); },
+    const id = mpStr(p.presence && p.presence.car, /^[a-z0-9_]{1,24}$/, 24); if (id && /^cu_/.test(id) && !p.sameTab) CU.guest(id, p.presence.cb); return id; },
   // (in a rally start the other cars are ghosts: see-through, and never struck)
   rivalFor(p) {
     if (this.rivals.has(p.peer)) return this.rivals.get(p.peer);
@@ -26319,7 +26890,7 @@ const MP = {
   // off, the watched car's bar, the reactions, a banner ----
   reveal(c, drawn) {
     const L = [], T = G.T, k = this.slot;
-    if (drawn) L.push(['Your car', `${drawn.name} · ${MP_CLASS[drawn.cls || 'B'] || ''}`]);
+    if (drawn) L.push(['Your car', `${drawn.name} · ${MP_CLASS[clsOf(drawn)] || ''}`]);
     if (c.tg) L.push(['Team', MP_TEAMS[c.tg[k]].name, MP_TEAMS[c.tg[k]].col]);
     if (c.fm === 'rally') L.push(['Rally start', k === 0 ? 'you are first away' : `you are ${ordinal(k + 1)} away, ${k * MP_GAP} s after the first car`]);
     else if (c.dl && c.dl[k] > 0.05) L.push(['Handicap', `you are away ${c.dl[k].toFixed(1)} s after the first car`]);
@@ -26614,7 +27185,7 @@ const MP = {
     // the drivers
     const ul = $('#mpPlayers'); ul.textContent = '';
     D.slice().sort((a, b) => (mpNum(a.presence.jt, 0, 1e15) || 0) - (mpNum(b.presence.jt, 0, 1e15) || 0)).forEach((p, k) => {
-      const P = p.sameTab ? Object.assign({}, p.presence, { rdy: this.rdy }) : p.presence, S = carById(mpStr(P.car, /^[a-z0-9_]{1,24}$/, 24) || '') || null, isHost = p.peer === this.hostPeer || (p.sameTab && this.host);
+      const P = p.sameTab ? Object.assign({}, p.presence, { rdy: this.rdy }) : p.presence, S = carById((p.sameTab ? mpStr(P.car, /^[a-z0-9_]{1,24}$/, 24) : this.carOf(Object.assign({}, p, { peer: null }))) || '') || null, isHost = p.peer === this.hostPeer || (p.sameTab && this.host);
       // (a driver whose page has gone quiet is away: not counted, nor put on the grid, until it is back)
       const away = !this.fresh(p), st = away ? 'away' : P.ph === 'grid' || P.ph === 'run' ? 'racing' : P.ph === 'fin' ? 'finished ' + (mpNum(P.ft, 0, 1e6) != null ? fmtT(P.ft) : '') : P.ph === 'out' ? 'retired' : isHost ? 'host' : P.rdy ? 'ready' : 'not ready';
       ul.append(mel('li', { class: (p.sameTab ? 'me ' : '') + (!away && (P.rdy || isHost) ? 'ok' : '') }, mel('b', { text: this.nameOf(p, k) }), mel('span', { text: S ? S.name : '' }), mel('small', { text: st })));
@@ -27542,6 +28113,451 @@ Object.assign(Replay, {
   // (the run's broken-off pieces lie where they fell; one broken off after the moment shown is not there yet)
   fbDebris() { const t = this.t; for (const d of Debris.list) { const v = !(d.at > t + 1e-6); if (d.mesh.visible !== v) d.mesh.visible = v; } }
 });
+
+// ---- the workshop's cars in the game ----
+// A car built in the workshop (its physics: cucore.js) joins the game as a car of its own: its spec on the entry list
+// (CARS) and in CU_SPEC; its body drawn from its body's design in its own paint, with its own aerodynamic kit, tracks,
+// cage and engine bay, and without the panels and fittings it was built without; its engine heard as it is built.
+// The player's own builds are kept in this browser; another driver's car in a race with friends is built on this page
+// from the code their page sends (not kept).
+
+// what the page knows of each body from its design: how many doors, whether its rear opens as a tailgate, whether it
+// has mudflaps, and its paint
+for (const S of CU_STOCK) { const D = designFor(S.id); if (!D) continue; const L = D.livery || {};
+  CU_BODY[S.id] = { doors: D.shut && D.shut.length >= 3 ? 4 : 2, hatch: D.rearLid ? D.rearLid === 'tailgate' : /hatch|liftback|estate|van/i.test(D.layout || ''), flaps: D.mudflaps === false ? 0 : 1,
+    c1: L.base, c2: L.band, c3: L.pin, roof: L.roof === L.base ? 'base' : 'band' }; }
+// ---- the body: the design of the body's car, made the build's ----
+// the aerodynamic parts the kits are made of (the rest of a design's parts - ducts, vents, scoops, lamps - stay)
+const CU_WINGS = new Set(['chinLip', 'postWing', 'roofLip', 'hatchWing', 'tailLip', 'tray', 'whaleTail', 'archWing', 'bridgeWing', 'trunkLip', 'deckSpoiler', 'lmWing', 'f2Spoiler', 'f2Splitter', 'g4AirDam', 'sideSkirts']);
+// what is mounted on a bumper and goes with it (the bumpers' own parts go with their triangles: see cuStrip)
+const CU_ON_BUMPER = { f: new Set(['chinLip', 'f2Splitter', 'bumperMaw', 'rallyBumperPods', 'g4AirDam', 'g4BullBar', 'quadLamps']), r: new Set(['valance']) };
+// what cools an engine where it sits: on a bonnet over a front engine, on the flanks and the deck behind the cabin
+const CU_FRONT_COOL = new Set(['hoodVents', 'hoodScoop', 'hoodBulge', 'louvres', 'louvresLong']), CU_MID_COOL = new Set(['quarterScoops', 'sideVents', 'nacaDucts', 'roofVent', 'deckGrille', 'glassLouvres', 'tailLip']);
+function cuDesign(S, B, S0, D0) {
+  const D = JSON.parse(JSON.stringify(D0)), rb = D0.ribs, last = rb[rb.length - 1], roof = rb.filter(r => r.r != null), rl = roof[roof.length - 1] || last, W = Math.max(...rb.map(r => Math.max(r.ws, r.wb)));
+  const hatch = (CU_BODY[S0.id] || {}).hatch, zT = last.z, yT = last.b, yR = roof.length ? Math.max(...roof.map(r => r.r)) : 1.3, wb2 = S0.wb / 2;
+  D.name = S.name; D.layout = S.engine + ', ' + S.drive.charAt(0).toLowerCase() + S.drive.slice(1); D.track = S.track.slice();
+  // paint: the body's own scheme in the build's colours (its stripe, pin line, roof and bonnet where the scheme has them)
+  const L0 = D0.livery || {}, role = c => c === L0.band ? B.c2 : c === L0.pin ? B.c3 : B.c1;
+  D.livery = { base: B.c1, band: B.c2, pin: B.c3, roof: B.roof === 'band' ? B.c2 : B.c1, hood: role(L0.hood) };
+  if (D0.camo != null && B.c1 !== (CU_BODY[S0.id] || {}).c1) { delete D.camo; delete D.camoOn; } // (a camouflaged body painted over)
+  // the cage: none (a working vehicle's cab), a bolted-in hoop, or a full cage
+  D.cockpit = Object.assign({}, D0.cockpit || {}); delete D.cockpit.hoop; if (D.cockpit.cage === 'none') delete D.cockpit.cage;
+  if (B.cage === 'none') D.cockpit.cage = 'none'; else if (B.cage === 'light') D.cockpit.hoop = true;
+  if (!B.flaps) D.mudflaps = false; else if (D0.mudflaps === false) delete D.mudflaps;
+  // the aerodynamic kit: the body's own, none, or one of the kits, fitted to the body's nose, tail and roof (a hatch's
+  // wing on its roof's trailing edge, a saloon's on posts on its boot, a racing wing high over the tail)
+  let A = (D0.aero || []).map(p => [p[0], Object.assign({}, p[1] || {})]);
+  if (B.aero !== 'stock' && S0.cls !== 'SP') { A = A.filter(p => !CU_WINGS.has(p[0]));
+    const kit = { lip: [['chinLip', { y: 0.27, depth: 0.07 }], hatch ? ['roofLip', { z: rl.z, over: 0.08, chord: 0.22, ang: 0.1 }] : ['deckSpoiler', { z: zT + 0.05, span: W * 0.8, chord: 0.18, lift: 0.04, ang: 0.08, gurney: 0.02 }]],
+      wing: [['chinLip', { y: 0.26, depth: 0.12 }], hatch ? ['roofLip', { z: rl.z, over: 0.16, chord: 0.36, ang: 0.3, lift: 0.07 }] : ['postWing', { z: zT + 0.24, y: yT + 0.3, span: W * 0.88, chord: 0.36 }]],
+      big: [['chinLip', { y: 0.25, depth: 0.17 }], ['sideSkirts', {}], hatch ? ['roofLip', { z: rl.z, y: yR + 0.1, span: (rl.wr || W * 0.8) * 0.95, chord: 0.48, ang: 0.35, lift: 0.08 }] : ['postWing', { z: zT + 0.3, y: yT + 0.42, span: W * 0.92, chord: 0.5 }]],
+      max: [['chinLip', { y: 0.24, depth: 0.22 }], ['sideSkirts', {}], ['postWing', { z: zT + 0.22, y: Math.max(yT + 0.55, yR - 0.04), span: W * 0.95, chord: 0.62 }]] }[B.aero] || [];
+    A = A.concat(kit); }
+  // the engine moved: what cooled it where it was goes, and what cools it where it is now comes (scoops on the flanks
+  // ahead of the rear wheels and louvres on the deck over an engine behind the cabin; ducts in the nose of a front one)
+  const was = (ENG_LAY[S0.id] && ENG_LAY[S0.id].pos) || 'front', now = B.pos === 'fmid' ? 'front' : B.pos;
+  const zOf = o => o.z != null ? o.z : o.z0 != null ? o.z0 : o.panels && o.panels[0] ? o.panels[0].z : null, ahead = p => { const z = zOf(p[1] || {}); return z == null ? p[0] !== 'louvres' : z > 0; };
+  if (was === 'front' && now !== 'front') { A = A.filter(p => !(CU_FRONT_COOL.has(p[0]) && ahead(p)));
+    A.push(['quarterScoops', { z: -wb2 + 0.52 }]); if (!hatch) A.push(['deckGrille', { z: (rl.z + zT) / 2 + 0.1, n: 5 }]); }
+  else if (was !== 'front' && now === 'front') { A = A.filter(p => !CU_MID_COOL.has(p[0]) && !((p[0] === 'louvres' || p[0] === 'louvresLong') && !ahead(p))); if (!A.some(p => p[0] === 'grilleDucts' || p[0] === 'bumperMaw')) A.push(['grilleDucts', {}]); }
+  if (!B.bumpF) A = A.filter(p => !CU_ON_BUMPER.f.has(p[0])).concat([['cuBeam', { end: 'front' }]]); if (!B.bumpR) A = A.filter(p => !CU_ON_BUMPER.r.has(p[0])).concat([['cuBeam', { end: 'rear' }]]);
+  D.aero = A;
+  return D;
+}
+// a car built without a bumper: the crash beam across its open end, and the panel behind it (the radiator's support
+// at the nose, the rear panel at the tail)
+CK_PARTS.cuBeam = (c, o) => { const fr = o.end !== 'rear', st = fr ? c.front : c.rear, z = fr ? c.zf - 0.05 : c.zr + 0.05, w = st.ws * 0.9, y0 = st.f + 0.04, y1 = Math.max(y0 + 0.2, st.b - 0.06);
+  ckBox(c.trim, [0, y0 + 0.07, z], [w, 0.11, 0.1], c.K0); ckBox(c.trim, [0, (y0 + y1) / 2 + 0.04, z + (fr ? -0.07 : 0.07)], [w * 0.94, y1 - y0, 0.03], c.K0); };
+// the engine where it sits, for the car kit (which draws it in its bay) and the engine's heat and water model
+function cuEngLay(S, B, S0) {
+  const L0 = ENG_LAY[S0.id] || {}, pos = B.pos === 'fmid' ? 'front' : B.pos, T = CU_TECH[B.tech], dz = B.fuel === 'diesel', turbo = B.asp === 'turbo' || B.asp === 'biturbo' || B.asp === 'twin';
+  const cr = dz ? 17 : turbo ? ({ '70s': 7, '80s': 7.2, '90s': 8.5, '00s': 9.5, '20s': 10 }[B.tech]) : ({ road: 9.8, sport: 10.8, race: 12.5 }[B.tune]);
+  const L = { pos, cool: B.cool, cr, ic: B.asp === 'na' || B.asp === 'sc' ? 'none' : pos === 'front' ? (L0.ic && L0.ic !== 'none' ? L0.ic : 'front') : 'side', ign: dz ? 0 : T.ign, restr: !!B.restr,
+    inlet: pos === (L0.pos || 'front') && L0.inlet ? L0.inlet : pos === 'front' ? ['bay', 0.7] : pos === 'mid' ? ['quarter', 0.96] : ['deck', 0.84], exit: pos === (L0.pos || 'front') && L0.exit ? L0.exit : 'rear' };
+  if (L0.lift) L.lift = L0.lift; if (L0.exhY != null && pos === (L0.pos || 'front')) { L.exhY = L0.exhY; if (L0.exhZ != null) L.exhZ = L0.exhZ; }
+  return L;
+}
+// ---- the engine's sound ----
+// firing angles over the 720 degrees of a cycle, cylinder by cylinder (along the block; a vee's or a flat engine's
+// banks one after the other), and the bank each cylinder's header joins. A rotary's chambers fire twice for each of an
+// engine's cylinders (each rotor three times a turn of its own, once a turn of the shaft)
+function cuFiring(B) {
+  const n = B.cyl, L = B.layout;
+  if (L === 'rotary') { const k = 2 * n; return { n: k, fire: Array.from({ length: k }, (_, i) => i * 720 / k), bank: null }; }
+  if (L === 'inline') return { n, fire: { 2: [0, 360], 3: [0, 240, 480], 4: [0, 540, 180, 360], 5: [0, 144, 576, 288, 432], 6: [0, 480, 240, 600, 120, 360], 8: [0, 180, 450, 630, 270, 90, 540, 360] }[n], bank: n === 4 && B.tune === 'race' && B.asp === 'na' ? [0, 1, 1, 0] : null };
+  if (L === 'flat' && n === 4) return { n, fire: [0, 360, 180, 540], bank: [0, 0, 1, 1] };
+  if (L === 'flat' && n === 6) return { n, fire: [0, 240, 480, 360, 600, 120], bank: [0, 0, 0, 1, 1, 1] };
+  if (L === 'vee' && n === 2) return { n, fire: [0, 270], bank: [0, 1] };
+  if (L === 'vee' && n === 4) return { n, fire: [0, 540, 180, 360], bank: [0, 1, 1, 0] };
+  // (a road V8's cross-plane crank, its banks firing unevenly; a race V8's flat-plane crank, each bank firing as a four)
+  if (L === 'vee' && n === 8) return B.tune === 'race' ? { n, fire: [0, 540, 180, 360, 90, 630, 270, 450], bank: [0, 0, 0, 0, 1, 1, 1, 1] } : { n, fire: [0, 630, 450, 180, 90, 360, 540, 270], bank: [0, 0, 0, 0, 1, 1, 1, 1] };
+  const h = n / 2, fire = new Array(n), bank = new Array(n); for (let s = 0; s < n; s++) { const c = s % 2 ? h + (s - 1) / 2 : s / 2; fire[c] = s * 720 / n; bank[c] = s % 2; } return { n, fire, bank };
+}
+// The engine model's figures for a built engine. Of the same family as its body's own, it is that engine's own sound,
+// with what the build changed (its exhaust, its anti-lag, where it sits). Any other is made from the nearest engine of
+// the entry list (by its charging, fuel, layout and size): its cylinders, firing and headers as built, its valve gear,
+// injection, gearbox and induction as its era and tune have them
+function cuSoundFor(S, B, S0) {
+  const id = S.id, E = cuEngineOn(B), turbo = B.asp === 'turbo' || B.asp === 'biturbo' || B.asp === 'twin', dz = B.fuel === 'diesel', K0 = cuBare(S0).B, pos = B.pos === 'fmid' ? 'front' : B.pos;
+  let donor = S0;
+  if (!E.fam) { const grp = b => b.layout === 'w' ? 'vee' : b.layout === 'rotary' ? 'inline' : b.layout, ak = b => b.asp === 'biturbo' ? 'turbo' : b.asp;
+    let best = 1e9; for (const T of CU_STOCK) { if (!ENGINE_CFG[T.id]) continue; const C = cuBare(T).B, eras = ['70s', '80s', '90s', '00s', '20s'];
+      const sc = (grp(C) === grp(B) ? 0 : 3) + Math.abs(C.cyl - B.cyl) * 0.4 + (ak(C) === ak(B) ? 0 : 4) + (C.fuel === B.fuel ? 0 : 8) + Math.abs(eras.indexOf(C.tech) - eras.indexOf(B.tech)) * 0.3 + (C.tune === B.tune ? 0 : 0.5);
+      if (sc < best) { best = sc; donor = T; } } }
+  const K = JSON.parse(JSON.stringify(ENGINE_CFG[donor.id] || ENGINE_CFG.ardent_5t)), Kd = cuBare(donor).B; S.sndCls = donor.cls;
+  if (!E.fam) {
+    const F = cuFiring(B), n = F.n, mid = (n - 1) / 2, base = B.layout === 'rotary' ? 0.24 : turbo ? 0.26 : dz ? 0.3 : { road: 0.42, sport: 0.56, race: 0.76 }[B.tune];
+    Object.assign(K, { cyl: n, fire: F.fire, prim: F.fire.map((_, i) => +(base + (turbo || dz ? 0.06 : 0.02) * Math.abs(i - mid) / Math.max(1, mid)).toFixed(3)), bias: F.fire.map((_, i) => +((i % 2 ? -1 : 1) * (0.015 + 0.01 * ((i * 7) % 3))).toFixed(3)) });
+    for (const k of ['bank', 'sec', 'bankW', 'primLP', 'gP']) delete K[k]; if (F.bank) { K.bank = F.bank; K.sec = [0.45, 0.5]; }
+    K.lope = dz ? 0.1 : B.layout === 'rotary' ? 0.5 : turbo ? { road: 0.1, sport: 0.2, race: 0.3 }[B.tune] : { road: 0.15, sport: 0.4, race: 0.75 }[B.tune];
+    K.turbo = turbo ? 0.6 : 0; if (B.layout === 'rotary') Object.assign(K, { rise: 2.5, decay: 18, flow: 0.42 });
+    // the valve gear, block, cam drive, injection and pumps of its era and build; its gearbox's teeth
+    const M = K.mech = Object.assign({}, K.mech), cams = B.layout === 'rotary' ? 'none' : B.cams, ng = S.gears.length;
+    Object.assign(M, cams === 'none' ? { vt: 'roller', lash: 0, valve: 0, cam: ['gear', 20, 0] } : cams === 'pushrod' ? { vt: 'pushrod', lash: 0.45, valve: 0.08, cam: [dz ? 'gear' : 'chain', 20, 0.006] }
+      : cams === 'single' ? { vt: 'rocker', lash: 0.4, valve: 0.1, cam: ['chain', 21, 0.0065] } : { vt: B.tech === '20s' ? 'roller' : 'bucket', lash: B.tech === '20s' ? 0.15 : 0.3, valve: 0.06, cam: [B.tech === '20s' ? 'chain' : 'belt', 21, 0.0032] });
+    M.blk = B.cool === 'air' ? 'air' : dz || B.cams === 'pushrod' || (B.tech === '70s' && B.cams !== 'twin') ? 'iron' : 'alloy'; M.dz = dz || undefined; M.comp = dz ? 1.8 : turbo ? 1 : { road: 1, sport: 1.1, race: 1.2 }[B.tune]; M.knock = dz ? 0.25 : 0.1;
+    delete M.inj; delete M.hpp; if (dz) { M.inj = [3500, 0.1]; if (B.tech === '00s' || B.tech === '20s') M.hpp = [3, 0.04]; } else if (B.tech === '80s') M.inj = [1400, 0.07]; else if (B.tech !== '70s') { M.inj = B.tech === '20s' ? [3800, 0.05] : [3300, 0.045]; if (B.tech === '20s') M.hpp = [3, 0.03]; }
+    if (B.tune === 'race' && !dz) M.ds = 0.007; else delete M.ds; if (B.cool === 'air') M.fan = [1.65, 11, 1.2]; else delete M.fan;
+    M.teeth = [12, 16, 19, 22, 25, 27, 28, 29].slice(0, Math.max(3, ng)); M.cm = M.cm || 21; M.pinion = M.pinion || 9;
+    // induction: a throttle per cylinder on a race engine, a plenum otherwise; the turbo's whistle by its size, the blower's whine
+    const I0 = K.intake || {}, same = (Kd.asp === 'biturbo' ? 'turbo' : Kd.asp) === (B.asp === 'biturbo' ? 'turbo' : B.asp);
+    if (!same || (B.asp === 'na' && Kd.tune !== B.tune)) K.intake = B.asp === 'na' ? (B.tune === 'race' && !dz && B.layout !== 'rotary' ? { L: 0.3, itb: true } : { L: B.tune === 'road' ? 0.38 : 0.34, plenum: B.tune === 'road' ? 160 : 220 })
+      : B.asp === 'sc' ? { L: 0.26, plenum: 240, sc: [1.0, 6, 1.2], popoff: 0.5 } : dz ? { L: 0.45, plenum: 150, boost: 1, whistle: [2200, 5200], flutter: 0, bov: 'none', tc: { Z: 9, fH: 14, B: 2, D: 0.05, tone: 0.8 } }
+      : { L: 0.32, plenum: 180, boost: 1, whistle: [1900, 4500], flutter: 1, bov: B.tech === '90s' ? 'bpv' : 'none', tc: { Z: 7, fH: 12, B: 3, D: 0.065, tone: 0.75 } };
+    else K.intake = Object.assign({}, I0);
+  }
+  // what the build changed of any engine: its turbo's size and boost, its anti-lag, its exhaust, where it sits
+  const I = K.intake = Object.assign({}, K.intake);
+  if (turbo && I.whistle) { const zs = { small: 0.82, medium: 1, large: 1.22 }; if (!E.fam || B.tsize !== K0.tsize) I.whistle = { small: [2400, 5600], medium: [1900, 4500], large: [1500, 3600] }[B.tsize];
+    I.boost = +((E.fam ? (I.boost || 1) * B.boost / Math.max(0.3, K0.boost) : B.boost)).toFixed(2); I.boost = clamp(I.boost, 0.5, 1.8);
+    if (I.tc) I.tc = Object.assign({}, I.tc, { D: +((I.tc.D || 0.065) * zs[B.tsize] / (E.fam ? zs[K0.tsize] : 1)).toFixed(4) }); }
+  K.als = B.als ? (K.als || 12) : 0; if (B.als) K.alsRpm = K.alsRpm || Math.round((S.spool ? S.spool[0] : 2600) * 0.85 / 100) * 100;
+  K.pop = dz ? 0 : { road: 0.5, sport: 0.8, race: 1 }[B.tune]; if (E.fam && B.tune === K0.tune && ENGINE_CFG[S0.id]) K.pop = ENGINE_CFG[S0.id].pop;
+  const exK = { quiet: 0.85, sport: 1, open: 1.12 }, exD = E.fam ? K0.exh : Kd.exh;
+  if (!E.fam || B.exh !== exD) { const X = { quiet: [[2200, 0.8], 0.32], sport: [[3200, 0.7], 0.46], open: [[4400, 0.7], 0.58] }[B.exh]; K.sil = X[0].slice(); K.silMix = X[1]; }
+  K.trim = (K.trim || [1, 1, 1, 1]).map((v, i) => i === 0 ? +(v * exK[B.exh] / exK[exD || 'sport']).toFixed(3) : v);
+  if (K.pos !== pos) { K.pos = pos; K.exit = 'rear'; K.main = pos === 'front' ? (turbo ? 3 : 2.6) : pos === 'mid' ? 1.4 : 1; }
+  ENGINE_CFG[id] = K;
+  ENGINE_SND[id] = Object.assign({}, ENGINE_SND[donor.id] || ENGINE_SND.ardent_5t, { k0: K.cyl, whistle: turbo ? 0.04 : 0, sc: B.asp === 'sc' || B.asp === 'twin' ? 0.075 : 0, chatter: turbo && !B.als ? 1 : 0 });
+  // the starter (its kind by era: direct drive, reduction, a light race starter), cranking speed, compression and fuel
+  const st = dz ? 'red' : B.tune === 'road' && B.tech !== '70s' ? 'pm' : CU_TECH[B.tech].st, cr = cuEngLay(S, B, S0).cr;
+  STARTER_CFG[id] = E.fam && STARTER_CFG[S0.id] && B.tech === K0.tech && B.litres === K0.litres ? STARTER_CFG[S0.id].slice() : [st, Math.round(clamp(260 - 9 * B.litres, 120, 260)), cr, dz || B.tech !== '70s' && B.tech !== '80s' ? 'efi' : B.tech === '70s' ? 'carb' : 'mech'];
+  delete _stTst[id];
+  // the idle: as its management holds it, hunting as its cams make it
+  const lope = K.lope || 0.2, ecu = dz || CU_TECH[B.tech].idle === 'ecu';
+  IDLE[id] = E.fam && IDLE[S0.id] && B.tech === K0.tech && B.tune === K0.tune ? [S.idle].concat(IDLE[S0.id].slice(1)) : [S.idle, ecu ? 'ecu' : 'stop', ecu ? 25 : Math.round(60 + 100 * lope), +(0.4 + 0.6 * lope).toFixed(2)];
+  S.idle = IDLE[id][0];
+}
+// ---- registering a build ----
+// A build made a car of the page: its spec, its design in its body's factory (so the car kit draws it), its engine's
+// layout and sound, its plan for collisions; on the entry list. Built again under the same id (the player edited it, or
+// another driver's page sent a new code), the car it was is taken off first. Returns the car, or null.
+let CU_VER = 0;
+function cuRegister(id, B0, guest) {
+  if (typeof id !== 'string' || !/^cu_[a-z0-9]{4,16}$/.test(id)) return null;
+  const B = cuClean(B0); if (!B) return null; const S0 = cuBody(B.body), F = factoryFor(S0.id), D0 = designFor(S0.id); if (!F || !D0) return null;
+  const was = CU_SPEC[id], at = was ? CARS.indexOf(was) : -1; cuUnregister(id, true);
+  const S = cuSpec(B, id); if (!S) return null; S.guest = !!guest; S.cuV = ++CU_VER;
+  ENG_LAY[id] = cuEngLay(S, B, S0); F.designs[id] = cuDesign(S, B, S0, D0); if (F._fit) delete F._fit[id];
+  CU_SPEC[id] = S; if (at >= 0) CARS[at] = S; else CARS.push(S);
+  carHullFrom(S); cuSoundFor(S, B, S0);
+  if (B.pos === 'mid' || B.pos === 'rear' || LOOK_OUT.has(S0.id)) LOOK_OUT.add(id); else LOOK_OUT.delete(id);
+  if (typeof G !== 'undefined' && G.spec && G.spec.id === id) G.spec = S; // (the car on show and to be driven: the new build)
+  return S;
+}
+function cuUnregister(id, keepPlace) {
+  const S = CU_SPEC[id]; if (!S) return; const F = factoryFor(S.body);
+  if (F) { delete F.designs[id]; if (F._fit) delete F._fit[id]; }
+  for (const T of [ENG_LAY, ENGINE_CFG, ENGINE_SND, STARTER_CFG, IDLE, _stTst]) delete T[id]; LOOK_OUT.delete(id); delete CU_SPEC[id];
+  if (!keepPlace) { const k = CARS.indexOf(S); if (k >= 0) CARS.splice(k, 1); }
+}
+// ---- the parts it was built without, taken off the car as drawn ----
+// The bumpers (and what is mounted on them), the mudflaps, the bonnet, the boot lid, engine cover or tailgate (its
+// glass and wing with it), the doors (their windows, mirrors and trims with them): their triangles taken out of the
+// body's meshes, the panels left renumbered, and the lamps that were on them gone. What lies under a panel (the
+// engine and its bay, the boot) shows where it was.
+function cuStrip(rig, S) {
+  const B = S.cu, P = rig.panels || [], off = new Set(), tags = new Set();
+  P.forEach((q, i) => { const k = q.kind; if ((k === 'bonnet' && B.bonnet === 'off') || ((k === 'boot lid' || k === 'engine cover' || k === 'tailgate') && B.boot === 'off') || ((k === 'door' || k === 'rear door') && B.doors === 'off')) off.add(i + 1); });
+  if (!B.bumpF) tags.add('bumperF'); if (!B.bumpR) tags.add('bumperR');
+  if (!off.size && !tags.size) return;
+  const renum = new Uint8Array(P.length + 2); { let k = 0; for (let i = 1; i <= P.length; i++) renum[i] = off.has(i) ? 0 : ++k; }
+  const cut = [];
+  rig.root.traverse(o => { const g = o.geometry, gb = g && g.userData && g.userData.gb; if (!gb || !g.attributes.position || !gb.pn) return;
+    const pa = g.attributes.position.array, n = g.attributes.position.count / 3, drop = new Uint8Array(n), box = [];
+    for (const p of gb.parts) if (tags.has(p.tag)) { drop.fill(1, p.start, p.end); const b = [9, 9, 9, -9, -9, -9]; for (let j = p.start * 9; j < p.end * 9; j += 3) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], pa[j + k]); b[k + 3] = Math.max(b[k + 3], pa[j + k]); } box.push(b); }
+    // (what is mounted on a bumper goes with it: any small part lying wholly on it)
+    if (box.length) for (const p of gb.parts) { if (p.tag || p.group === 'wheel' || p.group === 'bay') continue; const b = [9, 9, 9, -9, -9, -9]; for (let j = p.start * 9; j < p.end * 9; j += 3) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], pa[j + k]); b[k + 3] = Math.max(b[k + 3], pa[j + k]); }
+      if (Math.max(b[3] - b[0], b[4] - b[1], b[5] - b[2]) < 0.45 && box.some(q => b[0] >= q[0] - 0.03 && b[1] >= q[1] - 0.03 && b[2] >= q[2] - 0.03 && b[3] <= q[3] + 0.03 && b[4] <= q[4] + 0.03 && b[5] <= q[5] + 0.03)) drop.fill(1, p.start, p.end); }
+    for (let t = 0; t < n; t++) if (off.has(gb.pn[t])) drop[t] = 1;
+    const keep = []; for (let t = 0; t < n; t++) { if (!drop[t]) { keep.push(t); continue; } if (cut.length < 6000) cut.push([(pa[t * 9] + pa[t * 9 + 3] + pa[t * 9 + 6]) / 3, (pa[t * 9 + 1] + pa[t * 9 + 4] + pa[t * 9 + 7]) / 3, (pa[t * 9 + 2] + pa[t * 9 + 5] + pa[t * 9 + 8]) / 3]); }
+    if (keep.length === n) { gb.pn = Uint8Array.from(gb.pn, v => renum[v] || 0); return; }
+    for (const name of Object.keys(g.attributes)) { const A = g.attributes[name], z = A.itemSize * 3, src = A.array, dst = new src.constructor(keep.length * z); keep.forEach((t, j) => dst.set(src.subarray(t * z, t * z + z), j * z)); g.setAttribute(name, new THREE.BufferAttribute(dst, A.itemSize, A.normalized)); }
+    const map = new Int32Array(n + 1); { let j = 0; for (let t = 0; t < n; t++) { map[t] = j; if (!drop[t]) j++; } map[n] = j; }
+    gb.parts = gb.parts.map(p => Object.assign({}, p, { start: map[p.start], end: map[p.end] })).filter(p => p.end > p.start);
+    gb.pn = Uint8Array.from(keep.map(t => renum[gb.pn[t]] || 0)); g.computeBoundingSphere(); });
+  rig.panels = P.filter((q, i) => !off.has(i + 1)); rig.panels.forEach((q, i) => { q.n = i + 1; });
+  if (rig.lamps) rig.lamps = rig.lamps.filter(l => !cut.some(c => Math.hypot(c[0] - l.p[0], c[1] - l.p[1], c[2] - l.p[2]) < 0.07));
+}
+// ---- the player's garage ----
+// The builds kept in this browser (sr86.cu: their ids and builds, in the order made), each on the entry list as a car
+// of its own. An id stays with its build as it is changed, so its stage times and setups stay with it.
+const CU = {
+  own: [],
+  load() { const L = lsGet('sr86.cu', null); if (!L || !Array.isArray(L.list)) return; for (const e of L.list.slice(0, 60)) { if (!e || typeof e.id !== 'string' || CU_SPEC[e.id]) continue; const S = cuRegister(e.id, e.b); if (S) this.own.push(S.id); } },
+  save() { lsSet('sr86.cu', { v: CU_V, list: this.own.filter(id => CU_SPEC[id]).map(id => ({ id, b: CU_SPEC[id].cu })) }); },
+  newId() { let id; do { id = 'cu_' + Math.random().toString(36).slice(2, 10); } while (id.length < 9 || CU_SPEC[id]); return id; },
+  // keep a build under its id (a new one at the end of the garage)
+  put(id, B) { const S = cuRegister(id, B); if (!S) return null; if (!this.own.includes(id)) this.own.push(id); this.save(); return S; },
+  remove(id) { const i = this.own.indexOf(id); if (i < 0) return; this.own.splice(i, 1); cuUnregister(id); this.save(); },
+  cars() { return this.own.map(id => CU_SPEC[id]).filter(Boolean); },
+  // another driver's car in a race with friends: built from the code their page sends, under their id (not kept)
+  guest(id, code) { if (typeof id !== 'string' || !/^cu_[a-z0-9]{4,16}$/.test(id) || this.own.includes(id)) return CU_SPEC[id] || null;
+    const S = CU_SPEC[id]; if (S && S.code === code) return S; const B = cuDecode(code); if (!B) return S || null; const N = cuRegister(id, B, true); if (N) N.code = code; return N; }
+};
+// the class a car is listed in: a build in the workshop's own
+const clsOf = S => S && S.cu ? 'CU' : (S && S.cls) || 'B';
+// the stock cars of a class (the pools rivals and drawn cars come from), and the class whose cars are nearest a build
+// in power for their weight (a build's rivals: none of the classes is a build's own)
+const stockOf = cls => CU_STOCK.filter(S => (S.cls || 'B') === cls);
+function rivalCls(S) {
+  if (!S || !S.cu) return (S && S.cls) || 'B'; const pw = T => { let p = 0; for (let r = 1000; r <= T.redline; r += 100) p = Math.max(p, engineCurve(T, r) * r * Math.PI / 30); return p / T.mass; };
+  const me = pw(S); let best = S.cls, bd = 1e9; for (const c of ['G4', 'B', 'A', 'F2', 'WRC', 'R2']) { const L = stockOf(c), m = L.reduce((a, T) => a + pw(T), 0) / Math.max(1, L.length), d = Math.abs(Math.log(me / m)); if (d < bd) { bd = d; best = c; } }
+  return S.cls === 'SP' && S.mass > 2000 ? 'SP' : best;
+}
+CU.load();
+{ const k = lsGet('sr86.car', 0); if (CARS[k] && CARS[k].cu) G.spec = CARS[k]; } // (the car picked last time: a build, now it is on the list)
+
+// ---- the workshop screen: a car built part by part ----
+// The car stands in the showroom (dragged round, pinched or scrolled to zoom) beside a panel of its parts, a tab for
+// each side of it: the body it is built on; its engine; its drive and gearbox; its suspension, brakes, tyres, tracks and
+// ballast; the panels and fittings it keeps or leaves off; its aerodynamics; its paint. Every change rebuilds the car
+// as it stands (its figures at the top: power, torque, weight and balance, pace, strength, against its body's own
+// car's). A build is kept in the garage (the Custom class on the entry list) once saved; a test drive saves it and
+// starts the stage. A build travels as a short code, to be shared and loaded on another page.
+const WS_TABS = [['body', 'Body'], ['engine', 'Engine'], ['drive', 'Drive'], ['chassis', 'Chassis'], ['parts', 'Parts'], ['aero', 'Aero'], ['paint', 'Paint']];
+const WS_CLS = [['G4', 'Group 4'], ['B', 'Group B'], ['A', 'Group A'], ['F2', 'F2 kit cars'], ['WRC', 'World Rally Cars'], ['R2', 'Rally2'], ['SP', 'Special vehicles']];
+const WS_SWATCH = ['#f1efe8', '#c9c6bc', '#8d949a', '#3c4146', '#141414', '#c4202f', '#e8762d', '#f2c014', '#e9d8a6', '#0f6e6e', '#1f7a3a', '#7cb342', '#1d4ed8', '#0b2a5b', '#6b2fa0', '#e11d74', '#8a5a2b', '#b8322a'];
+// the cylinder counts each layout comes in, and what each choice is called
+const WS_CYL = { inline: [2, 3, 4, 5, 6, 8], vee: [2, 4, 6, 8, 10, 12, 16], flat: [2, 4, 6, 8, 12], w: [8, 12, 16], rotary: [1, 2, 3, 4] };
+const WS_WORDS = {
+  pos: [['front', 'Front'], ['fmid', 'Front-mid'], ['mid', 'Mid'], ['rear', 'Rear']], mount: [['trans', 'Across'], ['long', 'Along']],
+  layout: [['inline', 'Inline'], ['vee', 'V'], ['flat', 'Flat'], ['w', 'W'], ['rotary', 'Rotary']], fuel: [['petrol', 'Petrol'], ['diesel', 'Diesel']],
+  cams: [['pushrod', 'Pushrods'], ['single', 'Single cam'], ['twin', 'Twin cams']], tech: [['70s', '1970s'], ['80s', '1980s'], ['90s', '1990s'], ['00s', '2000s'], ['20s', '2020s']],
+  tune: [['road', 'Road'], ['sport', 'Sport'], ['race', 'Race']], asp: [['na', 'None'], ['turbo', 'Turbo'], ['biturbo', 'Twin turbo'], ['sc', 'Supercharger'], ['twin', 'Both']],
+  tsize: [['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']], als: [[0, 'Off'], [1, 'On']], restr: [[0, 'None'], [30, '30'], [32, '32'], [34, '34'], [36, '36'], [38, '38'], [40, '40'], [45, '45']],
+  cool: [['water', 'Water'], ['air', 'Air']], exh: [['quiet', 'Quiet'], ['sport', 'Sport'], ['open', 'Open']], fly: [['standard', 'Standard'], ['light', 'Light']],
+  drive: [['FWD', 'Front'], ['RWD', 'Rear'], ['AWD', 'All four']], cdiff: [['open', 'Open'], ['viscous', 'Viscous'], ['plate', 'Plate LSD'], ['active', 'Active'], ['locked', 'Locked']],
+  fdiff: [['open', 'Open'], ['viscous', 'Viscous'], ['plate', 'Plate LSD'], ['locked', 'Locked']], hbcut: [[0, 'No'], [1, 'Yes']],
+  box: [['H', 'H-pattern'], ['seq', 'Sequential'], ['paddle', 'Paddles'], ['auto', 'Automatic'], ['cvt', 'CVT']], spread: [['close', 'Close'], ['medium', 'Medium'], ['wide', 'Wide']], gearing: [['short', 'Short'], ['medium', 'Medium'], ['long', 'Long']],
+  susp: [['stock', 'As built'], ['gravel', 'Gravel'], ['tarmac', 'Tarmac'], ['raid', 'Long travel'], ['road', 'Road']], brakes: [['stock', 'As built'], ['small', 'Small'], ['medium', 'Medium'], ['large', 'Large']],
+  bpos: [['front', 'Front'], ['middle', 'Middle'], ['rear', 'Rear']], bonnet: [['steel', 'Steel'], ['light', 'Light'], ['off', 'Off']], boot: [['steel', 'Steel'], ['light', 'Light'], ['off', 'Off']],
+  doors: [['steel', 'Steel'], ['light', 'Light'], ['off', 'Off']], cage: [['none', 'None'], ['light', 'Hoop'], ['full', 'Full']], glass: [['glass', 'Glass'], ['plastic', 'Plastic']], trim: [['stripped', 'Stripped'], ['full', 'Full trim']],
+  guard: [['none', 'None'], ['light', 'Light'], ['full', 'Full']], on: [[1, 'On'], [0, 'Off']], spare: [[0, 'None'], [1, 'One'], [2, 'Two']],
+  aero: [['stock', 'As built'], ['none', 'None'], ['lip', 'Lips'], ['wing', 'Wing'], ['big', 'Big wing'], ['max', 'Racing wing']], roof: [['base', 'Main colour'], ['band', 'Stripe colour']]
+};
+// the keys that make an engine another engine: changing one starts its rev limit afresh
+const WS_FAMILY = ['layout', 'cyl', 'fuel', 'asp', 'tech', 'tune', 'cams'];
+// the choices that show on the car as drawn
+const WS_LOOK = ['body', 'pos', 'mount', 'layout', 'cyl', 'asp', 'cool', 'aero', 'bonnet', 'boot', 'doors', 'bumpF', 'bumpR', 'cage', 'flaps', 'track', 'tyreF', 'tyreR', 'c1', 'c2', 'c3', 'roof', 'num'];
+const Workshop = {
+  on: false, id: null, B: null, S: null, saved: null, isNew: false, tab: 'engine', prev: null, el: null, ask: null, share: false,
+  yaw: 2.3, pitch: 0.2, zoom: 0.95, idle: 9, ptrs: new Map(), pinch0: 0, zoom0: 1, tq: null,
+  // open on a build of the garage (o.id), or start a new one from a body (o.body: a car of the entry list)
+  open(o) {
+    if (G.state !== 'menu' || this.on) return; Inspect.close(); this.prev = G.spec; o = o || {};
+    if (o.id && CU_SPEC[o.id]) { this.id = o.id; this.B = JSON.parse(JSON.stringify(CU_SPEC[o.id].cu)); this.isNew = !CU.own.includes(o.id); }
+    else { const S0 = cuBody(o.body) || (G.spec && !G.spec.cu ? G.spec : CU_STOCK[0]); this.id = CU.newId(); this.B = cuStockBuild(S0); this.B.name = this.freshName(S0.name); this.isNew = true; this.tab = 'body'; }
+    this.saved = this.isNew ? null : cuCode(this.B); this.share = false; this.ask = null; this.on = true; this.idle = 9;
+    this.ui(); $('#menu').hidden = true; document.body.dataset.workshop = '1'; this.apply(true); this.el.querySelector('.wsTabs [aria-selected="true"]').focus({ preventScroll: true });
+  },
+  freshName(base) { const n = base.replace(/\s+(Mk|Special)\s*\d*$/i, '').slice(0, 13) + ' Special'; let k = 1, s = n; const used = new Set(CU.cars().map(S => S.name)); while (used.has(s)) s = n.slice(0, 17) + ' ' + (++k); return s; },
+  dirty() { return this.isNew || cuCode(this.B) !== this.saved; },
+  // leave: kept (saved), or what was saved before put back (a new build never saved taken off the entry list)
+  close(how) {
+    if (!this.on) return;
+    if (how === 'save') this.save(); else if (this.dirty()) { if (this.isNew) { cuUnregister(this.id); G.spec = this.prev && CARS.includes(this.prev) ? this.prev : CU_STOCK[0]; } else { const B = cuDecode(this.saved); if (B) G.spec = cuRegister(this.id, B) || G.spec; } }
+    this.on = false; this.ptrs.clear(); clearTimeout(this.tq); if (this.el) this.el.hidden = true; delete document.body.dataset.workshop; if (camera.view && camera.view.enabled) camera.clearViewOffset();
+    if (!CARS.includes(G.spec)) G.spec = CU_STOCK[0]; pickCar(G.spec); renderCars(); if (G.state === 'menu') $('#menu').hidden = false;
+  },
+  save() { const S = CU.put(this.id, this.B); if (S) { this.isNew = false; this.saved = cuCode(this.B); G.spec = S; pickCar(S); } this.head(); },
+  // the build changed: the car rebuilt at once for its figures, and for the showroom a moment later (a slider dragged
+  // rebuilds it once it rests)
+  set(k, v) {
+    const was = this.B[k]; if (was === v) return; this.B[k] = v;
+    if (WS_FAMILY.includes(k)) this.B.rev = 0; // (another engine: its own red line)
+    if (k === 'layout') { const L = WS_CYL[v]; if (!L.includes(this.B.cyl)) this.B.cyl = L.reduce((p, q) => Math.abs(q - this.B.cyl) < Math.abs(p - this.B.cyl) ? q : p); }
+    if (k === 'box' && v !== 'cvt') { const lim = { H: [3, 7], seq: [4, 8], paddle: [5, 8], auto: [3, 8] }[v]; this.B.gears = clamp(this.B.gears, lim[0], lim[1]); }
+    this.B = cuClean(this.B) || this.B; this.apply(); this.body(); this.head();
+  },
+  apply(now) {
+    this.S = cuSpec(this.B, this.id); this.figures(); clearTimeout(this.tq);
+    // (a change that does not show on the car - inside the engine, the gearbox, the springs - keeps the car on show as it is)
+    const look = WS_LOOK.map(k => this.B[k]).join('|'), keep = !now && this.look === look && G.show && G.show.spec && G.show.spec.id === this.id;
+    const go = () => { const S = cuRegister(this.id, this.B); if (S) { this.S = S; G.spec = S; if (keep && G.show) G.show.spec = S; this.look = look; } }; if (now) go(); else this.tq = setTimeout(go, 160);
+  },
+  // ---- the panel ----
+  ui() {
+    let P = this.el; if (!P) { P = this.el = el('div', { id: 'workshop', role: 'dialog', 'aria-label': 'Workshop' }); document.body.append(P);
+      P.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (this.ask) { this.ask = null; this.foot(); } else this.back(); } }); }
+    P.hidden = false; P.textContent = '';
+    const name = el('input', { class: 'wsName', type: 'text', maxlength: 20, 'aria-label': 'Car name', value: this.B.name, spellcheck: 'false' });
+    name.addEventListener('input', () => { this.B.name = name.value; this.headState(); }); name.addEventListener('change', () => { const v = name.value.replace(/[^A-Za-z0-9 .'&-]/g, '').trim().slice(0, 20); this.set('name', v || this.B.name); name.value = this.B.name; });
+    P.append(el('header', { class: 'wsHead' }, el('button', { class: 'ghostbtn wsBack', type: 'button', onclick: () => this.back() }, 'Back'), el('div', { class: 'wsTitle' }, el('small', { text: 'Workshop' }), name), el('span', { class: 'wsState', role: 'status' })),
+      el('div', { class: 'wsFig' }), el('p', { class: 'wsNote small' }),
+      el('div', { class: 'wsTabs', role: 'tablist', 'aria-label': 'Parts' }, ...WS_TABS.map(([k, t]) => { const b = el('button', { type: 'button', role: 'tab', id: 'wsTab_' + k, 'aria-selected': k === this.tab ? 'true' : 'false', tabindex: k === this.tab ? 0 : -1, text: t, onclick: () => this.pickTab(k) });
+        b.addEventListener('keydown', e => { const i = WS_TABS.findIndex(q => q[0] === this.tab), d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (d) { e.preventDefault(); this.pickTab(WS_TABS[(i + d + WS_TABS.length) % WS_TABS.length][0]); this.el.querySelector('#wsTab_' + this.tab).focus(); } }); return b; })),
+      el('div', { class: 'wsBody', role: 'tabpanel', tabindex: 0 }), el('footer', { class: 'wsFoot' }));
+    this.head(); this.body(); this.foot();
+  },
+  pickTab(k) { this.tab = k; for (const b of this.el.querySelectorAll('.wsTabs button')) { const on = b.id === 'wsTab_' + k; b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1; } const B = this.el.querySelector('.wsBody'); B.scrollTop = 0; this.body(); },
+  headState() { const st = this.el && this.el.querySelector('.wsState'); if (st) { const d = this.dirty(); st.textContent = d ? (this.isNew ? 'New, not saved' : 'Changed, not saved') : 'Saved'; st.dataset.dirty = d ? '1' : ''; } },
+  head() { if (!this.el) return; this.headState(); const nm = this.el.querySelector('.wsName'); if (nm && document.activeElement !== nm) nm.value = this.B.name; this.foot(); },
+  // the figures, against the body's own car's
+  figures() {
+    const box = this.el && this.el.querySelector('.wsFig'); if (!box || !this.S) return; const S = this.S, S0 = cuBody(this.B.body), E = cuEstimate(S), E0 = cuEstimate(S0), K = carSetup(S), K0 = carSetup(S0);
+    const hp = E.pk / 745.7, hp0 = E0.pk / 745.7, t = Math.max(...S.tq.map(q => q[1])), t0 = Math.max(...S0.tq.map(q => q[1])), d = this.durText(S.dur);
+    const tile = (label, v, sub, delta) => el('div', { class: 'wsTile' }, el('small', { text: label }), el('b', { text: v }), el('span', { class: delta && /^[+−]/.test(delta) ? 'wsDelta' : '', text: sub || '' }));
+    const sg = v => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v);
+    box.textContent = '';
+    box.append(tile('Power', Math.round(hp) + ' hp', 'at ' + E.prpm + ' rpm'), tile('Torque', Math.round(t) + ' Nm', Math.round(t - t0) ? sg(Math.round(t - t0)) + ' Nm' : 'as built'), tile('Weight', S.mass + ' kg', S.mass !== S0.mass ? sg(S.mass - S0.mass) + ' kg' : 'as built'),
+      tile('On the front', Math.round(S.wf * 100) + '%', 'centre of gravity ' + Math.round(K.sp.hcg * 100) + ' cm up'), tile('Per tonne', Math.round(hp / S.mass * 1000) + ' hp', 'as built ' + Math.round(hp0 / S0.mass * 1000)),
+      tile('0–100 km/h', E.t100 ? E.t100.toFixed(1) + ' s' : '–', E0.t100 && E.t100 ? (Math.abs(E.t100 - E0.t100) < 0.05 ? 'as built' : (E.t100 < E0.t100 ? '−' : '+') + Math.abs(E.t100 - E0.t100).toFixed(1) + ' s') : ''),
+      tile('Top speed', Math.round(E.vmax) + ' km/h', 'on dry tarmac'), tile('Strength', d.pct + '%', d.pct < 100 ? 'of a full rally build' : 'full rally build'));
+    const n = this.el.querySelector('.wsNote'); if (n) n.textContent = d.notes.length ? d.notes.join(' ') : '';
+  },
+  // how strong the build is against a full rally build (cage, panels, bumpers, guards), and what it means
+  durText(U) {
+    const pct = Math.round(100 * (U.roof * 0.3 + U.side * 0.25 + (U.endF + U.endR) / 2 * 0.2 + U.under * 0.15 + U.cab * 0.1)), notes = [];
+    if (U.cage === 'none') notes.push('No cage: a roll crushes the roof.'); else if (U.cage === 'light') notes.push('A hoop only: the roof and pillars give more in a roll.');
+    if (U.doorsOff) notes.push('No doors: a side hit comes straight in.'); if (U.radF < 0) notes.push('No front bumper: a hit to the nose reaches the radiator.');
+    if (U.open) notes.push('No bonnet: the engine takes hits and water.'); if (U.under < 0.6) notes.push('No guard underneath: rocks hole the sump.');
+    if (this.B.spare === 0) notes.push('No spare wheel: a puncture lasts to the next service.');
+    return { pct, notes };
+  },
+  // ---- the rows ----
+  seg(k, opts, label) { const g = el('div', { class: 'assist wsSeg', role: 'group', 'aria-label': label });
+    for (const [v, t] of opts) g.append(el('button', { type: 'button', 'aria-pressed': this.B[k] === v ? 'true' : 'false', text: t, onclick: () => this.set(k, v) })); return g; },
+  slider(k, lo, hi, step, fmt, label) { const out = el('output'), r = el('input', { type: 'range', min: lo, max: hi, step, value: this.B[k], 'aria-label': label });
+    const show = () => { out.textContent = fmt(+r.value); }; r.addEventListener('input', () => { this.B[k] = +r.value; this.B = cuClean(this.B) || this.B; show(); this.apply(); this.headState(); }); r.addEventListener('change', () => { this.B[k] = +r.value; this.B = cuClean(this.B) || this.B; this.apply(); this.body(); this.head(); }); show();
+    return el('div', { class: 'wsRange' }, r, out); },
+  row(label, ctl, note) { return el('div', { class: 'wsRow' }, el('div', { class: 'wsL' }, el('span', { text: label }), note ? el('small', { text: note }) : null), el('div', { class: 'wsC' }, ctl)); },
+  sec(t) { return el('h3', { class: 'wsSec', text: t }); },
+  body() {
+    const box = this.el && this.el.querySelector('.wsBody'); if (!box) return; const top = box.scrollTop; box.textContent = ''; const B = this.B, S = this.S || cuSpec(B, this.id), S0 = cuBody(B.body), sp = S0.cls === 'SP', W = WS_WORDS;
+    const add = (...a) => box.append(...a.filter(Boolean)), seg = (k, label, opts) => this.seg(k, opts || W[k], label);
+    const turbo = B.asp === 'turbo' || B.asp === 'biturbo' || B.asp === 'twin', dz = B.fuel === 'diesel', rot = B.layout === 'rotary';
+    if (this.tab === 'body') {
+      add(el('p', { class: 'small', text: `Built on the ${S0.name}: its shell, glass, wheelbase, tracks and suspension. Pick another body to move your engine and parts into it.` }));
+      for (const [c, t] of WS_CLS) { const L = CU_STOCK.filter(T => T.cls === c); if (!L.length) continue; add(this.sec(t));
+        add(el('div', { class: 'wsBodies' }, ...L.map(T => { const Lv = designFor(T.id).livery || {}, b = el('button', { type: 'button', class: 'wsBodyBtn', 'aria-pressed': T.id === B.body ? 'true' : 'false', onclick: () => this.body2(T.id) }, el('span', { class: 'wsSw', style: `--c1:${Lv.base};--c2:${Lv.band}` }), el('b', { text: T.name }), el('small', { text: `${T.len.toFixed(2)} m, ${T.wb.toFixed(2)} m wheelbase` })); return b; }))); }
+      add(el('div', { class: 'wsBtns' }, el('button', { type: 'button', class: 'ghostbtn', onclick: () => { const nm = B.name, num = B.num, c = [B.c1, B.c2, B.c3, B.roof]; this.B = cuStockBuild(S0); Object.assign(this.B, { name: nm, num, c1: c[0], c2: c[1], c3: c[2], roof: c[3] }); this.apply(); this.body(); this.head(); } }, `Start again from the ${S0.name} as built`)));
+    } else if (this.tab === 'engine') {
+      add(this.sec('Where it sits'), this.row('Position', seg('pos', 'Engine position'), { front: 'Over or ahead of the front axle', fmid: 'Behind the front axle', mid: 'Behind the cabin, ahead of the rear axle', rear: 'Behind the rear axle' }[B.pos]),
+        this.row('Which way', seg('mount', 'Engine mounting'), B.mount === 'trans' ? 'Across the car' : 'Along the car'));
+      add(this.sec('The engine'), this.row('Layout', seg('layout', 'Cylinder layout')), this.row(rot ? 'Rotors' : 'Cylinders', this.seg('cyl', WS_CYL[B.layout].map(n => [n, String(n)]), rot ? 'Rotors' : 'Cylinders')),
+        this.row('Size', this.slider('litres', rot ? 0.4 * B.cyl : Math.max(0.5, 0.12 * B.cyl), rot ? 0.8 * B.cyl : Math.min(8.5, 1.3 * B.cyl), 0.05, v => v.toFixed(2) + ' litres', 'Engine size'), rot ? (B.litres / B.cyl).toFixed(2) + ' litres a rotor' : Math.round(B.litres / B.cyl * 1000) + ' cc a cylinder'),
+        rot ? null : this.row('Fuel', seg('fuel', 'Fuel')), rot ? null : this.row('Valve gear', seg('cams', 'Valve gear')), this.row('Era', seg('tech', 'Era of its engineering'), 'Breathing, management, turbos and rev limiter of its time'),
+        this.row('Tune', seg('tune', 'Tune'), { road: 'Mild cams: pulls from low down', sport: 'Between the two', race: 'Hot cams and high revs: little low down' }[B.tune]));
+      add(this.sec('Charging'), this.row('Charged by', seg('asp', 'Forced induction', dz ? W.asp.filter(q => q[0] === 'na' || q[0] === 'turbo' || q[0] === 'biturbo') : W.asp), { na: 'No boost', turbo: 'One turbo', biturbo: 'Two smaller turbos: quicker to spool', sc: 'A blower driven by the crank: boost from low revs', twin: 'A blower low down, a turbo above' }[B.asp]),
+        turbo ? this.row('Turbo size', seg('tsize', 'Turbo size'), { small: 'Spools early, runs out at the top', medium: 'Between the two', large: 'Lag, then strong at the top' }[B.tsize]) : null,
+        B.asp !== 'na' ? this.row('Boost', this.slider('boost', 0.2, 2.6, 0.05, v => v.toFixed(2) + ' bar', 'Boost pressure')) : null,
+        turbo && !dz ? this.row('Anti-lag', seg('als', 'Anti-lag'), 'Keeps the turbo spinning off the throttle') : null,
+        this.row('Intake restrictor', seg('restr', 'Intake restrictor (mm)'), B.restr ? `${B.restr} mm: caps the air, and so the power` : 'None'));
+      add(this.sec('Revs, cooling and exhaust'), this.row('Rev limit', this.slider('rev', -2500, 1500, 50, v => (S.redline - B.rev + v) + ' rpm', 'Rev limit'), 'Above its design limit it makes little more power'),
+        rot ? null : this.row('Cooling', seg('cool', 'Cooling')), this.row('Exhaust', seg('exh', 'Exhaust'), { quiet: 'Silenced: a little less power', sport: 'Sports silencer', open: 'Open pipe: loud, a little more power' }[B.exh]),
+        this.row('Flywheel', seg('fly', 'Flywheel'), B.fly === 'light' ? 'Revs rise and fall quickly' : 'Smoother, easier to pull away'));
+      const cv = el('canvas', { class: 'wsCurve', width: 520, height: 170, 'aria-label': 'Torque and power curves' }); add(this.sec('Torque and power'), cv, el('div', { class: 'wsBtns' }, el('button', { type: 'button', class: 'ghostbtn', onclick: () => { if (this.S) startDemo(this.S); } }, 'Start it up'))); this.curve(cv);
+      add(el('p', { class: 'small', text: S.engine + '.' }));
+    } else if (this.tab === 'drive') {
+      add(this.sec('Driven wheels'), this.row('Drive', seg('drive', 'Driven wheels')),
+        B.drive === 'AWD' ? this.row('To the front', this.slider('split', 0.25, 0.65, 0.01, v => Math.round(v * 100) + '% front', 'Torque to the front'), 'Its share of the drive') : null,
+        B.drive === 'AWD' ? this.row('Centre differential', seg('cdiff', 'Centre differential'), { open: 'Free', viscous: 'Locks as the axles slip', plate: 'Locks under power', active: 'Clamped by its computer', locked: 'None: the axles turn together' }[B.cdiff]) : null,
+        B.drive === 'AWD' ? this.row('Handbrake cuts the rear', seg('hbcut', 'Handbrake cuts the rear drive'), 'The front keeps pulling through a hairpin') : null,
+        B.drive !== 'RWD' ? this.row('Front differential', seg('fdiff', 'Front differential')) : null, B.drive !== 'FWD' ? this.row('Rear differential', seg('rdiff', 'Rear differential', W.fdiff)) : null);
+      const gl = { H: [3, 7], seq: [4, 8], paddle: [5, 8], auto: [3, 8] }[B.box];
+      add(this.sec('Gearbox'), this.row('Gearbox', seg('box', 'Gearbox'), { H: 'A lever through a gate, the clutch dipped', seq: 'Pull back for up, push for down', paddle: 'Paddles behind the wheel', auto: 'Shifts itself through a torque converter', cvt: 'One ratio that slides: holds the engine at its power' }[B.box]),
+        B.box !== 'cvt' ? this.row('Gears', this.seg('gears', Array.from({ length: gl[1] - gl[0] + 1 }, (_, i) => [gl[0] + i, String(gl[0] + i)]), 'Number of gears')) : null,
+        B.box !== 'cvt' ? this.row('Ratios', seg('spread', 'Ratio spread'), 'How far apart the gears are') : null, this.row('Gearing', seg('gearing', 'Overall gearing'), { short: 'Quick to pull, low top speed', medium: 'A rally car’s', long: 'For top speed' }[B.gearing]));
+      const ord = i => ['1st', '2nd', '3rd'][i] || (i + 1) + 'th';
+      add(el('p', { class: 'small', text: B.box === 'cvt' ? `Its ratio slides from ${S.gears[0].toFixed(2)} down to ${S.gears[S.gears.length - 1].toFixed(2)}; final drive ${S.final.toFixed(2)}.` : S.gears.map((g, i) => ord(i) + ' ' + g.toFixed(2)).join(', ') + `; final drive ${S.final.toFixed(2)}: ${Math.round(topSpeed(S, S.final))} km/h at the red line in top.` }));
+    } else if (this.tab === 'chassis') {
+      if (!sp) add(this.sec('Suspension and brakes'), this.row('Suspension', seg('susp', 'Suspension'), { stock: 'As the body’s car had it', gravel: 'Long travel, soft: gravel', tarmac: 'Short travel, stiff: tarmac', raid: 'Very long travel: rough roads', road: 'A road car’s' }[B.susp]),
+        this.row('Brakes', seg('brakes', 'Brakes'), { stock: 'As the body’s car had them', small: 'Lighter, fade sooner', medium: 'Rally gravel size', large: 'Tarmac size: bite hard, take the heat' }[B.brakes]));
+      if (!sp) add(this.sec('Wheels'), this.row('Front tyres', this.slider('tyreF', 145, 335, 5, v => v + ' mm wide', 'Front tyre width')), this.row('Rear tyres', this.slider('tyreR', 145, 335, 5, v => v + ' mm wide', 'Rear tyre width')));
+      add(this.sec('Stance and weight'), this.row('Track', this.slider('track', -4, 14, 1, v => v === 0 ? 'as built' : (v > 0 ? '+' : '−') + Math.abs(v) + ' cm', 'Track width'), 'Wider: the arches flare out over the wheels'),
+        this.row('Ballast', this.slider('ballast', 0, 200, 5, v => v ? v + ' kg' : 'none', 'Ballast'), 'Bolted to the floor, low down'), B.ballast ? this.row('Ballast at', seg('bpos', 'Ballast position')) : null);
+      add(el('p', { class: 'small', text: `Tracks ${S.track[0].toFixed(2)} and ${S.track[1].toFixed(2)} m; ride ${Math.round((S.susp.travel || 0.13) * 1000)} mm of travel.` }));
+    } else if (this.tab === 'parts') {
+      const A = cuShape(S0).area, kg = (t, a, b) => { const d = Math.round(((t[b] || 0) - (t[a] || 0)) * A); return d ? (d > 0 ? '+' : '−') + Math.abs(d) + ' kg' : ''; };
+      add(el('p', { class: 'small', text: 'Leaving a part off saves its weight; the car stands up less to knocks and rolls.' }),
+        this.sec('Panels'), this.row('Bonnet', seg('bonnet', 'Bonnet'), { steel: 'Pressed steel', light: 'Glass fibre: ' + kg(CU_KG.bonnet, 'steel', 'light'), off: 'Off: ' + kg(CU_KG.bonnet, 'steel', 'off') + '; the engine is open to hits and water' }[B.bonnet]),
+        this.row('Boot lid or tailgate', seg('boot', 'Boot lid or tailgate'), { steel: 'Pressed steel', light: 'Glass fibre: ' + kg(CU_KG.boot, 'steel', 'light'), off: 'Off: ' + kg(CU_KG.boot, 'steel', 'off') }[B.boot]),
+        this.row('Doors', seg('doors', 'Doors'), { steel: 'Pressed steel', light: 'Composite skins: ' + kg(CU_KG.doors, 'steel', 'light'), off: 'Off: ' + kg(CU_KG.doors, 'steel', 'off') + '; side hits come in' }[B.doors]),
+        this.row('Front bumper', seg('bumpF', 'Front bumper', W.on), B.bumpF ? '' : 'Off: −' + Math.round(CU_KG.bumpF * A) + ' kg; nose hits reach the radiator'), this.row('Rear bumper', seg('bumpR', 'Rear bumper', W.on), B.bumpR ? '' : 'Off: −' + Math.round(CU_KG.bumpR * A) + ' kg'),
+        this.sec('Cabin'), this.row('Roll cage', seg('cage', 'Roll cage'), { none: 'None: a roll crushes the roof', light: 'A bolted-in hoop: ' + kg(CU_KG.cage, 'full', 'light') + ' against a full cage', full: 'Welded in, many tubes' }[B.cage]),
+        this.row('Side and rear windows', seg('glass', 'Windows'), B.glass === 'plastic' ? 'Polycarbonate: ' + kg(CU_KG.glass, 'glass', 'plastic') + ', bends rather than breaks' : 'Glass'),
+        this.row('Interior', seg('trim', 'Interior'), B.trim === 'full' ? 'Seats, carpets and trim: ' + kg(CU_KG.trim, 'stripped', 'full') : 'Stripped bare'),
+        this.sec('Kit'), this.row('Spare wheels', seg('spare', 'Spare wheels'), B.spare ? `${B.spare * CU_KG.spare} kg; changed on the road sections` : 'A puncture lasts to service'),
+        this.row('Guard underneath', seg('guard', 'Underbody guard'), { none: 'None: rocks hole the sump', light: 'Alloy plates', full: 'Full gravel guard' }[B.guard]), this.row('Mudflaps', seg('flaps', 'Mudflaps', W.on)));
+    } else if (this.tab === 'aero') {
+      const q = 0.5 * 1.2 * Math.pow(150 / 3.6, 2), dn = S.aero[1] * q / 9.81;
+      add(this.sec('Aerodynamics'), this.row('Kit', seg('aero', 'Aerodynamic kit', sp ? W.aero.slice(0, 2) : W.aero), { stock: 'As the body’s car had it', none: 'No spoilers: the body lifts at speed', lip: 'Lips front and rear', wing: 'A rear wing', big: 'A big wing, splitter and skirts', max: 'A racing wing high on posts' }[B.aero]),
+        el('p', { class: 'small', text: `Drag area ${S.aero[0].toFixed(2)} m². At 150 km/h: ${dn >= 0 ? Math.round(dn) + ' kg of downforce' : Math.round(-dn) + ' kg of lift'}${Math.abs(S.aero[1]) > 0.02 ? `, ${Math.round(clamp(S.aero[2], 0, 1) * 100)}% of it at the front` : ''}.` }));
+    } else if (this.tab === 'paint') {
+      const sw = (k, label) => { const g = el('div', { class: 'wsSwatches', role: 'group', 'aria-label': label });
+        for (const c of WS_SWATCH) g.append(el('button', { type: 'button', class: 'wsSwatch', style: `background:${c}`, 'aria-label': c, 'aria-pressed': B[k] === c ? 'true' : 'false', onclick: () => this.set(k, c) }));
+        const pick = el('input', { type: 'color', value: B[k], 'aria-label': label + ': any colour' }); pick.addEventListener('change', () => this.set(k, pick.value.toLowerCase())); g.append(pick); return g; };
+      add(this.sec('Paint'), this.row('Main colour', sw('c1', 'Main colour')), this.row('Stripe', sw('c2', 'Stripe colour')), this.row('Pin line', sw('c3', 'Pin line colour')), this.row('Roof', seg('roof', 'Roof colour')));
+      const num = el('input', { type: 'number', min: 1, max: 99, value: B.num, 'aria-label': 'Race number', class: 'wsNum' }); num.addEventListener('change', () => this.set('num', clamp(Math.round(+num.value || 1), 1, 99)));
+      add(this.sec('Number'), this.row('Race number', num));
+    }
+    box.scrollTop = top;
+  },
+  // move the build into another body: its engine, drivetrain, parts and paint kept; the new body's own tyres, tracks,
+  // suspension and brakes
+  body2(id) { const T = cuBody(id); if (!T || id === this.B.body) return; const D = cuStockBuild(T), keep = {}; for (const [k] of CU_KEYS) if (!['body', 'tyreF', 'tyreR', 'track', 'susp', 'brakes'].includes(k)) keep[k] = this.B[k];
+    if (T.cls === 'SP' || cuBody(this.B.body).cls === 'SP') { keep.aero = 'stock'; keep.flaps = D.flaps; } this.B = cuClean(Object.assign(D, keep)) || D; this.apply(); this.body(); this.head(); },
+  // the torque (and power) curve against the revs, the body's own engine's faint behind it
+  curve(cv) {
+    const S = this.S, S0 = cuBody(this.B.body); if (!S || !cv.getContext) return; const g = cv.getContext('2d'), W = cv.width, H = cv.height, pad = [34, 8, 22, 30], st = getComputedStyle(this.el);
+    const ink = st.getPropertyValue('--ink').trim() || '#17201a', mut = st.getPropertyValue('--muted').trim() || '#5b6358', red = Math.max(S.redline, S0.redline) + 200, pw = (T, r) => engineCurve(T, r) * r * Math.PI / 30 / 745.7;
+    let tm = 0, pm = 0; for (const T of [S, S0]) for (let r = 1000; r <= T.redline; r += 100) { tm = Math.max(tm, engineCurve(T, r)); pm = Math.max(pm, pw(T, r)); }
+    tm *= 1.1; pm *= 1.1; const X = r => pad[3] + (r - 800) / (red - 800) * (W - pad[1] - pad[3]), Y = (v, m) => H - pad[2] - v / m * (H - pad[0] - pad[2]);
+    g.clearRect(0, 0, W, H); g.font = '12px ' + (st.fontFamily || 'sans-serif'); g.fillStyle = mut; g.strokeStyle = mut; g.globalAlpha = 0.35; g.beginPath(); g.moveTo(pad[3], H - pad[2]); g.lineTo(W - pad[1], H - pad[2]); g.stroke(); g.globalAlpha = 1;
+    for (let r = 2000; r < red; r += 2000) g.fillText((r / 1000) + 'k', X(r) - 6, H - 6);
+    const line = (T, f, m, col, w, a) => { g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = w; g.beginPath(); for (let r = 1000; r <= T.redline; r += 50) { const x = X(r), y = Y(f(T, r), m); if (r === 1000) g.moveTo(x, y); else g.lineTo(x, y); } g.stroke(); g.globalAlpha = 1; };
+    line(S0, engineCurve, tm, mut, 1.5, 0.45); line(S0, pw, pm, '#e8762d', 1.5, 0.35); line(S, engineCurve, tm, ink, 2.5, 1); line(S, pw, pm, '#e8762d', 2.5, 1);
+    g.fillStyle = ink; g.fillText('Torque (Nm)', pad[3], 13); g.fillStyle = '#e8762d'; g.fillText('Power (hp)', pad[3] + 92, 13); g.fillStyle = mut; g.fillText(`faint: the ${S0.name}'s own`, pad[3] + 170, 13);
+  },
+  foot() {
+    const F = this.el && this.el.querySelector('.wsFoot'); if (!F) return; F.textContent = '';
+    if (this.ask === 'delete') { F.append(el('span', { class: 'wsAsk', text: `Delete the ${this.B.name}? Its times stay.` }), el('button', { type: 'button', class: 'ghostbtn', onclick: () => { CU.remove(this.id); this.isNew = true; this.saved = null; this.ask = null; this.on = true; this.close('discard'); } }, 'Delete'), el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.ask = null; this.foot(); } }, 'Keep it')); return; }
+    if (this.ask === 'leave') { F.append(el('span', { class: 'wsAsk', text: 'Keep your changes?' }), el('button', { type: 'button', class: 'go wsGo', onclick: () => this.close('save') }, 'Save'), el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.ask = null; this.close('discard'); } }, 'Discard')); return; }
+    if (this.share) { const code = el('input', { class: 'wsCode', type: 'text', readonly: true, value: cuCode(this.B), 'aria-label': 'This build as a code' }), paste = el('input', { class: 'wsCode', type: 'text', placeholder: 'Paste a build code', 'aria-label': 'Load a build code' }), msg = el('span', { class: 'small', role: 'status' });
+      F.append(el('div', { class: 'wsShare' }, el('label', { class: 'small', text: 'This car as a code: send it to a friend' }), el('div', { class: 'wsBtns' }, code, el('button', { type: 'button', class: 'ghostbtn', onclick: () => { code.select(); try { navigator.clipboard.writeText(code.value).then(() => { msg.textContent = 'Copied.'; }, () => { msg.textContent = 'Select it and copy.'; }); } catch (e) { msg.textContent = 'Select it and copy.'; } } }, 'Copy')),
+        el('div', { class: 'wsBtns' }, paste, el('button', { type: 'button', class: 'ghostbtn', onclick: () => { const B = cuDecode(paste.value); if (!B) { msg.textContent = 'That code is not a build this page can read.'; return; } this.B = B; this.apply(true); this.body(); this.head(); msg.textContent = 'Loaded: save it to keep it.'; } }, 'Load')), msg,
+        el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.share = false; this.foot(); } }, 'Done'))); return; }
+    F.append(...[el('button', { type: 'button', class: 'go wsGo', onclick: () => { this.save(); this.close('save'); $('#go').click(); } }, 'Save and drive'), el('button', { type: 'button', class: 'ghostbtn', disabled: !this.dirty(), onclick: () => this.save() }, 'Save'),
+      el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.share = true; this.foot(); } }, 'Share'), CU.own.includes(this.id) ? el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.ask = 'delete'; this.foot(); } }, 'Delete') : null].filter(Boolean));
+  },
+  back() { if (this.dirty()) { this.ask = 'leave'; this.foot(); const b = this.el.querySelector('.wsFoot .wsGo'); if (b) b.focus(); } else this.close('discard'); },
+  // the camera's frame: the car in the room the panel leaves (beside it on a wide screen, above it on a tall one)
+  frame() { const P = this.el; if (!P) return [0, 0]; const r = P.getBoundingClientRect(), W = innerWidth, H = innerHeight; return r.width >= W * 0.9 ? [0, r.height / 2] : [r.width / 2, 0]; },
+  init() {
+    for (const id of ['#wsBtn']) { const b = $(id); if (b) b.addEventListener('click', () => this.open(G.spec && G.spec.cu ? { id: G.spec.id } : { body: G.spec && G.spec.id })); }
+    const gl = $('#gl'), up = e => { this.ptrs.delete(e.pointerId); if (this.ptrs.size < 2) this.pinch0 = 0; };
+    gl.addEventListener('pointerdown', e => { if (!this.on) return; try { gl.setPointerCapture(e.pointerId); } catch (_) { } this.ptrs.set(e.pointerId, [e.clientX, e.clientY]); this.idle = 0;
+      if (this.ptrs.size === 2) { const [a, b] = [...this.ptrs.values()]; this.pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); this.zoom0 = this.zoom; } });
+    gl.addEventListener('pointermove', e => { if (!this.on || !this.ptrs.has(e.pointerId)) return; const q = this.ptrs.get(e.pointerId); this.ptrs.set(e.pointerId, [e.clientX, e.clientY]); this.idle = 0;
+      if (this.ptrs.size >= 2) { const [a, b] = [...this.ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (this.pinch0 > 0 && d > 0) this.zoom = clamp(this.zoom0 * this.pinch0 / d, 0.45, 1.8); }
+      else { this.yaw -= (e.clientX - q[0]) * 0.009; this.pitch = clamp(this.pitch + (e.clientY - q[1]) * 0.006, 0.03, 1.25); } });
+    gl.addEventListener('pointerup', up); gl.addEventListener('pointercancel', up);
+    gl.addEventListener('wheel', e => { if (!this.on) return; e.preventDefault(); this.zoom = clamp(this.zoom * Math.exp(e.deltaY * 0.0012), 0.45, 1.8); this.idle = 0; }, { passive: false });
+    addEventListener('keydown', e => { if (!this.on || e.key !== 'Escape' || (this.el && this.el.contains(e.target))) return; e.preventDefault(); this.back(); }, true);
+  }
+};
 
 // ==== DAMAGE, AS IT SHOWS ====
 // The physics (core.js) works out what each blow did: where it landed, the dents it left and, in the realistic setting,
@@ -29448,13 +30464,16 @@ function rallyCond(c, g) { const Rg = REGIONS[c.ev] || REGIONS.fast; return { ti
 
 // ---- the field ----
 function rallyField(c, carId) {
-  const R = mulberry32(strHash('field:' + c.seed + '.' + c.ev)), cls = (carById(carId) || CARS[0]).cls || 'B', ids = CARS.filter(S => (S.cls || 'B') === cls).map(S => S.id);
+  const R = mulberry32(strHash('field:' + c.seed + '.' + c.ev)), cls = rivalCls(carById(carId) || CARS[0]), ids = stockOf(cls).map(S => S.id); // (a build's rivals: the class nearest it in power for its weight)
   const crews = RALLY_CREWS.map(d => ({ d, k: R() })).sort((a, b) => a.k - b.k).slice(0, 15).map(o => o.d).sort((a, b) => a[1] - b[1]);
   const slots = []; for (const id of ids) slots.push(id, id); for (let k = 0; slots.length < crews.length + 1; k++) slots.push(ids[k % ids.length]); slots.splice(slots.indexOf(carId), 1); // (each car twice, more of them in a smaller class)
   for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
   return crews.map((d, r) => ({ name: d[0], rank: r / (crews.length - 1), spec: d[2], wet: d[3], night: d[4], risk: d[5], car: slots[r], form: (R() - 0.5) * 0.02 }));
 }
 const crewName = (st, i) => i === 0 ? 'You' : st.field[i - 1].name;
+// the spare wheels a car carries (a car built in the workshop as built; the others as their class's cars were built:
+// see CU_KIT0, a rally car two)
+const sparesOf = S => S && S.spares != null ? S.spares : S && CU_KIT0[S.cls] ? CU_KIT0[S.cls].spare : 2;
 const crewCar = (st, i) => (carById(i === 0 ? st.car : st.field[i - 1].car) || {}).name || '';
 const surname = n => n.replace(/^[A-ZÀ-Þ]\.\s*/, '');
 
@@ -29857,7 +30876,7 @@ const Rally = {
   // allowed is a late arrival at the next time control: 10 s for every minute
   jobs(list, D, V, real) { return list.filter(j => (real || !j.mech) && j.need(D, V)).map(j => ({ j, mins: Math.max(1, j.mins(D, V)) })); },
   repairPanel(card, list, allowed, kind, done) {
-    const st = this.st, D = st.cd ? dmgLoad(st.cd, st.dmg) : newDamage(st.dmg), V = st.cv, jobs = this.jobs(list, D, V, st.dmg === 'real');
+    const st = this.st, D = st.cd ? dmgLoad(st.cd, st.dmg) : newDamage(st.dmg), V = st.cv; if (kind === 'road') D.spares = sparesOf(carById(st.car)); const jobs = this.jobs(list, D, V, st.dmg === 'real');
     const wrap = el('div'); card.append(wrap);
     if (!jobs.length) { wrap.append(el('p', { class: 'small', text: kind === 'road' ? 'Nothing the crew can mend on the road.' : 'The car is in good order: the crew checks it over and fits fresh tyres.' })); return () => { if (kind === 'svc') this.freshTyres(); done(0); }; }
     // ticked to start with: the jobs that matter most, as many as fit the time
@@ -29865,7 +30884,7 @@ const Rally = {
     const ul = el('ul', { class: 'itin' }), sum = el('p', { class: 'small' }); wrap.append(el('h3', { text: kind === 'road' ? 'What you can do' : 'Repairs' }));
     const show = () => { const t = jobs.reduce((s, q) => s + (q.on ? q.mins : 0), 0), over = Math.max(0, t - allowed); sum.textContent = `${t} of ${allowed} minutes used.` + (over ? ` ${over} over: ${over * 10} s penalty at the next time control.` : ''); };
     for (const q of jobs) { const cb = el('input', { type: 'checkbox' }); cb.checked = q.on; cb.addEventListener('change', () => { q.on = cb.checked; show(); });
-      ul.append(el('li', { class: 'svc', style: 'grid-template-columns:28px 1fr auto;color:var(--ink)' }, el('label', { style: 'display:contents' }, cb, el('span', { text: q.j.name }), el('b', { text: q.mins + ' min' })))); }
+      ul.append(el('li', { class: 'svc', style: 'grid-template-columns:28px 1fr auto;color:var(--ink)' }, el('label', { style: 'display:contents' }, cb, el('span', { text: q.j.label ? q.j.label(D) : q.j.name }), el('b', { text: q.mins + ' min' })))); }
     wrap.append(ul, sum); show();
     return () => {
       const t = jobs.reduce((s, q) => s + (q.on ? q.mins : 0), 0), over = Math.max(0, t - allowed);
@@ -29888,7 +30907,7 @@ const Rally = {
   // a road section comes before a stage that follows another stage directly, when the car has something the crew can mend
   roadDue(it) {
     const st = this.st, P = this.plan(), prev = P.items[st.at - 1]; if (!prev || prev.k !== 'ss' || st.roadAt === st.at || !st.dmg || st.dmg === 'off' || !st.cd) return false;
-    const D = dmgLoad(st.cd, st.dmg); return this.jobs(ROAD_FIXES, D, st.cv, st.dmg === 'real').length > 0;
+    const D = dmgLoad(st.cd, st.dmg); D.spares = sparesOf(carById(st.car)); return this.jobs(ROAD_FIXES, D, st.cv, st.dmg === 'real').length > 0;
   },
   screenRoad(it) {
     const st = this.st, card = this.card('center'), g = this.plan().stages[it.s];
@@ -30562,7 +31581,7 @@ function rxDust(e, dt) {
 
 // ---- the field: made-up drivers (the rally's own rivals: see RALLY_CREWS), each in a car of the player's class ----
 function rxField(seed, n, cls) {
-  const R = mulberry32(strHash('rxfield:' + seed)), pool = CARS.filter(S => (S.cls || 'B') === cls), crews = RALLY_CREWS.slice();
+  const R = mulberry32(strHash('rxfield:' + seed)), pool = stockOf(cls), crews = RALLY_CREWS.slice();
   for (let i = crews.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [crews[i], crews[j]] = [crews[j], crews[i]]; }
   return crews.slice(0, n).map((c, k) => ({ name: c[0], car: (pool.length ? pool[Math.floor(R() * pool.length)] : G.spec).id, skill: clamp(0.5 - c[1], -0.5, 0.5), risk: c[5], num: 2 + k }));
 }
@@ -30579,7 +31598,7 @@ const RXEV = {
   save() { lsSet('sr86.rxev', this.st); },
   // a new event on this circuit: the field (fifteen, the player one of them), the heats of each round drawn
   start(seed, reg, level) {
-    const cls = G.spec.cls || 'B', F = rxField(seed + ':ev', 14, cls), field = [{ name: 'You', me: true, car: G.spec.id, num: 1 }].concat(F);
+    const cls = rivalCls(G.spec), F = rxField(seed + ':ev', 14, cls), field = [{ name: 'You', me: true, car: G.spec.id, num: 1 }].concat(F);
     const R = mulberry32(strHash('rxheats:' + seed)), rounds = [0, 1, 2].map(() => { const ix = field.map((d, k) => k); for (let i = ix.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [ix[i], ix[j]] = [ix[j], ix[i]]; } return [ix.slice(0, 5), ix.slice(5, 10), ix.slice(10, 15)]; });
     this.st = { v: 1, seed, reg: reg || null, level, car: G.spec.id, field, rounds, q: [], at: 0, semis: null, semiRes: null, finalGrid: null, finalRes: null, k: 1, done: false }; this.save();
   },
@@ -30685,7 +31704,7 @@ const RXUI = {
     if (ev || C.fm === 'event') {
       if (!ev) RXEV.start(T.seed, COND.reg, C.level); const cfg = RXEV.cfg(); if (!cfg) { this.standings(); return; }
       RX.set(cfg); startRun(); return; }
-    this.raceN++; const field = [{ name: 'You', me: true, car: G.spec.id, num: 1 }].concat(rxField(T.seed + ':' + this.raceN, C.n, G.spec.cls || 'B'));
+    this.raceN++; const field = [{ name: 'You', me: true, car: G.spec.id, num: 1 }].concat(rxField(T.seed + ':' + this.raceN, C.n, rivalCls(G.spec)));
     RX.set({ kind: 'race', laps: C.laps, level: C.level, field, label: `Rallycross race, ${C.laps} laps` }); startRun();
   },
   // ---- the results of a race ----
@@ -30705,7 +31724,7 @@ const RXUI = {
   },
   show() { showScreen('finish'); $('#finish').hidden = true; $('#rxRes').hidden = false; this.shown = true; const b = $('#rxResNext'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 30); },
   hide() { const r = $('#rxRes'); if (r) r.hidden = true; this.shown = false; },
-  next() { this.hide(); if (RX.cfg && RX.cfg.ev) { this.standings(); return; } RX.cfg.field = [RX.cfg.field[0]].concat(rxField(G.T.seed + ':' + (++this.raceN), RX.cfg.field.length - 1, G.spec.cls || 'B')); startRun(); },
+  next() { this.hide(); if (RX.cfg && RX.cfg.ev) { this.standings(); return; } RX.cfg.field = [RX.cfg.field[0]].concat(rxField(G.T.seed + ':' + (++this.raceN), RX.cfg.field.length - 1, rivalCls(G.spec))); startRun(); },
   // ---- the event's standings, between its races (on the rally's screen) ----
   standings() {
     const st = RXEV.st; if (!st) { toMenu(); return; } const card = $('#rally .card'); card.textContent = ''; const I = RXEV.inter(), n = RXEV.next(), body = el('div', { class: 'rbody' });
