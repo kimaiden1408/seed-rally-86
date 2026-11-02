@@ -4593,12 +4593,13 @@ const CARS_G4 = [
 //   (its maker's own, direct in fifth: 3.795, 2.473, 1.613, 1.177, 1.000, 0.831, 0.571 in eighth; seventh between),
 //   full-time four-wheel drive; 37 x 12.50R16.5 run-flat tyres on independent suspension; 130 km/h; turning radius 9.2 m.
 //   About 6.2 t with its crew and equipment, 47% on the front axle
-//   a high-roof van ambulance of the 2009 model year: 5.13 x 1.92 m, 2.45 m over its fibreglass roof, wheelbase 3.20 m,
+//   a van ambulance of the 2009 model year on the van's own roof (a light bar, a vent dome and two beacons on it): 5.13 x
+//   1.92 m, 1.93 m tall (2.1 m over its light bar), wheelbase 3.20 m,
 //   tracks 1.685 / 1.66 m, 2,185 kg empty; a 2,497 cc turbo-diesel four (91 x 96 mm, common rail, variable-geometry
 //   turbo), 170 hp at 3,800, 392 Nm (40 kgf m) at 2,000-2,500; five-speed automatic (3.730, 2.308, 1.519, 1.000, 0.840;
-//   final drive 2.929), rear-wheel drive; 215/70R16 tyres; turning circle 11.3 m. About 2.75 t with its stretcher,
-//   equipment and crew, half on each axle, the centre of gravity about 0.82 m up under the tall roof. Struts in front,
-//   leaf springs on a solid rear axle
+//   final drive 2.929), rear-wheel drive; 215/70R16 tyres; turning circle 11.3 m. About 2.71 t with its stretcher,
+//   equipment and crew, half on each axle, the centre of gravity about 0.80 m up. Struts in front, leaf springs on a solid
+//   rear axle
 // (The two turbo-diesels' variable-geometry turbos give boost under load from about 800 rpm, and all of it where their
 // makers' curves reach their plateaus, so their converters let them rev up to stall from rest.)
 const CARS_SP = [
@@ -4627,16 +4628,16 @@ const CARS_SP = [
       antiDive: 0.15, antiSquat: 0.2, hcg: 1.08, bias: 0.6, brake: 0.95, Ie: 0.45, gyP: 2.9, gyR: 0.62, zB: 0.28, zR: 0.45 },
     note: 'A light tactical vehicle with a tall box body and its roof gear: over six tonnes on big run-flat tyres and long-travel independent suspension. It shrugs off rocks and ruts that would break a rally car, but it sits high and leans: carry your speed smoothly and let the automatic gearbox and the four-wheel drive do the work.' },
   { id: 'palanquin_25d', name: 'Palanquin 25D', num: 53, drive: 'Rear-wheel drive, open differential, automatic', motor: '2.5-litre turbo-diesel four, 170 hp', engine: 'Front-mounted inline four turbo-diesel, common-rail injection, variable-geometry turbo', litres: 2.497,
-    mass: 2750, wf: 0.5, wb: 3.2, track: [1.685, 1.66], yawK: 0.98, lock: 0.62, idle: 750, redline: 4400, cyl: 4, boost: 'turbo', na: 0.45, spool: [800, 1500], lag: 0.45, fs: 0, lever: 'auto', tc: { k: 0.0076, tr: 2.1 }, shiftUp: 0.4, shiftDown: 0.35, upK: 0.47,
+    mass: 2710, wf: 0.5, wb: 3.2, track: [1.685, 1.66], yawK: 0.98, lock: 0.62, idle: 750, redline: 4400, cyl: 4, boost: 'turbo', na: 0.45, spool: [800, 1500], lag: 0.45, fs: 0, lever: 'auto', tc: { k: 0.0076, tr: 2.1 }, shiftUp: 0.4, shiftDown: 0.35, upK: 0.47,
     tq: [[750, 180], [1000, 235], [1250, 290], [1500, 335], [1750, 372], [2000, 392], [2500, 392], [3000, 368], [3400, 340], [3800, 314], [4100, 270], [4400, 170]],
-    gears: [3.73, 2.308, 1.519, 1.0, 0.84], final: 2.929, len: 5.125, width: 1.92, tyres: [215, 215], tyreSize: ['215/70R16', '215/70R16'], rollR: 0.343, aero: [1.75, -0.25, 0.5], sideA: 10, sideZ: -0.15,
+    gears: [3.73, 2.308, 1.519, 1.0, 0.84], final: 2.929, len: 5.125, width: 1.92, tyres: [215, 215], tyreSize: ['215/70R16', '215/70R16'], rollR: 0.343, aero: [1.5, -0.25, 0.5], sideA: 8.6, sideZ: -0.15,
     wheel: { R: 0.354, I: 1.9, mu: 52, muR: 75, kt: 300000, ct: 600, sx: 0.32, sy: 0.6, Fz0: 7000, ca: 0.9, tk: [1.6, 1.3] }, tyreSet: { all: 'rd', snow: 'rdW' }, hbT: 1600, brkC: 2,
     diff: { r: { pre: 15, ramp: 0.05 } }, diffType: { r: 'Open' },
     crewEra: { era: 'golden', turns: 3.6, wheel: { r: 0.19, t: 0.017, dish: 0.03, style: 'car' }, hub: 0.45, tilt: 0.85, helmet: ['full', 'open'], mic: [false, true], hans: false,
       seat: 'car', colors: { rim: '#1c1c1e', spoke: '#2b2c2f', wpad: '#232427', knob: '#1b1b1d', seatM: '#3e4045', seatB: '#202124', seatS: '#2a2b2e', belt: '#1c1c1e' } },
     susp: { fF: 1.6, fR: 1.75, travel: 0.1, droop: 0.1, arbF: 0.25, arbR: 0, leafR: 0.66, rcF: 0.08, rcR: 0.42, camF: -0.3, camR: 0, gainF: -10, gainR: 0, solidR: true, caster: 3.5, kpi: 12, toeR: 0, ack: 0.7,
-      antiDive: 0.1, antiSquat: 0.15, hcg: 0.82, bias: 0.66, brake: 1.05, Ie: 0.35, gyP: 2.1, gyR: 0.48, zB: 0.25, zR: 0.4 },
-    note: 'A high-roof van ambulance: front engine, rear-wheel drive and an automatic gearbox, tall and soft-riding with its stretcher and kit aboard. Brisk enough on tarmac, but it leans, floats over crests and its road tyres find little grip on gravel: brake in a straight line and keep the tail in check with the throttle.' }
+      antiDive: 0.1, antiSquat: 0.15, hcg: 0.8, bias: 0.66, brake: 1.05, Ie: 0.35, gyP: 2.1, gyR: 0.48, zB: 0.25, zR: 0.4 },
+    note: 'A van ambulance: front engine, rear-wheel drive and an automatic gearbox, soft-riding with its stretcher and kit aboard. Brisk enough on tarmac, but it leans, floats over crests and its road tyres find little grip on gravel: brake in a straight line and keep the tail in check with the throttle.' }
 ];
 // ---- end cars ----
 for (const S of CARS) S.cls = 'B';
@@ -4645,7 +4646,7 @@ for (const S of CARS_F2) { S.cls = 'F2'; CARS.push(S); }
 for (const S of CARS_WRC) { S.cls = 'WRC'; CARS.push(S); }
 for (const S of CARS_R2) { S.cls = 'R2'; CARS.push(S); }
 for (const S of CARS_G4) { S.cls = 'G4'; CARS.push(S); }
-for (const S of CARS_SP) { S.cls = 'SP'; CARS.push(S); }
+for (const S of CARS_SP) { S.cls = 'SP'; S.fuel = 'diesel'; CARS.push(S); }
 for (const S of CARS) { const pk = Math.max(...S.tq.map(p => p[1])); S.tmax = pk; S.turbo = S.boost === 'turbo' ? 0.8 : S.boost === 'twin' ? 0.6 : S.boost === 'sc' ? 0.3 : 0; }
 // steering lock at the road wheels: a rally car's rack (about 12:1, one and a half to two turns lock to lock) gives
 // 22-30 degrees each way; the figures above were drawn with more, so each keeps its character a little nearer that
@@ -4658,13 +4659,21 @@ function engineCurve(S, rpm) { const P = S.tq; if (rpm <= P[0][0]) return P[0][1
 // boost: turbos need exhaust flow (revs and throttle) and take time to spool; anti-lag holds them spun up off throttle;
 // a Roots supercharger is driven by the crank so boost tracks revs instantly; the twin-charged engine uses its
 // supercharger low down and bypasses it once the turbo takes over
+// The turbo is a rotor (c.turboW: its speed, as a share of what it turns at full boost) and the boost it makes in the
+// charge pipes (c.turboB). The exhaust spins the rotor up toward what the revs and the throttle give it (S.lag: how long
+// that takes in the middle of its boost's rise; lower down, with less exhaust to drive it, longer, higher up
+// quicker); after a lift nothing drives it and it runs down on its own inertia, over about a second (the bigger and
+// laggier the turbo, the longer: as the engine sound's rotor does, see Turbo), so a quick lift or a gear change finds
+// it still spinning and the boost back at once; anti-lag holds it up. The boost follows the throttle and the wastegate,
+// up to what the rotor can give, filling the pipes in a few hundredths of a second
 function boostStep(c, S, thr, dt) {
   if (S.boost === 'na') { c.boost = 0; return; }
   if (S.boost === 'sc') { c.boost = thr * smooth(1000, 4500, c.rpm); return; }
-  let tgt = thr * smooth(S.spool[0], S.spool[1], c.rpm);
+  const want = thr * smooth(S.spool[0], S.spool[1], c.rpm); let tgt = want;
   if (S.als && thr < 0.1 && c.rpm > S.spool[0] * 0.8) tgt = Math.max(tgt, 0.65);
-  const tc = tgt > (c.turboB || 0) ? S.lag : (S.als ? 1.2 : 0.3);
-  c.turboB = (c.turboB || 0) + (tgt - (c.turboB || 0)) * Math.min(1, dt / tc);
+  const w = c.turboW != null ? c.turboW : (c.turboB || 0), up = S.lag * clamp(Math.pow((S.spool[0] + S.spool[1]) / 2 / Math.max(400, c.rpm), 0.8), 0.6, 2.2), dn = tgt > want ? 1.2 : 0.55 + 1.1 * S.lag;
+  c.turboW = w + (tgt - w) * Math.min(1, dt / (tgt > w ? up : dn));
+  const b = Math.min(c.turboW, want), b0 = c.turboB || 0; c.turboB = b0 + (b - b0) * Math.min(1, dt / 0.03);
   c.boost = S.boost === 'twin' ? Math.max(c.turboB, thr * 0.85 * smooth(900, 2600, c.rpm) * (1 - smooth(4500, 5500, c.rpm))) : c.turboB;
 }
 // A turbocharged engine's torque (Nm) at these revs with this much of its boost (0-1): with all of it, its curve (S.tq);
@@ -4707,6 +4716,12 @@ const IDLE = {
   caisson_6x6: [550, 'ecu', 15, 0.5], limber_4x4: [700, 'ecu', 10, 0.4], palanquin_25d: [750, 'ecu', 12, 0.4]
 };
 for (const S of CARS) { const r = IDLE[S.id]; if (r) S.idle = r[0]; }
+// How long the air in the inlet manifold takes to follow the throttle (s, at 3,000 rpm; quicker as the engine turns
+// faster, see the engine in stepCar): a throttle at each cylinder - twin-choke carburettors, slide or butterfly
+// throttles on each port, as on the 1970s engines, the kit cars' and the atmospheric race engines - about 8 ms; one
+// throttle ahead of a plenum 50 ms; a diesel, which has no throttle, 10 ms (its injection's answer)
+const ITB_CARS = new Set(['tasman_6r', 'bantam_6x', 'kaiser_3r', 'esker_kr', 'corvid_f2', 'quintel_20', 'sorrel_ve', 'pavane_2s', 'torvo_20', 'linnet_20v', 'rhodon_kx', 'xebec_24v', 'lugger_18', 'tartane_16v', 'pinnace_20', 'shallop_22', 'carrack_24', 'ketch_30', 'polacca_v4']);
+for (const S of CARS) S.manT = S.fuel === 'diesel' ? 0.01 : ITB_CARS.has(S.id) ? 0.008 : 0.05;
 // The engine's rotating inertia (kg m2): crankshaft, flywheel and clutch together. It sets how fast the revs rise and
 // fall out of gear and between gears, and adds to the car's own inertia in the low gears. Set from each car's published
 // clutch (research/engine_sound_research.md): a carbon multi-plate clutch of 140-240 mm on a lightened flywheel (World
@@ -4761,10 +4776,12 @@ function limiterHit(c, S) { const L = S.lim || LIMITER[S.cls] || LIMITER.A; /* (
 // throttle open a crack and burns the charge late, so it pumps little: the car runs on further off the throttle with
 // anti-lag working than without
 function litresOf(S) { return S._L || (S._L = S.litres || +(((S.motor || '').match(/([\d.]+)-litre/) || [0, 2])[1])); }
+// (a diesel has no throttle to shut: off the fuel it pumps its air through freely, losing only what the valves and
+// ports take, about 0.15 bar - so it slows the car far less than a petrol engine does)
 function engineDrag(S, rpm, we, thr) {
   if (thr >= 0.05) return (12 + 0.035 * we) * (S.fricK || 1); // (S.fricK: a built engine's against its size, see cuSpec)
   const N = rpm / 1000, ret = S.als && (S.alsKind ? S.alsKind === 'ret' : S.cls === 'R2') && thr < 0.1 && rpm > S.spool[0] * 0.8;
-  return (0.9 + 0.12 * N + 0.04 * N * N + (ret ? 0.3 : 0.8)) * 7.958 * litresOf(S);
+  return (0.9 + 0.12 * N + 0.04 * N * N + (S.fuel === 'diesel' ? 0.15 : ret ? 0.3 : 0.8)) * 7.958 * litresOf(S);
 }
 // The engine on its own, out of gear (the showroom's run-up, the start line): the same torque, boost, friction, idle
 // and rev limiter as on a stage, turning nothing but its own inertia. c.flare: the idle raised just after a start
@@ -5626,18 +5643,22 @@ function stepCar(c, S, inp, dt, T, opts) {
   let we = c.rpm * Math.PI / 30;
   if (c.rpm >= S.redline) limiterHit(c, S); // (the rev limiter: see LIMITER)
   c.limT -= dt; c.shiftT -= dt;
-  boostStep(c, S, thrIn, dt);
+  // the air in the inlet manifold follows the throttle a moment behind: a plenum fills and empties over a few of the
+  // engine's turns (S.manT: about 50 ms at 3,000 rpm, quicker the faster it turns), a throttle at each cylinder almost at
+  // once, and a diesel, which has no throttle, answers with its fuel at once. thrE: the throttle as the cylinders feel it
+  const mT = (S.manT != null ? S.manT : 0.05) * 3000 / Math.max(600, c.rpm); c.thrE = c.thrE == null ? thrIn : c.thrE + (thrIn - c.thrE) * Math.min(1, dt / Math.max(dt, mT)); let thrE = c.thrE;
+  boostStep(c, S, thrE, dt);
   // the engine's air, heat and water (its power as a share of what it is rated at; stalled or hydrolocked, none)
   const kE = engineSys(c, S, T, D, thrIn, dt), es = c.es, eOff = es.run !== 'run', locked = es.run === 'lock';
   c.flooded = eOff && (locked || es.inWater);
-  let Te = thrIn > 0.02 ? engineTorque(S, c.rpm, c.boost * (DR ? DR.turbo : 1)) * thrIn * (DR ? engineFactor(DR, dt) : 1) * kE * (S.cvtEta || 1) : 0; // (S.cvtEta: what a CVT loses, see cuGearing)
-  if (DR) { engineStep(c, S, DR, thrIn, dt); if (DR.eng <= 0) { Te = 0; thrIn = 0; } }
-  if (eOff) { Te = 0; thrIn = 0; }
+  let Te = thrE > 0.02 ? engineTorque(S, c.rpm, c.boost * (DR ? DR.turbo : 1)) * thrE * (DR ? engineFactor(DR, dt) : 1) * kE * (S.cvtEta || 1) : 0; // (S.cvtEta: what a CVT loses, see cuGearing)
+  if (DR) { engineStep(c, S, DR, thrIn, dt); if (DR.eng <= 0) { Te = 0; thrIn = 0; thrE = 0; } }
+  if (eOff) { Te = 0; thrIn = 0; thrE = 0; }
   if (c.shiftT > 0 && !S.tc) Te = 0; // (an automatic shifts under load: its converter carries the drive through)
   else if (c.limT > 0) Te *= 1 - (c.limK || 1);
   // a downshift blips the throttle (the driver's heel, or the gearbox's own blip): the engine brought up to the lower
   // gear's speed by the time the dogs go in, so they meet the road's speed without a snatch. c.blip: how far it opened
-  c.blip = 0; const fr = engineDrag(S, c.rpm, we, thrIn) + (S.air && c.air && !eOff ? S.air.drag[c.air.load ? 0 : 1] : 0); // (and the brakes' compressor: see airStep)
+  c.blip = 0; const fr = engineDrag(S, c.rpm, we, thrE) + (S.air && c.air && !eOff ? S.air.drag[c.air.load ? 0 : 1] : 0); // (and the brakes' compressor: see airStep)
   if (c.shiftT > 0 && c.shiftDn && c.gear > 0 && !S.tc && !eOff && !(DR && DR.eng <= 0)) {
     const wsD = Math.abs(S.fs / 2 * (W[0].omega + W[1].omega) + (1 - S.fs) / 2 * (W[2].omega + W[3].omega)), need = (wsD * Math.abs(Gr) - we) * SP.Ie / Math.max(c.shiftT, dt); // (the driven wheels' speed)
     if (need > 0) { const full = Math.max(1, engineTorque(S, c.rpm, c.boost * (DR ? DR.turbo : 1)) * kE), tb = Math.min(need, full); c.blip = clamp(tb / full, 0, 1); Te = tb + fr; }
@@ -7297,7 +7318,10 @@ const CU_KEYS = [
   ['susp', ['stock', 'gravel', 'tarmac', 'raid', 'road']], ['brakes', ['stock', 'small', 'medium', 'large']], ['tyreF', [145, 335, 5]], ['tyreR', [145, 335, 5]], ['track', [-4, 14, 1]], ['ballast', [0, 200, 5]], ['bpos', ['front', 'middle', 'rear']],
   ['bonnet', ['steel', 'light', 'off']], ['bumpF', [0, 1, 1]], ['bumpR', [0, 1, 1]], ['boot', ['steel', 'light', 'off']], ['doors', ['steel', 'light', 'off']], ['cage', ['none', 'light', 'full']], ['glass', ['glass', 'plastic']],
   ['trim', ['stripped', 'full']], ['spare', [0, 2, 1]], ['guard', ['none', 'light', 'full']], ['flaps', [0, 1, 1]],
-  ['aero', ['stock', 'none', 'lip', 'wing', 'big', 'max']], ['c1', null], ['c2', null], ['c3', null], ['roof', ['base', 'band']]
+  ['aero', ['stock', 'none', 'lip', 'wing', 'big', 'max']], ['c1', null], ['c2', null], ['c3', null], ['roof', ['base', 'band']],
+  // (added later, at the end, so that codes made before them still read: what a code lacks is the body's own)
+  ['vvt', ['none', 'inlet', 'both']], ['vlift', ['none', 'switch', 'cvl']], ['vsw', [0, 9500, 100]], ['vim', [0, 1, 1]], ['itb', [0, 1, 1]],
+  ['feed', ['carb', 'mech', 'port', 'direct']], ['tkind', ['single', 'twinscroll', 'vgt']], ['tseq', [0, 1, 1]]
 ];
 // what each era of engine building gives (see cuEngine): bmep, the mean pressure on the pistons of an atmospheric race
 // engine with twin cams at its torque peak (bar), rising as breathing, combustion and engine management improved; off,
@@ -7305,13 +7329,13 @@ const CU_KEYS = [
 // eta, how much of each bar of boost reaches the cylinders (the intercooler cooling the charge better); sp and lag, the
 // turbos' spool (a share of the revs) and their lag (s), from big slow single turbos to small quick ones on ball
 // bearings; lim, how its rev limiter cuts (see LIMITER); ign, how readily its ignition shorts when wet; fuel, how it is
-// fed (for the starter); idle, how its idle is held (see IDLE)
+// fed (for the starter); idle, how its idle is held (see IDLE); feed, the fuel system its engines usually had
 const CU_TECH = {
-  '70s': { bmep: 14.4, off: 8.5, up: 0, eta: 0.8, sp: 1.12, lag: 0.9, lim: [0.8, 0.06], ign: 0.9, fuel: 'carb', idle: 'stop', st: 'dd' },
-  '80s': { bmep: 14.9, off: 8.5, up: 0.5, eta: 0.87, sp: 1.08, lag: 0.65, lim: [1, 0.08], ign: 0.8, fuel: 'mech', idle: 'stop', st: 'dd' },
-  '90s': { bmep: 15.5, off: 9.5, up: 1, eta: 0.92, sp: 1, lag: 0.48, lim: [1, 0.07], ign: 0.5, fuel: 'efi', idle: 'ecu', st: 'red' },
-  '00s': { bmep: 15.8, off: 10.5, up: 1.5, eta: 0.95, sp: 0.82, lag: 0.36, lim: [0.8, 0.05], ign: 0.15, fuel: 'efi', idle: 'ecu', st: 'race' },
-  '20s': { bmep: 16.2, off: 10.5, up: 1.5, eta: 0.97, sp: 0.88, lag: 0.38, lim: [0.55, 0.035], ign: 0.1, fuel: 'efi', idle: 'ecu', st: 'race' }
+  '70s': { bmep: 14.4, off: 8.5, up: 0, eta: 0.8, sp: 1.12, lag: 0.9, lim: [0.8, 0.06], ign: 0.9, fuel: 'carb', idle: 'stop', st: 'dd', feed: 'carb' },
+  '80s': { bmep: 14.9, off: 8.5, up: 0.5, eta: 0.87, sp: 1.08, lag: 0.65, lim: [1, 0.08], ign: 0.8, fuel: 'mech', idle: 'stop', st: 'dd', feed: 'mech' },
+  '90s': { bmep: 15.5, off: 9.5, up: 1, eta: 0.92, sp: 1, lag: 0.48, lim: [1, 0.07], ign: 0.5, fuel: 'efi', idle: 'ecu', st: 'red', feed: 'port' },
+  '00s': { bmep: 15.8, off: 10.5, up: 1.5, eta: 0.95, sp: 0.82, lag: 0.36, lim: [0.8, 0.05], ign: 0.15, fuel: 'efi', idle: 'ecu', st: 'race', feed: 'port' },
+  '20s': { bmep: 16.2, off: 10.5, up: 1.5, eta: 0.97, sp: 0.88, lag: 0.38, lim: [0.55, 0.035], ign: 0.1, fuel: 'efi', idle: 'ecu', st: 'race', feed: 'direct' }
 };
 // the tune: k, its share of a race engine's mean pressure (milder cams and compression); pk, where its torque peaks (a
 // share of the red line: low for a road engine, high for a race one; a turbo engine's lower, a diesel's lower still);
@@ -7327,6 +7351,13 @@ const CU_TUNE = {
 const CU_DBMEP = { road: 8.0, sport: 8.6, race: 9.2 };
 // a turbo's size: its spool and lag against a medium one's, and how much of its boost it still gives at the red line
 const CU_TSIZE = { small: { sp: 0.8, lag: 0.72, top: 0.48 }, medium: { sp: 1, lag: 1, top: 0.25 }, large: { sp: 1.24, lag: 1.38, top: 0.1 } };
+// how each car's own engine is fed where it is not the class's usual (see cuStockBuild): carburettors on the 1970s cars
+// that had them, mechanical injection (continuous or plunger pumps) on others of the 1970s and 1980s, a truck's in-line
+// pump; and the turbos whose housing is not a plain single scroll
+const CU_FEED0 = { xebec_24v: 'carb', lugger_18: 'carb', shallop_22: 'carb', carrack_24: 'carb', polacca_v4: 'carb', tartane_16v: 'mech', pinnace_20: 'mech', ketch_30: 'mech',
+  felucca_14t: 'mech', barque_21t: 'mech', yawl_20t: 'mech', galliot_v8: 'mech', vespera_sc: 'mech', petrel_m4: 'mech', tasman_6r: 'mech', corbeau_maxi: 'mech', caisson_6x6: 'mech' };
+const CU_FEEDC = { G4: 'carb', B: 'port', A: 'port', F2: 'port', WRC: 'port', R2: 'direct', SP: 'direct' };
+const CU_TKIND0 = { sentai_gt4: 'twinscroll', acrobat_4t: 'twinscroll', limber_4x4: 'vgt', palanquin_25d: 'vgt' };
 // the panels and fittings each class's cars were built with
 const CU_KIT0 = {
   G4: { bonnet: 'steel', boot: 'steel', doors: 'steel', cage: 'light', glass: 'glass', trim: 'stripped', spare: 2, guard: 'light' },
@@ -7378,7 +7409,10 @@ function cuStockBuild(S0) {
     box, gears: g.length, spread: sp < 2.85 ? 'close' : sp < 3.55 ? 'medium' : 'wide', gearing: 'medium',
     susp: 'stock', brakes: 'stock', tyreF: S0.tyres[0], tyreR: S0.tyres[1], track: 0, ballast: 0, bpos: 'middle',
     bonnet: K.bonnet, bumpF: 1, bumpR: 1, boot: K.boot, doors: K.doors, cage: K.cage, glass: K.glass, trim: K.trim, spare: K.spare, guard: K.guard, flaps: CU_BODY[S0.id] && CU_BODY[S0.id].flaps != null ? CU_BODY[S0.id].flaps : cls === 'SP' ? 0 : 1,
-    aero: 'stock', c1: (CU_BODY[S0.id] || {}).c1 || '#f1efe8', c2: (CU_BODY[S0.id] || {}).c2 || '#0f6e6e', c3: (CU_BODY[S0.id] || {}).c3 || '#e8762d', roof: (CU_BODY[S0.id] || {}).roof || 'band' };
+    aero: 'stock', c1: (CU_BODY[S0.id] || {}).c1 || '#f1efe8', c2: (CU_BODY[S0.id] || {}).c2 || '#0f6e6e', c3: (CU_BODY[S0.id] || {}).c3 || '#e8762d', roof: (CU_BODY[S0.id] || {}).roof || 'band',
+    // (the valves and induction: the Rally2 engines, from today's road engines, phase their inlet cams; the rest of the
+    // entry list's engines have fixed cam timing; a throttle at each port where the car has them)
+    vvt: cls === 'R2' ? 'inlet' : 'none', vlift: 'none', vsw: 0, vim: 0, itb: ITB_CARS.has(S0.id) ? 1 : 0, feed: CU_FEED0[S0.id] || CU_FEEDC[cls] || 'port', tkind: CU_TKIND0[S0.id] || 'single', tseq: 0 };
   // the tune, boost and rev limit that give this engine its own torque and red line (the closest tune for an
   // atmospheric engine; the boost that makes its peak for a charged one)
   const pk = S0.tmax || Math.max(...S0.tq.map(p => p[1])); let pw = 0; for (let r = 1000; r <= S0.redline; r += 50) pw = Math.max(pw, engineCurve(S0, r) * r * Math.PI / 30);
@@ -7411,6 +7445,13 @@ function cuClean(B0) {
     B.litres = cuR3(clamp(cuR(B.litres, 0.05), Math.max(0.5, 0.12 * B.cyl), Math.min(8.5, 1.3 * B.cyl)));
   }
   if (B.fuel === 'diesel') { if (B.asp === 'sc' || B.asp === 'twin') B.asp = 'turbo'; B.als = 0; }
+  // the valves and induction: a rotary has no valves (its ports open and shut as the rotor passes); one camshaft (or a
+  // pushrod engine's) can only be phased as a whole; cam switching needs overhead cams; a diesel has no throttle to
+  // put at each port, and is fed by an injection pump or a common rail
+  if (B.layout === 'rotary') { B.vvt = 'none'; B.vlift = 'none'; }
+  if (B.cams !== 'twin' && B.vvt === 'both') B.vvt = 'inlet'; if (B.cams === 'pushrod' && B.vlift !== 'none') B.vlift = 'none';
+  if (B.fuel === 'diesel') { B.itb = 0; B.vlift = 'none'; B.vim = 0; if (B.feed === 'carb') B.feed = 'mech'; else if (B.feed === 'port') B.feed = 'direct'; }
+  if (B.vlift !== 'switch') B.vsw = 0; if (B.asp !== 'biturbo') B.tseq = 0;
   if (B.asp === 'na') B.als = 0; if (B.asp === 'sc') B.als = 0;
   if (B.restr && B.restr < 20) B.restr = 0; B.restr = B.restr ? clamp(B.restr, 20, 50) : 0;
   if (B.drive !== 'AWD') B.hbcut = 0;
@@ -7434,38 +7475,71 @@ function cuEngine(B) {
   let up = dz ? U.upD : (U.up + T.up - (B.cams === 'pushrod' ? 2 : B.cams === 'single' ? 1 : 0)) * (turbo ? 0.82 : 1);
   const red0 = clamp(Math.round((rot ? U.rot : 30 * up / stroke) / 100) * 100, dz ? 2200 : 4500, dz ? 5200 : 11000), red = clamp(red0 + (B.rev || 0), dz ? 2000 : 4000, dz ? 5500 : 11500);
   const camK = B.cams === 'pushrod' ? 0.92 : B.cams === 'single' ? 0.9 : 1, exK = B.exh === 'quiet' ? 0.96 : B.exh === 'open' ? 1.03 : 1;
-  const bmep = (dz ? CU_DBMEP[B.tune] || 8.6 : (rot ? 11 * U.k : T.bmep * U.k * camK) * (boosted ? 0.88 : 1)) * exK;
-  const Tna = bmep * Leq * 7.9577; // (N m: bar times litres over 4 pi)
+  // (its fuel system against the one its era's engines usually had: carburettors fill the cylinders a little less
+  // evenly, direct injection cools the charge and lets the compression go up; a diesel's common rail burns its fuel
+  // better than an injection pump)
+  const FK = dz ? { carb: 1, mech: 1, port: 1.08, direct: 1.08 } : { carb: 0.97, mech: 0.99, port: 1, direct: 1.04 }, f0 = dz ? (B.tech === '00s' || B.tech === '20s' ? 'direct' : 'mech') : T.feed || 'port';
+  const bmep = (dz ? CU_DBMEP[B.tune] || 8.6 : (rot ? 11 * U.k : T.bmep * U.k * camK) * (boosted ? 0.88 : 1)) * exK * (FK[B.feed] || 1) / (FK[f0] || 1);
+  // (the valves and induction. Cam phasing turns a camshaft against the crank as the revs change - the inlet's opened
+  // early low down for a fuller charge, late high up to keep the top end - so the torque falls away less below its peak
+  // and a little less above it, the more with both camshafts phased; a lift varied without steps (no throttle needed:
+  // the valves meter the air) fills it better low down; intake runners switched from long to short add to the middle;
+  // a throttle at each port breathes freely at the top but loses the plenum's help low down)
+  const vv = rot ? 0 : B.vvt === 'both' ? 2 : B.vvt === 'inlet' ? 1 : 0; let loK = [1, 0.72, 0.58][vv], hiK = [1, 0.92, 0.85][vv], pkK = [1, 1.015, 1.03][vv];
+  if (B.vlift === 'cvl') { loK *= 0.8; pkK *= 1.01; } if (B.vim) { loK *= 0.82; hiK *= 0.95; } if (B.itb && !dz) { loK *= 1.08; hiK *= 0.85; pkK *= 1.02; }
+  const Tna = bmep * Leq * 7.9577 * pkK; // (N m: bar times litres over 4 pi)
   // (two valves a cylinder breathe less at high revs: the peak earlier, less left at the red line; so for the older
   // engines' carburettors and injection)
   const simple = B.cams !== 'twin' && !rot, fr0 = U.fr + ({ '70s': -0.06, '80s': -0.03, '00s': 0.01, '20s': 0.02 }[B.tech] || 0) - (simple ? 0.05 : 0);
   const rpk = (dz ? (boosted ? 0.45 : 0.58) : turbo ? U.pkT : sc ? (U.pk + U.pkT) / 2 : rot ? 0.7 : U.pk) * (simple && !dz ? 0.92 : 1) * red0;
-  const top = dz ? 0.1 : Z.top, fr = dz ? (boosted ? 0.85 : 0.88) : turbo ? 1 - (1 - fr0) * (0.85 + 0.6 * top) : fr0;
-  const lo = dz ? 0.35 : turbo ? 0.5 : rot ? 0.4 : U.lo, hi = (1 - fr) / Math.pow(red0 / rpk - 1, 2), eta = dz ? 0.9 * T.eta : T.eta;
+  // (a turbo with variable vanes on a petrol engine chokes its flow at the top: less of its boost is left there)
+  const top = dz ? 0.1 : Z.top * (turbo && B.tkind === 'vgt' ? 1.6 : 1), fr = dz ? (boosted ? 0.85 : 0.88) : turbo ? 1 - (1 - fr0) * (0.85 + 0.6 * top) : fr0;
+  const lo = (dz ? 0.35 : turbo ? 0.5 : rot ? 0.4 : U.lo) * loK, hi = (1 - fr) / Math.pow(red0 / rpk - 1, 2) * hiK, eta = dz ? 0.9 * T.eta : T.eta;
   // (the restrictor's cap on its power: about 220 kW through 34 mm at the World Rally engines' boost; a wider one lets
   // more through, less than its area would say (the boost allowed then was the limit too), and the older engines made
   // less of the air it let through)
   const Pcap = B.restr ? 220e3 * Math.pow(B.restr / 34, 1.5) * ({ '70s': 0.72, '80s': 0.8, '90s': 0.85, '00s': 1, '20s': 1.09 }[B.tech] || 1) : 0;
-  const curve = r => { const x = r / rpk; let f = x < 1 ? 1 - lo * Math.pow(1 - Math.max(x, 0.18), 2) : 1 - hi * Math.pow(x - 1, 2); f = Math.max(f, 0.3);
-    let t = Tna * f;
+  // the engine's own breathing (its torque before any boost): a peak at rk, falling away by l below and h above it
+  const base = (rk, l, h, k) => r => { const x = r / rk, f = x < 1 ? 1 - l * Math.pow(1 - Math.max(x, 0.18), 2) : 1 - h * Math.pow(x - 1, 2); return Tna * k * Math.max(f, 0.3); };
+  // (two-stage cam switching: each valve has a mild cam and a wild one beside it, and above the switch an oil-driven pin
+  // locks its rocker to the wild one - the mild cam's torque low down, the wild cam's high up, and a step between where
+  // the switch is made: where the two cross, unless it is set)
+  let nat = base(rpk, lo, hi, 1), vsw = 0;
+  if (B.vlift === 'switch') { const cL = base(rpk * 0.72, lo * 0.55, hi * 2.2, 0.97), cH = base(rpk * 1.06, lo * 1.25, hi * 0.75, 1.03); let x = 0;
+    for (let r = Math.round(0.35 * red0); r <= 0.92 * red0; r += 25) if (cH(r) >= cL(r)) { x = r; break; }
+    vsw = B.vsw ? clamp(B.vsw, 2500, red - 300) : cuR(x || 0.6 * red0, 100); nat = r => r < vsw ? cL(r) : cH(r); }
+  // (sequential twin turbos: one turbo alone low down, the second brought in as the revs rise, the boost dipping a
+  // little as its valves change over)
+  const seq = turbo && B.asp === 'biturbo' && !!B.tseq, rc = 0.55 * red0;
+  const curve = r => { let t = nat(r);
     if (turbo) t *= 1 + eta * B.boost * (1 - top * Math.pow(Math.max(0, (r - rpk) / (red0 - rpk)), 2));
     else if (sc) t *= 1 + 0.78 * eta * B.boost * smooth(600, 2600, r);
+    if (seq) t *= 1 - 0.06 * Math.exp(-Math.pow((r - rc) / (0.05 * red0), 2));
     if (Pcap) { const w = r * Math.PI / 30, P = t * w; t = t / Math.pow(1 + Math.pow(P / Pcap, 8), 1 / 8); }
     return t; };
-  const rpms = []; for (let r = 1000; r < red; r += Math.max(250, Math.round((red - 1000) / 11 / 50) * 50)) rpms.push(r); rpms.push(red);
+  let rpms = []; for (let r = 1000; r < red; r += Math.max(250, Math.round((red - 1000) / 11 / 50) * 50)) rpms.push(r); rpms.push(red);
+  if (vsw) rpms.push(vsw - 10, vsw); if (seq) rpms.push(Math.round(rc / 50) * 50); rpms = [...new Set(rpms)].filter(r => r <= red).sort((a, b) => a - b);
   const tq = rpms.map(r => [r, Math.round(curve(r))]); let tmax = 0, pmax = 0, prpm = 0, trpm = 0;
   for (let r = 1000; r <= red; r += 50) { const t = curve(r), p = t * r * Math.PI / 30; if (t > tmax) { tmax = t; trpm = r; } if (p > pmax) { pmax = p; prpm = r; } }
   // the turbo's spool (where it starts and where it is fully up, as shares of the red line) and lag: by era and size,
   // a pair of smaller ones quicker, a twin-charged engine's turbo bigger (its blower carries it low down), a diesel's
   // low and quick (a variable vane turbo from the 2000s)
+  // (its housing: a twin scroll keeps the cylinders' pulses apart on their way to the turbine, a variable-vane turbine
+  // narrows its inlet at low flow - each spools earlier and quicker; cam phasing's overlap sweeps the cylinders out and
+  // helps the turbo too; sequential twins have only the small first turbo to spin up low down)
   let spool = null, lag = 0;
-  if (turbo) { let s0 = 0.36, s1 = 0.58; if (dz) { s0 = 0.2; s1 = 0.4; } const k = (dz ? 1 : T.sp) * Z.sp * (B.asp === 'biturbo' ? 0.88 : B.asp === 'twin' ? 1.08 : 1);
-    spool = [cuR(s0 * k * red0, 50), cuR(Math.min(0.9, s1 * k) * red0, 50)]; lag = cuR3(T.lag * Z.lag * (B.asp === 'biturbo' ? 0.8 : 1) * (dz ? 0.8 : 1)); }
-  const idle = dz ? (Leq > 5 ? 550 : 750) : rot ? 1000 : Math.max(U.idle, B.tech === '70s' && B.tune === 'race' ? 1200 : 0) + (boosted && B.tune === 'race' ? -100 : 0);
-  return { tq, tmax: Math.round(tmax), trpm, pmax, prpm, red, red0, idle, spool, lag, bmep, Tna, rpk, curve };
+  if (turbo) { let s0 = 0.36, s1 = 0.58; if (dz) { s0 = 0.26; s1 = 0.5; }
+    const tk = { twinscroll: [0.9, 0.82], vgt: [0.72, 0.68] }[B.tkind] || [1, 1], vk = [1, 0.95, 0.9][vv], sq = seq ? [0.75, 0.72] : [1, 1];
+    const k = (dz ? 1 : T.sp) * Z.sp * (B.asp === 'biturbo' ? 0.88 : B.asp === 'twin' ? 1.08 : 1) * tk[0] * vk * sq[0];
+    spool = [cuR(s0 * k * red0, 50), cuR(Math.min(0.9, s1 * k) * red0, 50)]; lag = cuR3(T.lag * Z.lag * (B.asp === 'biturbo' ? 0.8 : 1) * (dz ? 0.8 : 1) * tk[1] * vk * sq[1]); }
+  // (a throttle at each port will not idle as slowly: the air past almost shut throttles is uneven)
+  const idle = dz ? (Leq > 5 ? 550 : 750) : rot ? 1000 : Math.max(U.idle, B.tech === '70s' && B.tune === 'race' ? 1200 : 0) + (boosted && B.tune === 'race' ? -100 : 0) + (B.itb && !boosted ? 100 : 0);
+  return { tq, tmax: Math.round(tmax), trpm, pmax, prpm, red, red0, idle, spool, lag, bmep, Tna, rpk, curve, vsw, rc: seq ? rc : 0 };
 }
 // the family an engine belongs to: its cylinders, how they stand, its fuel and how it is charged
 const cuFam = B => [B.layout, B.cyl, B.fuel, B.asp === 'biturbo' ? 'turbo' : B.asp].join(':');
+// the choices of its valves and induction (see cuEngine)
+const CU_TECHK = ['vvt', 'vlift', 'vsw', 'vim', 'itb', 'feed', 'tkind', 'tseq'];
 // The engine as built on its body. Where it is of the same family as the body's own engine, the model's curve takes on
 // that engine's own character (the body's engine's curve against the model's of it, at the same share of the red
 // line), and its turbo that engine's spool and lag (as the model changes them): the body's own engine rebuilt is that
@@ -7474,7 +7548,10 @@ const cuFam = B => [B.layout, B.cyl, B.fuel, B.asp === 'biturbo' ? 'turbo' : B.a
 function cuEngineOn(B) {
   const E = cuEngine(B), S0 = cuBody(B.body); if (!S0) return E; const B0 = cuBare(S0).B; if (cuFam(B) !== cuFam(B0)) return E;
   const E0 = cuEngine(B0), kx = E.red0 / E0.red0, P = [];
-  for (const [r, t] of S0.tq) { const r1 = Math.round(r * kx / 10) * 10; P.push([r1, t / E0.curve(r) * E.curve(r1), t / E0.curve(r)]); }
+  // (at the body's engine's own points; where the valves or the induction differ from its, every 250 rpm as well and
+  // either side of a cam switch, so the new shape - the switch's step, the second turbo's dip - is drawn)
+  const rs = S0.tq.map(p => p[0]); if (CU_TECHK.some(k => B[k] !== B0[k])) { for (let r = rs[0]; r < rs[rs.length - 1]; r += 250) rs.push(r); if (E.vsw) rs.push((E.vsw - 10) / kx, E.vsw / kx); if (E.rc) rs.push(E.rc / kx); }
+  for (const r of [...new Set(rs)].sort((a, b) => a - b)) { const t = engineCurve(S0, r), r1 = Math.round(r * kx / 10) * 10; P.push([r1, t / E0.curve(r) * E.curve(r1), t / E0.curve(r)]); }
   // (revved past the body's own red line: on along the model's curve with the last of the character; short of it, the
   // curve cut at the new red line)
   let last = P[P.length - 1]; for (let r = last[0] + 500; r < E.red; r += 500) P.push([r, E.curve(r) * last[2], last[2]]);
@@ -7579,6 +7656,12 @@ function cuSpec(B0, id) {
   Object.assign(S, { id, name: B.name, num: B.num, cls: S0.cls, cu: B, body: S0.id, mass: Math.round(m), wf: cuR3(wf), yawK: cuR3(clamp(I / (m * a * b), 0.6, 1.6)),
     cyl: B.cyl, litres: B.litres, tq: E.tq, tmax: E.tmax, redline: E.red, idle: E.idle, boost: B.asp === 'na' ? 'na' : B.asp === 'sc' ? 'sc' : B.asp === 'twin' ? 'twin' : 'turbo',
     epos: B.pos === 'fmid' ? 'front' : B.pos, spares: B.spare, dur: cuDurability(B) });
+  // (a diesel brakes, starts and breathes as one: see engineDrag; how quickly the air in its inlet follows the
+  // throttle - a plenum's 50 ms at 3,000 rpm, a throttle at each port at once, a lift varied without a throttle nearly
+  // so, carburettors a little slower: see the engine in stepCar)
+  if (dz) S.fuel = 'diesel'; else delete S.fuel;
+  { const mt = b => b.fuel === 'diesel' ? 0.01 : b.itb ? 0.008 : cuR3(0.05 * (b.vlift === 'cvl' ? 0.35 : 1) * (b.feed === 'carb' ? 1.3 : 1));
+    S.manT = ['itb', 'vlift', 'feed', 'fuel'].every(k => B[k] === K0[k]) && S0.manT != null ? S0.manT : mt(B); }
   // (the engine management of its era: how a turbo engine pulls off boost, its rev limiter, its anti-lag; the body's
   // own where it keeps its own engine)
   if (!E.fam || !same('tech')) Object.assign(S, { bmep: dz ? 7.5 : tk.off, lim: dz ? [0.5, 0.12] : tk.lim, alsKind: B.tech === '20s' ? 'ret' : 'air', na: 0.45 });
@@ -7681,7 +7764,12 @@ function cuWords(B, S, E) {
   const where = { front: 'front-mounted', fmid: 'front-mid-mounted', mid: 'mid-mounted', rear: 'rear-mounted' }[B.pos], dz = B.fuel === 'diesel' ? 'diesel ' : '';
   const motor = `${B.litres.toFixed(1)}-litre ${ch}${dz}${kind.replace(/^inline /, '')}, ${where}, about ${hp} hp`;
   const valves = B.layout === 'rotary' ? 'ports in the housings' : B.cams === 'pushrod' ? 'pushrods' : B.cams === 'single' ? 'single cam' + (B.layout === 'inline' ? '' : ' per bank') : 'twin cams' + (B.layout === 'inline' ? '' : ' per bank');
-  const engine = `${where.charAt(0).toUpperCase() + where.slice(1)} ${B.mount === 'trans' ? 'transverse' : 'longitudinal'} ${kind}${dz ? ' diesel' : ''}, ${valves}${B.asp === 'na' ? '' : ', ' + ch.trim()}${B.cool === 'air' ? ', air-cooled' : ''}${B.restr ? `, ${B.restr} mm intake restrictor` : ''}`;
+  // (its valves and induction, as far as they are not the plainest)
+  const tw = []; if (B.vvt !== 'none') tw.push(B.vvt === 'both' ? 'both camshafts phased' : B.cams === 'twin' ? 'inlet camshaft phased' : 'camshaft phased');
+  if (B.vlift === 'switch') tw.push('two-stage cam switching'); else if (B.vlift === 'cvl') tw.push('valve lift varied without steps'); if (B.vim) tw.push('two-length intake runners'); if (B.itb && !dz) tw.push('a throttle per cylinder');
+  tw.push({ carb: 'carburettors', mech: dz ? 'an injection pump' : 'mechanical injection', port: 'port injection', direct: dz ? 'common-rail injection' : 'direct injection' }[B.feed]);
+  const chW = B.asp === 'na' ? '' : B.asp === 'biturbo' && B.tseq ? 'sequential twin turbos' : (B.tkind === 'twinscroll' && B.asp !== 'sc' ? 'twin-scroll ' : B.tkind === 'vgt' && B.asp !== 'sc' ? 'variable-vane ' : '') + ch.trim();
+  const engine = `${where.charAt(0).toUpperCase() + where.slice(1)} ${B.mount === 'trans' ? 'transverse' : 'longitudinal'} ${kind}${dz ? ' diesel' : ''}, ${valves}${tw.length ? ', ' + tw.join(', ') : ''}${chW ? ', ' + chW : ''}${B.cool === 'air' ? ', air-cooled' : ''}${B.restr ? `, ${B.restr} mm intake restrictor` : ''}`;
   const dw = { open: 'open', viscous: 'viscous', plate: 'plate limited slip', locked: 'locked', active: 'active' };
   const drive = B.drive === 'AWD' ? `Four-wheel drive, ${Math.round(B.split * 100)}:${Math.round(100 - B.split * 100)}${B.cdiff === 'locked' ? ', no centre differential' : ''}` : B.drive === 'RWD' ? `Rear-wheel drive, ${dw[B.rdiff]}` : `Front-wheel drive, ${dw[B.fdiff]}`;
   const diffType = {}; if (S.fs > 0) diffType.f = cap1(dw[B.fdiff]); if (S.fs < 1) diffType.r = cap1(dw[B.rdiff]); if (B.drive === 'AWD') diffType.c = B.cdiff === 'locked' ? 'None: the axles turn together' : cap1(dw[B.cdiff]) + (B.hbcut ? '; the handbrake cuts the rear drive' : '');
@@ -7691,7 +7779,7 @@ function cuWords(B, S, E) {
 function cuCode(B) { const C = cuClean(B); if (!C) return ''; return 'C' + CU_V + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(CU_KEYS.map(([k]) => C[k]))))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function cuDecode(s) {
   try { if (typeof s !== 'string' || s.length > 1200) return null; const m = s.trim().match(/^C(\d+)\.([A-Za-z0-9_-]+)$/); if (!m || +m[1] !== CU_V) return null;
-    const a = JSON.parse(decodeURIComponent(escape(atob(m[2].replace(/-/g, '+').replace(/_/g, '/'))))); if (!Array.isArray(a) || a.length !== CU_KEYS.length) return null;
+    const a = JSON.parse(decodeURIComponent(escape(atob(m[2].replace(/-/g, '+').replace(/_/g, '/'))))); if (!Array.isArray(a) || a.length > CU_KEYS.length || a.length < CU_KEYS.length - CU_TECHK.length) return null; // (a code made before the valves and induction were added lacks them: they are the body's own)
     const B = {}; CU_KEYS.forEach(([k], i) => { B[k] = a[i]; }); return cuClean(B); } catch (e) { return null; }
 }
 // A quick estimate of a car's pace in a straight line on dry tarmac, for the workshop's figures: from rest, launched at
@@ -7720,7 +7808,7 @@ function cuEstimate(S) {
   return { t100, vmax: Math.min(vp, vr) * 3.6, pk, prpm };
 }
 
-const SR86_BUILD = '70FD';
+const SR86_BUILD = 'DF3B';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -11036,13 +11124,16 @@ function ckRot(v, r) {
 // for a dial face, where on its dial artwork the vertex lies (s.dial(v) -> [u, v, dial, red-line]).
 const CK_DARK = [0, 0, 0, 0];
 function ckSink(name) {
-  const s = { name, p: [], c: [], b: [], g: [], d: [], pn: [], parts: [], bone: 0, group: '', tag: '', glow: null, dial: null, panelOf: null, partPanel: null };
+  const s = { name, p: [], c: [], b: [], g: [], d: [], pn: [], parts: [], bone: 0, group: '', tag: '', unit: '', glow: null, dial: null, panelOf: null, partPanel: null };
   let part = null;
-  // tag: which fitting a part belongs to (a bumper, a mirror, a wing...), for anything that has to find it again
+  // tag: which fitting a part belongs to (a bumper, a mirror, a wing...), for anything that has to find it again; unit:
+  // a fitting made as one piece wherever its parts lie (a working vehicle's steel bumper, its brackets and lamps across
+  // its whole width: see CarDmg); group 'body': a part fixed to the body, never taken with a panel over it (a step under
+  // a door, a rail along the roof's edge)
   // pn: for each triangle, the panel that opens it belongs to (a bonnet, boot lid, tailgate or door: its index in the
   // rig's panels plus one, or 0): a triangle of the shell or the glass by where it lies (panelOf), any other part whole,
   // by where its middle lies (partPanel: a door's handle and mirror, a scoop on a bonnet, a wing on a boot lid)
-  s.begin = (kind, ref, closed, fixed) => { part = { kind, ref, closed: !!closed, fixed: !!fixed, group: s.group, tag: s.tag, start: s.p.length / 9 }; };
+  s.begin = (kind, ref, closed, fixed) => { part = { kind, ref, closed: !!closed, fixed: !!fixed, group: s.group, tag: s.tag, unit: s.unit, start: s.p.length / 9 }; };
   s.end = () => { if (part) { part.end = s.p.length / 9; if (part.end > part.start) { s.parts.push(part);
     if (s.partPanel && part.kind !== 'shell' && part.kind !== 'glass') { const k = s.partPanel(part, s); for (let t = part.start; t < part.end; t++) s.pn[t] = k; } } part = null; } };
   s.tri = (a, b, c, k, bones, ref) => {
@@ -11162,6 +11253,32 @@ function ckEars(poly) {
 // as at its foot): glass reaching up to the band's top (half a millimetre short), which there is the pillar's edge, the
 // pillar's own strip above it glass too, and staying with the body when a door opens. An outline may run outside the band: what lies outside
 // is cut away, so an edge drawn beyond the band follows the band's edge.
+// A van's tail end face with its rear door (see D.rearDoor): the face (poly, [x, y] round the section, at z) cut into
+// the pieces either side of the door, under it and the door itself (each the face clipped to its strip, then
+// triangulated), the door a slab th thick standing in its opening 4 mm clear of it all round, drawn as the tailgate's
+// panel (setPanel(n) while it is drawn, null after), and the opening's jambs reaching in from the face. RD.top is set
+// to the face's height over the door
+function ckDoorCap(s, poly, z, RD, k, n, setPanel) {
+  const clip = (P, f) => { const out = []; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], fa = f(a), fb = f(b);
+    if (fa >= 0) out.push(a); if ((fa >= 0) !== (fb >= 0)) { const t = fa / (fa - fb); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); } } return out; };
+  const face = (P, zz, back) => { if (P.length < 3) return; let Q = P.filter((p, i) => Math.hypot(p[0] - P[(i + 1) % P.length][0], p[1] - P[(i + 1) % P.length][1]) > 1e-6); if (Q.length < 3) return;
+    if (ckArea2(Q) < 0) Q = Q.slice().reverse(); const T = THREE.ShapeUtils.triangulateShape(Q.map(p => new THREE.Vector2(p[0], p[1])), []);
+    for (const [a, b, c] of T) { const A = [Q[a][0], Q[a][1], zz], B = [Q[b][0], Q[b][1], zz], Cc = [Q[c][0], Q[c][1], zz], up = (B[0] - A[0]) * (Cc[1] - A[1]) - (B[1] - A[1]) * (Cc[0] - A[0]) > 0; // (wound to face back, or forward)
+      if (up === !!back) s.tri(A, Cc, B, k); else s.tri(A, B, Cc, k); } };
+  const x = RD.x, y0 = RD.y0, g = 0.004; RD.top = Math.max(...clip(poly, p => x - Math.abs(p[0])).map(p => p[1]));
+  // the face round the opening (facing back: wound the other way about the section, as the fan was)
+  face(clip(poly, p => -x - p[0]), z, true); face(clip(poly, p => p[0] - x), z, true); face(clip(clip(clip(poly, p => x - p[0]), p => p[0] + x), p => y0 - p[1]), z, true);
+  // the jambs: the opening's sides and sill, 7 cm deep
+  const ytop = xx => Math.max(...clip(poly, p => 0.002 - Math.abs(p[0] - xx)).map(p => p[1]).concat([y0]));
+  for (const sd of [1, -1]) { const yt = ytop(sd * x); s.quad([sd * x, y0, z], [sd * x, yt, z], [sd * x, yt, z + 0.07], [sd * x, y0, z + 0.07], k, null, [0, (y0 + yt) / 2, z + 0.035]); }
+  s.quad([-x, y0, z], [x, y0, z], [x, y0, z + 0.07], [-x, y0, z + 0.07], k, null, [0, y0 + 1, z + 0.035]);
+  // the door: its outer face flush with the end face, its inner face th in, its edges
+  setPanel(n); const D = clip(clip(clip(poly, p => x - g - p[0]), p => p[0] + x - g), p => p[1] - y0 - g);
+  face(D, z, true); face(D, z + RD.th, false);
+  for (let i = 0; i < D.length; i++) { const a = D[i], b = D[(i + 1) % D.length], onCut = (Math.abs(Math.abs(a[0]) - (x - g)) < 1e-6 && Math.abs(Math.abs(b[0]) - (x - g)) < 1e-6 && Math.sign(a[0]) === Math.sign(b[0])) || (Math.abs(a[1] - y0 - g) < 1e-6 && Math.abs(b[1] - y0 - g) < 1e-6);
+    if (onCut) s.quad([a[0], a[1], z], [b[0], b[1], z], [b[0], b[1], z + RD.th], [a[0], a[1], z + RD.th], k, null, [0, (y0 + RD.top) / 2, z + RD.th / 2]); }
+  setPanel(null);
+}
 // The outline through rounded corners: [[z, y], ...]
 function ckWinOutline(pts) {
   const out = [], N = pts.length, seg = r => r < 0.012 ? 2 : r < 0.03 ? 3 : 5;
@@ -11854,20 +11971,29 @@ class RallyCarKit {
     const secs = []; for (let i = 0; i < ribs.length - 1; i++) secs.push({ k: kindOf(ribs[i], ribs[i + 1]), A: ribs[i], B: ribs[i + 1] });
     const wsSec = secs.find(q => q.k === 'ws'), rwSec = secs.slice().reverse().find(q => q.k === 'rw'), zNose = ribs[0].z, zTail = ribs[ribs.length - 1].z;
     const panels = [], doors = [], angYZ = (y, z) => Math.atan2(y, z); let hoodP = null, rearP = null;
+    // (D.rearDoor { x, y0 }: a van's tailgate reaching down to its bumper - the tail's end face is cut away between x
+    // either side of the middle from y0 up, and the door that fills the opening goes with the glass above it as the
+    // tailgate; top: the end face's height there)
+    const RD = D.rearDoor && D.rearLid === 'tailgate' ? { x: D.rearDoor.x, y0: D.rearDoor.y0, th: D.rearDoor.th || 0.045, top: 0 } : null;
     if (wsSec) { const zH = wsSec.A.z, yH = topAt(zH) - 0.012, zL = zNose - 0.02, yL = topAt(zL), phiH = angYZ(yL - yH, zL - zH), phiW = angYZ(wsSec.B.r - wsSec.A.b, wsSec.B.z - wsSec.A.z);
       hoodP = { id: 'hood', kind: 'bonnet', engine: epos === 'front', z0: zH, zEnd: zNose, hinge: { p: [0, yH, zH], a: [-1, 0, 0] }, stay: 1.45, max: Math.max(1.6, phiW - phiH - 0.08), latch: [0, yL, zL] };
       panels.push(hoodP); hoodP.n = panels.length; }
     if (rwSec && D.rearLid !== 'none') { const zG = rwSec.B.z, hatch = D.rearLid ? D.rearLid === 'tailgate' : zG - zTail < 0.45, zL = zTail + 0.02, yL = topAt(zL);
       if (hatch) { const zH = rwSec.A.z, yH = topAt(zH) - 0.01, phi = angYZ(yL - yH, zL - zH);
-        rearP = { id: 'tail', kind: 'tailgate', engine: epos !== 'front', hatch: true, z0: zH, zEnd: zTail, hinge: { p: [0, yH, zH], a: [1, 0, 0] }, stay: 1.65, max: phi + 2 * Math.PI - 0.12, latch: [0, yL, zL] }; }
+        rearP = { id: 'tail', kind: 'tailgate', engine: epos !== 'front', hatch: true, z0: zH, zEnd: zTail, hinge: { p: [0, yH, zH], a: [1, 0, 0] }, stay: 1.65, max: phi + 2 * Math.PI - 0.12, latch: RD ? [0, RD.y0 + 0.05, zTail] : [0, yL, zL] }; }
       else { const zH = zG, yH = topAt(zH) - 0.01, phi = angYZ(yL - yH, zL - zH), phiG = angYZ(rwSec.A.r - rwSec.B.b, rwSec.A.z - rwSec.B.z);
         rearP = { id: 'boot', kind: epos !== 'front' ? 'engine cover' : 'boot lid', engine: epos !== 'front', hatch: false, z0: zH, zEnd: zTail, hinge: { p: [0, yH, zH], a: [1, 0, 0] }, stay: 1.4, max: Math.max(1.5, phi + 2 * Math.PI - phiG - 0.08), latch: [0, yL, zL] }; }
       panels.push(rearP); rearP.n = panels.length; }
     { const lines = (D.shut || []).map(v => (Array.isArray(v) ? v[0] : v) + zOff), pil0 = ribs.find(r => r.p), dz = [];
-      if (lines.length >= 2) { dz.push([lines[0], lines[1]]); if (lines.length >= 3) { const tight = lines[1] - lines[2] < 0.2, rest = lines.slice(tight ? 3 : 2); if (rest.length) dz.push([tight ? lines[2] : lines[1] - 0.1, Math.min(...rest)]); } }
+      // (three lines: a front door, the line it shares with the rear door, and the rear door's back edge; four: each door's
+      // own edges, the pillar between them however wide)
+      if (lines.length >= 2) { dz.push([lines[0], lines[1]]); if (lines.length >= 3) { const tight = lines.length >= 4 || lines[1] - lines[2] < 0.2, rest = lines.slice(tight ? 3 : 2); if (rest.length) dz.push([tight ? lines[2] : lines[1] - 0.1, Math.min(...rest)]); } }
       else if (wsSec && pil0) dz.push([Math.min(wsSec.A.z - 0.04, axles[0][0] - Ra - 0.04), pil0.z]);
       dz.forEach(([zF, zR], k) => mir(sd => { const PF = lowerAt(zF).P, PR = lowerAt(zR).P, xF = Math.max(PF[2][0], PF[3][0], PF[6][0]), xR = Math.max(PR[2][0], PR[3][0], PR[6][0]);
         const d = { id: 'door' + (k ? 'R' : 'F') + (sd > 0 ? 'L' : 'R'), kind: k ? 'rear door' : 'door', sd, zF, zR, hinge: { p: [sd * (xF - 0.02), (PF[2][1] + PF[6][1]) / 2, zF - 0.03], a: [0, -sd, 0] }, stay: 1.2, max: 1.9, latch: [sd * xR, (PR[2][1] + PR[6][1]) / 2, zR + 0.02] };
+        // (D.slideDoor { travel, pop }: a van's rear doors slide back along tracks on its side rather than swinging on
+        // hinges: open, each stands out pop from the side and has run back travel; see CarDmg's sliding doors)
+        if (k && D.slideDoor) { const SD = D.slideDoor; Object.assign(d, { kind: 'sliding door', slide: { a: [0, 0, -1], out: [sd, 0, 0], pop: SD.pop || 0.065, h: Math.max(0.5, profileAt(zF)[8][1] - PF[2][1]) }, stay: SD.travel || 0.9 * (zF - zR), max: SD.travel || 0.9 * (zF - zR) }); }
         panels.push(d); d.n = panels.length; doors.push(d); })); }
     // which panel a triangle of the shell or glass belongs to (end caps never), and a whole part
     const inDoor = (d, z) => z < d.zF - 0.003 && z > d.zR + 0.003;
@@ -11883,14 +12009,15 @@ class RallyCarKit {
       return 0;
     };
     const partPanel = (part, s) => {
-      if (part.group === 'bay' || part.kind === 'shut' || part.kind === 'flare' || part.kind === 'liner') return 0;
+      if (part.group === 'bay' || part.group === 'body' || part.kind === 'shut' || part.kind === 'flare' || part.kind === 'liner') return 0;
       let x = 0, y = 0, z = 0, m = 0, z0 = 9, z1 = -9; for (let i = part.start * 9; i < part.end * 9; i += 3) { x += s.p[i]; y += s.p[i + 1]; z += s.p[i + 2]; m++; z0 = Math.min(z0, s.p[i + 2]); z1 = Math.max(z1, s.p[i + 2]); }
       for (let t = part.start * 3; t < part.end * 3; t++) if (s.b[t]) return 0; // (wheels, wipers, the steering wheel and the needles keep to their bones)
       x /= m; y /= m; z /= m; const ax = Math.abs(x), P = profileAt(z);
       if (s === cab) { if (part.tag !== 'hold' || ax < 0.5) return 0; for (const d of doors) if (Math.sign(x) === d.sd && inDoor(d, z)) return d.n; return 0; } // (a door card)
       for (const d of doors) if (Math.sign(x) === d.sd && inDoor(d, z) && y > P[2][1] && y < P[8][1] + 0.3 && ax > P[8][0] - 0.02 && z0 > d.zR - 0.03 && z1 < d.zF + 0.03) return d.n; // (not what runs on past it: a sill's skirt)
       if (hoodP && z > hoodP.z0 + 0.01 && ax < P[9][0] && y > topAtX(z, x) - 0.04) return hoodP.n;
-      if (rearP && z < rearP.z0 - 0.01 && ax < (rearP.hatch ? P[8][0] : P[9][0]) && y > topAtX(z, x) - 0.04) return rearP.n;
+      if (rearP && RD && z < zTail + 0.08 && z > zTail - 0.06 && ax < RD.x && y > RD.y0 && y < RD.top + 0.05) return rearP.n; // (lettering, a handle or a plate on a van's rear door)
+      if (rearP && z < rearP.z0 - 0.01 && ax < (rearP.hatch ? P[8][0] : P[9][0]) && y > topAtX(z, x) - 0.04 && !(RD && y > topAt(rearP.z0) + 0.06)) return rearP.n; // (not what stands over a van's tailgate on its roof)
       return 0;
     };
     body.panelOf = glass.panelOf = triPanel; body.partPanel = trim.partPanel = glass.partPanel = cab.partPanel = partPanel;
@@ -11977,6 +12104,9 @@ class RallyCarKit {
     // (how far up the side glass's band the split stands: along the band by z, or where the straight line D.cLineY crosses it)
     // (at the line's two ends the split sits exactly on the band's top and foot, so the sections either side meet it)
     const vAt = (P, z) => { const u = cv(z); if (!CY || u <= 1e-6 || u >= 1 - 1e-6) return u; const y = ckLerp(CY[1], CY[0], u), a = P[7][1], b = P[8][1]; return Math.max(0, Math.min(1, (y - a) / ((b - a) || 1))); };
+    // (D.roofOpen [zFront, zRear]: the roof cut away between those ribs inside its edges, open into a high roof drawn
+    // over it by the design's own part, so the room under it reaches up into it)
+    const RO = D.roofOpen ? D.roofOpen.map(v => v + zOff) : null, openRoof = (k, zA, zB) => !!RO && k === 'roof' && zA <= RO[0] + 1e-6 && zB >= RO[1] - 1e-6;
     body.begin('shell', null, true, true); glass.begin('glass', null, false, true);
     // (with D.visorCrown a quad twisted far out of square, as where a visor's glass edge sweeps in to the centre stripe at
     // the cowl, is split along its shorter diagonal: the long one would leave a sliver standing steeply across the deck)
@@ -12030,15 +12160,17 @@ class RallyCarKit {
         else if (c === 8 && k === 'ws' && D.pillarFace === 'black' && (visorZ == null || zA <= visorZ + 1e-6)) kc = C.black; // (the pillars' black face)
         else if (c === 8 && k === 'ws' && wrapScreen && visorZ != null && zA <= visorZ + 1e-6) sink = glass; // (a windscreen wrapping round: see ckWindows)
         const kk = sink === glass ? K0 : kc;
+        if (c === 9 && openRoof(k, zA, zB)) continue; // (the roof cut away under a high roof: see D.roofOpen)
         sq(sink, pA(c, 1), pB(c, 1), pB(c + 1, 1), pA(c + 1, 1), kk); sq(sink, pA(c, -1), pA(c + 1, -1), pB(c + 1, -1), pB(c, -1), kk);
       }
       { const fl = (T, P, z) => [[-P[1][0], T.up], [-T.x, T.up], [-T.x, T.lo], [T.x, T.lo], [T.x, T.up], [P[1][0], T.up]].map(q => [q[0], q[1], z]); // the floor across, and its channel
         const FA = fl(tun[i], PA, zA), FB = fl(tun[i + 1], PB, zB); for (let j = 0; j < 5; j++) body.quad(FA[j], FB[j], FB[j + 1], FA[j + 1], C.dark); }
       const topSink = k === 'ws' || k === 'rw' ? glass : body; // centre stripe or glass, straight across
-      topSink.quad(pA(10, 1), pB(10, 1), pB(10, -1), pA(10, -1), topSink === glass ? K0 : k === 'roof' ? C.roof : C.hood);
+      if (!openRoof(k, zA, zB)) topSink.quad(pA(10, 1), pB(10, 1), pB(10, -1), pA(10, -1), topSink === glass ? K0 : k === 'roof' ? C.roof : C.hood);
     }
     for (const [i, front] of [[0, true], [st.length - 1, false]]) { // end caps, fanned from the centre line
       const Pr = prof[i].slice(1, 11), z = st[i], T = tun[i], poly = Pr.concat(Pr.slice().reverse().map(p => [-p[0], p[1]]), [[-T.x, T.up], [-T.x, T.lo], [T.x, T.lo], [T.x, T.up]]), c0 = [0, (Pr[0][1] + Pr[9][1]) / 2, z];
+      if (!front && RD && rearP) { ckDoorCap(body, poly, z, RD, C.base, rearP.n, n => { bandPanel = n; }); continue; }
       for (let k = 0; k < poly.length; k++) { const p = [poly[k][0], poly[k][1], z], q = [poly[(k + 1) % poly.length][0], poly[(k + 1) % poly.length][1], z]; if (front) body.tri(c0, p, q, C.base); else body.tri(c0, q, p, C.base); }
     }
     body.end(); glass.end();
@@ -12237,7 +12369,7 @@ class RallyCarKit {
     const occupyF = (x, y, w, h, z) => occupy(busyF, x, y, w, h, z), occupyR = (x, y, w, h, z) => occupy(busyR, x, y, w, h, z);
     const ctx = { D, body, trim, glass, C, K0, mir, zOff, zf, zr, front, rear, ribs, axles, Ra, SH_IN, topAt, topAtX, slopeAt, lowAt, lowerAt, sideX, profileAt, roofAt, roofFront, roofRear, wsInfo, rwInfo, faceF, faceR, bumpF, bumpR, bodyBumpers, deckPose, shellTop, wingFrom, lamp, recess, addLamp, occupyF, occupyR, fogSpots, flares, headF };
     // (a fitting marked night, such as a lamp pod, is fitted only for a stage run in the dark: options.night)
-    for (const [kind, o] of D.aero) { const part = CK_PARTS[kind]; if (!part) throw new Error(`${this.label}: unknown part '${kind}' on ${id}`); if (o && o.night && !options.night) continue; body.tag = trim.tag = glass.tag = kind; part(ctx, o || {}); }
+    for (const [kind, o] of D.aero) { const part = CK_PARTS[kind]; if (!part) throw new Error(`${this.label}: unknown part '${kind}' on ${id}`); if (o && o.night && !options.night) continue; body.tag = trim.tag = glass.tag = kind; part(ctx, o || {}); body.unit = trim.unit = glass.unit = body.group = trim.group = glass.group = ''; }
     body.tag = trim.tag = glass.tag = '';
     // ---- bumper lamps: front fog lamps, the rear fog and reversing lamps ----
     // A pair of lenses on a bumper face, mirrored across the car, at the first spot clear (by 2 cm) of everything standing
@@ -12813,7 +12945,7 @@ class RallyCarKit {
     // lid), not only the parts of it whose middles lie over the panel
     { const sinks = [body, trim, glass], mid = (s, p) => { let x = 0, y = 0, z = 0, n = 0; for (let i = p.start * 9; i < p.end * 9; i += 3) { x += s.p[i]; y += s.p[i + 1]; z += s.p[i + 2]; n++; } return [x / n, y / n, z / n]; };
       const on = []; for (const s of sinks) for (const p of s.parts) if (p.tag && !/^(hold|cage|crew|flap)$/.test(p.tag) && s.pn[p.start]) on.push({ tag: p.tag, n: s.pn[p.start], c: mid(s, p) });
-      for (const s of sinks) for (const p of s.parts) { if (!p.tag || s.pn[p.start] || p.group === 'bay') continue; const c = mid(s, p), q = on.find(o => o.tag === p.tag && Math.hypot(o.c[0] - c[0], o.c[1] - c[1], o.c[2] - c[2]) < 1.2);
+      for (const s of sinks) for (const p of s.parts) { if (!p.tag || s.pn[p.start] || p.group === 'bay' || p.group === 'body') continue; const c = mid(s, p), q = on.find(o => o.tag === p.tag && Math.hypot(o.c[0] - c[0], o.c[1] - c[1], o.c[2] - c[2]) < 1.2);
         if (q) for (let t = p.start; t < p.end; t++) s.pn[t] = q.n; } }
     // ---- assemble: four draw calls ----
     const geo = (s, skinned, colours) => {
@@ -16364,6 +16496,11 @@ const spLamp = (c, kind, p, n, w, h, k, o) => f2Lamp(c, kind, p, n, w, h, k, Obj
 // (places along it given as d, metres behind the front axle: the bogie's axles at 4.22 and 5.44, the cab from the
 // windscreen at 0.84 to its back wall at 1.88, the platform from 1.95 to its tail at 7.32)
 CK_PARTS.spTruck = (c, o) => {
+  // (its parts untagged, so that only what is mounted on a door or the bonnet goes with it, and the fittings that break
+  // away tagged as such: each bumper one steel unit (the front beam with its shackles and step; the rear cross member
+  // with its lamp brackets, lamps and pintle), the mirrors on their tube frames (fixed to the cab's front corners, not
+  // to the doors), the exhaust stack, the aerial, the mud flaps)
+  c.body.tag = c.trim.tag = c.glass.tag = '';
   const { body, trim, C, K0, mir } = c, fa = c.axles[0][0], A = d => fa - d, B = C.base, dk = spCol('#2b2e27'), ol = spCol('#3e4834'), st = spCol('#5c6056'), red = spCol('#a8261f'), alu = spCol('#9a9d95'), yel = spCol('#d4a020');
   const wht = spCol('#d8d9d2'), gry = spCol('#8a8e86'), can = spCol('#46505a'), lol = spCol('#56614a');
   // the frame's rails, nose to tail, and its cross members
@@ -16373,10 +16510,12 @@ CK_PARTS.spTruck = (c, o) => {
   mir(sd => { ckBox(trim, [sd * 0.47, 0.72, A(0)], [0.08, 0.09, 1.3], K0); ckBox(trim, [sd * 0.47, 0.86, A(4.83)], [0.1, 0.12, 1.2], K0); ckCyl(trim, [sd * 0.38, 0.8, A(4.83)], [sd * 0.62, 0.8, A(4.83)], 0.08, K0, 8, true); });
   // the bumper: a deep steel beam across the nose at the height of the tyres' tops, a lifting shackle hanging on its top
   // front edge each side, a step hanging under its right end
+  body.tag = trim.tag = body.unit = trim.unit = 'bumperF';
   ckBox(body, [0, 1.02, A(-0.9)], [2.3, 0.23, 0.14], B);
   mir(sd => { ckBox(trim, [sd * 0.4, 1.15, A(-0.95)], [0.06, 0.04, 0.06], K0); const P = [];
     for (let i = 0; i <= 12; i++) { const a = i / 12 * Math.PI * 2; P.push([sd * 0.4 + Math.sin(a) * 0.05, 1.085 + Math.cos(a) * 0.055, A(-0.985)]); } spBar(trim, P, 0.013, K0, 5); });
   for (const x of [-0.37, -0.53]) ckCyl(trim, [x, 0.905, A(-0.92)], [x, 0.56, A(-0.94)], 0.014, K0, 5, false); ckCyl(trim, [-0.37, 0.56, A(-0.94)], [-0.53, 0.56, A(-0.94)], 0.016, K0, 5, false);
+  body.tag = trim.tag = body.unit = trim.unit = '';
   // the grille pressed in the bonnet's flat face: four rows of long slots over the radiator's core in its middle, a pair
   // of short ones over them, two short ones each side above a round lamp, raised ribs between
   { const gz = A(-0.727);
@@ -16407,9 +16546,11 @@ CK_PARTS.spTruck = (c, o) => {
   ckBox(body, [0.8, 0.82, A(1.2)], [0.3, 0.3, 0.42], ol);
   ckCyl(body, [-0.8, 0.82, A(1.0)], [-0.8, 0.82, A(1.8)], 0.21, ol, 10, true);
   // the mirrors: tall heads on frames of tube out from the cab's front corners
-  mir(sd => { const z = A(0.93), xh = sd * 1.19;
+  body.group = trim.group = 'body';
+  mir(sd => { const z = A(0.93), xh = sd * 1.19; body.tag = trim.tag = sd > 0 ? 'mirrorL' : 'mirrorR';
     ckCyl(trim, [sd * 0.8, 2.2, A(0.89)], [xh, 2.12, z], 0.014, K0, 5, false); ckCyl(trim, [sd * 0.8, 1.84, A(0.87)], [xh, 1.78, z], 0.014, K0, 5, false); ckCyl(trim, [sd * 0.8, 2.2, A(0.89)], [xh, 1.78, z], 0.011, K0, 5, false);
     ckBox(body, [xh, 1.95, z], [0.15, 0.4, 0.04], dk); trim.begin('panel', [xh, 1.95, z + 1], false); trim.quad([xh - sd * 0.065, 1.77, z - 0.021], [xh + sd * 0.065, 1.77, z - 0.021], [xh + sd * 0.065, 2.13, z - 0.021], [xh - sd * 0.065, 2.13, z - 0.021], K0); trim.end(); });
+  body.tag = trim.tag = ''; body.group = trim.group = '';
   // the canvas top over the cab (slate grey), its edges hanging down over the cab's top all round
   ckBox(body, [0, 2.285, A(1.39)], [1.66, 0.07, 1.06], can);
   mir(sd => ckBox(body, [sd * 0.815, 2.2, A(1.39)], [0.03, 0.12, 1.06], can)); ckBox(body, [0, 2.2, A(1.915)], [1.66, 0.12, 0.03], can);
@@ -16420,8 +16561,8 @@ CK_PARTS.spTruck = (c, o) => {
   for (const x of [-0.446, 0.224]) ckBox(trim, [x, 2.225, A(0.85)], [0.06, 0.05, 0.05], K0);
   ckCyl(body, [-0.86, 1.69, A(-0.6)], [-0.86, 1.69, A(0.22)], 0.22, ol, 14, true); for (const d of [-0.56, -0.19, 0.18]) ckCyl(trim, [-0.86, 1.69, A(d - 0.012)], [-0.86, 1.69, A(d + 0.012)], 0.226, K0, 14, true);
   ckCyl(body, [-0.86, 1.88, A(0.06)], [-0.86, 1.99, A(0.06)], 0.06, ol, 8, false); ckCyl(trim, [-0.86, 1.99, A(0.06)], [-0.86, 2.04, A(0.06)], 0.11, K0, 10, true);
-  spBar(trim, [[-0.93, 1.5, A(0.75)], [-0.93, 2.26, A(0.75)], [-0.93, 2.33, A(0.78)], [-0.93, 2.37, A(0.86)]], 0.06, K0, 8);
-  for (const y of [1.85, 2.12]) ckCyl(trim, [-0.93, y, A(0.75)], [-0.8, y, A(0.85)], 0.014, K0, 4, false);
+  trim.tag = 'exhaust'; spBar(trim, [[-0.93, 1.5, A(0.75)], [-0.93, 2.26, A(0.75)], [-0.93, 2.33, A(0.78)], [-0.93, 2.37, A(0.86)]], 0.06, K0, 8);
+  for (const y of [1.85, 2.12]) ckCyl(trim, [-0.93, y, A(0.75)], [-0.8, y, A(0.85)], 0.014, K0, 4, false); trim.tag = '';
   // the platform: its deck 1.56 m up over lockers either side, these closed by tall panels in three lengths each side
   // (a latch rod along each with its handle, hinged at their feet to fold down and stand on at work), a beam with its
   // bolts along the deck's edge; the lockers' doors across the back
@@ -16487,7 +16628,7 @@ CK_PARTS.spTruck = (c, o) => {
       spFrame(trim, -1.15, -0.15, DY, mt, A(m0), A(m1), 0.02, K0); spFrame(trim, -1.15, -0.15, mt, mt + 0.15, A(m0), A(m1), 0.016, K0, true);
       ckBox(body, [-0.85, mt + 0.06, A(6.2)], [0.42, 0.14, 0.5], dk); ckBox(body, [-0.4, mt + 0.05, A(6.75)], [0.36, 0.12, 0.42], spCol('#3f7f8f')); } }
   // a tall aerial on the deck's front left corner
-  ckCyl(trim, [1.12, DY, A(2.0)], [1.12, 3.6, A(2.0)], 0.008, K0, 3, false); ckBox(trim, [1.12, DY + 0.04, A(2.0)], [0.06, 0.08, 0.06], K0);
+  trim.tag = 'antenna'; ckCyl(trim, [1.12, DY, A(2.0)], [1.12, 3.6, A(2.0)], 0.008, K0, 3, false); ckBox(trim, [1.12, DY + 0.04, A(2.0)], [0.06, 0.08, 0.06], K0); trim.tag = '';
   // the spray bar low across the platform's underside behind the bogie on its brackets, its six nozzles spraying down and
   // back, the two pipes down to it with their couplings; the rear cross member under the lockers' doors, its lamps (three
   // round ones each side on brackets: red outside, amber, then white), small red markers at the tail's top corners, the
@@ -16497,18 +16638,25 @@ CK_PARTS.spTruck = (c, o) => {
   for (const x of [-0.95, -0.57, -0.19, 0.19, 0.57, 0.95]) ckCyl(trim, [x, 0.54, A(sb)], [x, 0.46, A(sb + 0.05)], 0.022, K0, 6, true);
   mir(sd => { spBar(trim, [[sd * 0.3, 1.04, A(sb - 0.16)], [sd * 0.3, 0.9, A(sb - 0.04)], [sd * 0.3, 0.58, A(sb - 0.01)]], 0.028, K0, 6); ckBox(body, [sd * 0.3, 0.8, A(sb - 0.06)], [0.18, 0.26, 0.02], ol);
     ckCyl(body, [sd * 0.3, 0.72, A(sb - 0.025)], [sd * 0.3, 0.61, A(sb - 0.015)], 0.05, yel, 8, true); ckBox(trim, [sd * 0.72, 0.77, A(sb - 0.04)], [0.04, 0.44, 0.04], K0);
-    ckBox(trim, [sd * 0.9, 0.66, A(6.05)], [0.42, 0.56, 0.012], K0); });
-  ckBox(body, [0, 0.9, A(d1 - 0.03)], [1.5, 0.16, 0.08], B); ckBox(trim, [0, 0.76, A(d1 + 0.04)], [0.12, 0.1, 0.1], K0);
-  mir(sd => { ckBox(body, [sd * 0.97, 0.9, A(d1 - 0.02)], [0.5, 0.17, 0.07], B);
+    trim.tag = 'flap'; ckBox(trim, [sd * 0.9, 0.66, A(6.05)], [0.42, 0.56, 0.012], K0); trim.tag = ''; });
+  const rearBumper = on => { body.tag = trim.tag = c.glass.tag = body.unit = trim.unit = c.glass.unit = on ? 'bumperR' : ''; };
+  rearBumper(true); ckBox(body, [0, 0.9, A(d1 - 0.03)], [1.5, 0.16, 0.08], B); ckBox(trim, [0, 0.76, A(d1 + 0.04)], [0.12, 0.1, 0.1], K0);
+  mir(sd => { rearBumper(true); ckBox(body, [sd * 0.97, 0.9, A(d1 - 0.02)], [0.5, 0.17, 0.07], B);
     spLamp(c, 'tail', [sd * 1.12, 0.9, A(d1 + 0.016)], [0, 0, -1], 0, 0, C.tail, { round: true, r: 0.062, depth: 0.03, rim: 0.012 });
     spLamp(c, 'none', [sd * 0.97, 0.9, A(d1 + 0.016)], [0, 0, -1], 0, 0, spCol('#d89a2a'), { round: true, r: 0.062, depth: 0.03, rim: 0.012, rec: { face: 'tamb' } });
-    spLamp(c, 'rev', [sd * 0.82, 0.9, A(d1 + 0.016)], [0, 0, -1], 0, 0, C.clear, { round: true, r: 0.058, depth: 0.03, rim: 0.012, rec: { face: 'rev' } });
+    spLamp(c, 'rev', [sd * 0.82, 0.9, A(d1 + 0.016)], [0, 0, -1], 0, 0, C.clear, { round: true, r: 0.058, depth: 0.03, rim: 0.012, rec: { face: 'rev' } }); rearBumper(false);
     spLamp(c, 'none', [sd * 1.13, DY - 0.1, A(d1 + 0.005)], [0, 0, -1], 0, 0, spCol('#b8221a'), { round: true, r: 0.03, depth: 0.02, rim: 0.008 }); });
 };
 
 // ---- the tactical vehicle: its grille, lamps and bumper, the chassis under the box, the mirrors and steps, the roof
 // gear (a rail round the roof, a radome, a sensor head, a mast and aerials, equipment boxes), the ladder at the back ----
 CK_PARTS.spTactical = (c, o) => {
+  // (its parts untagged, so that only what is mounted on a door or the bonnet goes with it, and the fittings that break
+  // away tagged as such: each bumper one steel unit (the front beam with its shackles; the rear one with its lamps,
+  // pintle and shackles), the mirrors on their arms from the front doors, the exhaust pipe, the aerials, and the gear
+  // strapped or bolted on the roof (the stowage bins and boxes, the stand-off sensor on its pedestal). The steps under
+  // the doors and the rail round the roof are fixed to the body: no door takes them with it)
+  c.body.tag = c.trim.tag = c.glass.tag = '';
   const { body, trim, C, K0, mir } = c, Z = z => z + c.zOff, B = C.base, ol = spCol('#3c4630'), dk = spCol('#26281f'), can = spCol('#55703f'), tan = spCol('#94815a'), web = spCol('#4b4a3c');
   // the grille: bars across a dark opening in the nose, the headlamps and indicators either side
   ckBox(trim, [0, 1.02, Z(2.578)], [1.04, 0.32, 0.02], K0);
@@ -16517,17 +16665,20 @@ CK_PARTS.spTactical = (c, o) => {
     spLamp(c, 'none', [sd * 0.88, 1.04, Z(2.583)], [0, 0, 1], 0, 0, spCol('#d08a2a'), { round: true, r: 0.042, depth: 0.02, rim: 0.01, rec: { face: 'tamb' } });
     spLamp(c, 'none', [sd * 0.88, 0.93, Z(2.583)], [0, 0, 1], 0, 0, spCol('#e9e6da'), { round: true, r: 0.025, depth: 0.02, rim: 0.008, rec: { face: 'rev' } }); });
   // the bumper, its shackles and the skid plate under the nose
+  body.tag = trim.tag = body.unit = trim.unit = 'bumperF';
   ckBox(body, [0, 0.72, Z(2.615)], [1.96, 0.2, 0.14], B);
   mir(sd => { ckBox(trim, [sd * 0.58, 0.64, Z(2.695)], [0.05, 0.1, 0.06], K0); ckCyl(trim, [sd * 0.62, 0.59, Z(2.715)], [sd * 0.54, 0.59, Z(2.715)], 0.02, K0, 6, true); });
+  body.tag = trim.tag = body.unit = trim.unit = '';
   ckBox(trim, [0, 0.5, Z(2.17)], [1.1, 0.04, 0.8], K0);
   // the chassis under the box: its frame, the differentials and the arms out to the wheels
   ckBox(trim, [0, 0.53, Z(-0.33)], [1.0, 0.18, 5.5], K0);
   for (const z of [1.9625, -1.9625]) { ckBox(trim, [0, 0.46, Z(z)], [0.36, 0.22, 0.32], K0); mir(sd => { ckCyl(trim, [sd * 0.2, 0.47, Z(z + 0.12)], [sd * 0.78, 0.47, Z(z + 0.05)], 0.035, K0, 5, false); ckCyl(trim, [sd * 0.2, 0.6, Z(z - 0.1)], [sd * 0.75, 0.62, Z(z - 0.04)], 0.03, K0, 5, false); }); }
   // the mirrors on arms from the doors, the steps under the doors; a vent high on the right side at the back; the red
   // markers low at the back of each side
-  mir(sd => { const z = Z(1.135); ckCyl(trim, [sd * 1.04, 1.7, z], [sd * 1.25, 1.79, z + 0.02], 0.013, K0, 5, false); ckCyl(trim, [sd * 1.04, 1.95, z], [sd * 1.25, 1.95, z + 0.02], 0.013, K0, 5, false);
+  mir(sd => { const z = Z(1.135); body.tag = trim.tag = sd > 0 ? 'mirrorL' : 'mirrorR';
+    ckCyl(trim, [sd * 1.04, 1.7, z], [sd * 1.25, 1.79, z + 0.02], 0.013, K0, 5, false); ckCyl(trim, [sd * 1.04, 1.95, z], [sd * 1.25, 1.95, z + 0.02], 0.013, K0, 5, false);
     ckBox(body, [sd * 1.29, 1.86, z + 0.02], [0.13, 0.27, 0.05], dk); trim.begin('panel', [sd * 1.29, 1.86, z + 1], false); trim.quad([sd * 1.235, 1.74, z - 0.006], [sd * 1.345, 1.74, z - 0.006], [sd * 1.345, 1.98, z - 0.006], [sd * 1.235, 1.98, z - 0.006], K0); trim.end();
-    for (const zz of [0.62, -0.68]) ckBox(body, [sd * 1.08, 0.68, Z(zz)], [0.12, 0.035, 0.5], B);
+    body.tag = trim.tag = ''; body.group = 'body'; for (const zz of [0.62, -0.68]) ckBox(body, [sd * 1.08, 0.68, Z(zz)], [0.12, 0.035, 0.5], B); body.group = '';
     if (sd < 0) { ckBox(trim, [sd * 1.045, 2.12, Z(-2.83)], [0.01, 0.26, 0.42], K0); for (let i = 0; i < 4; i++) ckBox(body, [sd * 1.049, 2.03 + i * 0.06, Z(-2.83)], [0.008, 0.012, 0.4], B); }
     spLamp(c, 'none', [sd * 1.042, 0.97, Z(-3.0)], [sd, 0, 0], 0, 0, spCol('#b8221a'), { round: true, r: 0.025, depth: 0.015, rim: 0.006 }); });
   // the air unit's hatch low on the left side at the back, just behind the wheel: its outline and two banks of louvres
@@ -16536,33 +16687,34 @@ CK_PARTS.spTactical = (c, o) => {
   for (let i = 0; i < 3; i++) ckBox(trim, [1.044, 0.93 + i * 0.07, Z(-2.795)], [0.006, 0.016, 0.4], K0);
   // the windscreen's middle post; the exhaust pipe out from under the right side just ahead of the rear wheel
   ckBox(body, [0, 1.775, Z(1.13)], [0.05, 0.58, 0.04], B, [-0.32, 0, 0]);
-  ckCyl(trim, [-0.5, 0.58, Z(-1.0)], [-0.74, 0.56, Z(-1.1)], 0.045, K0, 8, false); ckCyl(trim, [-0.74, 0.56, Z(-1.1)], [-1.02, 0.5, Z(-1.3)], 0.045, K0, 8, false);
+  trim.tag = 'exhaust'; ckCyl(trim, [-0.5, 0.58, Z(-1.0)], [-0.74, 0.56, Z(-1.1)], 0.045, K0, 8, false); ckCyl(trim, [-0.74, 0.56, Z(-1.1)], [-1.02, 0.5, Z(-1.3)], 0.045, K0, 8, false); trim.tag = '';
   // the roof, front to back: a rail round it and lifting eyes at its corners; two strapped stowage bins over the cab, a
   // small box at the left edge behind them; a big strapped box amidships with two flat domes beside it on the right and
   // the tall aerial at the left edge; a box on the right, an inlet with a mushroom cap on the left; the air conditioner's
   // box with its two fans on the right; at the back the pedestal frame carrying the stand-off sensor (its head inside, a
   // short barrel on top), a low box beside it, a capped post, and an aerial leaning back from the right corner with a
   // small vane at its tip; a short aerial at the front right corner
-  spFrame(trim, -1.0, 1.0, 2.51, 2.61, Z(0.6), Z(-3.17), 0.014, K0, true);
-  for (const [x, z] of [[1.0, 0.56], [-1.0, 0.56], [1.0, -3.14], [-1.0, -3.14]]) ckBox(trim, [x * 0.97, 2.54, Z(z)], [0.04, 0.06, 0.04], K0);
+  trim.group = 'body'; spFrame(trim, -1.0, 1.0, 2.51, 2.61, Z(0.6), Z(-3.17), 0.014, K0, true);
+  for (const [x, z] of [[1.0, 0.56], [-1.0, 0.56], [1.0, -3.14], [-1.0, -3.14]]) ckBox(trim, [x * 0.97, 2.54, Z(z)], [0.04, 0.06, 0.04], K0); trim.group = '';
+  const gear = (t, u) => { body.tag = trim.tag = t || ''; body.unit = trim.unit = u || ''; }; // (what is on the roof that can be torn off: each piece of gear a unit with its straps)
   const bin = (x0, x1, z0, z1, h, r) => { const P = [], zm = (z0 + z1) / 2; for (const [cz, a0] of [[z1 - r, 0], [z0 + r, Math.PI / 2]]) for (let j = 0; j <= 4; j++) { const a = a0 + j / 8 * Math.PI; P.push([cz + Math.cos(a) * r, 2.51 + h - r + Math.sin(a) * r]); }
     P.push([z0, 2.51], [z1, 2.51]); ckPrism(body, P.map(([z, y]) => [Z(z), y]), x0, x1, B);
     for (const t of [0.28, 0.72]) { const x = x0 + (x1 - x0) * t; ckBox(trim, [x, 2.51 + h + 0.004, Z(zm)], [0.035, 0.008, z1 - z0 - 2 * r + 0.02], web); for (const zz of [z0, z1]) ckBox(trim, [x, 2.51 + (h - r) / 2, Z(zz) + (zz === z0 ? -0.004 : 0.004)], [0.035, h - r, 0.008], web); } };
-  bin(-0.95, -0.25, 0.3, 0.72, 0.5, 0.13); bin(-0.17, 0.83, -0.28, 0.52, 0.48, 0.12);
-  ckBox(body, [0.82, 2.65, Z(-0.44)], [0.22, 0.28, 0.3], ol, [0.25, 0, 0]);
-  ckBox(body, [-0.22, 2.735, Z(-0.82)], [1.0, 0.45, 0.82], B); for (const t of [-0.3, 0.3]) ckBox(trim, [-0.22 + t, 2.735, Z(-0.82)], [0.035, 0.458, 0.83], web);
+  gear('roofBox', 'bin1'); bin(-0.95, -0.25, 0.3, 0.72, 0.5, 0.13); gear('roofBox', 'bin2'); bin(-0.17, 0.83, -0.28, 0.52, 0.48, 0.12);
+  gear('roofBox', 'box1'); ckBox(body, [0.82, 2.65, Z(-0.44)], [0.22, 0.28, 0.3], ol, [0.25, 0, 0]);
+  gear('roofBox', 'box2'); ckBox(body, [-0.22, 2.735, Z(-0.82)], [1.0, 0.45, 0.82], B); for (const t of [-0.3, 0.3]) ckBox(trim, [-0.22 + t, 2.735, Z(-0.82)], [0.035, 0.458, 0.83], web); gear();
   for (const [z, r] of [[-0.55, 0.12], [-0.9, 0.14]]) { ckCyl(body, [-0.86, 2.51, Z(z)], [-0.86, 2.59, Z(z)], r, ol, 14, true); ckCyl(body, [-0.86, 2.59, Z(z)], [-0.86, 2.62, Z(z)], r * 0.72, ol, 14, true); }
-  ckCyl(body, [0.9, 2.51, Z(-0.55)], [0.9, 2.76, Z(-0.55)], 0.045, ol, 8, true); ckCyl(trim, [0.9, 2.76, Z(-0.55)], [0.9, 4.51, Z(-0.55)], 0.012, K0, 4, false);
-  ckBox(body, [-0.66, 2.72, Z(-1.36)], [0.5, 0.42, 0.3], B);
+  gear('antenna'); ckCyl(body, [0.9, 2.51, Z(-0.55)], [0.9, 2.76, Z(-0.55)], 0.045, ol, 8, true); ckCyl(trim, [0.9, 2.76, Z(-0.55)], [0.9, 4.51, Z(-0.55)], 0.012, K0, 4, false);
+  gear('roofBox', 'box3'); ckBox(body, [-0.66, 2.72, Z(-1.36)], [0.5, 0.42, 0.3], B); gear();
   ckCyl(body, [0.72, 2.51, Z(-1.42)], [0.72, 2.81, Z(-1.42)], 0.07, ol, 10, false); ckCyl(body, [0.72, 2.81, Z(-1.42)], [0.72, 2.86, Z(-1.42)], 0.13, ol, 12, true); ckCyl(body, [0.72, 2.86, Z(-1.42)], [0.72, 2.9, Z(-1.42)], 0.05, ol, 8, true);
   ckBox(body, [-0.6, 2.69, Z(-1.95)], [0.7, 0.36, 0.56], B);
   for (const x of [-0.43, -0.77]) { ckCyl(trim, [x, 2.87, Z(-1.95)], [x, 2.874, Z(-1.95)], 0.145, K0, 16, true); ckCyl(body, [x, 2.874, Z(-1.95)], [x, 2.882, Z(-1.95)], 0.04, ol, 8, true); for (const a of [0, Math.PI / 3, 2 * Math.PI / 3]) ckBox(body, [x, 2.877, Z(-1.95)], [0.27, 0.006, 0.014], ol, [0, a, 0]); }
-  spFrame(trim, -0.72, -0.38, 2.51, 2.93, Z(-2.3), Z(-2.6), 0.018, K0); ckBox(body, [-0.55, 2.94, Z(-2.45)], [0.38, 0.03, 0.34], ol);
+  gear('roofBox', 'sensor'); spFrame(trim, -0.72, -0.38, 2.51, 2.93, Z(-2.3), Z(-2.6), 0.018, K0); ckBox(body, [-0.55, 2.94, Z(-2.45)], [0.38, 0.03, 0.34], ol);
   ckBox(body, [-0.55, 2.73, Z(-2.45)], [0.24, 0.18, 0.22], dk); ckCyl(trim, [-0.55, 2.73, Z(-2.56)], [-0.55, 2.73, Z(-2.61)], 0.06, K0, 10, true); ckCyl(body, [-0.55, 2.955, Z(-2.42)], [-0.55, 3.2, Z(-2.42)], 0.035, ol, 8, true);
-  ckBox(body, [0.12, 2.6, Z(-2.5)], [0.76, 0.18, 0.6], B);
+  gear('roofBox', 'box4'); ckBox(body, [0.12, 2.6, Z(-2.5)], [0.76, 0.18, 0.6], B); gear();
   ckCyl(body, [-0.14, 2.51, Z(-3.06)], [-0.14, 2.82, Z(-3.06)], 0.05, ol, 8, false); ckCyl(body, [-0.14, 2.82, Z(-3.06)], [-0.14, 2.87, Z(-3.06)], 0.075, dk, 10, true);
-  ckBox(trim, [-0.9, 2.54, Z(-3.1)], [0.06, 0.06, 0.06], K0); ckCyl(trim, [-0.9, 2.56, Z(-3.1)], [-0.96, 3.26, Z(-3.18)], 0.007, K0, 3, false); ckCyl(trim, [-1.03, 3.26, Z(-3.18)], [-0.89, 3.26, Z(-3.18)], 0.006, K0, 3, false); ckBox(trim, [-1.03, 3.26, Z(-3.18)], [0.025, 0.05, 0.05], K0);
-  ckCyl(trim, [-0.85, 2.51, Z(0.3)], [-0.85, 3.21, Z(0.3)], 0.006, K0, 3, false);
+  gear('antenna'); ckBox(trim, [-0.9, 2.54, Z(-3.1)], [0.06, 0.06, 0.06], K0); ckCyl(trim, [-0.9, 2.56, Z(-3.1)], [-0.96, 3.26, Z(-3.18)], 0.007, K0, 3, false); ckCyl(trim, [-1.03, 3.26, Z(-3.18)], [-0.89, 3.26, Z(-3.18)], 0.006, K0, 3, false); ckBox(trim, [-1.03, 3.26, Z(-3.18)], [0.025, 0.05, 0.05], K0);
+  ckCyl(trim, [-0.85, 2.51, Z(0.3)], [-0.85, 3.21, Z(0.3)], 0.006, K0, 3, false); gear();
   // the back. Up its left corner a ladder on brackets, its rails running on up over the roof's edge as grab handles, and
   // behind it the louvred grilles of the air unit; the fuel can in its bracket at the top left and a shovel on clips
   // beside it; in the middle the sampler's housing standing out, its top sloping down from the back and its left end cut
@@ -16589,113 +16741,191 @@ CK_PARTS.spTactical = (c, o) => {
   spPane(c, [-0.64, 1.98, Z(-3.28)], -1, 0.38, 0.2, 0.05, spCol('#1d2329'), 0.022);
   for (const y of [2.04, 1.12]) ckBox(trim, [-0.96, y, Z(-3.294)], [0.07, 0.08, 0.022], K0);
   ckBox(trim, [-0.41, 1.6, Z(-3.3)], [0.03, 0.13, 0.03], K0);
+  body.tag = trim.tag = c.glass.tag = body.unit = trim.unit = c.glass.unit = 'bumperR';
   ckBox(body, [0, 0.72, Z(-3.28)], [2.0, 0.16, 0.1], B); ckBox(trim, [0, 0.58, Z(-3.37)], [0.12, 0.1, 0.12], K0); ckCyl(trim, [-0.05, 0.53, Z(-3.45)], [0.05, 0.53, Z(-3.45)], 0.03, K0, 6, true);
   mir(sd => { spLamp(c, 'tail', [sd * 0.88, 0.72, Z(-3.331)], [0, 0, -1], 0, 0, C.tail, { round: true, r: 0.045, depth: 0.02, rim: 0.01 });
     spLamp(c, 'none', [sd * 0.73, 0.72, Z(-3.331)], [0, 0, -1], 0.08, 0.07, spCol('#d08a2a'), { depth: 0.02, rim: 0.008, rec: { face: 'tamb' } });
     spBar(trim, [[sd * 0.4, 0.66, Z(-3.34)], [sd * 0.4, 0.56, Z(-3.36)], [sd * 0.3, 0.56, Z(-3.36)], [sd * 0.3, 0.66, Z(-3.34)]], 0.011, K0); });
   spLamp(c, 'rev', [-0.6, 0.72, Z(-3.331)], [0, 0, -1], 0.07, 0.06, C.clear, { depth: 0.02, rim: 0.008 });
+  body.tag = trim.tag = c.glass.tag = body.unit = trim.unit = c.glass.unit = '';
   spBar(trim, [[-0.27, 1.0, Z(-3.4)], [-0.25, 0.86, Z(-3.42)], [-0.15, 0.8, Z(-3.42)], [-0.05, 0.85, Z(-3.4)], [-0.01, 0.97, Z(-3.37)]], 0.016, K0);
 };
 
-// ---- the ambulance: its nose (the bumper's intake, red band, plate and fog lamps, the grille, the swept headlamps), the
-// lettering and cross on the bonnet, the high roof (a moulding of its own on the van's roof, narrower than it: its face
-// sloping up from the windscreen's top, the light bar on its front, a spoiler over the tailgate, beacons on its back), the
-// tall tail lamps, the tailgate's dark glass and its handle, the bumpers, the red stripe along the sides ----
+// ---- the ambulance: its nose (the bumper with its intake, red band, plate and fog lamps; the face over it with the
+// grille between the swept headlamps), the cross and lettering on the bonnet, the grey cladding along its foot and the
+// red stripe along its sides (each cut where a door's edges are, so the doors take their own pieces), a green cross on
+// each front door; on the van's own roof the light bar over the front seats, the white vent dome and a small beacon at
+// each back corner; the tall tail lamps on the pillars beside the tailgate; on the tailgate (a panel of its own: see
+// D.rearDoor) the star of life on its glass, the lettering, the handle and the plate, and its high stop lamp; the rear
+// bumper and its step. Inside, behind the front seats, the partition with its window; behind that the compartment: its
+// floor and wheel arches, the stretcher (its mattress, raised back rest, rails and wheels), the bench along the right
+// side, the attendant's seat at the stretcher's head, the cabinets and worktop along the left side, the oxygen cylinder,
+// the monitor on the partition, the lights and grab rail under the roof ----
 CK_PARTS.spAmbulance = (c, o) => {
-  const { body, trim, C, K0, mir } = c, Z = z => z + c.zOff, W = C.base, red = spCol('#c4161c'), grn = spCol('#1f9a54'), blu = spCol('#2a62c8'), lgt = spCol('#c9ced2'), chr = spCol('#d4d8dc'), tnt = spCol('#1a1f27'), gb = spCol('#6f7f96');
+  // (its parts untagged: each goes with a panel only where it lies on one - the tailgate's own fittings - and the rest
+  // stay with the body, rather than all following any one of them that lies on a panel)
+  c.body.tag = c.trim.tag = c.glass.tag = '';
+  const { body, trim, C, K0, mir } = c, Z = z => z + c.zOff, W = C.base, red = spCol('#c4161c'), grn = spCol('#1f9a54'), blu = spCol('#2a62c8'), lgt = spCol('#c9ced2'), chr = spCol('#d4d8dc'), gb = spCol('#6f7f96'), clad = spCol('#7d8288');
   // the side's x at height y at rib z (along its section)
   const sideX = (z, y) => { const P = c.profileAt(Z(z)); let x = 0; for (let i = 1; i < 9; i++) { const a = P[i], b = P[i + 1]; if ((a[1] - y) * (b[1] - y) <= 0 && a[1] !== b[1]) x = Math.max(x, a[0] + (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1])); } return x; };
+  // a band along each side between heights y0(z) and y1(z) from za back to zb, standing just off the side; cut where
+  // the doors' edges are, each piece its own part (so a door takes the piece on it)
+  const cuts = [1.15, 0.19, 0.06, -1.12], sideBand = (za, zb, y0, y1, k) => mir(sd => { const ends = [za].concat(cuts.filter(z => z < za && z > zb), [zb]);
+    for (let j = 0; j < ends.length - 1; j++) { const zs = []; for (let z = ends[j]; z > ends[j + 1] + 1e-6; z -= 0.1) zs.push(z); zs.push(ends[j + 1]);
+      const P = zs.map(z => [[sd * (sideX(z, y0(z)) + 0.004), y0(z), Z(z)], [sd * (sideX(z, y1(z)) + 0.004), y1(z), Z(z)]]).filter(q => q[0][0] !== 0 && q[1][0] !== 0);
+      if (P.length < 2) continue; body.begin('panel', null, false); for (let i = 0; i < P.length - 1; i++) body.quad(P[i][0], P[i + 1][0], P[i + 1][1], P[i][1], k, null, [0, (y0(zs[i]) + y1(zs[i])) / 2, P[i][0][2]]); body.end(); } });
+  // ---- the nose ----
   // the bumper's face round the nose at its middle height: z for |x| (flat across the middle, sweeping back at the corners)
-  const NP = [[0, 2.56], [0.59, 2.56], [0.765, 2.53], [0.865, 2.48], [0.92, 2.42], [0.945, 2.37], [0.958, 2.2]], noseZ = x => { x = Math.abs(x);
+  const NP = [[0, 2.46], [0.55, 2.46], [0.72, 2.445], [0.83, 2.41], [0.9, 2.36], [0.94, 2.3], [0.955, 2.16]], noseZ = x => { x = Math.abs(x);
     for (let i = 1; i < NP.length; i++) if (x <= NP[i][0]) { const [x0, z0] = NP[i - 1], [x1, z1] = NP[i]; return z0 + (z1 - z0) * (x - x0) / (x1 - x0); } return NP[NP.length - 1][1]; };
   const band = (xa, xb, y0, y1, k, out) => { const n = Math.max(2, Math.ceil(Math.abs(xb - xa) / 0.04)); body.begin('panel', null, false);
     for (let i = 0; i < n; i++) { const u0 = xa + (xb - xa) * i / n, u1 = xa + (xb - xa) * (i + 1) / n, z0 = noseZ(u0) + out, z1 = noseZ(u1) + out;
       body.quad([u0, y0, Z(z0)], [u1, y0, Z(z1)], [u1, y1, Z(z1)], [u0, y1, Z(z0)], k, null, [(u0 + u1) / 2 * 0.8, (y0 + y1) / 2, Z((z0 + z1) / 2 - 0.3)]); } body.end(); };
-  // the front bumper (the nose's foot): the black intake low across it, its lip under it, the red band either side of the
-  // plate (round the corners to the wheels), the fog lamps in its corners
-  ckBox(trim, [0, 0.375, Z(2.562)], [1.0, 0.09, 0.012], K0); for (let i = 0; i < 3; i++) ckBox(body, [0, 0.35 + i * 0.025, Z(2.568)], [0.98, 0.006, 0.006], lgt);
-  ckBox(trim, [0, 0.305, Z(2.5)], [1.4, 0.03, 0.1], K0);
-  ckBox(body, [0, 0.505, Z(2.564)], [0.52, 0.11, 0.008], spCol('#f7f7f5'));
-  mir(sd => { band(sd * 0.29, sd * 0.958, 0.47, 0.54, red, 0.004);
-    spLamp(c, 'fog', [sd * 0.71, 0.375, Z(noseZ(0.71) + 0.004)], [sd * 0.25, 0, 0.97], 0.13, 0.05, C.fog, { shape: 'soft', sk: 0.02, depth: 0.02, rim: 0.008, sd }); });
-  // the face over the bumper, leaning back: the grille (a chrome surround, a black mesh, two chrome bars across), the
-  // headlamps at its corners swept back up the wings, the amber indicators low in them
-  const fz0 = 2.48, fz1 = 2.42, faceZ = (x, y) => { let a = fz1, b = fz0 + 0.04; for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (c.topAtX(Z(m), x) > y) a = m; else b = m; } return (a + b) / 2; };
-  const fy0 = c.topAtX(Z(fz0), 0), fy1 = c.topAtX(Z(fz1), 0), lean = Math.atan2(fz0 - fz1, fy1 - fy0), fn = [0, Math.sin(lean), Math.cos(lean)];
+  // the bumper (the nose's foot): the black intake low across it with its bars, its lip, the plate, the red band either
+  // side of the plate round the corners, the grey cladding under it, the fog lamps in its corners (tagged as the front
+  // bumper: it can be torn off, or left off a build)
+  body.tag = trim.tag = 'bumperF';
+  ckBox(trim, [0, 0.41, Z(2.462)], [1.02, 0.1, 0.012], K0); for (let i = 0; i < 3; i++) ckBox(body, [0, 0.38 + i * 0.026, Z(2.468)], [1.0, 0.006, 0.006], lgt);
+  ckBox(trim, [0, 0.315, Z(2.41)], [1.42, 0.03, 0.1], K0);
+  ckBox(body, [0, 0.52, Z(2.464)], [0.52, 0.11, 0.008], spCol('#f7f7f5'));
+  mir(sd => { band(sd * 0.29, sd * 0.955, 0.48, 0.55, red, 0.004); band(sd * 0.53, sd * 0.955, 0.31, 0.36, clad, 0.004);
+    spLamp(c, 'fog', [sd * 0.73, 0.41, Z(noseZ(0.73) + 0.004)], [sd * 0.25, 0, 0.97], 0.12, 0.05, C.fog, { shape: 'soft', sk: 0.02, depth: 0.02, rim: 0.008, sd }); });
+  body.tag = trim.tag = '';
+  // the face over the bumper, leaning back: the grille (a chrome surround, a black mesh, a chrome bar across and a plain
+  // oval badge), the headlamps at its corners swept back up the wings, the amber indicators low in them
+  const fz0 = 2.43, fz1 = 2.37, faceZ = (x, y) => { let a = fz1, b = fz0 + 0.04; for (let i = 0; i < 30; i++) { const m = (a + b) / 2; if (c.topAtX(Z(m), x) > y) a = m; else b = m; } return (a + b) / 2; };
+  const fy0 = c.topAtX(Z(fz0), 0), fy1 = c.topAtX(Z(fz1), 0), lean = Math.atan2(fz0 - fz1, Math.max(0.05, fy1 - fy0)), fn = [0, Math.sin(lean), Math.cos(lean)];
   const gp = (x, y, d) => [x, y + fn[1] * d, Z(faceZ(x, y)) + fn[2] * d];
-  trim.begin('panel', null, false); trim.quad(gp(-0.52, 0.675, 0.006), gp(0.52, 0.675, 0.006), gp(0.6, 0.875, 0.006), gp(-0.6, 0.875, 0.006), K0, null, gp(0, 0.77, -0.3)); trim.end();
-  spBar(body, [gp(-0.52, 0.675, 0.012), gp(0.52, 0.675, 0.012), gp(0.6, 0.875, 0.012), gp(-0.6, 0.875, 0.012), gp(-0.52, 0.675, 0.012)], 0.012, chr, 5);
-  for (const y of [0.74, 0.81]) { const hw = 0.52 + (y - 0.675) * 0.4; ckBox(body, gp(0, y, 0.016), [2 * hw, 0.026, 0.014], chr, [-lean, 0, 0]); }
-  ckBox(body, gp(0, 0.775, 0.024), [0.13, 0.08, 0.01], chr, [-lean, 0, 0]);
-  mir(sd => { const sh = () => [[-0.13, -0.1], [0.1, -0.11], [0.15, -0.07], [0.16, 0.07], [0.12, 0.11], [-0.13, 0.07]];
-    spLamp(c, 'head', gp(sd * 0.765, 0.775, 0.006), fn, 0.3, 0.22, C.lamp, { shape: sh, depth: 0.04, rim: 0.012, sd });
-    spLamp(c, 'none', gp(sd * 0.865, 0.705, 0.01), fn, 0.08, 0.03, spCol('#d8952e'), { shape: 'soft', sk: 0.01, depth: 0.02, rim: 0, sd, rec: { face: 'tamb' } });
+  trim.begin('panel', null, false); trim.quad(gp(-0.5, 0.75, 0.006), gp(0.5, 0.75, 0.006), gp(0.58, 0.92, 0.006), gp(-0.58, 0.92, 0.006), K0, null, gp(0, 0.83, -0.3)); trim.end();
+  spBar(body, [gp(-0.5, 0.75, 0.012), gp(0.5, 0.75, 0.012), gp(0.58, 0.92, 0.012), gp(-0.58, 0.92, 0.012), gp(-0.5, 0.75, 0.012)], 0.012, chr, 5);
+  ckBox(body, gp(0, 0.835, 0.016), [1.06, 0.03, 0.014], chr, [-lean, 0, 0]);
+  { const bp = gp(0, 0.835, 0.026); ckCyl(body, [bp[0], bp[1], bp[2] - 0.004], [bp[0], bp[1], bp[2] + 0.004], 0.045, chr, 12, true); }
+  mir(sd => { const sh = () => [[-0.14, -0.09], [0.1, -0.1], [0.15, -0.06], [0.16, 0.08], [0.12, 0.11], [-0.14, 0.07]];
+    spLamp(c, 'head', gp(sd * 0.75, 0.86, 0.006), fn, 0.3, 0.2, C.lamp, { shape: sh, depth: 0.04, rim: 0.012, sd });
+    spLamp(c, 'none', gp(sd * 0.86, 0.785, 0.01), fn, 0.08, 0.03, spCol('#d8952e'), { shape: 'soft', sk: 0.01, depth: 0.02, rim: 0, sd, rec: { face: 'tamb' } });
     // (the lamp's tail swept back up the wing's corner, seen from the side)
-    const tz = 2.35, ty = 0.88, tx = sideX(tz, ty) + 0.004; spLamp(c, 'none', [sd * tx, ty, Z(tz)], [sd * 0.86, 0.22, 0.46], 0.2, 0.065, C.lamp, { shape: 'soft', sk: 0.03, depth: 0.02, rim: 0.008, sd }); });
+    const tz = 2.3, ty = 0.96, tx = sideX(tz, ty) + 0.004; spLamp(c, 'none', [sd * tx, ty, Z(tz)], [sd * 0.86, 0.22, 0.46], 0.2, 0.06, C.lamp, { shape: 'soft', sk: 0.03, depth: 0.02, rim: 0.008, sd }); });
   // the windscreen's top corners rounded off (the black band round its glass filling them)
   { const S = c.wsInfo; if (S) mir(sd => { const T = [sd * S.wTop / 2, S.yTop, S.zTop], Bc = [sd * S.wBase / 2, S.yBase, S.zBase], u = [-sd, 0, 0], r = 0.12;
     let d = [Bc[0] - T[0], Bc[1] - T[1], Bc[2] - T[2]]; const dl = Math.hypot(...d); d = d.map(v => v / dl);
     let n = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]]; const nl = Math.hypot(...n); n = n.map(v => v / nl * (n[1] < 0 ? -1 : 1));
     const P = (a, b, o) => [T[0] + u[0] * a + d[0] * b + n[0] * o, T[1] + u[1] * a + d[1] * b + n[1] * o, T[2] + u[2] * a + d[2] * b + n[2] * o], A = []; for (let i = 0; i <= 6; i++) { const f = i / 12 * Math.PI; A.push(P(r - r * Math.sin(f), r - r * Math.cos(f), 0.004)); }
     trim.begin('panel', null, false); for (let i = 0; i < A.length - 1; i++) trim.tri(P(0, 0, 0.004), A[i], A[i + 1], K0, null, P(r / 3, r / 3, -0.3)); trim.end(); }); }
-  // the bonnet: the green cross and the name across its front
-  { const hz0 = 2.37, hy0 = 0.98, hz1 = 1.78, hy1 = 1.16, sl = Math.atan2(hy1 - hy0, hz0 - hz1), out = [0, Math.cos(sl), Math.sin(sl)], onHood = (x, t) => { const z = hz0 + (hz1 - hz0) * t; return [x, c.topAtX(Z(z), x) + 0.004, Z(z)]; }, L = Math.hypot(hz0 - hz1, hy1 - hy0);
-    spCross(body, (u, v) => onHood(u, 0.62 + v / L), out, 0.24, grn);
-    const h = 0.06, w = h / 7 * 6 * 9 - h / 7; spText(body, 'AMBULANCE', (u, v) => onHood(-w / 2 + u, 0.2 + v / L), [0, out[1], out[2]], h, gb, false); }
-  // the high roof: a moulding sitting on the van's roof from the windscreen's top to its back edge, 1.5 m across at its
-  // foot and 1.2 m over its top, its upper edges rounded; its face curving up from the windscreen's top; open underneath
-  const yb = 1.84, PR = [[0.86, 1.85], [0.82, 1.98], [0.76, 2.1], [0.68, 2.21], [0.6, 2.3], [0.52, 2.37], [0.44, 2.415], [0.34, 2.44], [-1.0, 2.45], [-2.4, 2.44]];
-  const sec = yt => { const h = yt - yb, wb = 0.75, wt = 0.6, r = Math.min(0.12, h * 0.5), pts = [[wb, yb]]; 
-    const xs = wt + (wb - wt) * r / Math.max(h, 1e-3); for (let j = 0; j <= 4; j++) { const a = j / 4 * Math.PI / 2; pts.push([xs - r + Math.cos(a) * r, yt - r + Math.sin(a) * r]); }
-    const L = pts.length; for (let j = L - 1; j >= 0; j--) pts.push([-pts[j][0], pts[j][1]]); return pts; };
-  { const S = PR.map(([z, yt]) => sec(yt).map(([x, y]) => [x, y, Z(z)])), n = S[0].length; body.begin('panel', null, false);
-    for (let k = 0; k < S.length - 1; k++) { const A = S[k], B = S[k + 1], m = Math.min(A.length, B.length);
-      if (A.length !== B.length) { const a0 = A[0], a1 = A[A.length - 1]; for (let j = 0; j < B.length - 1; j++) body.quad(j < B.length / 2 ? a0 : a1, j < B.length / 2 ? a0 : a1, B[j + 1], B[j], W, null, [0, yb + 0.1, (A[0][2] + B[0][2]) / 2 - 0.5]); continue; }
-      for (let j = 0; j < m - 1; j++) body.quad(A[j], A[j + 1], B[j + 1], B[j], W, null, [0, yb + 0.05, (A[j][2] + B[j][2]) / 2]); }
-    // (its back closed by a fan from the middle of its foot round the whole section, its first slice - from the foot's
-    // corner up the side - included: without it the back had a hole low on one side)
-    const R = S[S.length - 1]; for (let j = 0; j < R.length - 1; j++) body.tri([0, yb, R[0][2]], R[j], R[j + 1], W, null, [0, 2.2, R[0][2] + 0.5]);
-    body.end(); }
-  // the spoiler over the tailgate's window, a little wider than the high roof, and the beacons and lettering on its back
-  spSweep(body, [[Z(-2.38), 2.09], [Z(-2.5), 2.05], [Z(-2.56), 1.99], [Z(-2.55), 1.95]], -0.79, 0.79, 0.035, W);
-  for (const x of [-0.33, -0.13, 0.13, 0.33]) spLamp(c, 'none', [x, 2.29, Z(-2.405)], [0, 0, -1], 0.18, 0.12, grn, { depth: 0.02, rim: 0.01, rec: { face: 'rev', tint: [0.3, 0.95, 0.5] } });
-  { const h = 0.08, w = h / 7 * 6 * 3 - h / 7; spText(body, 'SOS', (u, v) => [w / 2 - u, 2.13 + v, Z(-2.401) - 0.003], [0, 0, -1], h, red, false); }
-  // the light bar along the high roof's front edge: red lamps either side of a clear one on a black base, black end caps;
-  // amber markers along the high roof's upper edges
-  ckBox(trim, [0, 2.462, Z(0.44)], [1.3, 0.03, 0.2], K0);
-  mir(sd => { ckBox(body, [sd * 0.36, 2.52, Z(0.44)], [0.5, 0.09, 0.17], red); spLamp(c, 'none', [sd * 0.36, 2.52, Z(0.527)], [0, 0, 1], 0.46, 0.07, red, { depth: 0.02, rim: 0, rec: { face: 'tred' } });
-    spLamp(c, 'none', [sd * 0.36, 2.52, Z(0.353)], [0, 0, -1], 0.46, 0.07, red, { depth: 0.02, rim: 0, rec: { face: 'tred' } });
-    ckBox(trim, [sd * 0.63, 2.515, Z(0.44)], [0.04, 0.1, 0.18], K0);
-    for (const z of [0.0, -1.2, -2.25]) spLamp(c, 'none', [sd * 0.672, 2.33, Z(z)], [sd * 0.97, 0.24, 0], 0.08, 0.035, spCol('#d8952e'), { depth: 0.015, rim: 0.006, rec: { face: 'tamb' } }); });
-  ckBox(body, [0, 2.52, Z(0.44)], [0.2, 0.09, 0.17], lgt);
-  // the lettering on the high roof's face, mirrored to be read in a mirror ahead; the green crosses on its sides
-  { const z0 = 0.71, y0 = 2.19, z1 = 0.57, y1 = 2.3, L = Math.hypot(z0 - z1, y1 - y0), dz = (z1 - z0) / L, dy = (y1 - y0) / L, out = [0, -dz, dy], h = 0.13, w = h / 7 * 6 * 9 - h / 7;
-    spText(body, 'AMBULANCE', (u, v) => [-w / 2 + u, y0 + dy * v + out[1] * 0.012, Z(z0 + dz * v) + out[2] * 0.012], out, h, red, true); }
-  mir(sd => { const tl = Math.atan2(0.15, 0.57), ox = Math.cos(tl), oy = Math.sin(tl), x0 = 0.75 - 0.15 * (2.15 - yb) / 0.57;
-    spCross(body, (u, v) => [sd * (x0 - v * oy + 0.004), 2.15 + v * ox, Z(-1.75) + sd * u], [sd * ox, oy, 0], 0.26, grn); });
-  // the back: the tall tail lamps on the corner pillars (a sliver of each round the side), the tailgate's dark glass with the
-  // blue star of life on it, the name over the chrome handle, the plate's recess
-  mir(sd => { spLamp(c, 'tail', [sd * 0.875, 1.13, Z(-2.507)], [0, 0, -1], 0.1, 0.6, C.tail, { shape: 'soft', sk: 0.02, depth: 0.03, rim: 0.01, sd });
-    spLamp(c, 'none', [sd * 0.952, 1.13, Z(-2.44)], [sd, 0, -0.2], 0.08, 0.56, C.tail, { shape: 'soft', sk: 0.02, depth: 0.02, rim: 0.006, sd }); });
-  { const zt = -2.42, zb = -2.5; body.begin('panel', null, false); body.quad([-0.74, 1.875, Z(zt + 0.03)], [0.74, 1.875, Z(zt + 0.03)], [0.84, 1.37, Z(zb + 0.03)], [-0.84, 1.37, Z(zb + 0.03)], tnt, null, [0, 1.6, Z(-1.9)]); body.end();
-    const ys = 1.63, zs = zt + (zb - zt) * (1.835 - ys) / (1.835 - 1.38) - 0.006, ln = Math.atan2(zt - zb, 1.835 - 1.38);
-    for (const a of [0, Math.PI / 3, -Math.PI / 3]) ckBox(body, [0, ys, Z(zs)], [0.07, 0.3, 0.004], blu, [ln, 0, a]); }
-  { const h = 0.09, w = h / 7 * 6 * 9 - h / 7; spText(body, 'AMBULANCE', (u, v) => [w / 2 - u, 1.12 + v, Z(-2.502) - 0.004], [0, 0, -1], h, red, false); }
-  ckBox(body, [0, 0.975, Z(-2.507)], [0.78, 0.035, 0.014], chr); ckBox(trim, [0, 0.8, Z(-2.503)], [0.56, 0.17, 0.006], K0); ckBox(body, [0, 0.8, Z(-2.507)], [0.52, 0.11, 0.004], spCol('#f7f7f5'));
-  // the rear bumper standing out under the tailgate: the red band and a black strip across its back, the reversing lamps
-  // in it, the step
-  ckBox(body, [0, 0.485, Z(-2.555)], [1.84, 0.37, 0.12], W);
-  body.begin('panel', null, false); body.quad([0.84, 0.545, Z(-2.6155)], [-0.84, 0.545, Z(-2.6155)], [-0.84, 0.625, Z(-2.6155)], [0.84, 0.625, Z(-2.6155)], red, null, [0, 0.58, Z(-2.4)]); body.end();
-  ckBox(trim, [0, 0.515, Z(-2.612)], [1.7, 0.05, 0.012], K0);
-  mir(sd => spLamp(c, 'rev', [sd * 0.62, 0.42, Z(-2.6155)], [0, 0, -1], 0.1, 0.05, C.clear, { depth: 0.02, rim: 0.008 }));
-  ckBox(trim, [0, 0.33, Z(-2.64)], [0.9, 0.035, 0.16], K0);
-  // the red stripe along each side, rising toward the back
-  mir(sd => { const zs = []; for (let z = 2.2; z > -2.44; z -= 0.12) zs.push(z); zs.push(-2.44);
-    const yAt = z => 0.8 + 0.12 * (2.36 - z) / 4.86, P = zs.map(z => { const y = yAt(z); return [[sd * (sideX(z, y) + 0.003), y, Z(z)], [sd * (sideX(z, y + 0.07) + 0.003), y + 0.07, Z(z)]]; }).filter(q => q[0][0] !== 0);
-    body.begin('panel', null, false); for (let i = 0; i < P.length - 1; i++) body.quad(P[i][0], P[i + 1][0], P[i + 1][1], P[i][1], red, null, [0, 0.9, P[i][0][2]]); body.end(); });
-  // the step under the side door, a vent and an aerial on the high roof
-  mir(sd => ckBox(trim, [sd * 0.93, 0.31, Z(-0.62)], [0.1, 0.035, 0.95], K0));
-  ckBox(body, [0, 2.475, Z(-1.0)], [0.5, 0.05, 0.5], lgt); ckCyl(trim, [-0.3, 2.45, Z(-1.9)], [-0.3, 2.88, Z(-1.95)], 0.006, K0, 3, false);
+  // the bonnet: the name across it in red, mirrored to be read in a mirror ahead, its letters standing up the bonnet
+  { const hz0 = 2.28, hz1 = 1.75, onHood = (x, t) => { const z = hz0 + (hz1 - hz0) * t; return [x, c.topAtX(Z(z), x) + 0.004, Z(z)]; }, hy0 = c.topAtX(Z(hz0), 0), hy1 = c.topAtX(Z(hz1), 0), sl = Math.atan2(hy1 - hy0, hz0 - hz1), out = [0, Math.cos(sl), Math.sin(sl)], L = Math.hypot(hz0 - hz1, hy1 - hy0);
+    const h = 0.14, w = h / 7 * 6 * 9 - h / 7; spText(body, 'AMBULANCE', (u, v) => onHood(-w / 2 + u, 0.3 + v / L), [0, out[1], out[2]], h, red, true); }
+  // ---- the sides: the grey cladding along the foot between the wheels and behind the rear ones, the red stripe ----
+  sideBand(1.13, -1.14, () => 0.3, () => 0.46, clad); sideBand(-2.05, -2.5, () => 0.32, () => 0.47, clad);
+  { const yAt = z => 0.86 + 0.1 * (2.2 - z) / 4.64; sideBand(2.2, -2.44, yAt, z => yAt(z) + 0.07, red); }
+  // the step under each sliding door (fixed to the body: the door runs back over it), and the track the door's middle
+  // roller runs in, along the foot of the rear side window from the door's back edge to the tail lamps
+  trim.group = 'body'; mir(sd => ckBox(trim, [sd * 0.93, 0.31, Z(-0.53)], [0.1, 0.035, 1.1], K0)); trim.group = '';
+  sideBand(-1.135, -2.22, () => 1.226, () => 1.25, spCol('#2a2c30'));
+  // the green cross on each front door, over the stripe and under the window
+  mir(sd => spCross(body, (u, v) => [sd * (sideX(0.66, 1.118 + v) + 0.004), 1.118 + v, Z(0.66) + sd * u], [sd, 0, 0], 0.29, grn));
+  // ---- on the roof: the light bar across it over the front seats (red lamps either side of a clear middle, black rings
+  // between them, its ends domed, standing on two clear feet), the white vent dome over the compartment and a small red
+  // beacon at each back corner (strapped and bolted on: each can be torn off, the bar with its feet) ----
+  // (a solid turned about the line from a to b: its outline [t along a-b from 0 to 1, radius] in order, closed where the
+  // radius comes to 0; and a dome's outline, from its rim (t0, radius R) to its crown (t1, radius 0))
+  const lathe = (s, a, b, prof, k, seg) => { seg = seg || 14; const d = ckSub(b, a), L = Math.hypot(d[0], d[1], d[2]), n = d.map(v => v / L), t0 = Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    let u = ckCross(n, t0); const ul = Math.hypot(u[0], u[1], u[2]); u = u.map(v => v / ul); const w = ckCross(n, u);
+    const at = (t, r, i) => { const th = i / seg * Math.PI * 2, cs = Math.cos(th) * r, sn = Math.sin(th) * r; return [a[0] + d[0] * t + u[0] * cs + w[0] * sn, a[1] + d[1] * t + u[1] * cs + w[1] * sn, a[2] + d[2] * t + u[2] * cs + w[2] * sn]; };
+    s.begin('lathe', [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], true);
+    for (let j = 0; j < prof.length - 1; j++) { const [tA, rA] = prof[j], [tB, rB] = prof[j + 1]; for (let i = 0; i < seg; i++) s.quad(at(tA, rA, i), at(tB, rB, i), at(tB, rB, i + 1), at(tA, rA, i + 1), k); }
+    s.end(); };
+  const domeOf = (t0, t1, R, n) => { const P = []; for (let j = 0; j <= n; j++) { const a = j / n * Math.PI / 2; P.push([t0 + (t1 - t0) * Math.sin(a), R * Math.cos(a)]); } return P; };
+  const lamp = spCol('#d4141a'), clear = spCol('#e4e9ed'), gear = u => { body.tag = trim.tag = u ? 'roofBox' : ''; body.unit = trim.unit = u || ''; };
+  { const zb = Z(0.15), yr = c.topAtX(zb, 0), R = 0.062, yc = yr + 0.075 + R, A = x => [x, yc, zb];
+    gear('lightbar');
+    for (const sd of [1, -1]) { const tip = sd * 0.635, j = sd * 0.58; lathe(body, A(tip), A(j), domeOf(0, 1, R, 5).map(([t, r]) => [1 - t, r]), lamp, 14); // (its domed end)
+      lathe(body, A(j), A(sd * 0.205), [[0, R], [1, R]], lamp, 14); lathe(trim, A(sd * 0.205), A(sd * 0.18), [[0, 0], [0, R + 0.004], [1, R + 0.004], [1, 0]], K0, 14);
+      // (a foot: a post down from the bar's underside to a pad on the roof)
+      const fx = sd * 0.42, yf = c.topAtX(zb, fx); ckBox(body, [fx, (yf + yc - R) / 2 + 0.005, zb], [0.04, yc - R - yf + 0.01, 0.05], clear); ckBox(body, [fx, yf + 0.006, zb], [0.07, 0.014, 0.24], clear); }
+    lathe(body, A(-0.18), A(0.18), [[0, R - 0.003], [1, R - 0.003]], clear, 14);
+    gear(); }
+  { const zd = Z(-0.85), yr = c.topAtX(zd, 0); // (the vent dome)
+    ckCyl(body, [0, yr - 0.006, zd], [0, yr + 0.012, zd], 0.27, W, 20, true); lathe(body, [0, yr + 0.012, zd], [0, yr + 0.105, zd], domeOf(0, 1, 0.245, 5), W, 20); }
+  mir(sd => { const zc = Z(-2.12), x = sd * 0.62, yr = c.topAtX(zc, x); // (a beacon on its black base)
+    gear(sd > 0 ? 'beaconL' : 'beaconR'); ckCyl(trim, [x, yr - 0.004, zc], [x, yr + 0.022, zc], 0.058, K0, 14, true);
+    lathe(body, [x, yr + 0.022, zc], [x, yr + 0.115, zc], [[0, 0], [0, 0.05], [0.45, 0.05]].concat(domeOf(0.45, 1, 0.05, 4).slice(1)), lamp, 14); gear(); });
+  // ---- the back: the tall tail lamps on the pillars beside the tailgate (a sliver of each round the side); on the
+  // tailgate the star of life on its glass, the name, the chrome handle and the plate's recess; its high stop lamp ----
+  const zt = -2.56, ft = Z(zt) - 0.004; // (the tail's end face, the tailgate's outer face)
+  mir(sd => { spLamp(c, 'tail', [sd * 0.865, 1.05, ft], [0, 0, -1], 0.1, 0.58, C.tail, { shape: 'soft', sk: 0.02, depth: 0.03, rim: 0.01, sd });
+    spLamp(c, 'none', [sd * 0.935, 1.05, Z(-2.5)], [sd, 0, -0.25], 0.07, 0.54, C.tail, { shape: 'soft', sk: 0.02, depth: 0.02, rim: 0.006, sd }); });
+  { // (the glass leans back from the tail's top up to the roof's back edge: the star on it)
+    const yg0 = c.topAtX(Z(zt), 0) - 0.03, zg1 = -2.3, yg1 = c.topAtX(Z(zg1), 0) - 0.03, gy = 1.62, gz = zt + (zg1 - zt) * (gy - yg0) / (yg1 - yg0), ln = Math.atan2(zg1 - zt, yg1 - yg0);
+    for (const a of [0, Math.PI / 3, -Math.PI / 3]) ckBox(body, [0, gy, Z(gz) - 0.012], [0.07, 0.3, 0.004], blu, [ln, 0, a]);
+    spLamp(c, 'tail', [0, yg1 - 0.035, Z(zg1 - 0.03)], [0, 0.35, -0.94], 0.34, 0.03, C.tail, { depth: 0.015, rim: 0.006 }); }
+  { const h = 0.09, w = h / 7 * 6 * 9 - h / 7; spText(body, 'AMBULANCE', (u, v) => [w / 2 - u, 1.15 + v, ft - 0.002], [0, 0, -1], h, red, false); }
+  ckBox(body, [0, 1.02, ft - 0.012], [0.34, 0.035, 0.014], chr); ckBox(trim, [0, 0.83, ft - 0.003], [0.56, 0.17, 0.006], K0); ckBox(body, [0, 0.83, ft - 0.007], [0.52, 0.11, 0.004], spCol('#f7f7f5'));
+  // the rear bumper standing out under the tailgate: the red band and a black strip across its back, the reversing
+  // lamps in it, the grey cladding at its foot, the step (tagged as the rear bumper)
+  body.tag = trim.tag = 'bumperR';
+  ckBox(body, [0, 0.47, Z(-2.6)], [1.86, 0.32, 0.16], W);
+  body.begin('panel', null, false); body.quad([0.86, 0.55, Z(-2.6805)], [-0.86, 0.55, Z(-2.6805)], [-0.86, 0.6, Z(-2.6805)], [0.86, 0.6, Z(-2.6805)], red, null, [0, 0.58, Z(-2.4)]); body.end();
+  ckBox(trim, [0, 0.5, Z(-2.677)], [1.72, 0.04, 0.012], K0); ckBox(body, [0, 0.345, Z(-2.676)], [1.84, 0.07, 0.012], clad);
+  mir(sd => spLamp(c, 'rev', [sd * 0.62, 0.42, Z(-2.6805)], [0, 0, -1], 0.1, 0.05, C.clear, { depth: 0.02, rim: 0.008 }));
+  ckBox(trim, [0, 0.33, Z(-2.7)], [0.9, 0.035, 0.16], K0);
+  body.tag = trim.tag = '';
+  // ---- inside: the partition behind the front seats, its window open; the compartment behind it ----
+  const zp = 0.02, fl = 0.56, hwAt = (z, y) => Math.max(0.3, sideX(z, y) - 0.04), wall = spCol('#dfe2e5'), grey = spCol('#8b9198'), dark = spCol('#3c4146'), floor = spCol('#6f767d');
+  const seat = spCol('#2a4a7a'), mat = spCol('#d9661f'), steel = spCol('#b9bfc5'), cab = spCol('#e8ebee');
+  { const ys = []; for (let y = fl; y < 1.86; y += 0.1) ys.push(y); ys.push(1.86);
+    // (its top following the roof's crown across, just under it)
+    const xe = hwAt(zp, 1.86), top = []; for (let x = xe - 0.08; x > -xe + 0.04; x -= 0.12) top.push([x, Math.max(1.86, c.topAtX(Z(zp), x) - 0.012)]);
+    const O = ys.map(y => [hwAt(zp, y), y]).concat(top, ys.slice().reverse().map(y => [-hwAt(zp, y), y])), Hl = [[-0.32, 1.3], [0.32, 1.3], [0.32, 1.6], [-0.32, 1.6]];
+    const T = THREE.ShapeUtils.triangulateShape(O.map(p => new THREE.Vector2(p[0], p[1])), [Hl.map(p => new THREE.Vector2(p[0], p[1]))]), V = O.concat(Hl);
+    for (const [zz, rz] of [[zp + 0.015, zp - 1], [zp - 0.015, zp + 1]]) { body.begin('panel', null, false); for (const [a, b, d] of T) body.tri([V[a][0], V[a][1], Z(zz)], [V[b][0], V[b][1], Z(zz)], [V[d][0], V[d][1], Z(zz)], wall, null, [0, 1.2, Z(rz)]); body.end(); }
+    // (the window's frame, a dark rubber round it on both faces, and its sill)
+    for (let i = 0; i < 4; i++) { const a = Hl[i], b = Hl[(i + 1) % 4]; body.begin('panel', null, false); body.quad([a[0], a[1], Z(zp + 0.015)], [b[0], b[1], Z(zp + 0.015)], [b[0], b[1], Z(zp - 0.015)], [a[0], a[1], Z(zp - 0.015)], dark, null, [0, 1.45, Z(zp)]); body.end(); }
+    for (const zz of [zp + 0.018, zp - 0.018]) { ckBox(trim, [0, 1.285, Z(zz)], [0.7, 0.03, 0.006], K0); ckBox(trim, [0, 1.615, Z(zz)], [0.7, 0.03, 0.006], K0); mir(sd => ckBox(trim, [sd * 0.335, 1.45, Z(zz)], [0.03, 0.36, 0.006], K0)); }
+    // (its sliding pane, pushed aside behind the partition's right half)
+    ckBox(trim, [-0.48, 1.45, Z(zp - 0.03)], [0.36, 0.34, 0.01], K0); }
+  // the floor (grey sheet vinyl) and the rear wheel arches inside
+  { const z0 = zp - 0.016, z1 = zt + 0.06, x0 = hwAt(-1, fl + 0.02); body.begin('panel', null, false); body.quad([-x0, fl, Z(z0)], [x0, fl, Z(z0)], [x0, fl, Z(z1)], [-x0, fl, Z(z1)], floor, null, [0, fl - 1, Z((z0 + z1) / 2)]); body.end();
+    mir(sd => ckBox(body, [sd * (x0 - 0.15), fl + 0.12, Z(-1.6)], [0.3, 0.24, 0.84], grey)); }
+  // the stretcher: its undercarriage on four wheels, the mattress (its head end raised as a back rest), a pillow, two
+  // straps across, and the rails along its sides
+  { const sx = -0.06, za = -0.5, zb = -2.42, len = za - zb, ym = 0.8;
+    ckBox(body, [sx, 0.67, Z((za + zb) / 2)], [0.5, 0.05, len - 0.1], steel);
+    for (const dx of [-0.2, 0.2]) for (const zz of [za - 0.12, zb + 0.12]) { ckCyl(body, [sx + dx, 0.66, Z(zz)], [sx + dx, fl + 0.06, Z(zz)], 0.015, steel, 5, false); ckCyl(body, [sx + dx - 0.02, fl + 0.045, Z(zz)], [sx + dx + 0.02, fl + 0.045, Z(zz)], 0.045, dark, 8, true); }
+    ckBox(body, [sx, ym, Z((za - 0.48 + zb) / 2)], [0.54, 0.1, len - 0.48], mat);
+    { const ang = Math.atan2(0.3, 0.46), cz = za - 0.24, cy = ym + 0.15; ckBox(body, [sx, cy, Z(cz)], [0.54, 0.1, 0.56], mat, [ang, 0, 0]); ckBox(body, [sx, cy + 0.12, Z(cz + 0.12)], [0.4, 0.08, 0.22], spCol('#f2f2ee'), [ang, 0, 0]); }
+    for (const zz of [-1.3, -2.0]) ckBox(trim, [sx, ym + 0.052, Z(zz)], [0.56, 0.006, 0.06], K0);
+    for (const dx of [-0.3, 0.3]) { spBar(body, [[sx + dx, 0.7, Z(-1.0)], [sx + dx, 0.95, Z(-1.05)], [sx + dx, 0.95, Z(-2.25)], [sx + dx, 0.7, Z(-2.3)]], 0.012, steel, 5); } }
+  // the bench along the right side behind the sliding door, its cushion and back, and its belts
+  { const x0 = -hwAt(-1.7, 0.9), za = -1.18, zb = -2.3;
+    ckBox(body, [x0 + 0.17, (fl + 0.9) / 2, Z((za + zb) / 2)], [0.32, 0.9 - fl, za - zb], grey); ckBox(body, [x0 + 0.18, 0.94, Z((za + zb) / 2)], [0.36, 0.08, za - zb], seat);
+    // (its back against the wall, leaning in with it above the waist, 3 cm inside it all along its length: the side
+    // narrows toward the roof and toward the tail, so the back is set by the narrowest of it at each height; and the
+    // belts on its face)
+    const sAt = y => Math.min(sideX(za, y), sideX((za + zb) / 2, y), sideX(zb, y)), y0 = 0.995, y1 = 1.545, xo0 = -sAt(y0) + 0.03, xo1 = -sAt(y1) + 0.03, ln = Math.atan2(xo1 - xo0, y1 - y0), th = 0.07;
+    ckBox(body, [(xo0 + xo1) / 2 + th / 2 * Math.cos(ln), (y0 + y1) / 2 - th / 2 * Math.sin(ln), Z((za + zb) / 2)], [th, Math.hypot(xo1 - xo0, y1 - y0), za - zb - 0.04], seat, [0, 0, -ln]);
+    for (const zz of [-1.45, -2.0]) ckBox(trim, [xo0 + (xo1 - xo0) * (1.18 - y0) / (y1 - y0) + th + 0.003, 1.18, Z(zz)], [0.004, 0.5, 0.04], K0, [0, 0, -ln]); }
+  // the attendant's seat at the stretcher's head, its back to the partition, facing back down the compartment
+  { const sx = 0.45, z0 = zp - 0.04; ckBox(body, [sx, (fl + 0.9) / 2, Z(z0 - 0.2)], [0.4, 0.9 - fl, 0.32], grey); ckBox(body, [sx, 0.94, Z(z0 - 0.2)], [0.44, 0.08, 0.38], seat);
+    ckBox(body, [sx, 1.3, Z(z0 - 0.045)], [0.44, 0.62, 0.07], seat); ckBox(body, [sx, 1.7, Z(z0 - 0.05)], [0.26, 0.16, 0.08], seat); }
+  // the cabinets along the left side over the stretcher's foot (their doors' edges and handles), the worktop and drawers
+  // ahead of the wheel arch, the oxygen cylinder strapped upright by the attendant's seat, the monitor on the partition
+  { const x1 = hwAt(-1.2, 1.6), za = -0.62, zb = -2.24;
+    ckBox(body, [x1 - 0.13, 1.63, Z((za + zb) / 2)], [0.26, 0.44, za - zb], cab);
+    for (let z = za; z > zb + 0.1; z -= (za - zb) / 4) { ckBox(trim, [x1 - 0.262, 1.63, Z(z)], [0.004, 0.42, 0.008], K0); ckBox(body, [x1 - 0.27, 1.45, Z(z - 0.06)], [0.012, 0.02, 0.07], dark); }
+    const x2 = hwAt(-0.9, 0.9); ckBox(body, [x2 - 0.18, (fl + 0.93) / 2, Z(-0.9)], [0.36, 0.93 - fl, 0.56], cab); ckBox(body, [x2 - 0.19, 0.95, Z(-0.9)], [0.39, 0.03, 0.58], grey);
+    for (const y of [0.68, 0.84]) ckBox(trim, [x2 - 0.362, y, Z(-0.9)], [0.004, 0.006, 0.5], K0);
+    const ox = hwAt(-0.3, 1.0) - 0.125; ckCyl(body, [ox, fl, Z(-0.3)], [ox, 1.42, Z(-0.3)], 0.085, spCol('#2b7a3b'), 10, true); ckCyl(body, [ox, 1.42, Z(-0.3)], [ox, 1.5, Z(-0.3)], 0.035, spCol('#f2f2ee'), 8, true);
+    for (const y of [0.8, 1.2]) ckCyl(trim, [ox, y, Z(-0.3)], [ox, y + 0.03, Z(-0.3)], 0.09, K0, 10, false);
+    ckBox(body, [0.32, 1.76, Z(zp - 0.08)], [0.34, 0.24, 0.12], dark); ckBox(body, [0.32, 1.77, Z(zp - 0.141)], [0.26, 0.15, 0.004], spCol('#1d3b2c')); }
+  // under the roof: the lining (light grey, following the roof's crown), two lights, the grab rail and a hook for a drip
+  // bag over the stretcher
+  const yIn = (z, x) => c.topAtX(Z(z), x) - 0.035; // (just under the roof there)
+  { const zs = [zp - 0.016, -0.6, -1.2, -1.8, -2.26], xe = hwAt(-1, 1.84) - 0.02, xs = []; for (let x = -xe; x < xe - 0.01; x += 0.15) xs.push(x); xs.push(xe);
+    const pt = (x, z) => [x, c.topAtX(Z(z), x) - 0.022, Z(z)];
+    body.begin('panel', null, false); for (let i = 0; i < zs.length - 1; i++) for (let j = 0; j < xs.length - 1; j++) body.quad(pt(xs[j], zs[i]), pt(xs[j + 1], zs[i]), pt(xs[j + 1], zs[i + 1]), pt(xs[j], zs[i + 1]), wall, null, [(xs[j] + xs[j + 1]) / 2, 2.5, Z((zs[i] + zs[i + 1]) / 2)]); body.end(); }
+  for (const zz of [-0.7, -1.8]) ckBox(body, [0, yIn(zz, 0.25) - 0.01, Z(zz)], [0.5, 0.02, 0.3], spCol('#f6f3e8'));
+  spBar(body, [[-0.32, yIn(-0.45, 0.32), Z(-0.45)], [-0.32, 1.8, Z(-0.5)], [-0.32, 1.8, Z(-2.15)], [-0.32, yIn(-2.2, 0.32), Z(-2.2)]], 0.014, steel, 6);
+  ckCyl(body, [-0.06, yIn(-0.8, 0.06), Z(-0.8)], [-0.06, 1.8, Z(-0.8)], 0.008, steel, 4, false);
 };
 
 // ---- the cabs' own fittings ----
@@ -16800,34 +17030,40 @@ const SP_CARS = {
     hullBox: { zf: 2.7, zr: -3.42, hw: 1.1, floor: 0.6, belt: 1.5, roof: 2.62, rw: 1.0, rzf: 0.8, rzr: -3.28 },
     aero: [['spTactical', {}]]
   },
-  // the ambulance: a short sloping bonnet and a raked windscreen, the fibreglass high roof rising from the screen's top to
-  // the back, a tailgate with its window; 215/70R16 tyres on six-spoke wheels
+  // the ambulance: a van with gear on its own roof. Its body from the van's published drawings: 5.125 m long on a
+  // 3.2 m wheelbase (0.86 m ahead of the front axle, 1.06 m behind the rear), 1.92 m wide, its roof 1.87 m up; a short
+  // bonnet rising from 1.0 m at its nose to 1.29 m at the screen's foot, the screen raked back 0.85 m to the roof; a
+  // front door, a sliding door each side and a tailgate reaching down to the bumper (rearDoor: a panel of its own);
+  // behind the front seats a partition, and behind it the patient's compartment; on the roof a light bar, a vent dome
+  // and two beacons (see spAmbulance); 215/70R16 tyres on six-spoke wheels
   palanquin_25d: {
-    name: 'Palanquin 25D', layout: 'High-roof van ambulance, front engine, rear-wheel drive', track: [1.685, 1.66], flare: 'round', archSeg: 8, flareOut: 0, flareMin: 0.01, rim: ['spokes', 6, '#c6cacf'], rimR: 0.2032, tyreHalf: [0.1075, 0.1075],
+    name: 'Palanquin 25D', layout: 'Van ambulance, front engine, rear-wheel drive', track: [1.685, 1.66], flare: 'round', archSeg: 8, flareOut: 0, flareMin: 0.01, rim: ['spokes', 6, '#c6cacf'], rimR: 0.2032, tyreHalf: [0.1075, 0.1075],
     livery: { base: '#f3f3f0', band: '#f3f3f0', pin: '#f3f3f0', roof: '#f3f3f0', hood: '#f3f3f0' }, crewLivery: { base: '#1f3e6a', band: '#c4161c', pin: '#f2f2ee' },
-    faces: 'custom', lamps: { front: null, rear: null }, noSkid: true, noAntenna: true, noFiller: true, rearLid: 'tailgate', mudflaps: false,
-    wheelArch: { r: 0.41, cy: 0.354, open: 0.3 }, glIn: 0.07, exhaust: { x: 0.55, y: 0.27 }, mirrorZ: 1.6, mirrorOut: 0.2,
+    faces: 'custom', lamps: { front: null, rear: null }, noSkid: true, noAntenna: true, noFiller: true, rearLid: 'tailgate', rearDoor: { x: 0.79, y0: 0.63 }, slideDoor: { travel: 1.0, pop: 0.065 }, mudflaps: false,
+    wheelArch: { r: 0.41, cy: 0.354, open: 0.3 }, glIn: 0.07, exhaust: { x: 0.55, y: 0.27 }, mirrorZ: 1.06, mirrorOut: 0.2,
     ribs: [
-      { z: 2.56, f: 0.3, s: 0.34, ws: 1.2, b: 0.6, wb: 1.14 }, // the bumper's middle: its corners sweep back round the nose
-      { z: 2.53, f: 0.29, s: 0.33, ws: 1.56, b: 0.63, wb: 1.5, dc: 0.01 },
-      { z: 2.48, f: 0.28, s: 0.32, ws: 1.76, b: 0.66, wb: 1.7, dc: 0.02 }, // the grille's foot: the face over it leaning back, the lamps on it
-      { z: 2.42, f: 0.28, s: 0.32, ws: 1.86, b: 0.88, wb: 1.8, dc: 0.03 },
-      { z: 2.37, f: 0.28, s: 0.32, ws: 1.9, b: 0.94, wb: 1.84, dc: 0.04 }, // the bonnet's leading edge, rounded over
-      { z: 2.2, f: 0.28, s: 0.32, ws: 1.92, b: 1.0, wb: 1.89, dc: 0.05 },
-      { z: 1.78, f: 0.27, s: 0.32, ws: 1.92, b: 1.12, wb: 1.92, dc: 0.04 }, // the windscreen's base
-      { z: 0.86, f: 0.27, s: 0.32, ws: 1.92, b: 1.14, wb: 1.92, r: 1.84, wr: 1.62, rc: 0.03 }, // its top: the sides lean in above the waist
-      { z: 0.7, f: 0.27, s: 0.32, ws: 1.92, b: 1.14, wb: 1.92, r: 1.88, wr: 1.64, rc: 0.04 }, // the van's own roof (the high roof sits on it)
-      { z: -2.3, f: 0.28, s: 0.33, ws: 1.92, b: 1.15, wb: 1.92, r: 1.88, wr: 1.64, rc: 0.04 },
-      { z: -2.42, f: 0.3, s: 0.36, ws: 1.9, b: 1.16, wb: 1.9, r: 1.86, wr: 1.6, rc: 0.03 }, // the roof's back edge
-      { z: -2.5, f: 0.32, s: 0.4, ws: 1.86, b: 1.36, wb: 1.86 } // the tail: the tailgate's window down to here
+      { z: 2.46, f: 0.3, s: 0.34, ws: 1.22, b: 0.6, wb: 1.16 }, // the bumper's middle: its corners sweep back round the nose
+      { z: 2.445, f: 0.29, s: 0.33, ws: 1.58, b: 0.63, wb: 1.52, dc: 0.01 },
+      { z: 2.42, f: 0.28, s: 0.32, ws: 1.79, b: 0.68, wb: 1.73, dc: 0.02 }, // the grille's foot: the face over it leaning back, the lamps on it
+      { z: 2.39, f: 0.28, s: 0.32, ws: 1.88, b: 0.95, wb: 1.82, dc: 0.03 },
+      { z: 2.34, f: 0.28, s: 0.32, ws: 1.91, b: 1.0, wb: 1.87, dc: 0.04 }, // the bonnet's leading edge, rounded over
+      { z: 2.15, f: 0.28, s: 0.32, ws: 1.92, b: 1.07, wb: 1.9, dc: 0.05 },
+      { z: 1.65, f: 0.27, s: 0.32, ws: 1.92, b: 1.235, wb: 1.92, dc: 0.04 }, // the windscreen's foot
+      { z: 0.8, f: 0.27, s: 0.32, ws: 1.92, b: 1.26, wb: 1.92, r: 1.83, wr: 1.6, rc: 0.03 }, // its top: the sides lean in above the waist
+      { z: 0.66, f: 0.27, s: 0.32, ws: 1.92, b: 1.27, wb: 1.92, r: 1.87, wr: 1.64, rc: 0.04 }, // the roof
+      { z: 0.02, f: 0.27, s: 0.32, ws: 1.92, b: 1.28, wb: 1.92, r: 1.87, wr: 1.64, rc: 0.04 }, // the partition
+      { z: -2.2, f: 0.28, s: 0.33, ws: 1.92, b: 1.3, wb: 1.92, r: 1.87, wr: 1.64, rc: 0.04 },
+      { z: -2.3, f: 0.3, s: 0.36, ws: 1.9, b: 1.31, wb: 1.9, r: 1.85, wr: 1.6, rc: 0.03 }, // the roof's back edge: the tailgate's hinge
+      { z: -2.56, f: 0.32, s: 0.4, ws: 1.86, b: 1.33, wb: 1.86 } // the tail: the tailgate's glass down to here, its door below
     ],
     windows: [
-      { pts: [[1.64, 1.2, 0.005], [0.14, 1.2, 0.01], [0.14, 1.8, 0.02], [0.88, 1.8, 0.02]] }, // the front door's glass, its front edge along the pillar
-      { pts: [[-0.06, 1.22, 0.02], [-1.12, 1.22, 0.02], [-1.12, 1.8, 0.03], [-0.06, 1.8, 0.03]], kind: 'black' }, // the sliding door's, tinted dark
-      { pts: [[-1.3, 1.22, 0.02], [-2.26, 1.22, 0.02], [-2.26, 1.8, 0.03], [-1.3, 1.8, 0.03]], kind: 'black' } // the back's
+      { pts: [[0.8, 1.79, 0.03], [1.15, 1.47, 0.01], [1.15, 1.27, 0.01], [0.21, 1.3, 0.02], [0.21, 1.79, 0.04]] }, // the front door's glass, its front edge along the screen's pillar
+      { pts: [[1.17, 1.27, 0], [1.45, 1.27, 0], [1.18, 1.5, 0]], kind: 'black' }, // the sail under the pillar, ahead of the glass, where the mirror stands
+      { pts: [[0.04, 1.29, 0.03], [-1.0, 1.3, 0.03], [-1.0, 1.79, 0.04], [0.04, 1.79, 0.04]], kind: 'black' }, // the sliding door's, tinted dark
+      { pts: [[-1.18, 1.3, 0.03], [-2.06, 1.31, 0.04], [-2.2, 1.6, 0.03], [-2.16, 1.79, 0.03], [-1.18, 1.79, 0.04]], kind: 'black' } // the back's, its rear edge leaning with the pillar
     ],
-    shut: [1.7, 0.06, -0.06, -1.16], handles: [0.16, -0.25], numZ: 0.6, frame: 'black', cockpit: { cage: 'none', screen: 'dials', road: true, inner: { dash: '#2c2e32', shell: '#3a3c40', floor: '#26272a' } }, wipers: { x: [0.27, -0.4], len: 0.66 },
-    hullBox: { zf: 2.57, zr: -2.62, hw: 0.96, floor: 0.27, belt: 1.15, roof: 2.44, rw: 0.75, rzf: 0.6, rzr: -2.4 },
+    shut: [1.15, 0.19, 0.06, -1.12], handles: [0.3, -0.03], numZ: 0.62, frame: 'black', cockpit: { cage: 'none', screen: 'dials', road: true, inner: { dash: '#2c2e32', shell: '#3a3c40', floor: '#26272a' } }, wipers: { x: [0.27, -0.4], len: 0.66 },
+    hullBox: { zf: 2.47, zr: -2.69, hw: 0.96, floor: 0.27, belt: 1.15, roof: 1.94, rw: 0.86, rzf: 1.05, rzr: -2.4 },
     aero: [['spAmbulance', {}]]
   }
 };
@@ -17713,11 +17949,17 @@ function EngineDSPDef() {
       this.iK = 0; this.phL = 0; this.lw = 0;
       // intake
       this.iduct = new Duct(sr, I.L, 343, I.itb ? -0.55 : -0.4, 0.6); this.iin = 0; this.id1 = 0; this.id2 = 0;
+      // (two-length intake runners (K.vim: the revs they switch at): the short runners' own resonance takes over above it;
+      // a cam switch (K.vsw): camK, how far the wild cam is in)
+      this.iduct2 = K.vim ? new Duct(sr, I.L * 0.58, 343, I.itb ? -0.55 : -0.4, 0.6) : null; this.vimK = 0; this.vimT = 0; this.camK = 0; this.camT = 0;
       this.plen = I.plenum ? new BQ().set('bp', I.plenum, 1.6, sr) : null; this.hiss = new BQ().set('bp', 2200, 0.9, sr);
       this.phS = 0; this.hpI = 0; this.hpIx = 0; this.popBP = new BQ().set('bp', 1900, 0.9, sr);
       // the turbocharger (see Turbo), and its wastegate: how far open, and the hiss of the exhaust through it
       this.stt = K.st ? new Starter(sr, K, K.st.Tst) : null; // (the starter: see Starter)
-      this.tb = I.boost && I.whistle ? new Turbo(sr, K) : null; this.wg = 0; this.wgBP = new BQ().set('bp', 2600, 0.9, sr); this.ckBP = new BQ().set('bp', 2200, 0.7, sr); this.chHP = 0; this.chA = 1 - Math.exp(-TAU * 220 / sr);
+      this.tb = I.boost && I.whistle ? new Turbo(sr, K) : null;
+      // (sequential twin turbos (I.seq: the revs over which the second comes in): a second, bigger rotor, its note lower,
+      // spinning up as its valves open; it has no surge of its own to speak of)
+      this.tb2 = this.tb && I.seq ? new Turbo(sr, Object.assign({}, K, { intake: Object.assign({}, I, { whistle: [I.whistle[0] * 0.8, I.whistle[1] * 0.8], flutter: 0.3, tc: Object.assign({}, I.tc || {}, { D: ((I.tc && I.tc.D) || 0.06) * 1.25 }) }) })) : null; this.wg = 0; this.wgBP = new BQ().set('bp', 2600, 0.9, sr); this.ckBP = new BQ().set('bp', 2200, 0.7, sr); this.chHP = 0; this.chA = 1 - Math.exp(-TAU * 220 / sr);
       // the wastegate itself: a poppet on its spring and actuator, drawn to where the boost control wants it (flat out,
       // open enough to hold full boost) and blown off its seat by each spike of pressure in the manifold - anti-lag's
       // bangs, the cracks of a flat shift - then slamming back: each hit rings the turbine housing (a chatter, bouncing),
@@ -17755,7 +17997,7 @@ function EngineDSPDef() {
     ftz() {
       this.thr = ftz(this.thr); this.load = ftz(this.load); this.spool = ftz(this.spool); this.scB = ftz(this.scB); this.tq = ftz(this.tq); this.wheel = ftz(this.wheel); this.lastThr = ftz(this.lastThr); this.popHeat = ftz(this.popHeat);
       this.bd1 = ftz(this.bd1); this.bd2 = ftz(this.bd2); this.bn = ftz(this.bn); this.wg = ftz(this.wg); this.wgX = ftz(this.wgX); this.wgVv = ftz(this.wgVv); this.wgK = ftz(this.wgK); this.wgHit = ftz(this.wgHit); this.jUm = ftz(this.jUm);
-      this.clk = ftz(this.clk); this.inj = ftz(this.inj); this.hpp = ftz(this.hpp); this.csE = ftz(this.csE); this.thE = ftz(this.thE); this.air = ftz(this.air); this.bub = ftz(this.bub); for (let k = 0; k < 4; k++) this.cs[k].ftz(); this.cmpE = ftz(this.cmpE); this.cmpBP.ftz(); this.cmpLB.ftz();
+      this.camK = ftz(this.camK); this.vimK = ftz(this.vimK); this.clk = ftz(this.clk); this.inj = ftz(this.inj); this.hpp = ftz(this.hpp); this.csE = ftz(this.csE); this.thE = ftz(this.thE); this.air = ftz(this.air); this.bub = ftz(this.bub); for (let k = 0; k < 4; k++) this.cs[k].ftz(); this.cmpE = ftz(this.cmpE); this.cmpBP.ftz(); this.cmpLB.ftz();
     }
     // the tailpipe and its silencer torn off: the gas leaves straight from a shorter pipe, unsilenced and louder
     open(on) {
@@ -17803,9 +18045,16 @@ function EngineDSPDef() {
     click(a) { const v = a * (0.3 + 0.7 * this.rpm / this.cfg.red) * Math.pow(Math.min(1, this.rpm / (0.8 * (this.cfg.idle || 950))), 1.2) * (1 + (this.cfg.mech.lash || 0.2) * this.nz()); if (v > this.clk) this.clk = v; } // (below idle, turned over by the starter, the valves land softly)
     coef() {
       const sr = this.sr, K = this.cfg, I = K.intake, dps = Math.max(300, this.rpm) * 6; // crank degrees per second
-      const aR = Math.exp(-1 / (K.rise / dps * sr)), aD = Math.exp(-1 / (K.decay / dps * sr)); this.aR = aR; this.aD = aD;
+      // a cam switch: the wild cam goes in above its revs with the throttle well open and the car moving (its computer
+      // waits for 10 km/h, so revved in neutral at a standstill it stays on the mild cam), and out again 200 rpm lower,
+      // off the throttle or under 6 km/h, within a cycle or two; its exhaust valves open earlier and faster, so each
+      // blowdown's rise is sharper. Two-length runners change over at their revs (this.wheel: wheel turns a second)
+      if (K.vsw) { if (this.rpm > K.vsw && this.thr > 0.3 && this.wheel > 1.4) this.camT = 1; else if (this.rpm < K.vsw - 200 || this.thr < 0.15 || this.wheel < 0.9) this.camT = 0; this.camK += (this.camT - this.camK) * 0.06; }
+      if (K.vim) { this.vimT = this.rpm > K.vim ? 1 : this.rpm < K.vim - 150 ? 0 : this.vimT; this.vimK += (this.vimT - this.vimK) * 0.05; }
+      const rise = K.rise * (1 - 0.3 * this.camK);
+      const aR = Math.exp(-1 / (rise / dps * sr)), aD = Math.exp(-1 / (K.decay / dps * sr)); this.aR = aR; this.aD = aD;
       // peak of the difference of two exponentials, so a pulse's height is its cylinder pressure whatever the revs
-      const tr = K.rise, td = K.decay, tp = Math.log(td / tr) * tr * td / (td - tr); this.kP = 1 / (Math.exp(-tp / td) - Math.exp(-tp / tr));
+      const tr = rise, td = K.decay, tp = Math.log(td / tr) * tr * td / (td - tr); this.kP = 1 / (Math.exp(-tp / td) - Math.exp(-tp / tr));
       this.aiR = Math.exp(-1 / (8 / dps * sr)); this.aiD = Math.exp(-1 / (70 / dps * sr));
       this.aT = 1 - Math.exp(-TAU * (K.turbo ? 900 + 900 * (1 - this.spool) : 20000) / sr);
       this.bR = Math.exp(-1 / (0.00008 * sr)); this.bD = Math.exp(-1 / (0.0028 * sr));
@@ -17822,7 +18071,8 @@ function EngineDSPDef() {
       // the turbo; its wastegate opens to hold full boost, the more the higher the revs (more exhaust than the turbine needs)
       // (off the throttle it sits on its seat: only the manifold's spikes lift it)
       if (this.tb) { this.tb.n0 = this.stt && this.stt.drive ? 0.02 : 0.2; // (an engine being cranked pumps next to no exhaust: the rotor stands)
-        this.tb.ctl(32 / sr, this.spool, this.thr, this.rpm / K.red, this.alsOn, this.P.on, this.P.leak, this.P.chip); this.wgT = Math.max(Math.max(0, Math.min(1, (this.spool - 0.9) / 0.1)) * Math.max(0, Math.min(1, (this.rpm / K.red - 0.45) / 0.45)) * this.thr, 0); }
+        this.tb.ctl(32 / sr, this.spool, this.thr, this.rpm / K.red, this.alsOn, this.P.on, this.P.leak, this.P.chip);
+        if (this.tb2) { this.tb2.n0 = this.tb.n0; this.tb2.ctl(32 / sr, this.spool * sm(I.seq[0], I.seq[1], this.rpm), this.thr, this.rpm / K.red, false, this.P.on, 0, 0); } this.wgT = Math.max(Math.max(0, Math.min(1, (this.spool - 0.9) / 0.1)) * Math.max(0, Math.min(1, (this.rpm / K.red - 0.45) / 0.45)) * this.thr, 0); }
       // the driveline's slack: when the torque through it turns round (on the throttle after a lift, off it after a pull)
       // the splines, dogs and the differentials' gears close their gaps the other way with a clunk
       const tq = this.P.tqs || 0; if (this.lashT > 0) this.lashT -= 32 / sr;
@@ -17856,6 +18106,7 @@ function EngineDSPDef() {
         A = (K.mech.dz ? 0.3 + 0.7 * Math.pow(L, 0.75) : 0.08 + 0.92 * Math.pow(L, 0.75)) * (1 + this.bias[c] + cov * this.gauss());
         if (over && this.rpm > 2400 && this.popHeat > 0.05 && this.rnd() < K.pop * this.popHeat * 9 * perS) this.pop(0.25 + 0.6 * this.rnd() * this.popHeat);
         if (L < 0.15 && this.rnd() < 0.015 + 0.05 * lope) A *= 0.3; // the odd misfire at light load, more with a lumpy cam at idle
+        if (this.camK > 0.01) A *= 1 + 0.15 * this.camK; // (the wild cam: more charge, let out harder)
       }
       A = Math.max(0, A); this.inp[c] += A * p; this.carry[c] += A * (1 - p); // the pulse lands between this sample and the next
       if (als && this.tb) this.wgK += A * 0.3; // (with anti-lag burning in the manifold every pulse leans on the wastegate: it flutters on its seat)
@@ -17894,7 +18145,7 @@ function EngineDSPDef() {
           const e = this.ev[this.ei], p = (this.th - this.next) / dth;
           if (on) {
             if (e.t === 0) { this.exhaust(e.c, p); this.click(this.vgOpen); }
-            else if (e.t === 1) this.iin -= (dz ? 0.85 + 0.15 * this.thr : 0.15 + 0.85 * (this.alsOn ? Math.max(this.thr, 0.28) : this.thr)) * (itb ? 1 : 0.6) * (1 - 0.6 * (kTb ? 1 : 0));
+            else if (e.t === 1) this.iin -= (dz ? 0.85 + 0.15 * this.thr : 0.15 + 0.85 * (this.alsOn ? Math.max(this.thr, 0.28) : this.thr)) * (itb ? 1 : 0.6) * (1 - 0.6 * (kTb ? 1 : 0)) * (1 + 0.8 * this.camK);
             else if (e.t === 2) this.click(1);
             // (a diesel's charge lights by itself after a delay, all at once: its knock comes with every firing, hardest
             // light and cold, when the delay is longest)
@@ -17944,7 +18195,7 @@ function EngineDSPDef() {
         // the tailpipe under water: what comes out is the gas bubbling up through it, the note itself smothered
         const wt = P.wet; if (wt > 0.01 || this.bub > 1e-5) { this.wz += (o0[s] - this.wz) * this.wA; this.wz2 += (this.wz - this.wz2) * this.wA; this.bub *= this.bubD; o0[s] = o0[s] * (1 - 0.92 * wt) + this.wz2 * 0.6 * wt + (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1)), _bq = this.bubBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * this.bub * tr0; }
         // ---- intake ----
-        const ix = (_du = (this.iin), _dq = this.iduct, _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do); this.iin = 0; this.id1 = this.id1 * this.aiD + ix; this.id2 = this.id2 * this.aiR + ix; let yi = (this.id1 - this.id2);
+        const ix = this.iduct2 ? (_du = (this.iin), _dq = this.iduct, _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do) * (1 - this.vimK) + (_du = (this.iin), _dq = this.iduct2, _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do) * this.vimK : (_du = (this.iin), _dq = this.iduct, _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do); this.iin = 0; this.id1 = this.id1 * this.aiD + ix; this.id2 = this.id2 * this.aiR + ix; let yi = (this.id1 - this.id2);
         if (this.plen) yi = (_bu = (yi), _bq = this.plen, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * 2.2 + yi * 0.25; else { const d = yi - this.hpIx; this.hpIx = yi; yi = yi + d * 1.2; }
         if (!dz) yi += (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1)), _bq = this.hiss, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * this.thr * (1 - this.thr) * 4 * (0.2 + rn) * 0.05 * (kTb ? 0.3 : 1); // (the throttle's hiss: a diesel has none)
         if (isc) {
@@ -17955,7 +18206,8 @@ function EngineDSPDef() {
         const hi = yi - this.hpI * 0.995; this.hpI = yi; this.li += (hi - this.li) * this.aY; this.li2 += (this.li - this.li2) * (itb ? this.aI : 1); o1[s] = this.li2 * tr1 * (on ? 1 : 0);
         // ---- the turbo: its rotor's tones, its air, its surge and its valves (the exhaust's firing pulses waver its shaft) ----
         // (and a cracked turbine housing leaks a puff of exhaust into the engine bay with every pulse)
-        if (this.tb) { this.tb.fm = (_sx = (this.phSh * nc / 2), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)); this.tb.run(); let tu = this.tb.out * (on ? 1 : 0.3); if (P.crack) tu += (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1) * Math.abs(y)), _bq = this.ckBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * P.crack * 0.6;
+        if (this.tb) { this.tb.fm = (_sx = (this.phSh * nc / 2), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)); this.tb.run(); let tu = this.tb.out * (on ? 1 : 0.3);
+          if (this.tb2) { this.tb2.fm = this.tb.fm; this.tb2.run(); tu += this.tb2.out * (on ? 0.8 : 0.25); } if (P.crack) tu += (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1) * Math.abs(y)), _bq = this.ckBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * P.crack * 0.6;
           { const c = this.tb.chuff; this.chHP += (c - this.chHP) * this.chA; o1[s] += 1.1 * Math.tanh((c - this.chHP) * 0.73) * (on ? 1 : 0.3); } // (the surge's pulse comes out of the intake's mouth, with the intake's own sound; its lowest swing barely radiates, and the air in the duct can only swing so far)
           if (this.wgHit > 1e-5) { this.wgHit *= this.wgHD; const hx = ((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1) * this.wgHit; tu += ((_bu = (hx), _bq = this.wgM[0], _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.7 * (_bu = (hx), _bq = this.wgM[1], _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.45 * (_bu = (hx), _bq = this.wgM[2], _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by)) * this.wgL * 18; } // (the wastegate's chatter)
           if (o4) o4[s] = tu; else o1[s] += tu * tr1; }
@@ -18311,7 +18563,10 @@ const STARTER_CFG = {
   pipit_16t: ['race', 260, 10.0, 'efi', 97], ouzel_16t: ['race', 260, 10.0, 'efi', 97],
   xebec_24v: ['dd', 210, 10.5, 'carb', 322], lugger_18: ['dd', 230, 10.5, 'carb', 240], tartane_16v: ['dd', 220, 10.5, 'mech', 269], pinnace_20: ['dd', 220, 11.5, 'mech', 267],
   shallop_22: ['dd', 220, 10.0, 'carb', 293], carrack_24: ['dd', 210, 10.8, 'carb', 331], felucca_14t: ['dd', 240, 7.0, 'kjet', 188], barque_21t: ['dd', 220, 7.0, 'kjet', 285],
-  ketch_30: ['dd', 200, 10.3, 'mech', 395], galliot_v8: ['dd', 170, 9.4, 'kjet', 635], yawl_20t: ['dd', 220, 7.2, 'kjet', 267], polacca_v4: ['dd', 240, 10.5, 'carb', 214]
+  ketch_30: ['dd', 200, 10.3, 'mech', 395], galliot_v8: ['dd', 170, 9.4, 'kjet', 635], yawl_20t: ['dd', 220, 7.2, 'kjet', 267], polacca_v4: ['dd', 240, 10.5, 'carb', 214],
+  // (the diesels: each squeezes its air some 16-17 times, so its starter labours through each compression and turns it
+  // slower - the truck's big six on its heavy direct-drive starter slowest, its in-line pump feeding it as it turns)
+  caisson_6x6: ['dd', 150, 17, 'mech'], limber_4x4: ['red', 185, 16, 'efi'], palanquin_25d: ['red', 195, 16.5, 'efi']
 };
 // what the engine model is told about a car's engine (its starter's stall torque worked out once per car: see Starter)
 const _stTst = {};
@@ -28238,15 +28493,33 @@ function cuSoundFor(S, B, S0) {
   if (!E.fam || B.exh !== exD) { const X = { quiet: [[2200, 0.8], 0.32], sport: [[3200, 0.7], 0.46], open: [[4400, 0.7], 0.58] }[B.exh]; K.sil = X[0].slice(); K.silMix = X[1]; }
   K.trim = (K.trim || [1, 1, 1, 1]).map((v, i) => i === 0 ? +(v * exK[B.exh] / exK[exD || 'sport']).toFixed(3) : v);
   if (K.pos !== pos) { K.pos = pos; K.exit = 'rear'; K.main = pos === 'front' ? (turbo ? 3 : 2.6) : pos === 'mid' ? 1.4 : 1; }
+  // its valves and induction where they are not as the engine it is made from had them. Cam phasing (and a lift varied
+  // without steps) leaves little overlap at idle: it idles smoother, each cycle more like the last. A cam switch hardens
+  // the note above it - the wild cam's earlier, sharper blowdown, the inlet's louder draw - and two-length runners change
+  // the intake's note where they switch (see EngineDSP). A throttle at each port howls; the fuel system ticks or knocks
+  // as it is built. A variable-vane turbo has no wastegate to rattle; a twin scroll keeps more of each pulse's edge to
+  // the turbine; sequential twins sing with two rotors, the second's lower note coming in with the revs
+  { const R = E.fam ? K0 : Kd, d = k => B[k] !== R[k], vf = b => [1, 0.7, 0.55][b.vvt === 'both' ? 2 : b.vvt === 'inlet' ? 1 : 0] * (b.vlift === 'cvl' ? 0.6 : 1);
+    if (d('vvt') || d('vlift')) { const f = vf(B) / vf(R); K.lope = +((K.lope || 0.2) * f).toFixed(3); K.cov = +((K.cov || 0.05) * (0.85 + 0.15 * f)).toFixed(3); }
+    if (E.vsw) K.vsw = E.vsw; else delete K.vsw; if (B.vim) K.vim = Math.round(0.58 * E.red / 50) * 50; else delete K.vim;
+    if ((d('itb') || !E.fam) && B.asp === 'na' && !dz) K.intake = B.itb ? { L: 0.3, itb: true } : { L: B.tune === 'road' ? 0.38 : 0.34, plenum: B.tune === 'road' ? 160 : 220 };
+    if (d('feed') || !E.fam) { const M = K.mech = Object.assign({}, K.mech); delete M.inj; delete M.hpp;
+      if (dz) { M.inj = [3500, B.feed === 'direct' ? 0.08 : 0.1]; if (B.feed === 'direct') { M.hpp = [3, 0.04]; M.knock = +(0.25 * 0.75).toFixed(3); } else M.knock = 0.25; }
+      else if (B.feed === 'mech') M.inj = [1400, 0.07]; else if (B.feed === 'port') M.inj = [3300, 0.045]; else if (B.feed === 'direct') { M.inj = [3800, 0.05]; M.hpp = [3, 0.03]; } }
+    const In = K.intake = Object.assign({}, K.intake); delete In.seq;
+    if (turbo && In.tc && (d('tkind') || !E.fam)) { In.tc = Object.assign({}, In.tc); if (B.tkind === 'vgt') In.tc.wg = [40, 0.12]; else if (R.tkind === 'vgt') delete In.tc.wg; }
+    if (turbo && d('tkind') && (B.tkind === 'twinscroll' || R.tkind === 'twinscroll')) K.turbo = +((K.turbo || 0.6) * (B.tkind === 'twinscroll' ? 0.85 : 1 / 0.85)).toFixed(3);
+    if (turbo && B.asp === 'biturbo' && B.tseq && E.rc && In.whistle) In.seq = [Math.round(E.rc - 0.06 * E.red), Math.round(E.rc + 0.04 * E.red)]; }
   ENGINE_CFG[id] = K;
   ENGINE_SND[id] = Object.assign({}, ENGINE_SND[donor.id] || ENGINE_SND.ardent_5t, { k0: K.cyl, whistle: turbo ? 0.04 : 0, sc: B.asp === 'sc' || B.asp === 'twin' ? 0.075 : 0, chatter: turbo && !B.als ? 1 : 0 });
   // the starter (its kind by era: direct drive, reduction, a light race starter), cranking speed, compression and fuel
   const st = dz ? 'red' : B.tune === 'road' && B.tech !== '70s' ? 'pm' : CU_TECH[B.tech].st, cr = cuEngLay(S, B, S0).cr;
-  STARTER_CFG[id] = E.fam && STARTER_CFG[S0.id] && B.tech === K0.tech && B.litres === K0.litres ? STARTER_CFG[S0.id].slice() : [st, Math.round(clamp(260 - 9 * B.litres, 120, 260)), cr, dz || B.tech !== '70s' && B.tech !== '80s' ? 'efi' : B.tech === '70s' ? 'carb' : 'mech'];
+  STARTER_CFG[id] = E.fam && STARTER_CFG[S0.id] && B.tech === K0.tech && B.litres === K0.litres && B.feed === K0.feed ? STARTER_CFG[S0.id].slice() : [st, Math.round(clamp(260 - 9 * B.litres, 120, 260)), cr, B.feed === 'carb' ? 'carb' : B.feed === 'mech' ? 'mech' : 'efi'];
   delete _stTst[id];
   // the idle: as its management holds it, hunting as its cams make it
-  const lope = K.lope || 0.2, ecu = dz || CU_TECH[B.tech].idle === 'ecu';
-  IDLE[id] = E.fam && IDLE[S0.id] && B.tech === K0.tech && B.tune === K0.tune ? [S.idle].concat(IDLE[S0.id].slice(1)) : [S.idle, ecu ? 'ecu' : 'stop', ecu ? 25 : Math.round(60 + 100 * lope), +(0.4 + 0.6 * lope).toFixed(2)];
+  // (carburettors and mechanical injection have nothing to hold the idle: it sits where the throttle stop leaves it)
+  const lope = K.lope || 0.2, ecu = dz || (CU_TECH[B.tech].idle === 'ecu' && B.feed !== 'carb' && B.feed !== 'mech');
+  IDLE[id] = E.fam && IDLE[S0.id] && B.tech === K0.tech && B.tune === K0.tune && ['vvt', 'vlift', 'itb', 'feed'].every(k => B[k] === K0[k]) ? [S.idle].concat(IDLE[S0.id].slice(1)) : [S.idle, ecu ? 'ecu' : 'stop', ecu ? 25 : Math.round(60 + 100 * lope), +(0.4 + 0.6 * lope).toFixed(2)];
   S.idle = IDLE[id][0];
 }
 // ---- registering a build ----
@@ -28279,7 +28552,7 @@ function cuUnregister(id, keepPlace) {
 // engine and its bay, the boot) shows where it was.
 function cuStrip(rig, S) {
   const B = S.cu, P = rig.panels || [], off = new Set(), tags = new Set();
-  P.forEach((q, i) => { const k = q.kind; if ((k === 'bonnet' && B.bonnet === 'off') || ((k === 'boot lid' || k === 'engine cover' || k === 'tailgate') && B.boot === 'off') || ((k === 'door' || k === 'rear door') && B.doors === 'off')) off.add(i + 1); });
+  P.forEach((q, i) => { const k = q.kind; if ((k === 'bonnet' && B.bonnet === 'off') || ((k === 'boot lid' || k === 'engine cover' || k === 'tailgate') && B.boot === 'off') || ((k === 'door' || k === 'rear door' || k === 'sliding door') && B.doors === 'off')) off.add(i + 1); });
   if (!B.bumpF) tags.add('bumperF'); if (!B.bumpR) tags.add('bumperR');
   if (!off.size && !tags.size) return;
   const renum = new Uint8Array(P.length + 2); { let k = 0; for (let i = 1; i <= P.length; i++) renum[i] = off.has(i) ? 0 : ++k; }
@@ -28355,7 +28628,10 @@ const WS_WORDS = {
   bpos: [['front', 'Front'], ['middle', 'Middle'], ['rear', 'Rear']], bonnet: [['steel', 'Steel'], ['light', 'Light'], ['off', 'Off']], boot: [['steel', 'Steel'], ['light', 'Light'], ['off', 'Off']],
   doors: [['steel', 'Steel'], ['light', 'Light'], ['off', 'Off']], cage: [['none', 'None'], ['light', 'Hoop'], ['full', 'Full']], glass: [['glass', 'Glass'], ['plastic', 'Plastic']], trim: [['stripped', 'Stripped'], ['full', 'Full trim']],
   guard: [['none', 'None'], ['light', 'Light'], ['full', 'Full']], on: [[1, 'On'], [0, 'Off']], spare: [[0, 'None'], [1, 'One'], [2, 'Two']],
-  aero: [['stock', 'As built'], ['none', 'None'], ['lip', 'Lips'], ['wing', 'Wing'], ['big', 'Big wing'], ['max', 'Racing wing']], roof: [['base', 'Main colour'], ['band', 'Stripe colour']]
+  aero: [['stock', 'As built'], ['none', 'None'], ['lip', 'Lips'], ['wing', 'Wing'], ['big', 'Big wing'], ['max', 'Racing wing']], roof: [['base', 'Main colour'], ['band', 'Stripe colour']],
+  vvt: [['none', 'Fixed'], ['inlet', 'Inlet cam'], ['both', 'Both cams']], vlift: [['none', 'Fixed'], ['switch', 'Two-stage'], ['cvl', 'Variable']], vim: [[0, 'One length'], [1, 'Two lengths']],
+  itb: [[0, 'One'], [1, 'One per cylinder']], feed: [['carb', 'Carburettors'], ['mech', 'Mechanical'], ['port', 'Port injection'], ['direct', 'Direct injection']],
+  tkind: [['single', 'Single scroll'], ['twinscroll', 'Twin scroll'], ['vgt', 'Variable vanes']], tseq: [[0, 'Side by side'], [1, 'Sequential']]
 };
 // the keys that make an engine another engine: changing one starts its rev limit afresh
 const WS_FAMILY = ['layout', 'cyl', 'fuel', 'asp', 'tech', 'tune', 'cams'];
@@ -28387,6 +28663,7 @@ const Workshop = {
   set(k, v) {
     const was = this.B[k]; if (was === v) return; this.B[k] = v;
     if (WS_FAMILY.includes(k)) this.B.rev = 0; // (another engine: its own red line)
+    if (k === 'tech' || k === 'fuel') this.B.feed = this.B.fuel === 'diesel' ? (['00s', '20s'].includes(this.B.tech) ? 'direct' : 'mech') : (CU_TECH[this.B.tech] || {}).feed || 'port'; // (the fuel system of its era)
     if (k === 'layout') { const L = WS_CYL[v]; if (!L.includes(this.B.cyl)) this.B.cyl = L.reduce((p, q) => Math.abs(q - this.B.cyl) < Math.abs(p - this.B.cyl) ? q : p); }
     if (k === 'box' && v !== 'cvt') { const lim = { H: [3, 7], seq: [4, 8], paddle: [5, 8], auto: [3, 8] }[v]; this.B.gears = clamp(this.B.gears, lim[0], lim[1]); }
     this.B = cuClean(this.B) || this.B; this.apply(); this.body(); this.head();
@@ -28460,8 +28737,20 @@ const Workshop = {
         this.row('Size', this.slider('litres', rot ? 0.4 * B.cyl : Math.max(0.5, 0.12 * B.cyl), rot ? 0.8 * B.cyl : Math.min(8.5, 1.3 * B.cyl), 0.05, v => v.toFixed(2) + ' litres', 'Engine size'), rot ? (B.litres / B.cyl).toFixed(2) + ' litres a rotor' : Math.round(B.litres / B.cyl * 1000) + ' cc a cylinder'),
         rot ? null : this.row('Fuel', seg('fuel', 'Fuel')), rot ? null : this.row('Valve gear', seg('cams', 'Valve gear')), this.row('Era', seg('tech', 'Era of its engineering'), 'Breathing, management, turbos and rev limiter of its time'),
         this.row('Tune', seg('tune', 'Tune'), { road: 'Mild cams: pulls from low down', sport: 'Between the two', race: 'Hot cams and high revs: little low down' }[B.tune]));
+      // the valves and induction: cam phasing, the lift, the runners, the throttles, the fuel system
+      { const one = B.cams !== 'twin', vsw = B.vlift === 'switch' ? cuEngineOn(B).vsw : 0, auto = el('button', { type: 'button', class: 'ghostbtn', text: 'Auto', onclick: () => this.set('vsw', 0) });
+        let sw = null; if (B.vlift === 'switch') { sw = this.slider('vsw', 2500, Math.max(3000, S.redline - 300), 100, v => v + ' rpm', 'Cam switch revs'); const r = sw.querySelector('input'), o = sw.querySelector('output'); r.value = B.vsw || vsw; o.textContent = (B.vsw || vsw) + ' rpm'; if (B.vsw) sw.append(auto); }
+        add(this.sec('Valves and induction'),
+          rot ? null : this.row(one ? 'Cam timing' : 'Valve timing', seg('vvt', 'Valve timing', one ? [['none', 'Fixed'], ['inlet', 'Phased']] : W.vvt), { none: 'Fixed: its cams always open the valves at the same point', inlet: one ? 'Turned against the crank as the revs rise: fuller low down' : 'The inlet cam turned against the crank: fuller low down', both: 'Both cams turned: the widest spread of torque, and a quick turbo' }[B.vvt]),
+          rot || B.cams === 'pushrod' || dz ? null : this.row('Valve lift', seg('vlift', 'Valve lift'), { none: 'One cam profile', switch: 'A mild cam low down, a wild one above the switch: a kick, and a harder note', cvl: 'Lift varied without steps: the valves meter the air, so it answers at once' }[B.vlift]),
+          sw ? this.row('Switch at', sw, B.vsw ? 'Set by hand' : 'Where the wild cam takes over best') : null,
+          dz ? null : this.row('Intake runners', seg('vim', 'Intake runners'), B.vim ? 'Long ones low down, short ones high up: more in the middle' : 'One length for all revs'),
+          dz ? null : this.row('Throttles', seg('itb', 'Throttles'), B.itb ? 'A throttle at each port: it answers at once and howls, idles rough, little low down' : 'One throttle before a plenum'),
+          this.row('Fuel system', seg('feed', 'Fuel system', dz ? [['mech', 'Injection pump'], ['direct', 'Common rail']] : W.feed), (dz ? { mech: 'A pump meters it: a hard knock', direct: 'High pressure, several squirts a stroke: quieter, more torque' } : { carb: 'Simple: a little less power, nothing holds its idle', mech: 'A pump squirts it into the ports: no idle control', port: 'Injectors in the ports, run by a computer', direct: 'Straight into the cylinders: a cooler charge, more power, its pump ticks' })[B.feed])); }
       add(this.sec('Charging'), this.row('Charged by', seg('asp', 'Forced induction', dz ? W.asp.filter(q => q[0] === 'na' || q[0] === 'turbo' || q[0] === 'biturbo') : W.asp), { na: 'No boost', turbo: 'One turbo', biturbo: 'Two smaller turbos: quicker to spool', sc: 'A blower driven by the crank: boost from low revs', twin: 'A blower low down, a turbo above' }[B.asp]),
         turbo ? this.row('Turbo size', seg('tsize', 'Turbo size'), { small: 'Spools early, runs out at the top', medium: 'Between the two', large: 'Lag, then strong at the top' }[B.tsize]) : null,
+        turbo ? this.row('Turbo housing', seg('tkind', 'Turbo housing'), { single: 'One way in for the exhaust', twinscroll: 'The cylinders\u2019 pulses kept apart: spools sooner', vgt: dz ? 'Vanes narrow its inlet at low flow: boost from just off idle' : 'Vanes narrow its inlet at low flow: boost very early, a little less at the top' }[B.tkind]) : null,
+        B.asp === 'biturbo' ? this.row('Twin turbos', seg('tseq', 'Twin turbos'), B.tseq ? 'One small turbo low down, both above: early boost, a dip as they change over' : 'One turbo for each half of the engine') : null,
         B.asp !== 'na' ? this.row('Boost', this.slider('boost', 0.2, 2.6, 0.05, v => v.toFixed(2) + ' bar', 'Boost pressure')) : null,
         turbo && !dz ? this.row('Anti-lag', seg('als', 'Anti-lag'), 'Keeps the turbo spinning off the throttle') : null,
         this.row('Intake restrictor', seg('restr', 'Intake restrictor (mm)'), B.restr ? `${B.restr} mm: caps the air, and so the power` : 'None'));
@@ -28591,9 +28880,10 @@ const DETACH = {
   bumperF: [7, 0.7], bumperR: [7, 0.7], mirrorL: [3.5, 0.55], mirrorR: [3.5, 0.55], flap: [4, 0.45], exhaust: [8, 0.45], antenna: [2.5, 0.5], chinLip: [5.5, 0.6],
   postWing: [5.5, 0.8], roofLip: [5, 0.7], hatchWing: [5.5, 0.7], tailLip: [7, 0.6], tray: [6, 0.7], whaleTail: [6, 0.7], archWing: [5.5, 0.8], bridgeWing: [5.5, 0.8], trunkLip: [7.5, 0.6], deckSpoiler: [6.5, 0.6],
   hoodPods: [4.5, 0.5], lightPod: [4, 0.7], rallyBumperPods: [5, 0.55], quadLamps: [6, 0.5], roofVent: [5, 0.45], hoodScoop: [7, 0.5], grilleDucts: [7, 0.6], valance: [6.5, 0.6], quarterScoops: [6.5, 0.5],
-  f2Spoiler: [5.5, 0.75], roofScoopAir: [5, 0.45], lmWing: [5.5, 0.8], lmRoofLip: [5, 0.7], lmLampPod: [4, 0.7], lmScoop: [7, 0.5]
+  f2Spoiler: [5.5, 0.75], roofScoopAir: [5, 0.45], lmWing: [5.5, 0.8], lmRoofLip: [5, 0.7], lmLampPod: [4, 0.7], lmScoop: [7, 0.5],
+  roofBox: [5, 0.9] // (the boxes, lamps and gear strapped or bolted on a roof: they stand above the body's shell, which is what meets the ground in a roll)
 };
-const DETACH_SAY = { bumperF: 'Front bumper off', bumperR: 'Rear bumper off', mirrorL: 'Mirror gone', mirrorR: 'Mirror gone', exhaust: 'Exhaust torn off', lightPod: 'Lamp pod torn off', hoodPods: 'Lamp pods torn off', rallyBumperPods: 'Lamp pods torn off', quadLamps: 'Lamps torn off', lmLampPod: 'Lamp pod torn off' };
+const DETACH_SAY = { bumperF: 'Front bumper off', bumperR: 'Rear bumper off', mirrorL: 'Mirror gone', mirrorR: 'Mirror gone', exhaust: 'Exhaust torn off', lightPod: 'Lamp pod torn off', hoodPods: 'Lamp pods torn off', rallyBumperPods: 'Lamp pods torn off', quadLamps: 'Lamps torn off', lmLampPod: 'Lamp pod torn off', roofBox: 'Roof gear torn off' };
 for (const k of ['postWing', 'roofLip', 'hatchWing', 'tailLip', 'tray', 'whaleTail', 'archWing', 'bridgeWing', 'trunkLip', 'deckSpoiler', 'f2Spoiler', 'lmWing', 'lmRoofLip']) DETACH_SAY[k] = 'Rear wing torn off';
 // how far the panels round a dent buckle out of their own plane (as a share of its depth, at most about a fifth of it,
 // and never more than BUCKLE_MAX, m)
@@ -28703,11 +28993,17 @@ const _dq = new THREE.Quaternion(), _dv = new THREE.Vector3(), _dw = new THREE.V
 // the panels that open: how heavy they are (kg per square metre: pressed steel with its frame, and glass), the blow that
 // starts to break each kind's latch (m/s), and what they are called
 const PANEL_RHO = 11, PANEL_GLASS_RHO = 9;
-const PANEL_LATCH = { bonnet: 5, 'boot lid': 5.5, 'engine cover': 5.5, tailgate: 5.5, door: 7, 'rear door': 7 };
-const PANEL_SAY = { bonnet: 'Bonnet', 'boot lid': 'Boot lid', 'engine cover': 'Engine cover', tailgate: 'Tailgate', door: 'Door', 'rear door': 'Rear door' };
+const PANEL_LATCH = { bonnet: 5, 'boot lid': 5.5, 'engine cover': 5.5, tailgate: 5.5, door: 7, 'rear door': 7, 'sliding door': 7 };
+const PANEL_SAY = { bonnet: 'Bonnet', 'boot lid': 'Boot lid', 'engine cover': 'Engine cover', tailgate: 'Tailgate', door: 'Door', 'rear door': 'Rear door', 'sliding door': 'Sliding door' };
 // a vector turned by th about the unit axis a, and a point turned about that axis through p
 const pvRot = (v, a, th) => { const c = Math.cos(th), s = Math.sin(th), d = (a[0] * v[0] + a[1] * v[1] + a[2] * v[2]) * (1 - c); return [v[0] * c + (a[1] * v[2] - a[2] * v[1]) * s + a[0] * d, v[1] * c + (a[2] * v[0] - a[0] * v[2]) * s + a[1] * d, v[2] * c + (a[0] * v[1] - a[1] * v[0]) * s + a[2] * d]; };
 const pvTurn = (q, p, a, th) => { const r = pvRot([q[0] - p[0], q[1] - p[1], q[2] - p[2]], a, th); return [p[0] + r[0], p[1] + r[1], p[2] + r[2]]; };
+// A sliding door (P.slide) runs on rollers in its tracks instead of turning on hinges: th is how far it has run back
+// (m). Over its first 12 cm it steps out from the side (P.slide.pop, along P.slide.out), so that it then runs back clear
+// of the body (along P.slide.a) as far as its stop (P.max). Its offset from where it sits shut:
+const slideOff = (P, th) => { const S = P.slide, u = clamp(th / 0.12, 0, 1), f = S.pop * u * u * (3 - 2 * u); return [S.out[0] * f + S.a[0] * th, S.out[1] * f + S.a[1] * th, S.out[2] * f + S.a[2] * th]; };
+// where a point of a panel (in the car's frame, as it sits shut) is with the panel opened by th
+const panelAt = (Q, q, th) => { const P = Q.P; if (!P.slide) return pvTurn(q, P.hinge.p, P.hinge.a, th); const d = slideOff(P, th); return [q[0] + d[0], q[1] + d[1], q[2] + d[2]]; };
 
 // ---- the car, as it has been hurt ----
 const CarDmg = {
@@ -28731,10 +29027,13 @@ const CarDmg = {
     const fits = [], cen = (mm, p) => { const o = mm.orig; let x = 0, y = 0, z = 0, n = 0; for (let t = p.start; t < p.end; t++) for (let k = 0; k < 3; k++) { x += o[t * 9 + k * 3]; y += o[t * 9 + k * 3 + 1]; z += o[t * 9 + k * 3 + 2]; n++; } return [x / n, y / n, z / n]; };
     const box = (mm, p, b) => { const o = mm.orig; for (let j = p.start * 9; j < p.end * 9; j += 3) for (let k = 0; k < 3; k++) { b[k] = Math.min(b[k], o[j + k]); b[k + 3] = Math.max(b[k + 3], o[j + k]); } return b; };
     const within = (b, B, m) => b[0] >= B[0] - m && b[1] >= B[1] - m && b[2] >= B[2] - m && b[3] <= B[3] + m && b[4] <= B[4] + m && b[5] <= B[5] + m;
+    // (parts of one tag make one fitting where they lie together; a fitting made as one unit - a working vehicle's steel
+    // bumper with its brackets and lamps across its whole width - by its unit, wherever its parts lie)
     M.forEach((mm, mi) => { if (mm.cab) return; for (const p of mm.parts) { if (!p.tag || !DETACH[p.tag] || p.end <= p.start) continue; const c = cen(mm, p);
-      let f = fits.find(q => q.tag === p.tag && Math.hypot(q.c[0] - c[0], q.c[1] - c[1], q.c[2] - c[2]) < (p.tag === 'flap' ? 0.3 : 0.75));
-      if (!f) { f = { tag: p.tag, items: [], c, n: 0, gone: false, b: [9, 9, 9, -9, -9, -9], lamps: [] }; fits.push(f); } f.items.push({ mi, start: p.start, end: p.end }); f.n++; box(mm, p, f.b);
+      let f = fits.find(q => q.tag === p.tag && (p.unit || q.unit ? q.unit === p.unit : Math.hypot(q.c[0] - c[0], q.c[1] - c[1], q.c[2] - c[2]) < (p.tag === 'flap' ? 0.3 : 0.75)));
+      if (!f) { f = { tag: p.tag, unit: p.unit || '', items: [], c, n: 0, gone: false, b: [9, 9, 9, -9, -9, -9], lamps: [] }; fits.push(f); } f.items.push({ mi, start: p.start, end: p.end }); f.n++; box(mm, p, f.b);
       if (p.kind === 'lens') (f.lens || (f.lens = [])).push(box(mm, p, [9, 9, 9, -9, -9, -9])); } }); // (a lamp's lens set into the fitting: its light goes with it)
+    for (const f of fits) if (f.unit) f.c = [(f.b[0] + f.b[3]) / 2, (f.b[1] + f.b[4]) / 2, (f.b[2] + f.b[5]) / 2]; // (a unit's middle: the middle of all of it)
     // what is mounted on a bumper or a lip goes with it when it is torn off: the fog, rear fog and reversing lamps (lens,
     // bezel and the light itself) and any other small part lying wholly on it (with the light of any lamp whose lens
     // goes: a headlamp or tail lamp set into a bumper that runs up round it)
@@ -29117,7 +29416,7 @@ const CarDmg = {
     rig.body.updateMatrixWorld(true); _dp.set(c[0], c[1], c[2]).applyMatrix4(rig.body.matrixWorld); rig.body.getWorldQuaternion(_dq);
     const s = Math.sin(car.psi), co = Math.cos(car.psi), pw = push ? _dw.set(push[0], 0, push[2]).applyQuaternion(_dq) : _dw.set(0, 0, 0);
     const vel = new THREE.Vector3(car.u * s + car.v * co, Math.max(0, car.vyb || 0), car.u * co - car.v * s).multiplyScalar(0.75).addScaledVector(pw, -1.5).add(new THREE.Vector3((Math.random() - 0.5) * 3, 1.5 + Math.random() * 2.5, (Math.random() - 0.5) * 3));
-    const metal = f.tag === 'exhaust' || f.tag === 'antenna', lit = /Pod|Lamp|lightPod|quadLamps|mirror/.test(f.tag);
+    const metal = f.tag === 'exhaust' || f.tag === 'antenna' || !!f.unit, lit = /Pod|Lamp|lightPod|quadLamps|mirror/.test(f.tag); // (a unit: steel)
     Debris.add(mesh, _dp, _dq, vel, new THREE.Vector3((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12), f.tag === 'antenna' ? 0.02 : 0.08, false, metal ? 'metal' : 'plastic');
     Snd.rip(metal ? 'metal' : lit ? 'light' : 'plastic', rig, c);
     // a pod or lamp housing takes its lamps with it
@@ -29169,7 +29468,8 @@ const CarDmg = {
   // against its front wing. Slamming into its stops, a heavy blow at its hinges, or its edge catching the ground at speed
   // tears it off and it goes tumbling down the road; a jammed panel takes a heavy blow on it to tear it off, and one
   // swinging free no longer shuts once the opening round it is crushed. A panel standing on its own hinge keeps taking
-  // its share of later dents, as if it were shut. (On a road section the crew can strap a loose one down.)
+  // its share of later dents, as if it were shut. (On a road section the crew can strap a loose one down.) A sliding
+  // door does the same on its rollers along its tracks (see slideRun).
   // For each panel: its triangles in each of the car's meshes, its area, mass and inertia about its hinge line, its
   // middle and outward face, its extent, its free edge, the points along its shut line, its window and its lamps.
   panelsPrep(rig, M) {
@@ -29221,9 +29521,10 @@ const CarDmg = {
         if (Q.latch >= 1) this.panelFree(rig, car, Q);
       } else if (Q.st === 'jam') { if (on && h.dv > 13 && Math.random() < (h.dv - 13) / 4) this.panelOff(rig, car, Q); }
       else if (Q.st === 'loose') { const sq = this.squeeze(car.dmg, Q); if (sq > 0.08) Q.thMin = Math.max(Q.thMin || 0, Math.min(0.35, (sq - 0.08) * 2.5)); } // (its opening crushed out of shape: it no longer shuts)
-      if (Q.st === 'loose' && (on || dh < 0.5)) { // (swinging: knocked about, its hinges strained)
+      if (Q.st === 'loose' && (on || dh < 0.5)) { // (swinging: knocked about, its hinges strained; a sliding door knocked along its tracks, bending them)
         if (h.dv > 8) Q.hinge += (h.dv - 8) / 5;
-        const arm = ckSub(pvTurn(Q.c, P.hinge.p, P.hinge.a, Q.th), P.hinge.p); Q.w += ckDot(ckCross(arm, [h.nx, h.ny, h.nz]), P.hinge.a) * h.dv * 0.25 / Math.max(0.3, ckDot(arm, arm));
+        if (P.slide) Q.w += (h.nx * P.slide.a[0] + h.ny * P.slide.a[1] + h.nz * P.slide.a[2]) * h.dv * 0.3;
+        else { const arm = ckSub(pvTurn(Q.c, P.hinge.p, P.hinge.a, Q.th), P.hinge.p); Q.w += ckDot(ckCross(arm, [h.nx, h.ny, h.nz]), P.hinge.a) * h.dv * 0.25 / Math.max(0.3, ckDot(arm, arm)); }
         if (Q.hinge >= 1) this.panelOff(rig, car, Q);
       }
     }
@@ -29252,7 +29553,7 @@ const CarDmg = {
     for (const f of H.fits) if (!f.gone && f.items.length && f.items.every(it => inQ(it.mi, it.start))) f.onPanel = Q.k;
     for (const l of Q.lamps) this.breakLamp(rig, l, true);
   },
-  panelPose(Q) { if (Q.g) Q.g.quaternion.setFromAxisAngle(_pa.set(Q.P.hinge.a[0], Q.P.hinge.a[1], Q.P.hinge.a[2]), Q.th); },
+  panelPose(Q) { if (!Q.g) return; const P = Q.P; if (P.slide) { const d = slideOff(P, Q.th), hp = P.hinge.p; Q.g.position.set(hp[0] + d[0], hp[1] + d[1], hp[2] + d[2]); } else Q.g.quaternion.setFromAxisAngle(_pa.set(P.hinge.a[0], P.hinge.a[1], P.hinge.a[2]), Q.th); },
   // every frame, each panel swinging free: the turn about its hinge from its weight, the car's motion and the air, its
   // stops, and the ground
   panelStep(rig, car, S, dt) {
@@ -29268,6 +29569,7 @@ const CarDmg = {
     const om = toB(car.Wv), g = toB([0, -9.81, 0]), wind = toB(car.V).map(x => -x), hc = carSetup(S).sp.hcg, w2 = ckDot(wind, wind);
     for (const Q of live) {
       const P = Q.P, ax = P.hinge.a, hp = P.hinge.p, n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n;
+      if (P.slide) { this.slideRun(rig, car, Q, n, h, a, al, om, g, wind, hc); if (Q.st === 'loose') this.panelPose(Q); continue; }
       for (let it = 0; it < n && Q.st === 'loose'; it++) {
         const c = pvTurn(Q.c, hp, ax, Q.th), arm = ckSub(c, hp), r = [c[0], c[1] - hc, c[2]];
         // its weight, and the car's motion felt at its middle: the car's acceleration and its spin's
@@ -29292,10 +29594,32 @@ const CarDmg = {
     }
     D.paero = this.panelDrag(H, S);
   },
+  // a sliding door loose on its tracks, through one frame's steps: run along them by the car's motion felt at its middle
+  // (its weight where the car leans or climbs, flung back as the car pulls away and forward under braking) and, once it
+  // stands out from the side, by the air in the gap at its front edge; its rollers and seals drag on it. Run home it
+  // strikes the body and bounces (its latch broken, it does not catch); run back it strikes its stop, where its hold-open
+  // catch keeps it unless the car pulls it forward harder than 0.3 g; striking that stop hard breaks the catch and bends
+  // the tracks, and it comes off them
+  slideRun(rig, car, Q, n, h, a, al, om, g, wind, hc) {
+    const P = Q.P, S = P.slide, dir = S.a, rr = 0.6; // (rr: the rollers' drag, m/s/s)
+    for (let it = 0; it < n && Q.st === 'loose'; it++) {
+      const d = slideOff(P, Q.th), r = [Q.c[0] + d[0], Q.c[1] + d[1] - hc, Q.c[2] + d[2]];
+      const tan = ckCross(al, r), cen = ckCross(om, ckCross(om, r)), ge = [g[0] - a[0] - tan[0] - cen[0], g[1] - a[1] - tan[1] - cen[1], g[2] - a[2] - tan[2] - cen[2]];
+      let acc = ckDot(ge, dir); const wd = ckDot(wind, dir), u = clamp(Q.th / 0.12, 0, 1);
+      if (wd > 0) acc += 0.6 * S.h * S.pop * u * u * (3 - 2 * u) * wd * wd / Q.mass;
+      if (Q.stay && Q.th >= P.max - 1e-4 && acc > -0.3 * 9.81) { Q.th = P.max; Q.w = 0; continue; } // (on its hold-open catch)
+      if (Math.abs(Q.w) > 0.03) acc -= Math.sign(Q.w) * rr; else if (Math.abs(acc) <= rr) { Q.w = 0; continue; } else acc -= Math.sign(acc) * rr;
+      Q.w += acc * h; Q.th += Q.w * h;
+      const t0 = Q.thMin || 0;
+      if (Q.th < t0) { const v = -Q.w; Q.th = t0; Q.w = v > 0.3 ? v * 0.2 : 0; if (v > 1.2) this.panelSlam(rig, Q, v * 2, false); }
+      if (Q.th > P.max) { const v = Q.w; Q.th = P.max; if (v > 4) Q.stay = false; if (v > 2.5) Q.hinge += (v - 2.5) * 0.15; if (v > 1.2) this.panelSlam(rig, Q, v * 2, true); Q.w = Q.stay ? 0 : v > 0.3 ? -v * 0.15 : 0; }
+      if (Q.hinge >= 1) this.panelOff(rig, car, Q);
+    }
+  },
   // a panel striking its frame or its stop (a bonnet folding onto the windscreen cracks it; a door's window shatters in
   // a hard slam)
   panelSlam(rig, Q, w, far) {
-    rig.body.updateMatrixWorld(true); const c = pvTurn(Q.c, Q.P.hinge.p, Q.P.hinge.a, Q.th); _dp.set(c[0], c[1], c[2]).applyMatrix4(rig.body.matrixWorld);
+    rig.body.updateMatrixWorld(true); const c = panelAt(Q, Q.c, Q.th); _dp.set(c[0], c[1], c[2]).applyMatrix4(rig.body.matrixWorld);
     Snd.debris('metal', Math.min(8, w * Math.sqrt(Q.mass) * 0.5), _dp);
     if (far && Q.P.kind === 'bonnet' && rig.screen && w > 2.5) this.crackScreen(rig, { x: 0, y: rig.screen[2][1] - 0.1, z: rig.screen[2][2] + 0.06, dv: 4 + w * 1.5, k: 'hit', nx: 0, ny: -0.6, nz: -0.8 });
     if (Q.pane && w > 5 && !rig.dv.broken[Q.pane]) this.breakPane(rig, Q.pane, false);
@@ -29303,7 +29627,7 @@ const CarDmg = {
   // a swinging panel's free edge against the ground: pushed back toward shut as far as it digs in, and torn at its
   // hinges if the car is going fast over it (a door caught open as the car slides or rolls onto it)
   panelGround(rig, car, Q, dt) {
-    const T = G.T; if (!T) return; Q.grT -= dt; rig.body.updateMatrixWorld(true); const W = rig.body.matrixWorld, P = Q.P;
+    const T = G.T; if (!T || Q.P.slide) return; // (a sliding door runs level along the side) Q.grT -= dt; rig.body.updateMatrixWorld(true); const W = rig.body.matrixWorld, P = Q.P;
     const below = th => { let m = 0; for (const e of Q.edge) { const q = pvTurn(e, P.hinge.p, P.hinge.a, th); _dp.set(q[0], q[1], q[2]).applyMatrix4(W); m = Math.max(m, surfaceY(T, locate(T, _dp.x, _dp.z, car.hint), _dp.x, _dp.z) - _dp.y); } return m; };
     if (below(Q.th) <= 0.005) return;
     let lo = 0, hi = Q.th; for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; if (below(mid) > 0.005) hi = mid; else lo = mid; }
@@ -29314,7 +29638,7 @@ const CarDmg = {
   // what the panels standing open add to the car's drag (as a share of its own): each a plate across the air as far as it
   // stands up into it; less for a bonnet folded back onto the windscreen (lying on the glass) and for a boot lid or
   // tailgate (in the wake behind the roof)
-  panelDrag(H, S) { if (!S || !S.aero) return 0; let a = 0; for (const Q of H.panels || []) if (Q.g && Q.st !== 'gone') { const P = Q.P, k = P.kind === 'bonnet' ? (Q.th > P.stay + 0.1 ? 0.25 : 1) : /^door|rear door/.test(P.kind) ? 1 : 0.5;
+  panelDrag(H, S) { if (!S || !S.aero) return 0; let a = 0; for (const Q of H.panels || []) if (Q.g && Q.st !== 'gone') { const P = Q.P; if (P.slide) continue; const k = P.kind === 'bonnet' ? (Q.th > P.stay + 0.1 ? 0.25 : 1) : /^door|rear door/.test(P.kind) ? 1 : 0.5;
     a += Q.A * 1.1 * Math.abs(Math.sin(Q.th)) * k; } return a / S.aero[0]; },
   // a panel torn off: one piece of debris (its paint, dark glass and trim, the door card), off at the car's speed there
   panelOff(rig, car, Q) {
@@ -29356,7 +29680,8 @@ const CarDmg = {
     for (const h of D.ev) {
       // fittings within reach of the blow, and hard enough to tear them off
       for (const f of H.fits) { if (f.gone || f.onPanel != null) continue; const [thr, reach] = DETACH[f.tag], roll = h.k === 'roll', dv = h.dv * (roll ? 1.25 : 1);
-        if (dv < thr || Math.hypot(f.c[0] - h.x, f.c[1] - h.y, f.c[2] - h.z) > reach + 0.03 * h.dv + (roll ? 0.25 : 0)) continue;
+        const far = f.unit ? Math.hypot(Math.max(f.b[0] - h.x, 0, h.x - f.b[3]), Math.max(f.b[1] - h.y, 0, h.y - f.b[4]), Math.max(f.b[2] - h.z, 0, h.z - f.b[5])) : Math.hypot(f.c[0] - h.x, f.c[1] - h.y, f.c[2] - h.z); // (a unit: from anywhere along it)
+        if (dv < thr || far > reach + 0.03 * h.dv + (roll ? 0.25 : 0)) continue;
         if (Math.random() < clamp(0.35 + (dv - thr) / 4, 0, 1)) { this.detach(rig, f, [h.nx, h.ny, h.nz]); const say = DETACH_SAY[f.tag]; if (say) Damage.say(say); } }
       // windows near the blow
       for (const k of Object.keys(H.panes)) { const p = H.paneAt[k]; if (!p || (k === 'ws' ? H.wsOut : H.broken[k])) continue; const d = Math.hypot(p[0] - h.x, p[1] - h.y, p[2] - h.z), need = h.k === 'roll' ? 3 : 5;
