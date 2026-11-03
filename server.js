@@ -105,6 +105,9 @@ const server = http.createServer((req, res) => {
     const js = '// this page came from the race server itself: it talks to it\n';
     res.writeHead(200, Object.assign(head, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' })); res.end(req.method === 'HEAD' ? undefined : js); return;
   }
+  // (the co-drivers' recordings in the other languages, fetched by the page when one is chosen)
+  { const m = /^\/voice\/([a-z]{2})\.mp3$/.exec(u); if (m) { const f = path.join(__dirname, 'voice', m[1] + '.mp3'); let b = null; try { b = fs.readFileSync(f); } catch (e) { }
+    if (b) { res.writeHead(200, Object.assign(head, { 'Content-Type': 'audio/mpeg', 'Content-Length': b.length, 'Cache-Control': 'public, max-age=86400' })); res.end(req.method === 'HEAD' ? undefined : b); return; } } }
   if (u === '/healthz') { res.writeHead(200, Object.assign(head, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' })); res.end('ok'); return; }
   if (u === '/favicon.ico') { res.writeHead(204, head); res.end(); return; }
   res.writeHead(404, Object.assign(head, { 'Content-Type': 'text/plain' })); res.end('Not found');
