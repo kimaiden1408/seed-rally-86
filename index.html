@@ -8651,7 +8651,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '1E91';
+const SR86_BUILD = '9452';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -19083,10 +19083,14 @@ function EngineDSPDef() {
       const Ap = Math.PI / 4 * bore * bore, st = Vd / Ap, r = st / 2, l = 1.65 * st; this.Ap = Ap; this.Vcl = Vd / (cr - 1); this.Vd = Vd;
       // (each chamber's volume and how fast it changes with the shaft's angle, a table entry each half degree: a piston's
       // from its crank and rod; a rotary chamber's swelling and shrinking twice in its cycle, near enough as a sine)
-      this.vT = new Float64Array(NT + 2); this.wT = new Float64Array(NT + 2);
+      this.vT = new Float64Array(NT + 2); this.wT = new Float64Array(NT + 2); this.tPh = new Float64Array(NT + 2); this.xA = new Float64Array(NT + 2);
       for (let i = 0; i <= NT + 1; i++) { const a = i / 2 * Math.PI / 180;
         if (rot) { const ph = 2 * Math.PI * (i / 2) / 540; this.vT[i] = this.Vcl + Vd * (1 - Math.cos(ph)) / 2; this.wT[i] = Vd / 2 * Math.sin(ph) * 360 / 540; }
-        else { const s = Math.sin(a), q = Math.sqrt(l * l - r * r * s * s); this.vT[i] = this.Vcl + Ap * (r * (1 - Math.cos(a)) + l - q); this.wT[i] = Ap * r * s * (1 + r * Math.cos(a) / q); } }
+        else { const s = Math.sin(a), co = Math.cos(a), q = Math.sqrt(l * l - r * r * s * s); this.vT[i] = this.Vcl + Ap * (r * (1 - co) + l - q); this.wT[i] = Ap * r * s * (1 + r * co / q);
+          this.tPh[i] = r * s / q; this.xA[i] = r * co + r * r * (co * co - s * s) / q + Math.pow(r * r * s * co, 2) / (q * q * q); } }
+      // (the moving parts: a cylinder's piston and the top of its rod, the mass the gas speeds up and slows down each stroke;
+      // a rotary's apex seals, pressed on the housing by the chamber's gas)
+      this.mRec = 1100 * Vd; this.ringA = Math.PI * bore * 0.0015; this.st = st; this.p1 = new Float64Array(nC); this.p2 = new Float64Array(nC); this.fsP = new Float64Array(nC); this.fN = 0; this.sD = 0; this.slap = 0;
       // the valves: two exhaust valves a cylinder with four or five, their size from the bore; how long each cam holds its
       // valves open and how far it lifts them from how wild it is (w: 0 a mild road cam, 1 a racing one). A cam-switching
       // head has both, a mild cam and a wild one, the wild one's taking over at the switch (see camK). A rotary's ports
@@ -19150,11 +19154,11 @@ function EngineDSPDef() {
     // scaled by that, see EngineDSP)
     level(vsw) {
       const N = Math.round(0.16 * this.sr), N0 = Math.round(0.06 * this.sr), kj = this.kJet; this.kJet = 0; // (its waves alone, without the valves' roar)
-      const pts = GasCore.PTS, pe1 = [], pi1 = [];
+      const pts = GasCore.PTS, pe1 = [], pi1 = []; this.mech = [];
       for (const rk of pts) { const rpm = rk * this.red, dth = rpm * 6 / this.sr; this.coef(1, rpm, 1, 1, 1, 0, 0, vsw && rpm > vsw ? 1 : 0, 1, false);
-        let th = 0, s = 0, s2 = 0, si = 0, si2 = 0, k = 0, y0 = 0;
-        for (let j = 0; j < N; j++) { th += dth; if (th >= 720) th -= 720; this.step(th); if (j >= N0) { let v = 0; for (let b = 0; b < this.nb; b++) v += this.bOut[b]; const d = v - y0; y0 = v; s += v; s2 += v * v + d * d * 16; si += this.iOut; si2 += this.iOut * this.iOut; k++; } }
-        pe1.push(s2 / k - (s / k) * (s / k)); pi1.push(si2 / k - (si / k) * (si / k)); }
+        let th = 0, s = 0, s2 = 0, si = 0, si2 = 0, k = 0, y0 = 0, sd2 = 0, fn2 = 0, sl = 0; this.slap = 0;
+        for (let j = 0; j < N; j++) { th += dth; if (th >= 720) th -= 720; this.step(th); if (j >= N0) { let v = 0; for (let b = 0; b < this.nb; b++) v += this.bOut[b]; const d = v - y0; y0 = v; s += v; s2 += v * v + d * d * 16; si += this.iOut; si2 += this.iOut * this.iOut; sd2 += this.sD * this.sD; fn2 += this.fN * this.fN; k++; } if (j === N0) this.slap = 0; }
+        pe1.push(s2 / k - (s / k) * (s / k)); pi1.push(si2 / k - (si / k) * (si / k)); const fires = k / this.sr * rpm / 60 * (this.rot ? this.nR : this.n / 2); this.mech.push([Math.sqrt(sd2 / Math.max(1, fires)), Math.sqrt(fn2 / k), this.slap / Math.max(1, fires)]); }
       this.kJet = kj; return [pe1.map(v => Math.sqrt(Math.max(1, v))), pi1.map(v => Math.sqrt(Math.max(1, v)))]; }
     vol(t) { const f = t * 2, i = f | 0, a = f - i; return this.vT[i] + (this.vT[i + 1] - this.vT[i]) * a; }
     gauss() { let s = 0; for (let k = 0; k < 4; k++) { this.seed ^= this.seed << 13; this.seed ^= this.seed >>> 17; this.seed ^= this.seed << 5; this.seed >>>= 0; s += this.seed / 4294967296; } return (s - 2) * 1.732; }
@@ -19184,7 +19188,7 @@ function EngineDSPDef() {
       const nV = this.nV, nT = this.nT, kS = this.kS, bwE = this.bwE, fwI = this.fwI, bwI = this.bwI, iI = this.iI, dI = this.dI, rI = this.rI, aLE = this.aLE, aLI = this.aLI;
       // (a rotary's chambers go round with the shaft over three of its turns: its own angle, from the crank's)
       let sh = th; if (this.rot) { let d = th - this.thP; if (d < 0) d += 720; this.thP = th; this.eA += d; if (this.eA >= 1080) this.eA -= 1080; sh = this.eA; }
-      const spark = CY - this.adv, dur = this.dur; let tq = 0, iOut = 0;
+      const spark = CY - this.adv, dur = this.dur; let tq = 0, iOut = 0, fric = 0, slap = 0, sD = 0;
       // what each pipe brings back to its port, and to its collector, this sample
       for (let p = 0; p < nP; p++) {
         const oe = this.oE[p] + this.iE[p], nb0 = p * 512; let aP = bwE[oe]; this.lpP[p] += (aP - this.lpP[p]) * aLE; this.pAP[p] = this.lpP[p] * gE;
@@ -19225,7 +19229,18 @@ function EngineDSPDef() {
         if (!(m > 1e-7) || !(E > m * 200)) { m = Math.max(1e-7, PA * V / (287 * 300)); E = PA * V / g1; }
         this.m[c] = m; this.E[c] = E; this.Vp[c] = V; this.tp[c] = t;
         tq += (p - PA) * (wT[i] + (wT[i + 1] - wT[i]) * a);
+        // the mechanical: the piston pressed on the wall sideways through the rod's lean - the gas's push less what its own
+        // mass takes to speed it up and slow it down - rubbing as it slides (skirt and rings, the rings pressed out by the
+        // gas behind them), and when the push swaps sides, knocking across its clearance; a rotary's apex seals dragged
+        // round the housing. And the pressure's rise itself shaking the block - hardest where it rises fastest (sD)
+        if (!this.rot) { const om = this.rpmC * 0.10472, vS = (wT[i] + (wT[i + 1] - wT[i]) * a) / this.Ap * om, xa = this.xA[i] + (this.xA[i + 1] - this.xA[i]) * a;
+          const Fs = ((p - PA) * this.Ap - this.mRec * om * om * xa) * (this.tPh[i] + (this.tPh[i + 1] - this.tPh[i]) * a), av = Math.abs(vS);
+          fric += (0.06 * Math.abs(Fs) + 0.08 * (60 + Math.max(0, p - PA) * this.ringA)) * av;
+          if (Fs * this.fsP[c] < 0) slap += Math.sqrt(Math.abs(Fs - this.fsP[c])); this.fsP[c] = Fs; } // (a knock as hard as the push behind it can throw the piston across: the root of it)
+        else fric += 0.1 * (40 + Math.abs(p - PA) * 4e-4) * this.rpmC * 0.0035;
+        sD += p - 2 * this.p1[c] + this.p2[c]; this.p2[c] = this.p1[c]; this.p1[c] = p;
       }
+      this.fN = Math.sqrt(fric); this.sD = sD; this.slap += slap; // (what the rubbing radiates a share of the power it wastes: its sound as the root of that power)
       // each pipe sends on what its port let into it: down the exhaust, its crest steepening (see nV); up the runner,
       // the charge's draw, part of it coming back off the runner's far end - the trumpet's open air, or the plenum
       for (let p = 0; p < nP; p++) {
@@ -19293,12 +19308,16 @@ function EngineDSPDef() {
       // the gas worked out as it moves (see GasCore), through the pipes as drawn, each a little off it; K.phys 0: the pulses
       // drawn to a shape as before. kPh, kPhI: its pressures (Pa) to the stems' scale
       { const pL = K.prim.map((L, c) => L * (1 + sc * dL[c])), sL = Array.from({ length: this.nb }, (_, b) => (K.sec ? K.sec[b] : 0.3) + (b === 1 ? secD : 0));
-        this.gc = K.phys === 0 ? null : new GasCore(sr, K, n, this.bank, pL, sL, this.bias); this.gcX = 0; this.gcY = 0; this.gcF = 0; this.aDC = 1 - Math.exp(-TAU * 18 / sr); this.kDF = K.physDF != null ? K.physDF : 1.5;
+        this.gc = K.phys === 0 ? null : new GasCore(sr, K, n, this.bank, pL, sL, this.bias); this.gcX = 0; this.gcY = 0; this.gcF = 0; this.aDC = 1 - Math.exp(-TAU * 18 / sr); this.kDF = K.physDF != null ? K.physDF : 1.5; this.frBP = new BQ().set('bp', 2000, 1.1, sr);
         // (K.physLv: the scales as the page worked them out before sending the figures, so the sound thread need not)
         // (each stem's scale at each speed: half way from its own level there to its level over all speeds - its pipes still
         // louder where they sing, but not by all of it)
-        if (this.gc) { let L = K.physLv; if (!L) { const [ex, ix] = new GasCore(sr, K, n, this.bank, pL, sL, this.bias).level(K.vsw || 0), mean = a => Math.sqrt(a.reduce((x, y) => x + y * y, 0) / a.length), mE = mean(ex), mI = mean(ix);
-            L = { kE: ex.map(v => (K.physT || 0.4 * (K.turbo ? 1.25 : 1)) / Math.sqrt(v * mE)), kI: ix.map(v => (K.physTI || (I.itb ? 0.9 : 0.2)) / Math.sqrt(v * mI)) }; }
+        if (this.gc) { let L = K.physLv; if (!L) { const G0 = new GasCore(sr, K, n, this.bank, pL, sL, this.bias), [ex, ix] = G0.level(K.vsw || 0), mean = a => Math.sqrt(a.reduce((x, y) => x + y * y, 0) / a.length), mE = mean(ex), mI = mean(ix);
+            // (the mechanical's scales: each firing's shake of the block as strong as a knock of the drawn model's, the slap and
+            // the rub at levels of their own against it - all then rising and falling with the forces as they are)
+            const avg = j => G0.mech.reduce((x, y) => x + y[j], 0) / G0.mech.length;
+            L = { kE: ex.map(v => (K.physT || 0.4 * (K.turbo ? 1.25 : 1)) / Math.sqrt(v * mE)), kI: ix.map(v => (K.physTI || (I.itb ? 0.9 : 0.2)) / Math.sqrt(v * mI)),
+              kSD: 0.8 / Math.max(1, avg(0)), kSl: 0.25 / Math.max(1, avg(2)), kFN: 0.025 / Math.max(1e-3, avg(1)) }; }
           this.physLv = L; this.kPh = L.kE[0]; this.kPhI = L.kI[0]; } }
       // (and no two firings quite alike in time either: each pulse leaves a little early or late, more so light and at
       // idle: K.jit, degrees of crank at full throttle)
@@ -19549,6 +19568,7 @@ function EngineDSPDef() {
           if (this.gc) { this.gc.coef(this.load, this.rpm, this.thr, this.spool, this.scB, this.iK, lope, this.camK, on ? 1 : 0, this.alsOn);
             const T = GasCore.PTS, L = this.physLv, q = this.rpm / red; let j = 0; while (j < T.length - 2 && q > T[j + 1]) j++; const f = Math.max(0, Math.min(1, (q - T[j]) / (T[j + 1] - T[j])));
             this.kPh = L.kE[j] + (L.kE[j + 1] - L.kE[j]) * f; this.kPhI = L.kI[j] + (L.kI[j + 1] - L.kI[j]) * f; this.nlK = this.nlC / (this.kPh * this.agG);
+            this.frBP.set('bp', Math.min(9000, 900 + 220 * 2 * this.gc.st * this.rpm / 60), 1.1, sr); // (the rub's pitch from the pistons' mean speed)
             const Tg = 0.13; if (this.load > 0.6) this.agG += (Math.max(0.5, Math.min(2, Math.pow(Tg * Tg / Math.max(1e-8, this.agP), 0.25))) - this.agG) * 0.02; }
         }
         // (while the starter turns the engine over, the crank's speed is its own: see Starter)
@@ -19589,7 +19609,7 @@ function EngineDSPDef() {
         if (gc) { for (let b = 0; b < this.nb; b++) this.bs[b] = gc.bOut[b] * this.kPh; }
         else for (let c = 0; c < nc; c++) { const x = this.inp[c]; this.inp[c] = this.carry[c]; this.carry[c] = 0; let v = (_du = (x), _dq = this.prim[c], _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do); if (this.pLP) { this.pZ[c] += (v - this.pZ[c]) * this.pLP[c]; v = this.pZ[c]; } this.bs[this.bank[c]] += v; }
         if (this.xm > 0) { const b0 = this.bs[0], b1 = this.bs[1]; this.bs[0] = b0 + (b1 - b0) * this.xm; this.bs[1] = b1 + (b0 - b1) * this.xm; } // (the crossover)
-        let col = 0; for (let b = 0; b < this.nb; b++) col += (this.sec ? (_du = (this.bs[b]), _dq = this.sec[b], _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do) : this.bs[b]) * (kBankW ? (gc ? 1 - (1 - kBankW[b]) * 0.35 : kBankW[b]) : 1); // (with the gas worked out each bank's own uneven pulses are all there: the far pipe's share less unequal) // (bankW: a pipe per bank to its own tailpipe, the far one heard less)
+        let col = 0; for (let b = 0; b < this.nb; b++) col += (this.sec ? (_du = (this.bs[b]), _dq = this.sec[b], _dn = _dq.N, _db = _dq.b, _d2 = _dq.w - 2 * _dq.D, _d2 < 0 && (_d2 += _dn), _d1 = _dq.w - _dq.D, _d1 < 0 && (_d1 += _dn), _dq.z += (_db[_d2] - _dq.z) * _dq.a, _dv = _du + _dq.g * _dq.z, _db[_dq.w] = _dv < 1e-30 && _dv > -1e-30 ? 0 : _dv, _do = _db[_d1], ++_dq.w >= _dn && (_dq.w = 0), _do) : this.bs[b]) * (kBankW ? (gc ? 1 - (1 - kBankW[b]) * 0.35 : kBankW[b]) : 1); // (bankW: a pipe per bank to its own tailpipe, the far one heard less - with the gas worked out each bank's own uneven pulses are all there, so the far pipe's share less unequal)
         // (the gas's own waves, its steady flow taken off; with something of how fast they change, as the tail radiates them)
         let y; if (gc) { this.gcX += (col - this.gcX) * this.aDC; const yF = (col - this.gcX) * this.agG; y = yF + this.kDF * (yF - this.gcY) * (sr / 6000); this.gcY = yF;
           // (a very loud pulse squeezed a little, as a real pipe's losses grow with it; and the model's first tenth of a second,
@@ -19658,7 +19678,11 @@ function EngineDSPDef() {
         // valve gear: each tick excites the gear's own resonances
         this.clk *= this.vgD; const vx = ((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1) * this.clk, click = (_bu = (vx), _bq = this.vg1, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.5 * (_bu = (vx), _bq = this.vg2, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by);
         // combustion ringing through the block
-        const bimp = this.blk; this.blk = 0; const block = (_bu = (bimp), _bq = this.bk1, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.7 * (_bu = (bimp), _bq = this.bk2, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.45 * (_bu = (bimp), _bq = this.bk3, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by);
+        // (with the gas worked out the block is shaken by each cylinder's own pressure rising and its piston's slap; the
+        // pistons, rings and bearings rubbing as they slide - noise as loud as the push times the speed, its pitch rising
+        // with the speed, a touch uneven round each turn as no part is quite round)
+        let frn = 0; const bimp = gc ? gc.sD * this.physLv.kSD + gc.slap * this.physLv.kSl : this.blk; this.blk = 0; if (gc) { gc.slap = 0; frn = (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1) * gc.fN * this.physLv.kFN * (1 + 0.07 * (_sx = (this.phSh * 2 + 0.3), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)))), _bq = this.frBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * mKnock * 9; }
+        const block = (_bu = (bimp), _bq = this.bk1, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.7 * (_bu = (bimp), _bq = this.bk2, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) + 0.45 * (_bu = (bimp), _bq = this.bk3, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by);
         this.phSh += rpm / 60 / sr; if (this.phSh > 1) this.phSh -= 1;
         // camshaft drive: the belt's tooth mesh, or a chain's mesh with its slap
         // (a belt to one camshaft and a short chain to the other; or a chain from the crank and the cams geared together)
@@ -19684,7 +19708,7 @@ function EngineDSPDef() {
         let acc = 0; for (let k = 0; k < this.nAc; k++) { let w = this.phAc[k] + rpm / 60 * this.ac[k] / sr; w -= Math.floor(w); this.phAc[k] = w; acc += ((_sx = (w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)) + 0.3 * (_sx = (2 * w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si))) * this.acL[k] * (this.acPs[k] ? 1.2 - 0.6 * rn : 0.3 + 0.7 * rn); }
         if (this.beltL > 0) acc += (_bu = (((_ss = this.seed, _ss ^= _ss << 13, _ss ^= _ss >>> 17, _ss ^= _ss << 5, this.seed = _ss >>> 0, this.seed / 4294967296) * 2 - 1)), _bq = this.beltBP, _by = _bq.b0 * _bu + _bq.z1, _bq.z1 = _bq.b1 * _bu - _bq.a1 * _by + _bq.z2, _bq.z2 = _bq.b2 * _bu - _bq.a2 * _by, _by) * this.beltL * (0.25 + rn);
         if (this.balL > 0) { const w = this.phSh * 2; acc += ((_sx = (w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si)) * 0.6 + 0.25 * (_sx = (2 * w), _sx = (_sx - Math.floor(_sx)) * 4096, _si = _sx | 0, ST[_si] + SD[_si] * (_sx - _si))) * this.balL * (0.3 + 0.7 * rn); }
-        const mo = click * mValve * 2.5 + block * mKnock * (0.3 + rn) * 7 + fan * 0.05 + cd + tick + pumps + cmp + acc; this.lm += (mo - this.lm) * this.aY; o2[s] = this.lm * tr2 * (on ? 1 : 0.15) + sts;
+        const mo = click * mValve * 2.5 + block * mKnock * (gc ? 0.85 : 0.3 + rn) * 7 + frn + /* (with the gas worked out the block's shake already grows with the revs: the pressure rises faster) */ fan * 0.05 + cd + tick + pumps + cmp + acc; this.lm += (mo - this.lm) * this.aY; o2[s] = this.lm * tr2 * (on ? 1 : 0.15) + sts;
         // ---- gearbox and driveline ----
         if (this.dogT > 0 && (this.dogT -= 1 / sr) <= 0) { this.kick(this.dogA * this.box.clack); this.thE = Math.max(this.thE, this.dogA * 0.7); }
         if (this.shCut > 0) this.shCut -= 1 / sr;
