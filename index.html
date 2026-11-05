@@ -4782,6 +4782,40 @@ const ENGINE_I = {
   caisson_6x6: 1.5, limber_4x4: 0.45, palanquin_25d: 0.35
 };
 for (const S of CARS) if (ENGINE_I[S.id] && S.susp) S.susp = Object.assign({}, S.susp, { Ie: ENGINE_I[S.id] });
+// The suspension each car's real counterpart carried, front and rear (makers' and period descriptions; the kit cars'
+// rears and two others est.): strut (MacPherson: the damper's body is the upright's top, a lower arm under it), wishbone
+// (two arms on a short upright, a coil-over damper on the lower), semi (semi-trailing arms, their pivots angled across the
+// car), trailing (trailing arms on torsion bars across the car: a kit car's rear), twist (two trailing arms joined by a
+// beam that twists), multi (a multi-link rear), live (a live axle: the diff in a beam from hub to hub, on four links and
+// a Panhard rod), beam (a dead beam: a front-drive car's tube from hub to hub, on trailing links and a Panhard rod), leaf
+// (a solid axle on leaf springs: a truck's or a van's). Every World Rally Car and Rally2 car runs struts at both ends.
+// What each does here (rear): live and beam stand their wheels square to the axle (solidR) on a roll centre at the
+// Panhard rod (about 0.3 m) with the axle's weight under the springs (muR, kg a corner: a live axle with its diff about
+// 58, a dead beam 46, against 36 for a rally car's independent corner); trailing arms keep the wheel with the body (no
+// camber gain) on a roll centre at the ground; a twist beam halfway between that and a solid axle, its roll centre a
+// little higher; semi-trailing arms gain camber as they rise (about 22 degrees a metre) and toe in (toeGainR, degrees a
+// metre: about 4); a multi-link rear gains a little more camber than a strut
+const SUSP_TYPE = {
+  ardent_5t: ['strut', 'strut'], vespera_sc: ['wishbone', 'wishbone'], petrel_m4: ['wishbone', 'wishbone'], halberd_x4: ['wishbone', 'wishbone'],
+  mamba_tc: ['wishbone', 'wishbone'], tasman_6r: ['strut', 'semi'], bantam_6x: ['strut', 'strut'], corbeau_maxi: ['wishbone', 'wishbone'],
+  veloce_hr: ['strut', 'strut'], sentai_gt4: ['strut', 'strut'], acrobat_2t: ['strut', 'strut'], katana_evo: ['strut', 'multi'],
+  bastion_rs: ['strut', 'semi'], kaiser_3r: ['strut', 'semi'], ronin_tx: ['strut', 'strut'], hiryu_18t: ['strut', 'strut'],
+  esker_kr: ['strut', 'trailing'], corvid_f2: ['strut', 'trailing'], quintel_20: ['strut', 'trailing'], sorrel_ve: ['strut', 'twist'],
+  pavane_2s: ['strut', 'strut'], torvo_20: ['strut', 'twist'], linnet_20v: ['strut', 'twist'], rhodon_kx: ['strut', 'twist'],
+  xebec_24v: ['wishbone', 'strut'], lugger_18: ['wishbone', 'wishbone'], tartane_16v: ['strut', 'strut'], pinnace_20: ['strut', 'live'],
+  shallop_22: ['strut', 'live'], carrack_24: ['wishbone', 'live'], felucca_14t: ['wishbone', 'wishbone'], barque_21t: ['strut', 'strut'],
+  ketch_30: ['strut', 'semi'], galliot_v8: ['wishbone', 'semi'], yawl_20t: ['wishbone', 'beam'], polacca_v4: ['wishbone', 'beam'],
+  caisson_6x6: ['leaf', 'leaf'], limber_4x4: ['wishbone', 'wishbone'], palanquin_25d: ['strut', 'leaf']
+};
+for (const S of CARS) {
+  const ty = S.suspT = SUSP_TYPE[S.id] || ['strut', 'strut'], r = ty[1], p = Object.assign({}, S.susp || {});
+  if (r === 'live' || r === 'beam') { p.solidR = true; p.rcR = Math.max(p.rcR != null ? p.rcR : 0.11, 0.28); p.gainR = 0; if (!S.wheel) S.muR = r === 'live' ? 58 : 46; }
+  else if (r === 'trailing') { p.gainR = 0; p.rcR = 0.04; }
+  else if (r === 'twist') { p.solidR = 0.45; p.gainR = 0; p.rcR = 0.12; }
+  else if (r === 'semi') { if (!(p.gainR <= -14)) p.gainR = -22; p.toeGainR = 4; }
+  else if (r === 'multi') { if (!(p.gainR <= -14)) p.gainR = -16; }
+  S.susp = p;
+}
 function idleOf(S) {
   if (S._idl && S._idl.id === S.id) return S._idl; const r = IDLE[S.id] || [S.idle || 950, 'ecu', 30, 0.5];
   // (how hard it is drawn back, Nm per rpm: an idle control hard; a throttle stop gently, more for a bigger engine, whose
@@ -4809,12 +4843,11 @@ function idleTorque(c, S, thr, dt, fr) {
 const LIMITER = { R2: [0.55, 0.035], WRC: [0.8, 0.05], A: [1, 0.07], F2: [1, 0.07], B: [1, 0.08], G4: [0.8, 0.06], SP: [0.5, 0.12] }; // (SP: a diesel's governor, easing the fuel off)
 // (a soft cut cuts more of the firings the further past the limit the revs go, all of them 2% past it)
 function limiterHit(c, S) { const L = S.lim || LIMITER[S.cls] || LIMITER.A; /* (S.lim: a built engine's era's, see cuSpec) */ if ((c.limT || 0) <= 0 && c.ev) c.ev.push('lim'); c.limT = L[1]; c.limK = Math.min(1, L[0] + (1 - L[0]) * Math.max(0, c.rpm - S.redline) / (0.02 * S.redline)); }
-// what the engine loses to itself (Nm). On the throttle, its friction as before (the torque curves are what the engine
-// gives at full load). Off it, everything that turns the engine over against a shut throttle: the friction of its
-// pistons, bearings and valve gear, rising steeply with the revs (a mean pressure of 0.9 + 0.12 N + 0.04 N^2 bar, N in
-// thousands of rpm: the measured trend for petrol engines, trimmed a fifth for racing engines' lighter rings and
-// bearings) and the pumping against the vacuum behind the shut throttle (about 0.8 bar), both on the engine's
-// displacement - so a big engine slows harder and a small one less, as they do. A Rally2 car's anti-lag holds its
+// what the engine loses to itself (Nm). On the throttle, its friction (engineFric: the torque curves are what the engine
+// gives at the crank, so what the cylinders give carries that friction on top, see throttleShare). Off it, everything
+// that turns the engine over against a shut throttle: the same friction of its pistons, bearings and valve gear, rising
+// steeply with the revs, and the pumping against the vacuum behind the shut throttle (about 0.8 bar), both on the
+// engine's displacement - so a big engine slows harder and a small one less, as they do. A Rally2 car's anti-lag holds its
 // throttle open a crack and burns the charge late, so it pumps little: the car runs on further off the throttle with
 // anti-lag working than without
 function litresOf(S) { return S._L || (S._L = S.litres || +(((S.motor || '').match(/([\d.]+)-litre/) || [0, 2])[1])); }
@@ -4829,22 +4862,31 @@ function litresOf(S) { return S._L || (S._L = S.litres || +(((S.motor || '').mat
 // brakes it. Sized so full throttle loses 3% of the air's pressure at the red line and the idle gap holds the inlet
 // near 0.3 bar at idle (the sound's gas works from the same throttle, see GasCore). A diesel has no throttle: its pedal
 // sets its fuel, the torque in proportion
+// (The curve, S.tq, is what the engine gives at the crank at full load: its friction already taken off, as makers and
+// homologation forms publish it. So the share below is of what the cylinders give net of pumping before the friction is
+// taken off - at full throttle 1 + friction / curve - and full throttle gives the curve itself; see engineFric.)
 const _PSI = x => x <= 0.528 ? 0.6847 : Math.sqrt(Math.max(0, 7 * (Math.pow(x, 1.4286) - Math.pow(x, 1.7143))));
 function inletPressure(rpmK, a) { // (rpmK: the revs as a share of the red line; a: the throttle's open area as a share of its full opening)
   const r = rpmK / (2.76 * Math.max(1e-4, a)); let lo = 0.005, hi = 1; for (let i = 0; i < 18; i++) { const x = (lo + hi) / 2; if (_PSI(x) / (0.6847 * x) > r) lo = x; else hi = x; } return (lo + hi) / 2; }
 function throttleShare(S, rpm, thr) {
-  if (S.fuel === 'diesel') return thr;
+  const Tw = Math.max(1, engineCurve(S, rpm)), F = engineFric(S, rpm);
+  if (S.fuel === 'diesel') return thr * (1 + F / Tw); // (its fuel: the curve and the friction it overcomes, in proportion)
   const red = S.redline || 7000, rk = Math.max(0.05, rpm / red), aI = Math.min(0.08, (S.idle || 900) / red * 0.109), a = aI + (1 - aI) * (1 - Math.cos(Math.PI / 2 * clamp(thr, 0, 1)));
-  const x = inletPressure(rk, a), xw = inletPressure(rk, 1), Tw = Math.max(1, engineCurve(S, rpm)), we = rpm * Math.PI / 30, F = (12 + 0.035 * we) * (S.fricK || 1), Pq = 101325 * litresOf(S) / 1000 / (4 * Math.PI);
-  const g = ((Tw + F + Pq * (1.05 - xw)) * x / xw - Pq * (1.05 - x)) / Tw; return thr < 0.05 ? Math.max(0, g) : Math.min(1, g); }
+  const x = inletPressure(rk, a), xw = inletPressure(rk, 1), Pq = 101325 * litresOf(S) / 1000 / (4 * Math.PI);
+  const g = ((Tw + F + Pq * (1.05 - xw)) * x / xw - Pq * (1.05 - x)) / Tw; return thr < 0.05 ? Math.max(0, g) : Math.min(1 + F / Tw, g); }
 // (the pedal that gives a share of the full-throttle torque at these revs: what an assist trimming the power asks of
 // the throttle, so its trim takes off the torque it means to at any revs)
-function throttleFor(S, rpm, share) { if (S.fuel === 'diesel') return clamp(share, 0, 1); if (share >= throttleShare(S, rpm, 1) - 1e-3) return 1;
+function throttleFor(S, rpm, share) { if (S.fuel === 'diesel') return clamp(share / throttleShare(S, rpm, 1), 0, 1); if (share >= throttleShare(S, rpm, 1) - 1e-3) return 1;
   let lo = 0, hi = 1; for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (throttleShare(S, rpm, m) < share) lo = m; else hi = m; } return (lo + hi) / 2; }
+// the engine's own friction (N m), the same on the throttle and off it: its pistons and rings, bearings and valve gear,
+// a mean pressure of 0.9 + 0.12 N + 0.04 N^2 bar on its displacement (N in thousands of rpm: the measured trend for
+// petrol engines, trimmed a fifth for racing engines' lighter rings and bearings). S.fricL: a built engine's
+// displacement as its friction sees it (a rotary's, twice its chambers': see cuSpec)
+function engineFric(S, rpm) { const N = rpm / 1000; return (0.9 + 0.12 * N + 0.04 * N * N) * 7.958 * (S.fricL || litresOf(S)); }
 function engineDrag(S, rpm, we, thr) {
-  if (thr >= 0.05) return (12 + 0.035 * we) * (S.fricK || 1); // (S.fricK: a built engine's against its size, see cuSpec)
+  if (thr >= 0.05) return engineFric(S, rpm); // (on the throttle the cylinders' share is net of pumping: see throttleShare)
   const N = rpm / 1000, ret = S.als && (S.alsKind ? S.alsKind === 'ret' : S.cls === 'R2') && thr < 0.1 && rpm > S.spool[0] * 0.8;
-  return (0.9 + 0.12 * N + 0.04 * N * N + (S.fuel === 'diesel' ? 0.15 : ret ? 0.3 : 0.8)) * 7.958 * litresOf(S);
+  return engineFric(S, rpm) + (S.fuel === 'diesel' ? 0.15 : ret ? 0.3 : 0.8) * 7.958 * litresOf(S);
 }
 // The engine on its own, out of gear (the showroom's run-up, the start line): the same torque, boost, friction, idle
 // and rev limiter as on a stage, turning nothing but its own inertia. c.flare: the idle raised just after a start
@@ -5027,6 +5069,42 @@ function worldInfoTo(info, c, x, z, o) {
 }
 // the pads' grip on a disc at its temperature (°C): full up to about 650, then fading (70% at 800, 55% at 900)
 const brakeFade = t => 1 - 0.45 * smooth(650, 900, t);
+// ---- the brakes' hardware ----
+// Each car's brakes as its real one carried them on its gravel wheels (which it keeps on every surface here): for each
+// axle the disc's diameter and thickness (m), its caliper's pistons and their area on one side of the disc (m2), and
+// whether the disc is ventilated. Rally2: 300 mm ventilated discs front and rear in four-piston calipers (as their makers
+// publish them for gravel); World Rally Cars of the 2000s the same size in four-piston monoblocks; Group A and Group B,
+// four-piston calipers on 300 mm discs in front, a little smaller behind (est.); the kit cars' 300 mm four-piston fronts
+// and 260 mm solid discs on two-piston calipers behind (est., from the period's kit-car specifications); the 1970s cars,
+// four-piston fronts on as big a disc as their 13- to 15-inch rims take, solid discs behind (est.).
+// A disc's torque at a line pressure p: its two pads x their friction x p x the pistons' area x the radius the pads work
+// at (the disc's own less 25 mm, the middle of a pad's depth). The driver's full effort on the pedal makes BRK_P (about 80
+// bar, a hard stop in a rally car without a servo); the balance bar shares it between the two circuits so the front's
+// share of the torque is the setup's bias; the pressure follows the pedal about 40 ms late (the fluid, the pistons taking
+// up their clearance) and lets go a little slower. Pads: a gravel compound bites from cold (90% of its grip, all of it by
+// 180 C); a tarmac compound needs heat (72% cold, all of it by 300 C); both fade past 650 C (brakeFade).
+const BRK_HW = {
+  R2: [[0.300, 0.032, 4, 3.3e-3, 1], [0.300, 0.032, 4, 2.5e-3, 1]],
+  WRC: [[0.300, 0.028, 4, 3.2e-3, 1], [0.300, 0.028, 4, 2.4e-3, 1]],
+  A: [[0.300, 0.028, 4, 2.9e-3, 1], [0.278, 0.022, 4, 1.9e-3, 1]],
+  B: [[0.300, 0.028, 4, 2.9e-3, 1], [0.280, 0.024, 4, 2.0e-3, 1]],
+  F2: [[0.300, 0.028, 4, 2.9e-3, 1], [0.260, 0.012, 2, 1.4e-3, 0]]
+};
+const BRK_P = 80e5, BRK_TR = [0.04, 0.06], PAD_MU = { gravel: 0.45, tarmac: 0.5 };
+// (a 1970s car's: its front disc as big as its rims take with a four-piston caliper round it, its solid rear disc a
+// little smaller in a two-piston caliper; the rim from its tyre size, 13 to 15 inches)
+function brakeHW(S) {
+  if (S.air || S.brkC || S.cls === 'SP') return null;
+  let H = BRK_HW[S.cls];
+  if (!H) { const rim = S.tyreSize ? +((String(S.tyreSize[0]).match(/-(\d+)/) || [0, 15])[1]) : 15, d = rim <= 13 ? 0.254 : rim <= 14 ? 0.268 : 0.280;
+    H = [[d, 0.024, 4, rim <= 13 ? 2.4e-3 : 2.6e-3, 1], [d - 0.02, 0.012, 2, 1.4e-3, 0]]; }
+  // each axle: torque per pascal at one wheel with a pad friction of 1 (two pads), its heat capacity (J/K: the iron of
+  // the disc, ventilated discs about three-fifths metal, with its hat, pads and caliper's share) and how well it sheds
+  // heat against a 300 mm ventilated disc (its swept area; a solid disc has half the surface to the air)
+  const ax = ([d, t, n, A, v]) => { const re = d / 2 - 0.025, mI = 7200 * Math.PI / 4 * (d * d - 0.3 * d * d) * t * (v ? 0.62 : 1);
+    return { d, t, n, A, v: !!v, tq: 2 * A * re, C: mI * 460 * 1.15, cool: d * d / 0.09 * (v ? 1 : 0.55) }; };
+  return { F: ax(H[0]), R: ax(H[1]) };
+}
 // ---- air brakes (S.air: the truck's; pressures in bar above the air outside, volumes in litres, times in seconds) ----
 // The engine turns a single-cylinder compressor at the crank's speed (A.comp litres a turn, filling less the higher the
 // pressure it pumps against), filling the tanks (A.V) until the governor unloads it at A.cut[1]: then the air dryer
@@ -5088,6 +5166,21 @@ const HBS = [0.08, 20]; // hydraulic bump stop: the length of travel it works ov
 const SUSP_DEF = { fF: 1.8, fR: 1.8, zB: 0.3, zR: 0.55, travel: 0.13, droop: 0.12, arbF: 0.3, arbR: 0.25, rcF: 0.07, rcR: 0.11, antiDive: 0.15, antiSquat: 0.2, camF: -1.5, camR: -1.0, gainF: -14, gainR: -10, rollCam: 1.0, caster: 5, kpi: 10, toeR: 0.2, ack: 0.6, hcg: 0.46, bias: 0.62, brake: 1.35, Ie: 0.17 };
 const DIFF_DEF = { f: { pre: 20 }, r: { pre: 60, ramp: 0.4 }, c: { pre: 100, ramp: 0.4 } };
 const RIGID_C = { pre: 1e6 }; // a solid drive between the axles: a coupling no torque can slip
+// The crew: driver and co-driver in their suits, helmets and head restraints, about 160 kg, sitting low between the axles.
+// Every rally car's published weight is without them (the homologation minimum); a working vehicle's includes its crew.
+const CREW_KG = 160;
+// The gears and bearings between the clutch and the wheels lose a share of the power through them: of what the engine
+// sends, what reaches the wheels (one pair of gears and a spur final drive across a front-drive car's transaxle, 95.5%; a
+// rear-drive car's gearbox, two meshes, and its hypoid final drive, 93.5%; four-wheel drive's transfer gears and two
+// final drives, 92%; a six-wheeled truck's transfer box and three hypoid axles, 88%). On the overrun the wheels give up
+// that much more than the engine takes. S.eta: a vehicle's own
+const drivelineEta = S => S.eta || (S.tandem ? 0.88 : S.fs >= 0.999 ? 0.955 : S.fs <= 0.001 ? 0.935 : 0.92);
+// The driveshafts' give: each driven axle's pair of shafts twists like a torsional spring of DRIVE_K N m/rad at the wheels
+// (two steel shafts of a rally car's, about 25 mm across and 0.4 m long, with their joints: about 9,000 each; a heavy
+// vehicle's, sized for four times the torque, four times as stiff), damped at DRIVE_Z of critical. So a sudden change of
+// torque - a stab of throttle, the clutch snatching, a shift, a wheel landing - winds them up and lets them go again in a
+// shunt or two (about 6 Hz in first gear against the car, quicker in the higher gears) before it settles
+const DRIVE_K = 18000, DRIVE_Z = 0.1;
 // a damper's slow-speed circuit works up to this shaft speed (m/s), its fast-speed (bump) circuit beyond it
 const DAMP_KNEE = 0.12;
 const RIDE_K = 0.82; // (the cars' spring figures to a gravel rally car's ride: see carSetup)
@@ -5096,8 +5189,10 @@ function carSetup(S) {
   const sp = Object.assign({}, SUSP_DEF, S.susp || {}), df = Object.assign({}, DIFF_DEF, S.diff || {});
   if (S.rigidC) df.c = RIGID_C; // no centre differential: the axles turn together
   // (the mass under each corner's spring and the tyres at each corner: a rear bogie's two, see wheelOf)
-  const WH = wheelOf(S), TD = S.tandem, muR = WH.muR != null ? WH.muR : WH.mu, MW = [WH.mu, WH.mu, muR, muR], NT = TD ? (TD.dual ? [1, 1, 4, 4] : [1, 1, 2, 2]) : [1, 1, 1, 1];
-  const ms = S.mass - (S.wheel ? MW[0] + MW[1] + MW[2] + MW[3] : 4 * WHEEL.mu), twF = S.track ? S.track[0] / 2 : S.width / 2 - 0.14, twR = S.track ? S.track[1] / 2 : twF, tw = (twF + twR) / 2, a = S.wb * (1 - S.wf), b = S.wb * S.wf;
+  const WH = wheelOf(S), TD = S.tandem, muR = WH.muR != null ? WH.muR : S.muR != null ? S.muR : WH.mu, MW = [WH.mu, WH.mu, muR, muR], NT = TD ? (TD.dual ? [1, 1, 4, 4] : [1, 1, 2, 2]) : [1, 1, 1, 1];
+  // (the mass the car runs at: its own and its crew's, CREW_KG; m)
+  const crew = S.cls === 'SP' ? 0 : CREW_KG, mT = S.mass + crew;
+  const ms = mT - (S.wheel ? MW[0] + MW[1] + MW[2] + MW[3] : 4 * WHEEL.mu), twF = S.track ? S.track[0] / 2 : S.width / 2 - 0.14, twR = S.track ? S.track[1] / 2 : twF, tw = (twF + twR) / 2, a = S.wb * (1 - S.wf), b = S.wb * S.wf;
   // ride height raised (+) or lowered off the car's own, per axle (m): the body and its centre of gravity go with it, and
   // each axle's damper stroke is shared out afresh between bump and droop (a lower car has less travel before its bump
   // stops); front and rear set apart tilt the body (rake)
@@ -5117,7 +5212,11 @@ function carSetup(S) {
       travel: Math.max(0.04, sp.travel + rh), droop: Math.max(0.03, sp.droop - rh), lst: lstat - dcg + rh };
   });
   const kd = (W[0].kb + W[2].kb) / 2;
-  S._sp = { sp, df, ms, tw, twF, twR, track: 2 * tw, a, b, W, karbF: sp.karbF != null ? sp.karbF : kd * sp.arbF * 2, karbR: sp.karbR != null ? sp.karbR : kd * sp.arbR * 2, Ip: ms * (sp.gyP || 1.25), Ir: ms * (sp.gyR || 0.32), Izz: S.mass * a * b * S.yawK, lstat, dcg, pitch0: (rhF - rhR) / S.wb,
+  // (the crew sit near the centre of gravity, about 0.35 m either side of the middle: they add little to its yaw inertia)
+  // (the brakes: their hardware, BRK_HW, and the most braking they can give at the driver's full effort as a share of
+  // the car's weight, g - the pace model's; a working vehicle's own, sp.brake)
+  const bk = brakeHW(S), brakeG = bk ? (2 * bk.F.tq * BRK_P * PAD_MU.gravel / Math.max(0.3, sp.bias)) / (mT * 9.81 * WH.R) : sp.brake;
+  S._sp = { sp, df, ms, m: mT, crew, eta: drivelineEta(S), bk, brakeG, tw, twF, twR, track: 2 * tw, a, b, W, karbF: sp.karbF != null ? sp.karbF : kd * sp.arbF * 2, karbR: sp.karbR != null ? sp.karbR : kd * sp.arbR * 2, Ip: ms * (sp.gyP || 1.25), Ir: ms * (sp.gyR || 0.32), Izz: S.mass * a * b * S.yawK + crew * 0.25, lstat, dcg, pitch0: (rhF - rhR) / S.wb,
     // (each corner's unsprung mass and its tyres; each corner's spinning inertia, a bogie's two wheels together; eqW: all
     // four the same, a rally car's)
     MW, NT, IW: NT.map(n => WH.I * n), eqW: !TD && WH.mu === muR };
@@ -5261,7 +5360,7 @@ function setupSpec(S, su, env) {
     karbF: su.aF * 1000, karbR: su.aR * 1000, camF: su.camF, camR: su.camR, toeF: su.toeF, toeR: su.toeR, rhF: su.rhF / 1000, rhR: su.rhR / 1000, bias: su.bias / 100, brake: K0.sp.brake * su.bp / 100 });
   const diff = {}; for (const a in b.diff) { const q = (su.diff && su.diff[a]) || b.diff[a]; diff[a] = { pre: q.pre, ramp: q.pow / 100, coast: q.coa / 100, kv: q.vis }; }
   const E = Object.create(S), key = TYRE_C[su.c] && tyresFor(S, env.surface).includes(su.c) ? su.c : tyreFor(env, S), C = TYRE_C[key];
-  Object.assign(E, { _sp: null, _el: null, susp, diff, final: su.fd || S.final, hbT: (S.hbT || 1700) * su.hb / 100, lock: (su.lock || S.lock * 180 / Math.PI) * Math.PI / 180, setup: su, base: S, snorkel: !!su.snk });
+  Object.assign(E, { _sp: null, _el: null, susp, diff, final: su.fd || S.final, hbT: (S.hbT || 1700) * su.hb / 100, bpK: su.bp / 100, lock: (su.lock || S.lock * 180 / Math.PI) * Math.PI / 180, setup: su, base: S, snorkel: !!su.snk });
   const dcg = (su.rhF * S.wf + su.rhR * (1 - S.wf)) / 1000;
   if (dcg) { const h = S.hull || {}; E.hull = Object.assign({}, h, { floor: (h.floor != null ? h.floor : 0.26) + dcg, belt: (h.belt || 0.95) + dcg, roof: (h.roof || 1.32) + dcg }); }
   // the tyres: their compound, cold pressures and the temperature they were set at; how readily they puncture (lower
@@ -5448,7 +5547,7 @@ function tyreGround(T, info, c, wh, x, z, hx, hz, half, yC, out, Rw) {
   out.ge = ge; return out;
 }
 function stepCar(c, S, inp, dt, T, opts) {
-  const g = 9.81, m = S.mass, K = carSetup(S), SP = K.sp, DF = K.df, WH = wheelOf(S), R0 = WH.R, Iw = WH.I, mw = WH.mu, ms = K.ms, W = c.w, hold = !!(opts && opts.hold), wetK = T.wet || 0;
+  const g = 9.81, K = carSetup(S), m = K.m, SP = K.sp, DF = K.df, WH = wheelOf(S), R0 = WH.R, Iw = WH.I, mw = WH.mu, ms = K.ms, W = c.w, hold = !!(opts && opts.hold), wetK = T.wet || 0;
   const IW = K.IW, MW = K.MW, TD = S.tandem; // (each corner's spinning inertia and unsprung mass; a rear bogie: see wheelOf)
   // damage: D with damage on (the body crushes), DR when parts break too
   const D = c.dmg && c.dmg.mode !== 'off' ? c.dmg : null, DR = D && D.mode === 'real' ? D : null;
@@ -5495,7 +5594,9 @@ function stepCar(c, S, inp, dt, T, opts) {
   const dL = Math.abs(tdl) < 1e-4 ? delta : Math.atan(wb * tdl / (wb - hT * tdl)), dR = Math.abs(tdl) < 1e-4 ? delta : Math.atan(wb * tdl / (wb + hT * tdl));
   // toe per wheel (+ in, - out)
   const toe = SP.toeR * Math.PI / 180, toeF = (SP.toeF || 0) * Math.PI / 180;
-  W[0].delta = dL - toeF; W[1].delta = dR + toeF; W[2].delta = -toe; W[3].delta = toe;
+  // (semi-trailing arms toe in as they rise, SP.toeGainR degrees a metre: the outer wheel in a turn, steadying the tail)
+  const tgR = (SP.toeGainR || 0) * Math.PI / 180;
+  W[0].delta = dL - toeF; W[1].delta = dR + toeF; W[2].delta = -toe - (W[2].comp != null ? tgR * (W[2].comp - K.W[2].c0) : 0); W[3].delta = toe + (W[3].comp != null ? tgR * (W[3].comp - K.W[3].c0) : 0);
   // the steering gives a little under the torque turning each front wheel about its kingpin (the tyre's aligning torque
   // and the lateral force behind the kingpin): at the limit, as the aligning torque falls away, the wheels come back
   W[0].delta += clamp((W[0].Mk || 0) / STEER_K, -0.03, 0.03); W[1].delta += clamp((W[1].Mk || 0) / STEER_K, -0.03, 0.03);
@@ -5514,7 +5615,9 @@ function stepCar(c, S, inp, dt, T, opts) {
     const gain = (G.front ? SP.gainF : SP.gainR) * Math.PI / 180, st = (G.front ? SP.camF : SP.camR) * Math.PI / 180;
     // (on a solid axle, SP.solidF / SP.solidR, both wheels stand square to the axle, which tilts against the body as one
     // spring is squeezed more than the other: in roll they stay upright on the road, in bump neither leans)
-    let cam = st + ((G.front ? SP.solidF : SP.solidR) ? -G.side * (W[i & 2].comp - W[(i & 2) + 1].comp) / (2 * (G.front ? K.twF : K.twR)) : gain * (wh.comp - G.c0)); if (G.front) cam += G.side * SP.caster * Math.PI / 180 * Math.sin(wh.delta) + SP.kpi * Math.PI / 180 * (1 - Math.cos(wh.delta));
+    // (a twist beam, a share of solid: SP.solidR between 0 and 1, its wheels between the two)
+    const skA = +(G.front ? SP.solidF : SP.solidR) || 0;
+    let cam = st + (skA ? -skA * G.side * (W[i & 2].comp - W[(i & 2) + 1].comp) / (2 * (G.front ? K.twF : K.twR)) : 0) + (1 - skA) * gain * (wh.comp - G.c0); if (G.front) cam += G.side * SP.caster * Math.PI / 180 * Math.sin(wh.delta) + SP.kpi * Math.PI / 180 * (1 - Math.cos(wh.delta));
     if (DR) cam += DR.w[i].cam; wh.cam = cam;
     const lb = G.side * cam, cd = Math.cos(wh.delta), sd = Math.sin(wh.delta), cl = Math.cos(lb), sl = Math.sin(lb); wh.lb = lb;
     // (forward sd, 0, cd; axle cl cd, -sl, -cl sd; up sl cd, cl, -sl sd: in the body's frame, then in the world's)
@@ -5741,15 +5844,28 @@ function stepCar(c, S, inp, dt, T, opts) {
   // (air brakes: each axle's brakes follow their circuit's air, and the parking brake is springs held off by air)
   const AB = S.air ? airStep(c, S, brkIn, hb, !eOff, c.rpm, dt) : null;
   const bT = (AB ? 1 : brkIn) * m * g * SP.brake * R0, aT0 = T.air != null ? T.air : 15, BT = c.brk || (c.brk = [aT0 + 100, aT0 + 100, aT0 + 100, aT0 + 100]), vAir = Math.min(60, au), aK4 = Math.pow(aT0 + 273.15, 4);
+  // (a car's own hardware, K.bk, see BRK_HW: the line pressure following the pedal and the handbrake's lever; the balance
+  // bar's shares of the driver's full effort, the circuit with the bigger share at the whole of it; the pads by the
+  // surface the car was set up for)
+  const BK = K.bk, padT = !!(S.tyreC && S.tyreC.fam === 'tarmac');
+  let pF = 0, pR = 0, pH = 0;
+  if (BK) { const lp = c.bpl || (c.bpl = [0, 0]); lp[0] += (brkIn - lp[0]) * Math.min(1, dt / BRK_TR[brkIn > lp[0] ? 0 : 1]); lp[1] += ((hb ? 1 : 0) - lp[1]) * Math.min(1, dt / BRK_TR[hb && lp[1] < 1 ? 0 : 1]);
+    const kb = SP.bias / Math.max(0.05, 1 - SP.bias) * BK.R.tq / BK.F.tq, P = BRK_P * (S.bpK || 1);
+    pF = lp[0] * P * (kb >= 1 ? 1 : kb); pR = lp[0] * P * (kb >= 1 ? 1 / kb : 1); pH = lp[1]; }
   for (let i = 0; i < 4; i++) {
     const G = K.W[i], wh = W[i]; wh.omega += dt * (-wh.Fx * R0) / IW[i];
-    const Tp = bT * (AB ? (G.front ? AB.kF : AB.kR) : 1) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(BT[i]);
+    const ax = BK ? (G.front ? BK.F : BK.R) : null, tB = BT[i];
+    // (the pads' grip at their temperature: the compound's own at its best, less cold, fading past 650 C)
+    const mu = ax ? (padT ? PAD_MU.tarmac * (0.72 + 0.28 * smooth(40, 300, tB)) : PAD_MU.gravel * (0.9 + 0.1 * smooth(40, 180, tB))) * brakeFade(tB) : 0;
+    const Tp = ax ? (G.front ? pF : pR) * ax.tq * mu : bT * (AB ? (G.front ? AB.kF : AB.kR) : 1) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(tB);
     let Tb = Tp + ((wh.ty ? wh.ty.crr : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? 0.16 : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
-    if (!G.front && (AB ? AB.kP > 0 : hb)) Tb += (S.hbT || 1700) * (AB ? AB.kP : 1);
+    // (the hydraulic handbrake: its own master cylinder on the rear calipers, its pads as hot as the discs)
+    const Th = G.front ? 0 : ax ? (S.hbT || 1700) * pH * mu / (padT ? PAD_MU.tarmac : PAD_MU.gravel) : (AB ? AB.kP > 0 : hb) ? (S.hbT || 1700) * (AB ? AB.kP : 1) : 0; Tb += Th;
     const w0 = Math.abs(wh.omega), d = Tb * dt / IW[i]; if (w0 <= d) wh.omega = 0; else wh.omega -= Math.sign(wh.omega) * d;
-    const tB = BT[i], Pin = Tp * (w0 + Math.abs(wh.omega)) / 2, Pout = (8 + 1.3 * vAir) * (tB - aT0) + 1.13e-8 * (Math.pow(tB + 273.15, 4) - aK4);
-    // (a heavy vehicle's brakes, S.brkC times a rally car's in their mass and the air over them: a truck's drums)
-    BT[i] = S.brkC ? tB + dt * (Pin - Pout * Math.pow(S.brkC, 0.6)) / ((G.front ? 3200 : 2200) * S.brkC) : tB + dt * (Pin - Pout) / (G.front ? 3200 : 2200);
+    const Pin = (Tp + Th) * (w0 + Math.abs(wh.omega)) / 2, Pout = (8 + 1.3 * vAir) * (tB - aT0) + 1.13e-8 * (Math.pow(tB + 273.15, 4) - aK4);
+    // (a heavy vehicle's brakes, S.brkC times a rally car's in their mass and the air over them: a truck's drums; a car's
+    // own discs by their size, see brakeHW)
+    BT[i] = ax ? tB + dt * (Pin - Pout * ax.cool) / ax.C : S.brkC ? tB + dt * (Pin - Pout * Math.pow(S.brkC, 0.6)) / ((G.front ? 3200 : 2200) * S.brkC) : tB + dt * (Pin - Pout) / (G.front ? 3200 : 2200);
   }
   // driveline: auto-clutch, centre coupling and limited-slip differentials, solved as capped lock constraints
   let kF = S.fs / 2, kR = (1 - S.fs) / 2;
@@ -5784,7 +5900,8 @@ function stepCar(c, S, inp, dt, T, opts) {
         Tp = C.k * wp * wp * f; Tt = Tp * (sr < 0.85 ? C.tr - (C.tr - 1) * sr / 0.85 : 1); }
       else { Tp = -C.k * 0.45 * (wt * wt - wp * wp); Tt = Tp; }
       Tp = clamp(Tp, -1.5 * S.tmax, 2.2 * S.tmax); Tt = clamp(Tt, -1.5 * S.tmax, 2.2 * S.tmax * C.tr);
-      we -= Tp * dt / SP.Ie; for (let i = 0; i < 4; i++) if (kk[i] > 0) W[i].omega += Gr * Tt * kk[i] * dt / IW[i]; Tc = Tt;
+      const ef = Tt >= 0 ? K.eta : 1 / K.eta; // (the gears' losses: see drivelineEta)
+      we -= Tp * dt / SP.Ie; for (let i = 0; i < 4; i++) if (kk[i] > 0) W[i].omega += Gr * Tt * ef * kk[i] * dt / IW[i]; Tc = Tt;
     }
     for (let it = 0; it < 2; it++) {
       const Tin = Math.abs(Gr * Tc), pwr = Gr * Tc >= 0, lockOf = d => (pwr || d.coast == null ? d.ramp : d.coast) || 0;
@@ -5797,17 +5914,34 @@ function stepCar(c, S, inp, dt, T, opts) {
     const dsRpm = Math.abs(Gr * wds) * 30 / Math.PI;
     // (S.clutchK: an engine that turns slower than a rally engine, a truck's diesel, lets its clutch in at revs that much lower)
     const cK = S.clutchK || 1;
-    let engage = dsRpm < 1500 * cK ? smooth((1050 + 2700 * thrIn) * cK, (2100 + 3300 * thrIn) * cK, c.rpm) * (thrIn > 0.05 || dsRpm > 900 * cK ? 1 : 0) : 1;
+    // (pulling away, the driver slips the clutch to hold the engine where it pulls until the car itself - not only its
+    // driveshafts - is going fast enough for the gear: a start on gravel spins the wheels up at once, and a turbo engine
+    // let down below its boost would bog and die with the clutch let fully in; vRpm, the road's speed through the gear)
+    const vRpm = Math.abs(c.u) / R0 * Math.abs(Gr) * 30 / Math.PI;
+    let engage = Math.min(dsRpm, vRpm) < 1500 * cK ? smooth((1050 + 2700 * thrIn) * cK, (2100 + 3300 * thrIn) * cK, c.rpm) * (thrIn > 0.05 || dsRpm > 900 * cK ? 1 : 0) : 1;
     if (dsRpm < 1500 * cK && dsRpm > 900 * cK && thrIn <= 0.05) engage = Math.max(engage, smooth(900 * cK, 1500 * cK, dsRpm));
     if (c.lockup) engage = 1; // (a CVT's converter locked up)
     if (c.shiftT > 0 || hold || ((AB ? AB.kP > 0.05 : hb) && kR > 0) || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0))) engage = 0;
     if (es.jolt > 0) engage = 1; // (hydrolocked in gear: the clutch snatches the driven wheels before the driver dips it)
     // (inp.clutchT: the most torque the traction control lets the clutch pass pulling away, N m)
     const cap = Math.min(1.9 * S.tmax * engage * (inp.clutch != null ? clamp(inp.clutch, 0, 1) : 1), inp.clutchT != null ? inp.clutchT : Infinity), iE = (locked ? 1e-4 : 1) / SP.Ie; // (locked: as good as immovable)
+    // The engine and gearbox turn with the driven wheels through the twist of the driveshafts (c.wind, rad, as the engine
+    // side sees it: their spring DRIVE_K at the wheels through the gearing's square), solved implicitly so it holds steady
+    // however stiff. The clutch passes what the twist asks of it, up to what it can hold; beyond that it slips and the
+    // shafts carry that much. The wheels get the torque less the gears' losses while the engine drives them, and give up
+    // that much more than the engine takes on the overrun (drivelineEta)
+    { const ws = kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega, dl = we - Gr * ws, th = c.wind || 0;
+      // (the shafts' spring as the gearbox sees it: each driven axle's pair, the axles sharing the torque as the drive
+      // splits it - a bogie's two axles together - a heavy vehicle's shafts four times as stiff)
+      const sF = 2 * kF, sR = 2 * kR, kA = DRIVE_K * (S.wheel ? 4 : 1), Kw = 1 / ((sF > 0 ? sF * sF / kA : 0) + (sR > 0 ? sR * sR / (kA * (TD ? 2 : 1)) : 0) || 1 / kA);
+      const G2 = Math.max(Gr * Gr, 1e-4), Ke = Kw / G2, iWk = K.eqW ? k2 / Iw : k2I;
+      const solve = e => { const iM = iE + e * G2 * iWk, a = Ke * dt + 2 * DRIVE_Z * Math.sqrt(Ke / iM); return (Ke * th + a * dl) / (1 + a * dt * iM); };
+      const ef = solve(1) >= 0 ? K.eta : 1 / K.eta; let T = solve(ef); const slip = Math.abs(T) > cap; T = clamp(T, -cap, cap);
+      we -= T * dt * iE; for (let i = 0; i < 4; i++) if (kk[i] > 0) W[i].omega += Gr * T * ef * kk[i] * dt / IW[i];
+      // (the twist after the step: wound on by what the two ends did; while the clutch slips, what holds its torque)
+      c.wind = slip ? T / Ke : th + dt * (we - Gr * (kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega));
+      Tc = T; }
     for (let it = 0; it < 2; it++) {
-      const ws = kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega;
-      const dl = we - Gr * ws; const nT = clamp(Tc + dl / (dt * (iE + (K.eqW ? Gr * Gr * k2 / Iw : Gr * Gr * k2I))), -cap, cap); const t = nT - Tc;
-      Tc += t; we -= t * dt * iE; for (let i = 0; i < 4; i++) if (kk[i] > 0) W[i].omega += Gr * t * kk[i] * dt / IW[i];
       // (a plate differential's ramps lock it by a share of the torque through it: one share driving, another on the
       // overrun with the engine braking)
       const Tin = Math.abs(Gr * Tc), pwr = Gr * Tc >= 0, lockOf = d => (pwr || d.coast == null ? d.ramp : d.coast) || 0;
@@ -5817,7 +5951,12 @@ function stepCar(c, S, inp, dt, T, opts) {
     }
   }
   if (locked) we = 0;
+  if (c.gear === 0 || k2 <= 0 || S.tc && !c.lockup) c.wind = 0; // (out of gear, or through a converter: nothing wound up)
   c.rpm = we * 30 / Math.PI; c.tcl = Tc;
+  // a live rear axle carries its diff: the propshaft's torque into the pinion (the clutch's through the gear) twists the
+  // whole axle the way the shaft turns, pressing the left rear tyre down and lifting the right (the right rear spins
+  // first), while the gearbox's mountings twist the body the other way (lpT, N m about the car's length; lpF each wheel's)
+  const lpT = S.suspT && S.suspT[1] === 'live' && kR > 0 && c.gear !== 0 ? Tc * ratio : 0, lpF = lpT / (2 * K.twR); c.lpT = lpT;
   // suspension: springs, dampers, stops, anti-roll bars, roll-centre and anti-dive/squat link forces, along each strut
   const FyF = (W[0].fL || 0) + (W[1].fL || 0), FyR = (W[2].fL || 0) + (W[3].fL || 0), FxF = (W[0].fF || 0) + (W[1].fF || 0), FxR = (W[2].fF || 0) + (W[3].fF || 0);
   for (let i = 0; i < 4; i++) {
@@ -5868,6 +6007,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const ox = q[0] - wh.C[0], oy = q[1] - wh.C[1], oz = q[2] - wh.C[2]; TX += fe * (oy * Ez - oz * Ey); TY += fe * (oz * Ex - ox * Ez); TZ += fe * (ox * Ey - oy * Ex);
     TX += wh.Mz * n[0]; TY += wh.Mz * n[1]; TZ += wh.Mz * n[2];
   }
+  if (lpT) { TX += lpT * Fx0; TY += lpT * Fy0; TZ += lpT * Fz0; } // (the gearbox's mountings: see lpT)
   const rhoA = rhoAt(T, c.y), down = 0.5 * rhoA * S.aero[1] * u * u, downF = down * S.aero[2], downR = down - downF;
   push(-downF * Ex, -downF * Ey, -downF * Ez, Fx0 * K.a, Fy0 * K.a, Fz0 * K.a); push(-downR * Ex, -downR * Ey, -downR * Ez, -Fx0 * K.b, -Fy0 * K.b, -Fz0 * K.b);
   // (the air's drag: more with the body crushed, and with panels standing open, DR.paero: see the damage drawing)
@@ -5888,7 +6028,7 @@ function stepCar(c, S, inp, dt, T, opts) {
   spinOf(M, Ib, TX, TY, TZ, _sv); const alx = _sv[0], aly = _sv[1], alz = _sv[2];
   for (let i = 0; i < 4; i++) { const wh = W[i], rx = wh.mx, ry = wh.my, rz = wh.mz;
     const amx = ax + aly * rz - alz * ry + Wv[1] * (Wv[0] * ry - Wv[1] * rx) - Wv[2] * (Wv[2] * rx - Wv[0] * rz), amy = ay + alz * rx - alx * rz + Wv[2] * (Wv[1] * rz - Wv[2] * ry) - Wv[0] * (Wv[0] * ry - Wv[1] * rx), amz = az + alx * ry - aly * rx + Wv[0] * (Wv[2] * rx - Wv[0] * rz) - Wv[1] * (Wv[1] * rz - Wv[2] * ry);
-    const aw = (wh.fe - wh.Fs - MW[i] * g * Ey) / MW[i]; wh.Ld += dt * (amx * Ex + amy * Ey + amz * Ez - aw); }
+    const aw = (wh.fe - wh.Fs - MW[i] * g * Ey - (i === 2 ? lpF : i === 3 ? -lpF : 0)) / MW[i]; wh.Ld += dt * (amx * Ex + amy * Ey + amz * Ez - aw); }
   c.ax += ((FX * sPs + FZ * cPs) / m - c.ax) * Math.min(1, dt * 10); c.ay += ((FX * cPs - FZ * sPs) / m - c.ay) * Math.min(1, dt * 8);
   V[0] += ax * dt; V[1] += ay * dt; V[2] += az * dt; Wv[0] += alx * dt; Wv[1] += aly * dt; Wv[2] += alz * dt;
   // what the body strikes: the ground, the walls and rails, the edge of the stage, and the trees, posts, rocks and bales
@@ -6585,7 +6725,7 @@ function boxPen(BX, q) {
 }
 function bodyCars(c, S, M, out) {
   const RV = c.rivals; if (!RV || !RV.length) return;
-  const BX = shellOf(S).boxes, PT = carPts(S), Px = c.x, Py = c.yb, Pz = c.z, m = S.mass, rS = shellOf(S).rP;
+  const BX = shellOf(S).boxes, PT = carPts(S), Px = c.x, Py = c.yb, Pz = c.z, m = carSetup(S).m, rS = shellOf(S).rP;
   const toBody = (x, y, z) => [M[0] * x + M[1] * y + M[2] * z, M[3] * x + M[4] * y + M[5] * z, M[6] * x + M[7] * y + M[8] * z];
   for (const r of RV) {
     if (!r || !r.S || !r.M) continue;
@@ -6656,7 +6796,7 @@ function bodySolids(c, S, T, M, out) {
 // (bouncing a little from a hard blow), and the body scraping along it with friction; each blow dents the body where it
 // lands. Returned for the overlap to be taken out after the move.
 function bodyContacts(c, S, T, info, M, D, dt) {
-  const K = carSetup(S), m = S.mass, ms = K.ms, Ib = K.Ib, V = c.V, Wv = c.Wv, sh = shellOf(S), hits = [], R0 = wheelOf(S).R;
+  const K = carSetup(S), m = K.m, ms = K.ms, Ib = K.Ib, V = c.V, Wv = c.Wv, sh = shellOf(S), hits = [], R0 = wheelOf(S).R;
   const icy = c.surfName === 'ice', rough = icy ? 0.15 : c.surfName === 'tarmac' || c.surfName === 'stone' || c.surfName === 'concrete' ? 0.45 : 0.6, Ex = M[3], Ey = M[4], Ez = M[5];
   let gTop = -Infinity; for (const wh of c.w) gTop = Math.max(gTop, wh.g);
   const o = { x: 0, z: 0, wi: {} }, gAt = (x, z, y) => { worldInfoTo(info, c, x, z, o); return surfaceY(T, o.wi, x, z, y); };
@@ -6761,7 +6901,7 @@ function bodyContacts(c, S, T, info, M, D, dt) {
 // takes its own blows (see bodyContacts: its weight along it, its spin about the point it landed), and it dents the body
 // there as a blow of that energy would (half the push times the closing speed, less what bounced back)
 function takeBlow(c, S, Jb, pb, dv) {
-  const K = carSetup(S), m = S.mass, ms = K.ms, Ib = K.Ib, M = bodyAxes(c.Q, new Array(9)), V = c.V, Wv = c.Wv, sh = shellOf(S);
+  const K = carSetup(S), m = K.m, ms = K.ms, Ib = K.Ib, M = bodyAxes(c.Q, new Array(9)), V = c.V, Wv = c.Wv, sh = shellOf(S);
   const j = Math.hypot(Jb[0], Jb[1], Jb[2]); if (!(j > 1) || !V || !Wv) return 0;
   const toW = v => [M[0] * v[0] + M[3] * v[1] + M[6] * v[2], M[1] * v[0] + M[4] * v[1] + M[7] * v[2], M[2] * v[0] + M[5] * v[1] + M[8] * v[2]];
   const J = toW(Jb), r = toW(pb), nx = J[0] / j, ny = J[1] / j, nz = J[2] / j, Ex = M[3], Ey = M[4], Ez = M[5];
@@ -7297,7 +7437,7 @@ function stagePace(T, S, wet, tyre) {
   const layMu = (p, dist, lat) => { const M = surfMix(T, p.surf || T.surface, true, dist, lat, p.w, _paceMix, p.x + Math.cos(p.h) * lat, p.z - Math.sin(p.h) * lat); let mu = 0;
     for (let j = 0; j < M.n; j++) { const k = M.k[j], f = TYRE_FAM[fam][k]; mu += M.w[j] * TYRE[k].mu * (f != null ? f : 1) * (1 - M.wet * (1 - (WET_GRIP[k] || 1))) * (k === 'ice' ? iceK : 1); }
     return mu * (1 - 0.4 * M.pool); };
-  const L = racingLine(T), P = T.pts, n = L.n, a0 = L.a, g = 9.81, m = S.mass, K = carSetup(S), h = K.sp.hcg, rollG = 0.8 * K.track / (2 * h), brkG = K.sp.brake < 1.2 ? 0.95 * K.sp.brake : 9;
+  const L = racingLine(T), P = T.pts, n = L.n, a0 = L.a, g = 9.81, K = carSetup(S), m = K.m, h = K.sp.hcg, rollG = 0.8 * K.track / (2 * h), brkG = K.brakeG < 1.2 ? 0.95 * K.brakeG : 9;
   // (the air up at the stage: thinner high up, for the wings, the drag and the engine's breath: see engineSys)
   const rhoA = T.rho || 1.2, EL = engLayout(S), pa = T.pa != null ? T.pa : 1, kAlt = EL.restr ? pa : EL.blown ? 1 - 0.3 * (1 - pa) : pa;
   // (a body that lifts at speed, aero[1] below zero, loses grip as the driving model's does)
@@ -7979,8 +8119,8 @@ function cuSpec(B0, id) {
   // the gearbox and its gearing (see cuGearing)
   for (const k of ['tc', 'cvt', 'cvtRpm', 'cvtEta', 'lever', 'shiftUp', 'shiftDown', 'upK', 'shiftMin', 'shiftDn', 'clutchK']) delete S[k];
   Object.assign(S, cuGearing(B, S, E, S0, K0));
-  // (its friction on the throttle as its size makes it, against the body's own engine's or a 2-litre rally engine's)
-  { const leq = b => b.layout === 'rotary' ? 2 * b.litres : b.litres, fk = cuR3(clamp(Math.pow(leq(B) / (E.fam ? leq(K0) : 2), 0.85), 0.2, 3.5)); if (Math.abs(fk - 1) > 0.01) S.fricK = fk; else delete S.fricK; }
+  // (its friction as its size makes it, see engineFric: a rotary's as an engine of twice its chambers' displacement)
+  delete S.fricK; if (B.layout === 'rotary') S.fricL = cuR3(2 * B.litres); else delete S.fricL;
   // the clutch let in at revs the engine pulls at (a rally engine's 2,000-5,000 rpm, lower for one whose torque comes
   // low down and runs out early); the body's car's own for its own engine
   if (!(E.fam && same('litres', 'tune', 'tech'))) { const k = cuR3(clamp(Math.min(E.trpm / 4500, E.red / 8000), 0.35, 1.1)); if (Math.abs(k - 1) > 0.02) S.clutchK = k; else delete S.clutchK; }
@@ -8651,7 +8791,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '9452';
+const SR86_BUILD = 'CE98';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -12499,102 +12639,248 @@ function ckFitDesign(D, S) {
 }
 
 // ---------- the running gear ----------
-// What hangs between the body and each wheel, and moves with them: at each corner the hub, the brake disc and its
-// caliper on the upright; the strut (its damper and coil spring) from the upright up to its tower in the body; the lower
-// arm, two legs from the bottom of the upright in to the subframe; the anti-roll bar across the car behind each axle
-// with its drop links down to the arms; and, to each driven wheel, its driveshaft out from the diff, a rubber boot at
-// each joint. It is seen through the arches round a wheel, under the car, and once a wheel is torn off (the hub, disc
-// and caliper are left on the upright). One mesh a car, its parts set again each time it is drawn (from where the wheels
-// are then, steering and rising and falling as the physics has them), and only near the camera; the working vehicles
-// keep their own (their beam axles are not this).
-const MECH = { near: 70, col: { hub: '#55595e', disc: '#8d9296', cal: '#b3261e', up: '#7f858b', damp: '#1d1e20', spring: '#d8b23a', arm: '#33363a', shaft: '#4a4d51', boot: '#121213', bar: '#2c2f33' } };
+// What hangs between the body and each wheel, and drives and stops it, laid out as each car's real one is (its type at
+// each end, S.suspT: see SUSP_TYPE) and moving as the physics moves it. At every corner: the hub turning in its bearing
+// in the upright, the brake disc on its hat - ventilated, its two faces with the vanes showing between them at its edge,
+// grooves across each face - and the caliper over the disc's trailing edge, the disc as big as the car's brakes
+// (brakeHW) and its rim allow, the caliper as long as its pistons need; a truck's drum. Then, by type:
+//  strut: the damper's body clamped to the upright, its rod up into the top mount under the tower, the coil spring between
+//    its seat on the damper and the top mount; a lower arm from the upright's ball joint in to two bushes on the subframe;
+//  wishbone: a short upright between an upper and a lower A-arm, each on two bushes on the body; a coil-over damper from
+//    the lower arm up to the body;
+//  semi: an arm carrying the hub, swinging on two bushes on a line angled across the car; its spring standing on the arm,
+//    its damper behind;
+//  trailing: an arm forward from the hub carrier to its pivot, a torsion bar across the car from it; twist: two such arms
+//    joined by a beam that twists, a spring on each;
+//  live, beam: one axle tube from hub to hub - a live one with its diff in a housing in the middle, its cover behind and
+//    its nose forward, where the propshaft comes in - on four links (two lower ones out by the wheels, two upper ones to the
+//    diff) and a Panhard rod across, a coil-over damper each side; leaf: an axle on leaf springs from a hanger ahead to a
+//    shackle behind.
+// Steered wheels get a track rod each from the rack's ends; each independent axle an anti-roll bar with a drop link down
+// each side. A driven wheel on independent suspension gets a driveshaft from the diff's output (or the gearbox's, across
+// a transverse engine) - its inner joint in a tripod housing, its outer a ball joint in a bell at the hub, a rubber boot
+// over each - and a driven axle the engine is not over gets a propshaft from the gearbox's tail to the diff's nose, on a
+// centre bearing under the floor, a universal joint at each end. The discs and hats, the driveshafts and their outer bells
+// turn with the wheels, the propshaft with the final drive's ratio to them. One mesh a car, its parts set again each time
+// it is drawn (from where the wheels and the body are then: steering, rising and falling, the axle tilting as the physics
+// has it), and only near the camera. The working vehicles with frames of their own keep their own.
+const MECH = { near: 70, col: { hub: '#55595e', disc: '#9a9fa4', groove: '#6f7479', vane: '#3a3d40', hat: '#7c8186', cal: '#b3261e', up: '#7f858b', damp: '#6f7378',
+  rod: '#c9ccd0', spring: '#d8b23a', arm: '#5a5e63', shaft: '#4a4d51', boot: '#121213', bar: '#2c2f33', axle: '#3f4246', diff: '#55585c', leaf: '#2f3236', drum: '#4d5156', bush: '#1a1b1c' } };
 const MechParts = {
-  // the unit pieces: a six-sided tube along +y from 0 to 1 of radius 1, and a box of half-size 1
-  unit() {
-    if (this.U) return this.U; const tube = { p: [], n: [] }, round = { p: [], n: [] }, box = { p: [], n: [] };
-    for (const [T, N] of [[tube, 6], [round, 14]]) for (let k = 0; k < N; k++) { const a0 = k / N * Math.PI * 2, a1 = (k + 1) / N * Math.PI * 2, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1), cm = Math.cos((a0 + a1) / 2), sm = Math.sin((a0 + a1) / 2);
-      for (const [x, y, z] of [[c0, 0, s0], [c1, 0, s1], [c1, 1, s1], [c0, 0, s0], [c1, 1, s1], [c0, 1, s0]]) { T.p.push(x, y, z); T.n.push(cm, 0, sm); }
-      for (const [x, y, z] of [[0, 1, 0], [c0, 1, s0], [c1, 1, s1]]) { T.p.push(x, y, z); T.n.push(0, 1, 0); }
-      for (const [x, y, z] of [[0, 0, 0], [c1, 0, s1], [c0, 0, s0]]) { T.p.push(x, y, z); T.n.push(0, -1, 0); } }
-    const F = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]], [[-1, 0, 0], [0, 0, 1], [0, 1, 0]], [[0, 1, 0], [0, 0, 1], [1, 0, 0]], [[0, -1, 0], [1, 0, 0], [0, 0, 1]], [[0, 0, 1], [1, 0, 0], [0, 1, 0]], [[0, 0, -1], [0, 1, 0], [1, 0, 0]]];
-    for (const [n, u, v] of F) { const c = (a, b) => [n[0] + a * u[0] + b * v[0], n[1] + a * u[1] + b * v[1], n[2] + a * u[2] + b * v[2]];
-      for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]]) { box.p.push(...c(a, b)); box.n.push(...n); } }
-    return this.U = { tube, round, box };
-  },
-  // the parts of a car's running gear: each a tube between two points (each in a wheel's frame, w0-w3, or the body's, b)
-  // of a radius, or a box in a wheel's frame
+  // a point of a part: in a frame (b the body, wN a wheel's upright, sN its turning hub: { f, p }), between two points
+  // (mix: { m: [a, b], t }), or a distance along the line from one point to another (along: { l: [a, b], d })
+  P: (f, x, y, z) => ({ f, p: [x, y, z] }), mix: (a, b, t) => ({ m: [a, b], t }), along: (a, b, d) => ({ l: [a, b], d }),
+  // which side of an axle its anti-roll bar goes (+1 ahead, -1 behind): away from a diff's nose and the propshaft into it
+  // (behind a front engine's driven rear axle, ahead of a mid or rear engine's - under the engine - and ahead of a front
+  // axle with a diff of its own), else on the cabin's side where there is room (room: how far the cabin is from the axle)
+  // the bar's height: at least the steering rack's and the lower arms' level (R - 0.08), over a subframe's rails - which it
+  // crosses - where those are as high (a high floor), else no lower than the floor's line
+  arbY(R, sub, fl) { return Math.max(R - 0.08, sub ? sub.y1 + 0.025 : (fl || 0) + 0.015); },
+  // the steering rack's height: over the bar (whose arms pass under its ends) and over a subframe's rails (its track rods'
+  // boots cross them)
+  rackY(R, sub, fl, yb) { return Math.max(R - 0.08, sub ? sub.y1 + 0.04 : (fl || 0) + 0.03, yb + 0.05); },
+  arbSide(ai, nose, epos, room) { if (nose) return ai ? (epos === 'front' ? -1 : 1) : 1; const d = ai ? 1 : -1; return room > 0.28 ? d : -d; },
   build(rig, S, D) {
     if (!rig || !rig.wheels || rig.wheels.length !== 4 || (S.cls === 'SP' && !D.covers) || S.tandem) return null;
-    const P = [], R = rig.wheelR || 0.3, rd = Math.min(0.2, (D.rimR || 0.2) * 0.8), fs = S.fs != null ? S.fs : 0.5;
-    const col = h => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; }, K = {}; for (const k in MECH.col) K[k] = col(MECH.col[k]);
-    const tube = (a, fa, b, fb, r, k, t) => P.push({ t: t || 'tube', a, fa, b, fb, r, k }), box = (c, f, h, k) => P.push({ t: 'box', c, f, h, k });
-    // (each axle's steering and anti-roll bar go on its cabin side - behind the front axle, ahead of the rear one - where
-    // that leaves them clear of the bulkhead there, and on its far side where the bulkhead stands close: sR, sB, the
-    // way along z from the axle)
-    const bay = rig.bay || {}, side = [0, 1].map(ai => { const z = (rig.wheels[ai * 2].piv.position.z + rig.wheels[ai * 2 + 1].piv.position.z) / 2, cb = ai ? bay.cabR : bay.cabF, d = ai ? 1 : -1, room = cb == null ? 9 : (cb - z) * d;
-      return { sR: room > 0.18 ? d : -d, sB: room > 0.28 ? d : -d, room, d }; });
+    const { P, mix, along } = this, parts = [], R = rig.wheelR || 0.3, rimR = D.rimR || 0.19, fs = S.fs != null ? S.fs : 0.5, K = carSetup(S), bk = K.bk, bay = rig.bay || {};
+    const T = S.suspT || ['strut', 'strut'], col = h => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; }, C = {}; for (const k in MECH.col) C[k] = col(MECH.col[k]);
+    const add = o => { parts.push(o); return o; };
+    const tube = (a, b, r, k, o) => add(Object.assign({ t: 'tube', a, b, r, k, n: 6, cap: false }, o || {}));
+    const cone = (a, b, r0, r1, k) => add({ t: 'cone', a, b, r0, r1, k, n: 8 });
+    const coil = (a, b, Rc, r, turns, k) => add({ t: 'coil', a, b, R: Rc, r, turns, k });
+    const ring = (f, x0, x1, ri, ro, k, k2, k3) => add({ t: 'ring', f, x0, x1, ri, ro, k, k2: k2 || k, k3: k3 || k, n: 12 });
+    const obox = (f, c, u, v, h, k) => add({ t: 'obox', f, c, u, v, h, k });
+    // (each axle's steering and anti-roll bar on its cabin side - behind the front axle, ahead of the rear one - where
+    // that leaves them clear of the bulkhead there, and on its far side where the bulkhead stands close)
+    const side = [0, 1].map(ai => { const z = (rig.wheels[ai * 2].piv.position.z + rig.wheels[ai * 2 + 1].piv.position.z) / 2, cb = ai ? bay.cabR : bay.cabF, d = ai ? 1 : -1, room = cb == null ? 9 : (cb - z) * d;
+      const xa = Math.min(Math.abs(rig.wheels[ai * 2].piv.position.x), Math.abs(rig.wheels[ai * 2 + 1].piv.position.x)), dd = (bay.drive || {})[ai ? 'r' : 'f'], sB = MechParts.arbSide(ai, dd && dd.nose, bay.epos || S.epos, room), sub = bay.sub && bay.sub[ai], fl = bay.fl ? bay.fl[ai] : 0, yb = MechParts.arbY(R, sub, fl), yr = MechParts.rackY(R, sub, fl, yb);
+      // (the anti-roll bar: across at zb, its arms back toward the axle to their ends at ze, where the drop links hang)
+      // (the bar's ends outboard of a subframe's rails, so its drop links come down clear of them)
+      return { sR: !ai && dd && dd.nose ? 1 : room > 0.18 ? d : -d, zr: !ai && dd && dd.nose ? 0.15 : 0.13, sB, room, d, z, xa, xb: Math.max(sub ? sub.hx + 0.06 : 0.3, xa - 0.42), zb: z + sB * 0.24, ze: z + sB * 0.08, yb, yr }; });
+    const M_nose = [null, null], mp = [];
+    const drv = bay.drive || {}, axleOf = i => i < 2 ? 0 : 1;
+    // the top of each axle's dampers: under its tower (bay.struts: [x, top, spring seat, tower foot]) or, where there is
+    // none, just inside the wing over the wheel
+    const topAt = (i, x0, z) => { const ST = bay.struts && bay.struts[axleOf(i)], sd = x0 > 0 ? 1 : -1, ht = Math.abs(x0);
+      return ST ? [sd * ST[0], ST[1] - 0.05, z] : [sd * Math.max(0.35, ht - 0.2), R + 0.42, z]; };
     for (let i = 0; i < 4; i++) {
-      const w = rig.wheels[i], sd = w.piv.position.x > 0 ? 1 : -1, x0 = w.piv.position.x, z = w.piv.position.z, f = 'w' + i, front = i < 2, driven = front ? fs > 0.001 : fs < 0.999, ht = Math.abs(x0);
-      // (the corner: hub, disc, caliper at the back of the disc and a little up, the upright behind them all)
-      tube([-sd * 0.015, 0, 0], f, [-sd * 0.085, 0, 0], f, 0.07, K.hub, 'round');
-      tube([-sd * 0.085, 0, 0], f, [-sd * 0.11, 0, 0], f, rd, K.disc, 'round');
-      box([-sd * 0.1, rd * 0.55, -rd * 0.62], f, [0.035, 0.055, 0.065], K.cal);
-      box([-sd * 0.15, 0.01, 0], f, [0.03, 0.15, 0.04], K.up);
-      // (the strut: damper up to its tower over the wheel, the spring round its top half - from its seat, where the body
-      // has put it, to a little under the tower's top, inside it)
-      const ST = rig.bay && rig.bay.struts && rig.bay.struts[front ? 0 : 1], top = ST ? [sd * ST[0], ST[1], z] : [sd * Math.max(0.35, ht - 0.2), R + 0.46, z], bot = [-sd * 0.15, 0.15, 0];
-      const sTop = ST ? [top[0], top[1] - 0.05, top[2]] : top, seat = ST ? ST[2] : 0.32;
-      tube(bot, f, top, 'b', 0.026, K.damp); tube([-sd * (seat < 0.3 ? 0.17 : 0.155), seat, 0], f, sTop, 'b', 0.06, K.spring);
-      // (the lower arm's two legs, in to the subframe - the one on the cabin side no nearer than 4 cm to the bulkhead)
-      const A = side[front ? 0 : 1], inner = sd * Math.max(0.3, ht - 0.55), lg = Math.max(0.05, Math.min(0.17, A.room - 0.04));
-      tube([-sd * 0.13, -0.13, 0], f, [inner, R - 0.17, z + A.d * lg], 'b', 0.018, K.arm); tube([-sd * 0.13, -0.13, 0], f, [inner, R - 0.17, z - A.d * 0.17], 'b', 0.018, K.arm);
+      const w = rig.wheels[i], x0 = w.piv.position.x, z = w.piv.position.z, sd = x0 > 0 ? 1 : -1, ht = Math.abs(x0), front = i < 2, ty = T[front ? 0 : 1], solid = ty === 'live' || ty === 'beam' || ty === 'leaf';
+      const f = 'w' + i, s = 's' + i, driven = front ? fs > 0.001 : fs < 0.999, A = side[front ? 0 : 1], q = (x, y, zz) => P(f, -sd * x, y, zz), qb = (x, y, zz) => P('b', sd * x, y, zz);
+      // (the corner: hub and bearing, disc on its hat, caliper; a truck's drum)
+      const hw = bk ? (front ? bk.F : bk.R) : null, rd = Math.min(hw ? hw.d / 2 : rimR * 0.78, rimR - 0.022), dt = hw ? Math.max(0.012, hw.t) : 0.028, x1 = 0.034, x2 = x1 + dt, ri = Math.max(0.065, rd * 0.55);
+      tube(q(0.012, 0, 0), q(x1 + 0.004, 0, 0), ri * 0.92, C.hat, { n: 12, spin: s }); // (the hat, on the hub's flange)
+      // (a ventilated disc: its edge dark with the vanes between its faces; a solid one plain at its edge)
+      if (S.brkC || S.air) { tube(q(0.02, 0, 0), q(0.15, 0, 0), Math.min(rimR * 0.8, 0.21), C.drum, { n: 12, cap: true }); }
+      else ring(s, -sd * x1, -sd * x2, ri, rd, C.disc, C.groove, hw && hw.v ? C.vane : C.disc);
+      tube(q(x2 + 0.004, 0, 0), q(0.13, 0, 0), 0.062, C.up, { n: 8, cap: true }); // (the bearing's housing in the upright)
+      if (!(S.brkC || S.air)) { // the caliper: over the disc's trailing edge, a little above its middle, across the disc
+        const ph = front ? 2.8 : 3.4, n = hw ? hw.n : 4, L = 0.07 + 0.017 * n, rc = rd - 0.022, ca = Math.cos(ph), sa = Math.sin(ph);
+        obox(f, [-sd * (x1 + dt / 2), rc * sa, rc * ca], [0, ca, -sa], [0, sa, ca], [dt / 2 + 0.026, L / 2, 0.026], C.cal); }
+      // the upright, and what it hangs from
+      const LBJ = q(0.11, -0.14, 0); let arm = null; // (the lower ball joint; arm: a point on the lower arm, for the anti-roll bar)
+      if (ty === 'strut') {
+        const top = P('b', ...topAt(i, x0, z)), clamp = q(0.135, 0.13, 0), dTop = along(clamp, top, 0.3), seat = along(clamp, top, 0.16);
+        tube(q(0.12, -0.14, 0), q(0.13, 0.15, 0), 0.026, C.up); // (the knuckle: from its ball joint up to the strut's clamp)
+        tube(clamp, dTop, 0.03, C.damp, { n: 8 }); tube(dTop, top, 0.011, C.rod); // (the damper's body and its rod)
+        tube(seat, along(seat, top, 0.012), 0.072, C.damp, { n: 8, cap: true }); coil(along(seat, top, 0.012), along(top, clamp, 0.03), 0.06, 0.009, 5, C.spring); // (its seat and spring)
+        tube(top, along(top, clamp, 0.03), 0.05, C.bush, { n: 8, cap: true }); // (the top mount)
+        const sub = bay.sub && bay.sub[front ? 0 : 1], xi = sub ? sub.hx : Math.max(0.3, ht - 0.52), yi = sub ? (sub.y0 + sub.y1) / 2 : R - 0.17, lg = Math.max(0.06, Math.min(0.17, A.room - 0.05));
+        const pa = qb(xi, yi, z + A.d * lg), pb = qb(xi, yi, z - A.d * 0.2); tube(LBJ, pa, 0.017, C.arm); tube(LBJ, pb, 0.019, C.arm); tube(pa, along(pa, LBJ, 0.04), 0.03, C.bush); tube(pb, along(pb, LBJ, 0.05), 0.035, C.bush);
+        arm = mix(LBJ, mix(pa, pb, 0.5), 0.3);
+      } else if (ty === 'wishbone') {
+        const UBJ = q(0.075, 0.19, 0); tube(LBJ, UBJ, 0.024, C.up); tube(q(0.11, 0.0, 0), q(0.075, 0.0, 0), 0.03, C.up);
+        // (the lower arm's bushes on the subframe's rails where there is one - its inner end then a little higher - else on
+        // the body; the upper arm's on the body, up inside the wheel arch)
+        const sub = bay.sub && bay.sub[front ? 0 : 1], xl = sub ? sub.hx : Math.max(0.28, ht - 0.44), xu = Math.max(0.3, ht - 0.26), yl = sub ? (sub.y0 + sub.y1) / 2 : R - 0.15, yu = R + 0.17;
+        const la = qb(xl, yl, z + 0.17), lb = qb(xl, yl, z - 0.17), ua = qb(xu, yu, z + 0.12), ub = qb(xu, yu, z - 0.12);
+        for (const [a, b] of [[LBJ, la], [LBJ, lb], [UBJ, ua], [UBJ, ub]]) { tube(a, b, 0.016, C.arm); tube(b, along(b, a, 0.04), 0.028, C.bush); }
+        const foot = mix(LBJ, mix(la, lb, 0.5), 0.22), top = qb(Math.max(0.3, ht - 0.3), R + 0.4, z + 0.02);
+        tube(foot, along(foot, top, 0.24), 0.028, C.damp, { n: 8 }); tube(along(foot, top, 0.24), top, 0.011, C.rod); coil(along(foot, top, 0.07), along(top, foot, 0.03), 0.052, 0.008, 6, C.spring);
+        arm = foot;
+      } else if (ty === 'semi') {
+        const pi = qb(Math.max(0.24, ht - 0.62), R - 0.02, z + 0.3), po = qb(Math.max(0.4, ht - 0.3), R - 0.04, z + 0.38), h1 = q(0.13, -0.03, 0.07), h2 = q(0.13, -0.05, -0.07);
+        tube(pi, h2, 0.03, C.arm); tube(po, h1, 0.03, C.arm); tube(pi, po, 0.022, C.arm); tube(h1, h2, 0.04, C.up); for (const p of [pi, po]) tube(p, along(p, h1, 0.05), 0.035, C.bush);
+        const sF = mix(h1, pi, 0.32), sT = qb(Math.max(0.3, ht - 0.42), R + 0.24, z + 0.14); tube(sF, along(sF, sT, 0.02), 0.07, C.damp, { n: 8, cap: true }); coil(along(sF, sT, 0.02), sT, 0.06, 0.009, 4.5, C.spring);
+        const dF = q(0.13, -0.06, -0.1), dT = qb(Math.max(0.3, ht - 0.24), R + 0.36, z - 0.06); tube(dF, along(dF, dT, 0.22), 0.026, C.damp, { n: 8 }); tube(along(dF, dT, 0.22), dT, 0.011, C.rod);
+        arm = sF;
+      } else if (ty === 'trailing' || ty === 'twist') {
+        const hc = q(0.12, -0.02, 0), pv = qb(Math.max(0.3, ht - 0.2), R - 0.05, z + 0.44); tube(hc, pv, 0.034, C.arm); tube(pv, along(pv, hc, 0.06), 0.045, C.bush); tube(q(0.12, -0.05, 0.06), q(0.12, 0.05, -0.04), 0.04, C.up);
+        const dF = q(0.13, -0.05, -0.07), dT = qb(Math.max(0.3, ht - 0.18), R + 0.3, z - 0.1); tube(dF, along(dF, dT, 0.2), 0.026, C.damp, { n: 8 }); tube(along(dF, dT, 0.2), dT, 0.011, C.rod);
+        if (ty === 'twist') { const sF = mix(hc, pv, 0.22), sT = qb(Math.max(0.3, ht - 0.24), R + 0.2, z + 0.06); coil(sF, sT, 0.055, 0.009, 4.5, C.spring); }
+        mp[i] = { hc, pv }; arm = mix(hc, pv, 0.5);
+      } else if (solid) {
+        // (a solid axle: built once, from the first of its two wheels; each wheel's end of it here)
+        const e = q(0.12, 0, 0); mp[i] = { e, sd };
+        if (ty === 'leaf') { const fwd = qb(Math.max(0.3, ht - 0.24), R + 0.02, z + 0.62), bk2 = qb(Math.max(0.3, ht - 0.24), R + 0.06, z - 0.62), seat = q(0.24, 0.06, 0);
+          for (let l = 0; l < 3; l++) { const dy = -0.016 * l, sh = 1 - 0.28 * l, a = mix(seat, fwd, sh), b = mix(seat, bk2, sh); tube(a, seat, 0.011, C.leaf, { n: 4, dy }); tube(seat, b, 0.011, C.leaf, { n: 4, dy }); }
+          tube(bk2, P('b', sd * Math.max(0.3, ht - 0.24), R + 0.16, z - 0.66), 0.012, C.arm); tube(fwd, along(fwd, seat, 0.05), 0.03, C.bush);
+          const dF = q(0.3, -0.04, 0.08), dT = qb(Math.max(0.3, ht - 0.36), R + 0.34, z + 0.22); tube(dF, along(dF, dT, 0.2), 0.026, C.damp, { n: 8 }); tube(along(dF, dT, 0.2), dT, 0.011, C.rod);
+        } else {
+          const lf = q(0.3, -0.08, 0), lb = qb(Math.max(0.3, ht - 0.32), R - 0.12, z + 0.56); tube(lf, lb, 0.018, C.arm); tube(lb, along(lb, lf, 0.05), 0.03, C.bush);
+          const sF = q(0.24, 0.05, -0.06), sT = qb(Math.max(0.3, ht - 0.24), R + 0.38, z - 0.06); tube(sF, along(sF, sT, 0.2), 0.028, C.damp, { n: 8 }); tube(along(sF, sT, 0.2), sT, 0.011, C.rod); coil(along(sF, sT, 0.05), along(sT, sF, 0.03), 0.055, 0.009, 5.5, C.spring);
+        }
+      }
       // (a front wheel's track rod: from the steering rack's end out to the arm on the upright, which turns with the wheel)
-      const sR = A.sR, sB = A.sB;
-      if (front) tube([sd * Math.max(0.28, ht - 0.5), R - 0.1, z + sR * 0.13], 'b', [-sd * 0.14, 0.02, sR * 0.13], f, 0.014, K.arm);
-      // (the drop link from the anti-roll bar's end down to the arm)
-      const zb = z + sB * 0.24, xb = sd * Math.max(0.3, ht - 0.42); tube([xb, R - 0.08, zb], 'b', [-sd * 0.22, -0.09, 0], f, 0.01, K.bar);
-      // (the driveshaft, out from the diff, its boots at each end)
-      if (driven) { const inb = [sd * 0.2, R - 0.03, z], out = [-sd * 0.12, 0, 0]; tube(inb, 'b', out, f, 0.022, K.shaft); tube([sd * 0.2, R - 0.03, z], 'b', [sd * 0.29, R - 0.03, z], 'b', 0.042, K.boot); tube([-sd * 0.12, 0, 0], f, [-sd * 0.2, 0, 0], f, 0.042, K.boot); }
+      if (front && !solid) { const ra = q(0.14, -0.04, A.sR * A.zr), rk = qb(Math.max(0.28, ht - 0.5), A.yr, z + A.sR * A.zr); tube(ra, rk, 0.013, C.arm); tube(q(0.12, -0.04, 0), ra, 0.016, C.up); cone(rk, along(rk, ra, 0.09), 0.03, 0.016, C.boot); }
+      // (the anti-roll bar's drop link: from the bar's end down to the lower arm)
+      if (!solid && arm) tube(qb(A.xb - 0.02, A.yb, A.ze), arm, 0.01, C.bar);
+      // (the driveshaft, out from the diff's output - or the gearbox's - to the hub, its joints in their boots)
+      if (driven && !solid) { const dd = drv[front ? 'f' : 'r']; const xI = dd ? dd.x : 0.2, yI = dd ? dd.y : R - 0.03, zI = dd ? dd.z : z;
+        const I0 = qb(xI, yI, zI), I1 = qb(xI + 0.07, yI, zI), O1 = P(s, -sd * 0.2, 0, 0), O0 = P(s, -sd * 0.135, 0, 0);
+        tube(I0, I1, 0.048, C.shaft, { n: 8, cap: true }); cone(I1, along(I1, O1, 0.1), 0.044, 0.017, C.boot); tube(along(I1, O1, 0.1), along(O1, I1, 0.09), 0.015, C.shaft, { spin: s });
+        cone(along(O1, I1, 0.09), O1, 0.017, 0.048, C.boot); tube(O1, O0, 0.052, C.shaft, { n: 8, spin: s, cap: true }); }
     }
-    // (the steering rack across the car between the track rods)
-    { const a = rig.wheels[0].piv.position, b = rig.wheels[1].piv.position, xr = Math.max(0.28, Math.min(Math.abs(a.x), Math.abs(b.x)) - 0.5), zr = (a.z + b.z) / 2 + side[0].sR * 0.13;
-      tube([xr, R - 0.1, zr], 'b', [-xr, R - 0.1, zr], 'b', 0.026, K.damp); }
-    // (the anti-roll bars across the car)
-    for (const [i, j] of [[0, 1], [2, 3]]) { const a = rig.wheels[i].piv.position, b = rig.wheels[j].piv.position, zb = (a.z + b.z) / 2 + side[i ? 1 : 0].sB * 0.24, xb = Math.max(0.3, Math.abs(a.x) - 0.42);
-      tube([xb, R - 0.08, zb], 'b', [-xb, R - 0.08, zb], 'b', 0.013, K.bar); }
-    const U = this.unit(); let nv = 0; for (const p of P) nv += U[p.t].p.length / 3;
+    // each axle: the rack across behind (or ahead of) a steered one, an independent one's anti-roll bar; a solid axle's
+    // tube, its links, its Panhard rod - and a live axle's diff in the middle
+    for (const ai of [0, 1]) {
+      const i0 = 2 * ai, i1 = i0 + 1, ty = T[ai], solid = ty === 'live' || ty === 'beam' || ty === 'leaf', A = side[ai], xa = A.xa, z = A.z, m0 = mp[i0], m1 = mp[i1];
+      if (ai === 0 && !solid) { const xr = Math.max(0.28, xa - 0.5), zr = z + A.sR * A.zr, a = P('b', xr, A.yr, zr), b = P('b', -xr, A.yr, zr);
+        tube(a, b, 0.024, C.damp); for (const e of [a, b]) cone(e, along(e, mix(a, b, 0.5), 0.12), 0.03, 0.022, C.boot); }
+      if (!solid) { const xb = A.xb, y = A.yb; tube(P('b', xb, y, A.zb), P('b', -xb, y, A.zb), 0.012, C.bar);
+        for (const sd of [1, -1]) tube(P('b', sd * xb, y, A.zb), P('b', sd * (xb - 0.02), y, A.ze), 0.012, C.bar); }
+      if (ty === 'twist' && m0 && m1) tube(mix(m0.hc, m0.pv, 0.62), mix(m1.hc, m1.pv, 0.62), 0.036, C.axle, { n: 6 });
+      if (ty === 'trailing' && m0 && m1) tube(m0.pv, m1.pv, 0.016, C.bar); // (the torsion bars across, between the arms' pivots)
+      if (solid && m0 && m1) {
+        const e0 = m0.e, e1 = m1.e, live = ty === 'live' || (ty === 'leaf' && (ai === 0 ? fs > 0.001 : fs < 0.999));
+        if (live) { const c = mix(e0, e1, 0.5), q0 = (x, y, zz) => mix(P('w' + i0, -m0.sd * 0.12 + x, y, zz), P('w' + i1, -m1.sd * 0.12 + x, y, zz), 0.5);
+          tube(e0, mix(e0, e1, 0.42), 0.042, C.axle); tube(mix(e0, e1, 0.58), e1, 0.042, C.axle);
+          tube(mix(e0, e1, 0.4), mix(e0, e1, 0.6), 0.13, C.diff, { n: 10, cap: true }); tube(c, q0(0, 0, -0.085), 0.115, C.diff, { n: 10, cap: true }); // (the diff's housing and its cover)
+          const nose = q0(0, -0.01, ai ? 0.21 : -0.21); tube(c, nose, 0.062, C.diff, { n: 8, cap: true }); M_nose[ai] = nose;
+          // (the upper links of the four, in a vee from the housing's top forward to the body)
+          if (ty === 'live') for (const sd of [1, -1]) { const a = q0(0, 0.11, ai ? 0.03 : -0.03), b = P('b', sd * 0.34, R + 0.08, z + (ai ? 0.42 : -0.42)); tube(a, b, 0.016, C.arm); tube(b, along(b, a, 0.05), 0.028, C.bush); }
+        } else tube(e0, e1, 0.04, C.axle);
+        // (the Panhard rod: from the axle's left end across to the body on the right, behind the axle)
+        if (ty !== 'leaf') { const a = m0.sd > 0 ? e0 : e1, xp = -Math.max(0.3, xa - 0.3), zp = z + (ai ? -0.07 : 0.07), bp = P('b', xp, R + 0.08, zp); tube(a, bp, 0.016, C.arm);
+          // (its body end on a bracket down from the floor over the axle)
+          const K = ai && bay.kick && bay.kick[0]; tube(along(bp, a, -0.02), P('b', xp, K ? K.y + 0.01 : R + 0.16, zp), 0.022, C.arm, { n: 4, cap: true }); }
+      }
+    }
+    // the propshaft: from the gearbox's tail down the tunnel, on its centre bearing, into the diff's nose (bay.prop; to a
+    // live axle's nose, which moves with the axle)
+    const pr = bay.prop; let prop = null;
+    if (pr) { const ai = pr.r ? 1 : 0, end = M_nose[ai] || (pr.b ? P('b', ...pr.b) : null);
+      if (end) { const a = P('b', ...pr.a), m = P('b', 0, pr.ym, pr.zm); prop = ai;
+        tube(a, along(a, m, 0.06), 0.045, C.shaft, { n: 4, spin: 'prop' }); tube(along(a, m, 0.06), m, 0.033, C.shaft, { spin: 'prop' }); tube(along(m, end, -0.03), along(m, end, 0.03), 0.05, C.bush, { n: 8, cap: true });
+        tube(m, along(end, m, 0.07), 0.033, C.shaft, { spin: 'prop' }); tube(along(end, m, 0.07), end, 0.045, C.shaft, { n: 4, spin: 'prop' }); } }
+    // the mesh: each part's triangles, laid out once; their places set each time it is drawn
+    let nv = 0; for (const p of parts) { p.o = nv; p.nv = this.count(p); nv += p.nv; }
     const g = new THREE.BufferGeometry(), pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), cl = new Float32Array(nv * 3);
-    let o = 0; for (const p of P) { const n = U[p.t].p.length / 3; p.o = o; p.n = n; for (let v = 0; v < n; v++) cl.set(p.k, (o + v) * 3); o += n; }
+    for (const p of parts) this.paint(p, cl);
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
-    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.4, 0), 3.2);
-    const mat = this.mat || (this.mat = new THREE.MeshLambertMaterial({ vertexColors: true })), mesh = new THREE.Mesh(g, mat); mesh.name = 'RunningGear'; mesh.castShadow = false; mesh.receiveShadow = true;
-    const M = { mesh, P, ver: -1, B: new THREE.Matrix4(), W: [0, 1, 2, 3].map(() => new THREE.Matrix4()), v: new THREE.Vector3(), cam: new THREE.Vector3() };
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.4, 0), 3.4);
+    const mat = this.mat || (this.mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })), mesh = new THREE.Mesh(g, mat); mesh.name = 'RunningGear'; mesh.castShadow = false; mesh.receiveShadow = true;
+    const M = { mesh, P: parts, nv, prop, fd: S.final, ver: -1, B: new THREE.Matrix4(), W: [0, 1, 2, 3].map(() => new THREE.Matrix4()), Sp: [0, 1, 2, 3].map(() => new THREE.Matrix4()), r: new THREE.Matrix4(), v: new THREE.Vector3(), cam: new THREE.Vector3() };
     mesh.onBeforeRender = (renderer, scene, camera) => this.sync(rig, M, camera);
     rig.root.add(mesh); this.sync(rig, M, null); return M;
   },
-  // the parts where the wheels are now (in the car's own frame: the body's through its tilt, each wheel's through its
-  // pivot), skipped for a car far from the camera
+  // how many vertices a part takes (each triangle its own three): a coil six segments a turn, its wire three-sided
+  count(p) { const n = p.n || 6;
+    return p.t === 'tube' ? n * 6 + (p.cap ? n * 6 : 0) : p.t === 'cone' ? n * 6 : p.t === 'coil' ? Math.ceil(p.turns * 6) * 18 : p.t === 'ring' ? n * 24 : 36; },
+  // its colours: a disc's edge its own (dark between a ventilated disc's faces), its faces in alternate shades every two
+  // segments (its grooves, so its turning shows); everything else one colour
+  paint(p, cl) { for (let v = 0; v < p.nv; v++) { let k = p.k; if (p.t === 'ring') { const q = Math.floor(v / 24), r = v % 24; k = r < 6 ? p.k3 : r < 18 ? ((q >> 1) % 2 ? p.k2 : p.k) : p.k; } cl.set(k, (p.o + v) * 3); } },
+  // (sines and cosines round a section of n sides)
+  trig(n) { const T = this.TR || (this.TR = {}); if (T[n]) return T[n]; const c = new Float32Array(n + 1), s = new Float32Array(n + 1), cm = new Float32Array(n), sm = new Float32Array(n);
+    for (let k = 0; k <= n; k++) { c[k] = Math.cos(k / n * 2 * Math.PI); s[k] = Math.sin(k / n * 2 * Math.PI); } for (let k = 0; k < n; k++) { cm[k] = Math.cos((k + 0.5) / n * 2 * Math.PI); sm[k] = Math.sin((k + 0.5) / n * 2 * Math.PI); }
+    return T[n] = { c, s, cm, sm }; },
+  // the parts where the body and the wheels are now (in the car's own frame), skipped for a car far from the camera, and
+  // set once a frame however many times it is drawn (a mirror, a second view)
   sync(rig, M, camera) {
-    if (camera) { rig.root.getWorldPosition(M.v); if (M.v.distanceToSquared(camera.getWorldPosition(M.cam)) > MECH.near * MECH.near && M.ver >= 0) return; }
-    M.ver++; rig.tilt.updateMatrix(); rig.body.updateMatrix(); M.B.multiplyMatrices(rig.tilt.matrix, rig.body.matrix);
-    for (let i = 0; i < 4; i++) { const pv = rig.wheels[i].piv; pv.updateMatrix(); M.W[i].copy(pv.matrix); }
-    const U = this.unit(), g = M.mesh.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, A = [0, 0, 0], B = [0, 0, 0];
-    const xf = (m, p, out) => { const e = m.elements, x = p[0], y = p[1], z = p[2]; out[0] = e[0] * x + e[4] * y + e[8] * z + e[12]; out[1] = e[1] * x + e[5] * y + e[9] * z + e[13]; out[2] = e[2] * x + e[6] * y + e[10] * z + e[14]; return out; };
-    const mOf = f => f === 'b' ? M.B : M.W[+f[1]];
+    if (camera) { rig.root.getWorldPosition(M.v); if (M.v.distanceToSquared(camera.getWorldPosition(M.cam)) > MECH.near * MECH.near && M.ver >= 0) return; const fr = typeof renderer !== 'undefined' && renderer.info ? renderer.info.render.frame : -1; if (fr >= 0 && fr === M.fr) return; M.fr = fr; }
+    const V = ++M.ver; rig.tilt.updateMatrix(); rig.body.updateMatrix(); M.B.multiplyMatrices(rig.tilt.matrix, rig.body.matrix);
+    for (let i = 0; i < 4; i++) { const pv = rig.wheels[i].piv; pv.updateMatrix(); M.W[i].copy(pv.matrix); M.Sp[i].multiplyMatrices(pv.matrix, M.r.makeRotationX(rig.wheels[i].w.rotation.x)); }
+    // (the propshaft's turn: its axle's wheels' at the final drive's ratio)
+    const pa = M.prop == null ? 0 : (rig.wheels[2 * M.prop].w.rotation.x + rig.wheels[2 * M.prop + 1].w.rotation.x) / 2 * M.fd;
+    const g = M.mesh.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, fm = f => f === 'b' ? M.B : f[0] === 's' ? M.Sp[+f[1]] : M.W[+f[1]];
+    // (a point, worked out once a frame however many parts share it)
+    const pt = e => { if (e._v === V) return e.v; const o = e.v || (e.v = [0, 0, 0]); e._v = V;
+      if (e.f) { const m = fm(e.f).elements, x = e.p[0], y = e.p[1], z = e.p[2]; o[0] = m[0] * x + m[4] * y + m[8] * z + m[12]; o[1] = m[1] * x + m[5] * y + m[9] * z + m[13]; o[2] = m[2] * x + m[6] * y + m[10] * z + m[14]; }
+      else if (e.m) { const a = pt(e.m[0]), b = pt(e.m[1]); for (let k = 0; k < 3; k++) o[k] = a[k] + (b[k] - a[k]) * e.t; }
+      else { const a = pt(e.l[0]), b = pt(e.l[1]), dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 1; o[0] = a[0] + dx / L * e.d; o[1] = a[1] + dy / L * e.d; o[2] = a[2] + dz / L * e.d; }
+      return o; };
+    let o = 0;
+    const put = (x, y, z, nx, ny, nz) => { pos[o] = x; pos[o + 1] = y; pos[o + 2] = z; nor[o] = nx; nor[o + 1] = ny; nor[o + 2] = nz; o += 3; };
+    const X = new Float64Array(6), U = [0, 0, 0], up = [0, 1, 0];
+    // (a frame across a line: two unit vectors square to it and to each other, from a reference, turned by an angle)
+    const across = (ux, uy, uz, ref, ang) => { let ax = ref[1] * uz - ref[2] * uy, ay = ref[2] * ux - ref[0] * uz, az = ref[0] * uy - ref[1] * ux, l = Math.hypot(ax, ay, az);
+      if (l < 1e-4) { ax = -uz; ay = 0; az = ux; l = Math.hypot(ax, ay, az) || 1; if (l < 1e-4) { ax = 1; az = 0; l = 1; } } ax /= l; ay /= l; az /= l;
+      const bx = uy * az - uz * ay, by = uz * ax - ux * az, bz = ux * ay - uy * ax; if (ang) { const c = Math.cos(ang), s = Math.sin(ang); X[0] = ax * c + bx * s; X[1] = ay * c + by * s; X[2] = az * c + bz * s; X[3] = bx * c - ax * s; X[4] = by * c - ay * s; X[5] = bz * c - az * s; }
+      else { X[0] = ax; X[1] = ay; X[2] = az; X[3] = bx; X[4] = by; X[5] = bz; } };
+    // a tube (or a cone) from a to b: n sides round it, its section turned by ang; capped at its ends if asked
+    const tubeV = (a0, a1, a2, b0, b1, b2, r0, r1, n, ang, cap, ref) => { const dx = b0 - a0, dy = b1 - a1, dz = b2 - a2, L = Math.hypot(dx, dy, dz) || 1e-6, ux = dx / L, uy = dy / L, uz = dz / L; across(ux, uy, uz, ref || up, ang);
+      const T = this.trig(n);
+      for (let k = 0; k < n; k++) { const c0 = T.c[k], s0 = T.s[k], c1 = T.c[k + 1], s1 = T.s[k + 1], nx = X[0] * T.cm[k] + X[3] * T.sm[k], ny = X[1] * T.cm[k] + X[4] * T.sm[k], nz = X[2] * T.cm[k] + X[5] * T.sm[k];
+        const p0x = a0 + r0 * (X[0] * c0 + X[3] * s0), p0y = a1 + r0 * (X[1] * c0 + X[4] * s0), p0z = a2 + r0 * (X[2] * c0 + X[5] * s0), p1x = a0 + r0 * (X[0] * c1 + X[3] * s1), p1y = a1 + r0 * (X[1] * c1 + X[4] * s1), p1z = a2 + r0 * (X[2] * c1 + X[5] * s1);
+        const p2x = b0 + r1 * (X[0] * c1 + X[3] * s1), p2y = b1 + r1 * (X[1] * c1 + X[4] * s1), p2z = b2 + r1 * (X[2] * c1 + X[5] * s1), p3x = b0 + r1 * (X[0] * c0 + X[3] * s0), p3y = b1 + r1 * (X[1] * c0 + X[4] * s0), p3z = b2 + r1 * (X[2] * c0 + X[5] * s0);
+        put(p0x, p0y, p0z, nx, ny, nz); put(p1x, p1y, p1z, nx, ny, nz); put(p2x, p2y, p2z, nx, ny, nz); put(p0x, p0y, p0z, nx, ny, nz); put(p2x, p2y, p2z, nx, ny, nz); put(p3x, p3y, p3z, nx, ny, nz); }
+      if (cap) for (let e = 0; e < 2; e++) { const cx = e ? b0 : a0, cy = e ? b1 : a1, cz = e ? b2 : a2, r = e ? r1 : r0, sg = e ? 1 : -1;
+        for (let k = 0; k < n; k++) { const qa = e ? k : k + 1, qb = e ? k + 1 : k; put(cx, cy, cz, ux * sg, uy * sg, uz * sg); put(cx + r * (X[0] * T.c[qa] + X[3] * T.s[qa]), cy + r * (X[1] * T.c[qa] + X[4] * T.s[qa]), cz + r * (X[2] * T.c[qa] + X[5] * T.s[qa]), ux * sg, uy * sg, uz * sg);
+          put(cx + r * (X[0] * T.c[qb] + X[3] * T.s[qb]), cy + r * (X[1] * T.c[qb] + X[4] * T.s[qb]), cz + r * (X[2] * T.c[qb] + X[5] * T.s[qb]), ux * sg, uy * sg, uz * sg); } } };
     for (const p of M.P) {
-      if (p.t !== 'box') {
-        xf(mOf(p.fa), p.a, A); xf(mOf(p.fb), p.b, B); const dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2], L = Math.hypot(dx, dy, dz) || 1e-6, ux = dx / L, uy = dy / L, uz = dz / L;
-        // (two axes across the tube: any one square to it, and the third)
-        let ax = Math.abs(uy) < 0.9 ? -uz : 0, ay = Math.abs(uy) < 0.9 ? 0 : uz, az = Math.abs(uy) < 0.9 ? ux : -uy; const al = Math.hypot(ax, ay, az) || 1; ax /= al; ay /= al; az /= al;
-        const bx = uy * az - uz * ay, by = uz * ax - ux * az, bz = ux * ay - uy * ax, r = p.r, src = U[p.t].p, sn = U[p.t].n;
-        for (let v = 0, o = p.o * 3; v < p.n; v++, o += 3) { const px = src[v * 3], py = src[v * 3 + 1], pz = src[v * 3 + 2];
-          pos[o] = A[0] + ax * px * r + bx * pz * r + ux * py * L; pos[o + 1] = A[1] + ay * px * r + by * pz * r + uy * py * L; pos[o + 2] = A[2] + az * px * r + bz * pz * r + uz * py * L;
-          const nx = sn[v * 3], ny = sn[v * 3 + 1], nz = sn[v * 3 + 2]; nor[o] = ax * nx + bx * nz + ux * ny; nor[o + 1] = ay * nx + by * nz + uy * ny; nor[o + 2] = az * nx + bz * nz + uz * ny; }
-      } else {
-        const m = mOf(p.f).elements, src = U.box.p, sn = U.box.n, c = p.c, h = p.h;
-        for (let v = 0, o = p.o * 3; v < p.n; v++, o += 3) { const q = [c[0] + src[v * 3] * h[0], c[1] + src[v * 3 + 1] * h[1], c[2] + src[v * 3 + 2] * h[2]]; xf(mOf(p.f), q, A); pos[o] = A[0]; pos[o + 1] = A[1]; pos[o + 2] = A[2];
-          const nx = sn[v * 3], ny = sn[v * 3 + 1], nz = sn[v * 3 + 2]; nor[o] = m[0] * nx + m[4] * ny + m[8] * nz; nor[o + 1] = m[1] * nx + m[5] * ny + m[9] * nz; nor[o + 2] = m[2] * nx + m[6] * ny + m[10] * nz; }
-      }
+      o = p.o * 3;
+      if (p.t === 'tube' || p.t === 'cone') { const A = pt(p.a), B = pt(p.b);
+        let ang = 0, ref = up; if (p.spin === 'prop') ang = pa; else if (p.spin) { const m = M.Sp[+p.spin[1]].elements; U[0] = m[4]; U[1] = m[5]; U[2] = m[6]; ref = U; }
+        const dy = p.dy || 0; tubeV(A[0], A[1] + dy, A[2], B[0], B[1] + dy, B[2], p.t === 'cone' ? p.r0 : p.r, p.t === 'cone' ? p.r1 : p.r, p.n || 6, ang, p.t === 'tube' && p.cap, ref); }
+      else if (p.t === 'coil') { const A = pt(p.a), B = pt(p.b), dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2], L = Math.hypot(dx, dy, dz) || 1e-6, ux = dx / L, uy = dy / L, uz = dz / L;
+        across(ux, uy, uz, [1, 0, 0], 0); const Y0 = X[0], Y1 = X[1], Y2 = X[2], Y3 = X[3], Y4 = X[4], Y5 = X[5], N = Math.ceil(p.turns * 6), ax = [ux, uy, uz];
+        let qx = A[0] + p.R * Y0, qy = A[1] + p.R * Y1, qz = A[2] + p.R * Y2;
+        for (let k = 1; k <= N; k++) { const t = k / N, a = t * p.turns * 2 * Math.PI, c = Math.cos(a), s = Math.sin(a), rx = A[0] + dx * t + p.R * (Y0 * c + Y3 * s), ry = A[1] + dy * t + p.R * (Y1 * c + Y4 * s), rz = A[2] + dz * t + p.R * (Y2 * c + Y5 * s);
+          tubeV(qx, qy, qz, rx, ry, rz, p.r, p.r, 3, 0, false, ax); qx = rx; qy = ry; qz = rz; } }
+      else if (p.t === 'ring') { const m = M.Sp[+p.f[1]].elements, ax0 = m[0], ax1 = m[1], ax2 = m[2], n = p.n, T = this.trig(n), sg = p.x1 > p.x0 ? 1 : -1;
+        const at = (x, r, k, out) => { const ca = T.c[k], sa = T.s[k]; out[0] = m[12] + ax0 * x + r * (m[4] * ca + m[8] * sa); out[1] = m[13] + ax1 * x + r * (m[5] * ca + m[9] * sa); out[2] = m[14] + ax2 * x + r * (m[6] * ca + m[10] * sa); return out; };
+        const q0 = [0, 0, 0], q1 = [0, 0, 0], q2 = [0, 0, 0], q3 = [0, 0, 0], quad = (nx, ny, nz) => { put(q0[0], q0[1], q0[2], nx, ny, nz); put(q1[0], q1[1], q1[2], nx, ny, nz); put(q2[0], q2[1], q2[2], nx, ny, nz); put(q0[0], q0[1], q0[2], nx, ny, nz); put(q2[0], q2[1], q2[2], nx, ny, nz); put(q3[0], q3[1], q3[2], nx, ny, nz); };
+        for (let k = 0; k < n; k++) { const rx = m[4] * T.cm[k] + m[8] * T.sm[k], ry = m[5] * T.cm[k] + m[9] * T.sm[k], rz = m[6] * T.cm[k] + m[10] * T.sm[k];
+          at(p.x0, p.ro, k, q0); at(p.x0, p.ro, k + 1, q1); at(p.x1, p.ro, k + 1, q2); at(p.x1, p.ro, k, q3); quad(rx, ry, rz); // (its edge)
+          at(p.x0, p.ri, k, q0); at(p.x0, p.ro, k, q1); at(p.x0, p.ro, k + 1, q2); at(p.x0, p.ri, k + 1, q3); quad(-ax0 * sg, -ax1 * sg, -ax2 * sg); // (its faces)
+          at(p.x1, p.ri, k + 1, q0); at(p.x1, p.ro, k + 1, q1); at(p.x1, p.ro, k, q2); at(p.x1, p.ri, k, q3); quad(ax0 * sg, ax1 * sg, ax2 * sg);
+          at(p.x1, p.ri, k, q0); at(p.x1, p.ri, k + 1, q1); at(p.x0, p.ri, k + 1, q2); at(p.x0, p.ri, k, q3); quad(-rx, -ry, -rz); } }
+      else { const m = fm(p.f).elements, c = p.c, h = p.h, AX = [[1, 0, 0], p.u, p.v];
+        // (an oriented box: its axes across the wheel (x), u and v in its frame)
+        const corner = (sx, sy, sz) => { const lx = c[0] + sx * h[0] * AX[0][0] + sy * h[1] * AX[1][0] + sz * h[2] * AX[2][0], ly = c[1] + sx * h[0] * AX[0][1] + sy * h[1] * AX[1][1] + sz * h[2] * AX[2][1], lz = c[2] + sx * h[0] * AX[0][2] + sy * h[1] * AX[1][2] + sz * h[2] * AX[2][2];
+          return [m[0] * lx + m[4] * ly + m[8] * lz + m[12], m[1] * lx + m[5] * ly + m[9] * lz + m[13], m[2] * lx + m[6] * ly + m[10] * lz + m[14]]; };
+        for (let d = 0; d < 3; d++) for (const sg of [1, -1]) { const a1 = (d + 1) % 3, a2 = (d + 2) % 3, cc = (i, j) => { const v = [0, 0, 0]; v[d] = sg; v[a1] = i; v[a2] = j; return corner(v[0], v[1], v[2]); };
+          const N3 = AX[d], nx = sg * (m[0] * N3[0] + m[4] * N3[1] + m[8] * N3[2]), ny = sg * (m[1] * N3[0] + m[5] * N3[1] + m[9] * N3[2]), nz = sg * (m[2] * N3[0] + m[6] * N3[1] + m[10] * N3[2]);
+          const v0 = cc(-1, -1), v1 = cc(1, -1), v2 = cc(1, 1), v3 = cc(-1, 1), Q = sg > 0 ? [v0, v1, v2, v0, v2, v3] : [v0, v3, v2, v0, v2, v1]; for (const q of Q) put(q[0], q[1], q[2], nx, ny, nz); } }
     }
     g.attributes.position.needsUpdate = true; g.attributes.normal.needsUpdate = true;
   }
@@ -13081,6 +13367,14 @@ class RallyCarKit {
     // does not rise, its walls have no height
     const tunX = (z, P) => Math.min((z > (axles[0][0] + axles[1][0]) / 2 ? axles[0][1] : axles[1][1]) / 2 - 0.172, P[1][0] - 0.03);
     const tun = st.map((z, i) => { const P = prof[i]; return { x: tunX(z, P), lo: Math.min(lowAt(z).f, P[1][1]), up: P[1][1] }; });
+    // over a solid rear axle the channel's floor is raised, as a real car's is: a recess from 0.3 ahead of the axle to
+    // 0.3 behind it, its roof 0.16 over the wheels' centres (the axle rises with its wheels) and well under the belt;
+    // none where the floor is that high already. kickAt(z): the floor's height in it at z (-9 outside); tunAt(z, key):
+    // the channel's half-width or floor there
+    const solidR = !!(S.suspT && /^(live|beam|leaf)$/.test(S.suspT[1])), kick = (solidR ? [axles[1][0]] : []).map(z => ({ z0: z + 0.3, z1: z - 0.3, open: false,
+      y: Math.min(R + 0.16, Math.min(lowAt(z + 0.3).b, lowAt(z - 0.3).b) - 0.2) })).filter(q => q.y > Math.max(lowAt(q.z0).f, lowAt(q.z1).f) + 0.06 && q.z0 <= st[0] - 0.05 && q.z1 >= st[st.length - 1] + 0.05);
+    const kickAt = z => { for (const q of kick) if (!q.open && z <= q.z0 + 1e-9 && z >= q.z1 - 1e-9) return q.y; return -9; }, inKick = z => kick.some(q => z < q.z0 && z > q.z1);
+    const tunAt = (z, key) => { let i = 0; while (i < st.length - 2 && st[i + 1] > z) i++; return ckLerp(tun[i][key], tun[i + 1][key], Math.max(0, Math.min(1, (st[i] - z) / ((st[i] - st[i + 1]) || 1)))); };
     // ---- shell and glass: one closed surface wound by construction ----
     const blackFrames = D.frame === 'black';
     // a slanted C pillar (D.cLine = [zTop, zBot], rib z: its front edge from the roof edge at zTop down to the shoulder at zBot):
@@ -13149,10 +13443,20 @@ class RallyCarKit {
         sq(sink, pA(c, 1), pB(c, 1), pB(c + 1, 1), pA(c + 1, 1), kk); sq(sink, pA(c, -1), pA(c + 1, -1), pB(c + 1, -1), pB(c, -1), kk);
       }
       { const fl = (T, P, z) => [[-P[1][0], T.up], [-T.x, T.up], [-T.x, T.lo], [T.x, T.lo], [T.x, T.up], [P[1][0], T.up]].map(q => [q[0], q[1], z]); // the floor across, and its channel
-        const FA = fl(tun[i], PA, zA), FB = fl(tun[i + 1], PB, zB); for (let j = 0; j < 5; j++) body.quad(FA[j], FB[j], FB[j + 1], FA[j + 1], C.dark); }
+        const FA = fl(tun[i], PA, zA), FB = fl(tun[i + 1], PB, zB); for (let j = 0; j < 5; j++) if (j !== 2) body.quad(FA[j], FB[j], FB[j + 1], FA[j + 1], C.dark);
+        // (the channel's floor, less where it is raised over an axle)
+        const cut = [zA, ...kick.flatMap(q => [q.z0, q.z1]).filter(z => z < zA && z > zB), zB].sort((x, y) => y - x), on = (Q, Q2, z) => { const t = (zA - z) / ((zA - zB) || 1); return [Q[0] + (Q2[0] - Q[0]) * t, Q[1] + (Q2[1] - Q[1]) * t, z]; };
+        for (let j = 0; j < cut.length - 1; j++) { const za = cut[j], zb = cut[j + 1]; if (inKick((za + zb) / 2)) continue; body.quad(on(FA[2], FB[2], za), on(FA[2], FB[2], zb), on(FA[3], FB[3], zb), on(FA[3], FB[3], za), C.dark); } }
       const topSink = k === 'ws' || k === 'rw' ? glass : body; // centre stripe or glass, straight across
       if (!openRoof(k, zA, zB)) topSink.quad(pA(10, 1), pB(10, 1), pB(10, -1), pA(10, -1), topSink === glass ? K0 : k === 'roof' ? C.roof : C.hood);
     }
+    // the recesses over the axles: each one's roof, its walls ahead and behind, and its sides just inside the liners
+    // (closing it where the floor outboard of the liners is lower than its roof)
+    for (const q of kick) { if (q.open) continue; const zs = [q.z0, ...st.filter(z => z < q.z0 - 1e-6 && z > q.z1 + 1e-6), q.z1], xs = zs.map(z => tunAt(z, 'x') - 0.001), ls = zs.map(z => tunAt(z, 'lo'));
+      for (let j = 0; j < zs.length - 1; j++) { const za = zs[j], zb = zs[j + 1], xa = xs[j], xb = xs[j + 1];
+        body.quad([-xa, q.y, za], [-xb, q.y, zb], [xb, q.y, zb], [xa, q.y, za], C.dark);
+        for (const sd of [1, -1]) body.quad([sd * xa, ls[j], za], [sd * xb, ls[j + 1], zb], [sd * xb, q.y, zb], [sd * xa, q.y, za], C.dark); }
+      for (const j of [0, zs.length - 1]) body.quad([-xs[j], ls[j], zs[j]], [xs[j], ls[j], zs[j]], [xs[j], q.y, zs[j]], [-xs[j], q.y, zs[j]], C.dark); }
     for (const [i, front] of [[0, true], [st.length - 1, false]]) { // end caps, fanned from the centre line
       const Pr = prof[i].slice(1, 11), z = st[i], T = tun[i], poly = Pr.concat(Pr.slice().reverse().map(p => [-p[0], p[1]]), [[-T.x, T.up], [-T.x, T.lo], [T.x, T.lo], [T.x, T.up]]), c0 = [0, (Pr[0][1] + Pr[9][1]) / 2, z];
       if (!front && RD && rearP) { ckDoorCap(body, poly, z, RD, C.base, rearP.n, n => { bandPanel = n; }); continue; }
@@ -13871,6 +14175,8 @@ class RallyCarKit {
         const caps = [], room = (x0, x1, z0, z1) => { let m = 9; for (const x of [x0, (x0 + x1) / 2, x1]) for (const z of zIn(z0, z1)) m = Math.min(m, topAtX(z, x)); m -= 0.035;
           for (const c of caps) if (z0 > c.z1 && z1 < c.z0) m = Math.min(m, c.y - 0.012); return m; }; // (under a shelf, no higher than it)
         const bayFloor = (hx, z0, z1) => { let m = -9; for (const z of zIn(z0, z1)) { const P = lowerAt(z).P; m = Math.max(m, hx < tunX(z, P) ? lowAt(z).f : P[1][1]); } return m; };
+        // (the floor under something stowed in a bay: raised where it crosses the recess over an axle)
+        const stowFloor = (hx, z0, z1) => { let m = bayFloor(hx, z0, z1); for (const q of kick) if (z0 > q.z1 && z1 < q.z0) m = Math.max(m, q.y); return m; };
         const reach = (z0, z1) => { let m = 9; for (const z of zIn(z0, z1)) { const P = lowerAt(z).P; m = Math.min(m, archAt(z) != null ? tunX(z, P) - 0.03 : Math.min(P[2][0], P[6][0]) - 0.06); } return m; };
         const bx = (x0, x1, y0, y1, z0, z1, k, rot) => { if (x1 - x0 > 0.01 && y1 - y0 > 0.01 && z0 - z1 > 0.01) ckBox(body, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], [x1 - x0, y1 - y0, z0 - z1], k, rot); };
         // the engine's size: along its crank (L), its block's width (W), and how far its intake (vI) and exhaust (vE) sides reach
@@ -13958,11 +14264,11 @@ class RallyCarKit {
           body.begin('panel', null, false, true); for (let i = 0; i < zs.length - 1; i++) body.quad([-w[i], y, zs[i]], [-w[i + 1], y, zs[i + 1]], [w[i + 1], y, zs[i + 1]], [w[i], y, zs[i]], BC.shelf); body.end(); };
         // the spare wheel lying flat, as far back as it fits, and the fuel cell where it fits ahead of it, between zA and zB
         const stow = (zA, zB, rec) => { const Rt = R, hw = 0.1, rr = D.rimR || 0.205; let sp = null;
-          for (let zc = zB + Rt + 0.03; zc <= zA - Rt - 0.02 && !sp; zc += 0.02) { const y0 = bayFloor(Rt, zc + Rt, zc - Rt) + 0.006; if (room(-Rt, Rt, zc + Rt, zc - Rt) - y0 >= 2 * hw && reach(zc + Rt, zc - Rt) >= Rt + 0.01) sp = { zc, y0 }; }
+          for (let zc = zB + Rt + 0.03; zc <= zA - Rt - 0.02 && !sp; zc += 0.02) { const y0 = stowFloor(Rt, zc + Rt, zc - Rt) + 0.006; if (room(-Rt, Rt, zc + Rt, zc - Rt) - y0 >= 2 * hw && reach(zc + Rt, zc - Rt) >= Rt + 0.01) sp = { zc, y0 }; }
           if (sp) { const { zc, y0 } = sp, yt = y0 + 2 * hw; ckCyl(body, [0, y0, zc], [0, yt, zc], Rt, C.rubber, 10, true);
             body.begin('rim', [0, yt - 1, zc], false); for (let k = 0; k < 8; k++) { const a0 = k / 8 * Math.PI * 2, a1 = (k + 1) / 8 * Math.PI * 2; body.tri([0, yt + 0.003, zc], [Math.cos(a0) * rr, yt + 0.003, zc + Math.sin(a0) * rr], [Math.cos(a1) * rr, yt + 0.003, zc + Math.sin(a1) * rr], C.rim); } body.end(); rec.push('spare wheel'); }
           for (const d of [0.36, 0.28]) for (let zc = zA - d / 2 - 0.02; zc >= zB + d / 2 + 0.02; zc -= 0.02) { if (sp && Math.abs(zc - sp.zc) < Rt + d / 2 + 0.02) continue;
-            const y0 = bayFloor(0.31, zc + d / 2, zc - d / 2) + 0.006, h = Math.min(0.26, room(-0.31, 0.31, zc + d / 2, zc - d / 2) - y0);
+            const y0 = stowFloor(0.31, zc + d / 2, zc - d / 2) + 0.006, h = Math.min(0.26, room(-0.31, 0.31, zc + d / 2, zc - d / 2) - y0);
             if (h >= 0.14 && reach(zc + d / 2, zc - d / 2) >= 0.32) { bx(-0.3, 0.3, y0, y0 + h, zc + d / 2, zc - d / 2, BC.cell); rec.push('fuel cell'); return; } } };
         // ahead of the cabin: an engine bay, or a luggage bay where the engine is behind
         if (hoodP) {
@@ -14030,25 +14336,118 @@ class RallyCarKit {
               const w = Math.min(reach(zr + 0.065, zr + 0.005) - 0.05, 0.72); if (w >= 0.3) mir(sd => bx(sd * (w - 0.04) - 0.05, sd * (w - 0.04) + 0.05, brY - 0.09, brY + 0.09, z1, zr + 0.02, BC.black));
               ckCyl(body, [0.22, brY - 0.1, zr + 0.07], [0.22, brY - 0.1, zr + 0.01], 0.012, BC.iron, 6, true); } }
           // (a subframe: two rails and a cross member just under the floor, over the axle)
-          const frame = (z, rec) => { const y1 = under(z) - 0.005, y0 = y1 - 0.055, hx = Math.min(0.42, reach(z + 0.3, z - 0.3) - 0.1); if (hx < 0.2) return;
-            for (const sd of [1, -1]) bx(sd * hx - 0.03, sd * hx + 0.03, y0, y1, z + 0.3, z - 0.3, steel); bx(-hx, hx, y0, y1, z + 0.05, z - 0.05, steel); rec.push('subframe'); };
-          frame(zA, out.front); frame(zB, out.rear);
-          // (the diffs: a rear-driven axle's own; a front one only where the engine's gearbox does not carry it across)
-          const diff = (z, rec) => { const yd = Math.min(R - 0.03, under(z) - 0.12); tube([-0.13, yd, z], [0.13, yd, z], 0.115, BC.iron); tube([0.13, yd, z], [0.17, yd, z], 0.08, BC.alu); rec.push('differential'); };
-          if (rwd) diff(zB, out.rear); if (fwd && !(trans && epos === 'front')) diff(zA, out.front);
-          // (a propshaft: from a front engine's gearbox back to a driven rear axle, or from a mid or rear engine forward to a
-          // driven front one)
-          const yp = z => under(z) - 0.035, EF = out.engF, ER = out.engR;
-          // (with a transverse engine it starts at the transfer box by the front axle)
-          if (rwd && epos === 'front' && EF) { const z0 = trans ? zA - 0.22 : EF.z1 - 0.3, z1 = zB + 0.14; if (z0 - z1 > 0.3) { tube([0, yp(z0), z0], [0, yp(z1), z1], 0.035, steel); out.front.push('propshaft'); } }
-          if (fwd && epos !== 'front' && ER && rwd) { const z0 = zA - 0.14, z1 = ER.z0 + 0.02; if (z0 - z1 > 0.3) { tube([0, yp(z0), z0], [0, yp(z1), z1], 0.035, steel); out.rear.push('propshaft'); } }
+          // (the subframes: two rails along the car under an axle, carrying the lower arms' bushes - each in two, ahead of and
+          // behind a driven axle's line, so its driveshafts pass between - and a crossmember between them where nothing
+          // crosses there: under a front engine ahead of the axle where no front diff stands, across an undriven rear axle's
+          // line. Hung just under the floor, no lower than 7 cm off the road. A solid rear axle hangs on its own links, a
+          // twist beam, trailing or semi-trailing arms pivot on the body: no subframe under those. out.sub: where its rails and crossmember
+          // are; out.fl: the floor's line at each axle; out.epos: where the engine is - for the running gear)
+          const SR = S.suspT && S.suspT[1], live = SR === 'live' || SR === 'leaf', solidR = live || SR === 'beam', armsR = SR === 'twist' || SR === 'trailing';
+          const yD = R - 0.03, dR = rwd && !live, dF = fwd && !(trans && epos === 'front'), prims = out.prims = []; out.fl = [under(zA), under(zB)]; out.epos = epos;
+          const frame = (z, rec, ai) => { const y0 = Math.max(0.07, under(z) - 0.02), y1 = y0 + 0.055, hx = Math.min(0.3, reach(z + 0.3, z - 0.3) - 0.1), drv = ai ? rwd : fwd, zc = ai ? (dR ? null : z) : (dF ? null : z + 0.16); if (hx < 0.2) return;
+            const rail = (x0, x1, za, zb) => { bx(x0, x1, y0, y1, za, zb, steel); prims.push({ k: 'sub', b: [x0, x1, y0, y1, za, zb] }); };
+            for (const sd of [1, -1]) { if (drv) { rail(sd * hx - 0.03, sd * hx + 0.03, z + 0.3, z + 0.07); rail(sd * hx - 0.03, sd * hx + 0.03, z - 0.07, z - 0.3); } else rail(sd * hx - 0.03, sd * hx + 0.03, z + 0.3, z - 0.3); }
+            if (zc != null) rail(-hx, hx, zc + 0.03, zc - 0.03); rec.push('subframe');
+            (out.sub || (out.sub = []))[ai] = { z, hx, y0, y1, zc }; };
+          frame(zA, out.front, 0); if (!solidR && !armsR && SR !== 'semi') frame(zB, out.rear, 1);
+          out.kick = kick.map(q => ({ z0: q.z0, z1: q.z1, y: q.y })); // (the floor's recess over a solid rear axle: its roof, for the running gear's brackets)
+          // (the diffs: a rear-driven axle's own - a live axle carries its own in its beam, see MechParts - and a front one
+          // only where the engine's gearbox does not carry it across. Each at the height of its driveshafts' inner joints, a
+          // little under the hubs, so the shafts run out level to the wheels - where the floor runs lower the body is shaped
+          // round it, as a real car's floor is - its output flanges either side and its nose toward the propshaft, hung from
+          // the subframe or the floor where they stand above it. out.drive: where the shafts start, for the running gear)
+          out.drive = {};
+          const diff = (z, nose, rec, key) => { prims.push({ k: 'diff', t: [[-0.12, yD, z], [0.12, yD, z]], r: 0.11 }, { k: 'diff', t: [[-0.17, yD, z], [0.17, yD, z]], r: 0.07 }, { k: 'diff', t: [[0, yD - 0.01, z], [0, yD - 0.01, z + nose * 0.2]], r: 0.065 });
+            tube([-0.12, yD, z], [0.12, yD, z], 0.11, BC.iron); for (const sd of [1, -1]) tube([sd * 0.12, yD, z], [sd * 0.17, yD, z], 0.07, BC.alu);
+            const nz = z + nose * 0.2; if (nose) tube([0, yD - 0.01, z], [0, yD - 0.01, nz], 0.065, BC.iron);
+            const yT = under(z) - 0.005; if (yT > yD + 0.13) for (const sd of [1, -1]) tube([sd * 0.08, yD + 0.09, z + nose * 0.05], [sd * 0.08, yT, z + nose * 0.05], 0.022, steel);
+            out.drive[key] = { x: 0.17, y: yD, z, nose: nose ? [0, yD - 0.01, nz] : null }; rec.push('differential'); };
+          if (dR) diff(zB, epos === 'front' ? 1 : 0, out.rear, 'r'); if (dF) diff(zA, -1, out.front, 'f');
+          if (fwd && trans && epos === 'front') out.drive.f = { x: 0.2, y: yD, z: zA - 0.03 }; // (a transverse front engine's gearbox carries its front diff: its outputs)
+          // (the propshaft, drawn with the running gear so it turns: from the gearbox's tail to the diff of a driven axle the
+          // engine is not over - from a transverse engine, its transfer box by the front axle - down the tunnel on a centre
+          // bearing just under the floor; out.prop: its ends and its bearing, and which axle it drives)
+          // (the shaft runs in the tunnel, its centre bearing at the floor's line - no more than 3 cm of it under the floor,
+          // and at least 14 cm off the road - and no lower than the diffs' inputs where the floor is that high)
+          const yp = z => Math.max(0.14, Math.min(yD, under(z) + 0.02)), EF = out.engF, ER = out.engR;
+          if (rwd && epos === 'front' && EF) { const g = EF.gb, z0 = trans ? zA - 0.22 : g ? g.z1 + 0.02 : EF.z1 - 0.3, y0 = trans ? yD : Math.min(yp(z0), g ? Math.max(yD, g.y0 + 0.06) : yD + 0.05), z1 = zB + 0.2;
+            if (z0 - z1 > 0.3) { const zm = (z0 + z1) / 2; out.prop = { r: 1, a: [0, y0, z0], b: live ? null : out.drive.r.nose, ym: yp(zm), zm }; out.front.push('propshaft'); } }
+          if (fwd && epos !== 'front' && (ER || EF) && rwd && out.drive.f) { const E2 = ER || EF, z0 = E2.z0 + 0.02, nb = out.drive.f.nose || [0, yD, zA - 0.2];
+            if (nb[2] - z0 > 0.3) { const zm = (z0 + nb[2]) / 2; out.prop = { r: 0, a: [0, yD, z0], b: nb, ym: Math.min(yp(zm), yD + 0.05), zm }; out.rear.push('propshaft'); } }
           // (the sump guard: a plate under the engine, front to back of it)
           const E = EF || ER; if (E) { const z0 = E.z0 + 0.05, z1 = E.z1 - 0.05, hx = Math.min(0.42, reach(z0, z1) - 0.08), y = Math.min(under(z0), under(z1)) - 0.012; if (hx > 0.2 && z0 - z1 > 0.2) { bx(-hx, hx, y - 0.012, y, z0, z1, guard); (EF ? out.front : out.rear).push('sump guard'); } }
-          // (the exhaust: down from the engine under the floor, along it to a silencer ahead of the tail, and up to the tailpipe)
-          if (E) { const sx = exX || -0.3, zS = Math.max(zr + 0.35, zB - 0.25), zE = E.z1 - 0.05, ya = under(zE) - 0.05, ys = under(zS) - 0.07;
-            if (zE - zS > 0.4) tube([sx * 0.6, ya, zE], [sx, ys, zS + 0.18], 0.032, pipe);
-            bx(sx - 0.13, sx + 0.13, ys - 0.07, ys + 0.07, zS + 0.18, zS - 0.18, pipe);
-            if (zS - 0.18 > exZ + 0.06) tube([sx, ys, zS - 0.18], [exX, Math.min(exY, ys + 0.05), exZ + 0.06], 0.03, pipe); out.rear.push('exhaust'); }
+          // (the exhaust: out of the engine's manifold - on its exhaust side, both sides of a vee or a flat engine, across the
+          // back of one set across the car - down to the floor, back in its lane beside the propshaft through a box (the
+          // catalyst or a resonator) to the silencer, and from it into the front end of each tailpipe, a branch to each of a
+          // pair. It runs tucked up to the floor's line, no lower than the guards, and rises over what it meets past the rear
+          // axle (up into the floor where it must). One pipe from the engine out through the tailpipes, so what comes out of
+          // them - its smoke, a backfire's flame - comes out of it. out.exhaust: where it ends in each tailpipe, and its runs
+          // and boxes, for the checks that it does and that it meets nothing)
+          if (E && !exAt) {
+            const xs = pipes.reduce((a, x) => a + x, 0) / pipes.length, sx = Math.sign(xs || exX) || -1, xr = sx * (live ? 0.25 : 0.22), zT = zr + 0.08, yF = z => under(z) + 0.005, P = (x, z, dy) => [x, yF(z) + (dy || 0), z];
+            const runs = [], boxes = [], seg = (a, b) => { if (Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.005) return; tube(a, b, 0.03, pipe); runs.push([a, b]); }, box = (x0, x1, y0, y1, z0, z1) => { bx(x0, x1, y0, y1, z0, z1, pipe); boxes.push([x0, x1, y0, y1, z0, z1]); };
+            // (what it meets in its lane past the rear axle, each [ahead, behind, bottom, top]: the rear subframe's crossmember,
+            // the rear driveshafts' inner joints, the rear anti-roll bar, a semi-trailing arm's inner pivot - where the running
+            // gear puts them, see MechParts)
+            const ob = [], sbR = out.sub && out.sub[1];
+            if (sbR) ob.push([sbR.zc + 0.03, sbR.zc - 0.03, sbR.y0, sbR.y1]);
+            if (out.drive.r) ob.push([zB + 0.06, zB - 0.06, yD - 0.05, yD + 0.07]);
+            if (live) ob.push([zB + 0.16, zB - 0.16, R - 0.24, R + 0.13]); // (a live axle's diff, its axle dropping under it)
+            if (!solidR) { const zb = zB + MechParts.arbSide(1, out.drive.r && out.drive.r.nose, epos, out.cabR == null ? 9 : out.cabR - zB) * 0.24, yb = MechParts.arbY(R, sbR, out.fl[1]); ob.push([zb + 0.02, zb - 0.02, yb - 0.012, yb + 0.012]); }
+            if (SR === 'semi') ob.push([zB + 0.35, zB + 0.25, R - 0.055, R + 0.015]);
+            // (the lane from z0 back to z1 at x: along the floor's line, and over each thing in the way - spans close together
+            // taken as one - its points in order)
+            const lane = (x, z0, z1) => { const sp = [];
+              for (const o of ob) { const yc = yF((o[0] + o[1]) / 2); if (o[0] > z1 && o[1] < z0 && o[2] < yc + 0.04 && o[3] > yc - 0.03) sp.push([o[0] + 0.04, o[1] - 0.04, o[3] + 0.04]); }
+              sp.sort((a, b) => b[0] - a[0]); const M2 = []; for (const q of sp) { const L = M2[M2.length - 1]; if (L && q[0] > L[1] - 0.16) { L[1] = Math.min(L[1], q[1]); L[2] = Math.max(L[2], q[2]); } else M2.push(q.slice()); }
+              const pts = [P(x, z0)]; for (const q of M2) { const a = Math.min(z0, q[0]), b = Math.max(z1, q[1]); if (a - 0.1 > z1 && a + 0.1 < z0) pts.push(P(x, a + 0.1)); pts.push([x, Math.max(q[2], yF(a)), a], [x, Math.max(q[2], yF(b)), b]); if (b - 0.1 > z1) pts.push(P(x, b - 0.1)); }
+              pts.push(P(x, z1)); return pts; };
+            const path = pts => { for (let k = 0; k < pts.length - 1; k++) seg(pts[k], pts[k + 1]); };
+            const zClear = ob.length ? Math.max(...ob.map(o => o[0])) + 0.08 : zB + 0.36, zPast = Math.min(ob.length ? Math.min(...ob.map(o => o[1])) - 0.1 : zB - 0.3, sbR ? zB - 0.38 : 9);
+            // the manifold: from the head(s) on the exhaust side down to a collector at the floor behind the engine. A transverse
+            // front engine's from the back of its block on the lane's side (clear of the propshaft), dropping between the
+            // steering rack and the anti-roll bar behind the axle and on under the bar; a longitudinal front engine's back
+            // over the front suspension (its arms, the subframe's rails, the driveshafts, the rack and the bar) and down
+            // behind it; a mid or rear engine's over the rear driveshafts and the rear subframe's rails, its collector and
+            // silencer over the rails where they are; a vee's or a flat engine's far side crossing over to the lane's side
+            const tr = trans && epos === 'front', zd = zA - 0.191, hiR = sbR ? sbR.y1 + 0.045 : 0, inRZ = (z0, z1) => !!sbR && z0 > zB - 0.38 && (z1 == null ? z0 : z1) < zB + 0.38;
+            const sbF = out.sub && out.sub[0], ybF = MechParts.arbY(R, sbF, out.fl[0]), yrF = MechParts.rackY(R, sbF, out.fl[0], ybF);
+            const zDrop = Math.max(zA - 0.34, Math.min(out.cabF != null ? out.cabF + 0.03 : -9, zA - 0.22)), front = epos === 'front';
+            const zJ = tr ? Math.min(E.z1 - 0.06, zd - 0.08) : front ? Math.min(E.z1 - 0.06, zDrop - 0.08) : E.z1 - 0.06, J = [xr * 0.6, Math.max(yF(zJ), inRZ(zJ) ? hiR : 0), zJ], yM = E.y0 + 0.42 * (E.top - E.y0), zm = (E.z0 + E.z1) / 2;
+            const Y1 = Math.max(R + 0.065, sbF ? sbF.y1 + 0.05 : 0, yrF + 0.065, ybF + 0.05, J[1] + 0.04);
+            const man = (a, b) => { if (Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.005) return; ckCyl(body, a, b, 0.034, pipe, 6, true); runs.push([a, b]); };
+            if (tr) { const h0 = [xr * 0.8, yM, Math.max(zd, E.z1 - 0.02)], h1 = [xr * 0.8, yM, zd], b0 = P(xr * 0.8, zd); if (h0[2] - zd > 0.01) man(h0, h1); man(h1, b0); man(b0, J); }
+            else { const heads = E.x1 - E.x0 >= 0.5 ? [[E.x1 + 0.02, yM, zm], [E.x0 - 0.02, yM, zm]] : [[sx > 0 ? E.x1 + 0.02 : E.x0 - 0.02, yM, zm]];
+              const overR = !front && out.drive.r && zm > zB + 0.02 && zJ < zB - 0.02, yO = Math.max(yD + 0.09, J[1] + 0.04);
+              for (const h of heads) { const far = heads.length > 1 && Math.sign(h[0]) !== sx, d = [h[0], J[1] + 0.04, Math.min(h[2], zJ + 0.06)], pts = [h];
+                if (front && h[2] > zDrop) { const y = Math.max(Y1, far ? yO : 0), xd = sbF && !far ? Math.sign(h[0]) * Math.min(Math.abs(h[0]), sbF.hx - 0.07) : h[0]; pts[0] = [h[0], Math.max(h[1], y), h[2]]; pts.push([xd, y, zDrop]); }
+                else if (overR) pts.push([h[0], yO, zB - 0.15]);
+                if (far) { const L = pts[pts.length - 1], y = Math.max(L[1], yO); pts.push([xr * 0.6 + sx * 0.04, y, L[2] - 0.04]); } // (crossing over the propshaft or the diff)
+                else { const L = pts[pts.length - 1]; if (L[2] - d[2] > 0.04 || L[1] - d[1] > 0.02) pts.push([L[0], d[1], Math.min(L[2] - 0.04, d[2])]); }
+                pts.push(J); for (let k = 0; k < pts.length - 1; k++) man(pts[k], pts[k + 1]); } }
+            let at = J; out.exhaust = { ends: [], tips: pipes.map(x => [x, exY, zT]), runs, boxes };
+            if (epos === 'front') {
+              // (a front engine's: back along its lane, the box half way, the silencer behind the rear axle if there is room
+              // there, else ahead of it; each pipe's branch from it in the lane past the axle, then out to its tailpipe)
+              const back = zPast - 0.46 > zT + 0.05, zS0 = back ? zPast : Math.max(zClear + 0.44, zB + 0.8), zS1 = back ? Math.max(zT + 0.12, zS0 - 0.46) : zS0 - 0.44, zc = (zJ + zS0) / 2;
+              const c0 = P(xr, zc + 0.16), c1 = P(xr, zc - 0.16); if (zJ - zc > 0.4) { seg(at, c0); box(xr - 0.07, xr + 0.07, c0[1] - 0.03, c0[1] + 0.08, c0[2], c1[2]); at = c1; }
+              path([at, ...lane(xr, at[2], zS0).slice(1)]); const ys = yF(zS0);
+              const xo = solidR && !back ? Math.abs(axles[1][1] / 2) - 0.36 : 9; // (inside a solid axle's lower links, which run forward beside it)
+              box(Math.max(-xo, Math.min(xr - 0.13, Math.min(...pipes) - 0.04)), Math.min(xo, Math.max(xr + 0.13, Math.max(...pipes) + 0.04)), ys - 0.03, ys + 0.1, zS0, zS1);
+              for (const x of pipes) { const xb = xr + (x - xs) * 0.5, tip = [x, exY, zT];
+                if (back) { const m = [x, (ys + exY) / 2, Math.min(zS1 - 0.04, zT + 0.12)]; seg([x, ys, zS1], m); seg(m, tip); }
+                else { const L = lane(xb, zS1, zPast > zT + 0.03 ? zPast : zT + 0.03); L[0] = [xb, ys, zS1]; path(L); const e = L[L.length - 1]; if (e[2] - zT > 0.14) { const m = [x, (e[1] + exY) / 2, zT + 0.1]; seg(e, m); seg(m, tip); } else seg(e, tip); }
+                out.exhaust.ends.push(tip); }
+            } else {
+              // (a mid or rear engine's: its silencer right behind it, across the tail between the rear subframe's rails)
+              const zS0 = Math.min(zJ - 0.05, E.z1 - 0.04), zS1 = Math.max(zT + 0.1, zS0 - 0.32), ys = Math.max(J[1], exY - 0.12), yb = Math.max(ys - 0.08, yF(zS0) - 0.03, inRZ(zS0, zS1) ? sbR.y1 + 0.012 : 0), yt = Math.max(ys + 0.07, yb + 0.1);
+              seg(at, [xr * 0.6, ys, zS0]); box(Math.min(-0.25, Math.min(...pipes) - 0.04), Math.max(0.25, Math.max(...pipes) + 0.04), yb, yt, zS0, zS1); at = [xr * 0.6, (yb + yt) / 2, zS1];
+              for (const x of pipes) { const tip = [x, exY, zT];
+                // (over the rails until past them)
+                let e = [x, at[1], at[2]]; if (inRZ(at[2]) && zB - 0.38 - zT > 0.06) { const e2 = [x, Math.max(at[1], hiR), zB - 0.38]; seg(e, e2); e = e2; }
+                const m = [x, (e[1] + exY) / 2, Math.min(e[2] - 0.04, zT + 0.12)]; if (e[2] - zT > 0.12) { seg(e, m); seg(m, tip); } else seg(e, tip); out.exhaust.ends.push(tip); }
+            }
+            out.rear.push('exhaust'); }
         }
         // (where each axle's struts reach up to, for the running gear: the top of its strut tower, under the panels there -
         // the same place over an axle with no tower, so no strut stands up through a bonnet, a boot lid or a wing - with
@@ -14123,7 +14522,13 @@ class RallyCarKit {
     bodyMesh.bind(new THREE.Skeleton([bodyBone].concat(wheels.map(w => w.w), wipers, wheels.filter(w => w.w2).map(w => w.w2))));
     if (cabMesh) cabMesh.bind(new THREE.Skeleton([I.cabBone, I.wheel, I.tach, I.boost, I.head, I.cohead].concat(I.air ? [I.air] : [])));
     if (crewMesh) { const sk = new THREE.Skeleton(crewBones); crewMesh.bind(sk); if (crewLow) crewLow.bind(sk); }
-    const flame = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9 })); flame.name = 'BackfireFlame'; flame.position.set(exX, exY, exZ - 0.18); flame.visible = false; bodyG.add(flame);
+    // a backfire's flame: a ball of it out of the end of each tailpipe (both of a pair), shown and sized together - the
+    // group's scale sizes each ball about its own pipe's end - and moved to where the pipes end if the tailpipes are lost
+    const flame = new THREE.Group(), flG = new THREE.SphereGeometry(0.22, 6, 4), flM = new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9 });
+    flame.name = 'BackfireFlame'; flame.userData.at = (exAt ? [exX] : pipes).map(x => [x, exY, exZ - 0.18]);
+    for (const p of flame.userData.at) { const f = new THREE.Mesh(flG, flM); f.name = 'BackfireFlame'; f.position.set(p[0], p[1], p[2]); flame.add(f); }
+    flame.scale.setScalar = s => { for (const f of flame.children) f.scale.setScalar(s); return flame.scale; };
+    flame.visible = false; bodyG.add(flame);
     // the rig holds the animated parts (not in userData, so clone() and toJSON() stay safe)
     const needle = v => Math.PI * 0.75 - Math.min(1, Math.max(0, v)) * Math.PI * 1.5, oilGauge = S.boost === 'na', dash = this.mats.interior.userData.dash;
     const screenQ = wsInfo ? [[wsInfo.wBase / 2, wsInfo.yBase, wsInfo.zBase], [-wsInfo.wBase / 2, wsInfo.yBase, wsInfo.zBase], [-wsInfo.wTop / 2, wsInfo.yTop, wsInfo.zTop], [wsInfo.wTop / 2, wsInfo.yTop, wsInfo.zTop]] : null;
@@ -14133,7 +14538,9 @@ class RallyCarKit {
       display: scrInfo,
       // the exhaust's open end (the tailpipe's, and where the pipe ends under the tail if the tailpipe is torn off), and
       // the room the crew need inside the cabin as spheres [x, y, z, r] (heads, chests, laps and the driver's view)
-      exhaust: { tip: [exX, exY, exZ], stub: exAt ? [exX, exY, exZ] : [exX, Math.min(0.25, exY - 0.05), zr + 0.16], up: !!(exAt && D.exhaust.up) }, crew: crewAt,
+      // (tips and stubs: each tailpipe's, for a pair; a routed exhaust's pipes end where the tailpipes began)
+      exhaust: (() => { const rt = !exAt && bayInfo && bayInfo.exhaust, tips = (exAt ? [exX] : pipes).map(x => [x, exY, exZ]), stubs = exAt ? tips.map(t => t.slice()) : rt ? bayInfo.exhaust.ends.map(e => e.slice()) : [[exX, Math.min(0.25, exY - 0.05), zr + 0.16]];
+        return { tip: tips[0], stub: stubs[0], tips, stubs, up: !!(exAt && D.exhaust.up) }; })(), crew: crewAt,
       // the crew's mesh, bones and rest pose, for the crew's animation (crew.js: CrewAnim)
       crewRig: crewMesh ? { mesh: crewMesh, low: crewLow, bones: crewBones, R: crewR } : null,
       // the end faces things are mounted on (for inspection): nose and tail stations, end ribs, bumper bands
@@ -21710,10 +22117,13 @@ function engineFx(dt) {
   while (es._sa >= 1) { es._sa -= 1; const front = E.pos === 'front', up = Math.random() < 0.5;
     if (front) _ep.set((Math.random() - 0.5) * (up ? 0.9 : 1.5), up ? 0.78 : 0.35, up ? E.hot[0] + 0.2 * Math.random() : E.hot[0] - 0.1 + 0.4 * (Math.random() - 0.5)); else _ep.set((Math.random() - 0.5) * 1.0, up ? 0.95 : 0.4, E.hot[0] + 0.4 * (Math.random() - 0.5));
     _ep.applyMatrix4(M); Particles.spawn(_ep.x, _ep.y, _ep.z, vx * 0.6 + (Math.random() - 0.5) * 1.2, 0.5 + Math.random() * 1.0, vz * 0.6 + (Math.random() - 0.5) * 1.2, ESTEAMC, 0.8 + Math.random() * 0.8, 1.8 + Math.random() * 1.2, 0, 0.5 + 0.2 * Math.min(1, es.steamR * 30)); }
-  const X = m.exhaust, tip = X ? (m.dv && m.dv.exhOff ? X.stub : X.tip) : [0.45, E.exh[1], E.exh[0]];
+  const X = m.exhaust, tip = X ? exPt(X, m.dv && m.dv.exhOff) : [0.45, E.exh[1], E.exh[0]];
   let t = es.tailSteam * 18 * dt; es._st = (es._st || 0) + t;
   while (es._st >= 1) { es._st -= 1; _ep.set(tip[0], tip[1], tip[2]).applyMatrix4(M); Particles.spawn(_ep.x, _ep.y + (es.bub > 0 ? 0.05 : 0), _ep.z, vx * 0.5 - s * 1.2 + (Math.random() - 0.5), 0.5 + Math.random() * (es.bub > 0 ? 1.2 : 0.6), vz * 0.5 - co * 1.2 + (Math.random() - 0.5), ESTEAMC, es.bub > 0 ? 0.25 + Math.random() * 0.3 : 0.4 + Math.random() * 0.4, 0.8 + Math.random() * 0.6, 0, 0.3); }
 }
+// where a car's exhaust comes out: the end of one of its tailpipes (a pair's taking turns, a frame each), or of the pipes
+// once the tailpipes are torn off
+function exPt(E, off) { const L = off ? (E.stubs || [E.stub]) : (E.tips || [E.tip]); if (L.length < 2) return L[0]; exPt.n = ((exPt.n | 0) + 1) % L.length; return L[exPt.n]; }
 const WATERC = new THREE.Color('#e4f1f7'), SLUSHC = new THREE.Color('#b9bfc2');
 function burstDust(n, s) { const c = G.car; const col = DUST[c.surfName] || DUST.gravel; for (let k = 0; k < n; k++) Particles.spawn(c.x + (Math.random() - 0.5) * 2, c.y + 0.2, c.z + (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 4, Math.random() * 1.5, (Math.random() - 0.5) * 4, col, 1.2 * s, 1.6, 0, 0.45); }
 const SKIDC = { tarmac: [0.07, 0.07, 0.07], stone: [0.16, 0.15, 0.14], gravel: [0.33, 0.25, 0.16], snow: [0.52, 0.57, 0.63], snowbank: [0.6, 0.64, 0.7], grass: [0.22, 0.27, 0.13], ice: [0.9, 0.94, 0.97], // (studs scratch ice white)
@@ -28464,7 +28874,7 @@ const MP = {
   fumes(r, m, dt) {
     const H = m.dv; if (!H || !r.fx) return; m.body.updateMatrixWorld(true); const M = m.body.matrixWorld, Hs = H.H, V = r.V || [0, 0, 0], P = this._fp || (this._fp = new THREE.Vector3()), S = r.S;
     H.steamT = (H.steamT || 0) - dt * r.fx[0] * 24; while (H.steamT < 0) { H.steamT += 1; P.set((Math.random() - 0.5) * 0.6, 0.75, S.epos === 'mid' ? Hs.zr + 0.5 : Hs.zf - 0.35).applyMatrix4(M); Particles.spawn(P.x, P.y, P.z, V[0] * 0.7 + (Math.random() - 0.5), 0.8 + Math.random(), V[2] * 0.7 + (Math.random() - 0.5), STEAMC, 0.7 + Math.random() * 0.5, 1.4, 0, 0.4); }
-    const E = m.exhaust, ep = E ? (H.exhOff ? E.stub : E.tip) : [0.4, 0.34, Hs.zr - 0.15], f = qRot(r.Q, [0, 0, 1]);
+    const E = m.exhaust, ep = E ? exPt(E, H.exhOff) : [0.4, 0.34, Hs.zr - 0.15], f = qRot(r.Q, [0, 0, 1]);
     H.smokeT = (H.smokeT || 0) - dt * r.fx[1] * (0.4 + (r.st ? r.st.thr : 0)) * 22; while (H.smokeT < 0) { H.smokeT += 1; P.set(ep[0], ep[1], ep[2]).applyMatrix4(M); Particles.spawn(P.x, P.y, P.z, V[0] * 0.6 - f[0] * 1.5, 0.5, V[2] * 0.6 - f[2] * 1.5, SMOKEC, 0.9 + Math.random() * 0.6, 1.8, 0, 0.45); }
   },
   // a rival drawn see-through (it is a ghost to this car: one of the two is waiting for its start or has just been put
@@ -29586,7 +29996,7 @@ const Replay = {
     if (!(dt > 0)) return; m.body.updateMatrixWorld(true); const M = m.body.matrixWorld, Hs = H.H, s = Math.sin(c.psi), co = Math.cos(c.psi), vx = c.u * s + c.v * co, vz = c.u * co - c.v * s;
     H.steamT -= dt * X[RI.steam] * 24;
     while (H.steamT < 0) { H.steamT += 1; _dp.set((Math.random() - 0.5) * 0.6, 0.75, this.S.epos === 'mid' ? Hs.zr + 0.5 : Hs.zf - 0.35).applyMatrix4(M); Particles.spawn(_dp.x, _dp.y, _dp.z, vx * 0.7 + (Math.random() - 0.5), 0.8 + Math.random(), vz * 0.7 + (Math.random() - 0.5), STEAMC, 0.7 + Math.random() * 0.5, 1.4, 0, 0.4); }
-    H.smokeT -= dt * X[RI.smoke] * 22; const E = m.exhaust, ep = E ? (H.exhOff ? E.stub : E.tip) : [0.4, 0.34, Hs.zr - 0.15];
+    H.smokeT -= dt * X[RI.smoke] * 22; const E = m.exhaust, ep = E ? exPt(E, H.exhOff) : [0.4, 0.34, Hs.zr - 0.15];
     while (H.smokeT < 0) { H.smokeT += 1; _dp.set(ep[0], ep[1], ep[2]).applyMatrix4(M); Particles.spawn(_dp.x, _dp.y, _dp.z, vx * 0.6 - s * 1.5, 0.5, vz * 0.6 - co * 1.5, SMOKEC, 0.9 + Math.random() * 0.6, 1.8, 0, 0.45); }
   },
   // (the co-driver's calls are heard from cameras on the car, at the run's own speed)
@@ -30957,7 +31367,7 @@ const CarDmg = {
     rig.dv.hold = Damage.current() === 'off' ? null : this.holdPrep(M); // (nothing is crushed with damage off)
     rig.dv.panels = this.panelsPrep(rig, M);
     rig.dv.frames = this.framePrep(rig, gm, panes);
-    if (rig.flame) rig.flame.userData.k = 1; if (rig === G.mesh) Snd.exhaustOpen(false);
+    if (rig.flame) { rig.flame.userData.k = 1; const at = rig.flame.userData.at; if (at) rig.flame.children.forEach((f, i) => f.position.set(at[i][0], at[i][1], at[i][2])); } if (rig === G.mesh) Snd.exhaustOpen(false);
   },
   // the cabin holds the panels off it: points all over the cage (every 8 cm along a tube) and the trim close behind the
   // panels (the door cards and the dash, the parts tagged 'hold') are each paired with the faces of the shell and glass
@@ -31332,7 +31742,7 @@ const CarDmg = {
   // there points down), and the engine is heard through an open pipe
   exhaustOff(rig) {
     const H = rig.dv; if (!H || H.exhOff) return; H.exhOff = true; const E = rig.exhaust, fl = rig.flame;
-    if (E && fl) { fl.position.set(E.stub[0], E.stub[1] - 0.04, E.stub[2] - 0.12); fl.userData.k = 0.7; }
+    if (E && fl) { const S2 = E.stubs || [E.stub]; fl.children.forEach((f, i) => { const s = S2[Math.min(i, S2.length - 1)]; f.position.set(s[0], s[1] - 0.04, s[2] - 0.12); }); fl.userData.k = 0.7; }
     if (rig === G.mesh) Snd.exhaustOpen(true);
   },
   save(rig) {
@@ -31601,7 +32011,7 @@ const CarDmg = {
     const steam = D.mode === 'real' ? clamp(D.rad * 1.5 + (D.temp - 105) / 20, 0, 2.2) : 0; H.steamT -= dt * steam * 24;
     while (H.steamT < 0) { H.steamT += 1; _dp.set((Math.random() - 0.5) * 0.6, 0.75, S.epos === 'mid' ? Hs.zr + 0.5 : Hs.zf - 0.35).applyMatrix4(M); Particles.spawn(_dp.x, _dp.y, _dp.z, vx * 0.7 + (Math.random() - 0.5), 0.8 + Math.random(), vz * 0.7 + (Math.random() - 0.5), STEAMC, 0.7 + Math.random() * 0.5, 1.4, 0, 0.4); }
     const smoke = D.mode === 'real' ? clamp((0.75 - D.eng) * 2, 0, 1.5) * (0.4 + car.lastThr) : 0; H.smokeT -= dt * smoke * 22;
-    const E = rig.exhaust, ep = E ? (H.exhOff ? E.stub : E.tip) : [0.4, 0.34, Hs.zr - 0.15];
+    const E = rig.exhaust, ep = E ? exPt(E, H.exhOff) : [0.4, 0.34, Hs.zr - 0.15];
     while (H.smokeT < 0) { H.smokeT += 1; _dp.set(ep[0], ep[1], ep[2]).applyMatrix4(M); Particles.spawn(_dp.x, _dp.y, _dp.z, vx * 0.6 - s * 1.5, 0.5, vz * 0.6 - co * 1.5, SMOKEC, 0.9 + Math.random() * 0.6, 1.8, 0, 0.45); }
     this.hud(D);
   },
