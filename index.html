@@ -12670,15 +12670,15 @@ const MechParts = {
   // a point of a part: in a frame (b the body, wN a wheel's upright, sN its turning hub: { f, p }), between two points
   // (mix: { m: [a, b], t }), or a distance along the line from one point to another (along: { l: [a, b], d })
   P: (f, x, y, z) => ({ f, p: [x, y, z] }), mix: (a, b, t) => ({ m: [a, b], t }), along: (a, b, d) => ({ l: [a, b], d }),
-  // which side of an axle its anti-roll bar goes (+1 ahead, -1 behind): away from a diff's nose and the propshaft into it
-  // (behind a front engine's driven rear axle, ahead of a mid or rear engine's - under the engine - and ahead of a front
-  // axle with a diff of its own), else on the cabin's side where there is room (room: how far the cabin is from the axle)
   // the bar's height: at least the steering rack's and the lower arms' level (R - 0.08), over a subframe's rails - which it
   // crosses - where those are as high (a high floor), else no lower than the floor's line
   arbY(R, sub, fl) { return Math.max(R - 0.08, sub ? sub.y1 + 0.025 : (fl || 0) + 0.015); },
   // the steering rack's height: over the bar (whose arms pass under its ends) and over a subframe's rails (its track rods'
   // boots cross them)
   rackY(R, sub, fl, yb) { return Math.max(R - 0.08, sub ? sub.y1 + 0.04 : (fl || 0) + 0.03, yb + 0.05); },
+  // which side of an axle its anti-roll bar goes (+1 ahead, -1 behind): away from a diff's nose and the propshaft into it
+  // (behind a front engine's driven rear axle, ahead of a mid or rear engine's - under the engine - and ahead of a front
+  // axle with a diff of its own), else on the cabin's side where there is room (room: how far the cabin is from the axle)
   arbSide(ai, nose, epos, room) { if (nose) return ai ? (epos === 'front' ? -1 : 1) : 1; const d = ai ? 1 : -1; return room > 0.28 ? d : -d; },
   build(rig, S, D) {
     if (!rig || !rig.wheels || rig.wheels.length !== 4 || (S.cls === 'SP' && !D.covers) || S.tandem) return null;
