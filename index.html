@@ -488,6 +488,15 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
 .dmgw{display:flex;flex-direction:column;gap:3px}
 .dmgw span{font-weight:800;font-size:13px;padding:1px 6px;border-radius:3px;background:rgba(0,0,0,.5);letter-spacing:.03em}
 .dmgw .y{color:#f2c014} .dmgw .o{color:#ff9a3a} .dmgw .r{color:#fff;background:#c4202f}
+.fixp{position:absolute;right:12px;top:calc(var(--st,0px) + 64px);width:min(400px,calc(100% - 24px));max-height:calc(100% - 150px);overflow:auto;pointer-events:auto;background:rgba(13,15,17,.9);color:#fbfbf8;text-shadow:none;border-radius:6px;padding:10px 14px 12px;font-size:14px;line-height:1.35;z-index:7}
+.fixp h3{margin:0 0 4px;font-size:17px}.fixp p{margin:4px 0}.fixp .fno,.fixp .fkeys{opacity:.75;font-size:12.5px}.fixp .fsum{font-weight:700}
+.fixp ul{list-style:none;margin:8px 0;padding:0}.fixp li{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:center;padding:5px 4px;border-radius:4px}
+.fixp li.f{outline:2px solid #f2c94c}.fixp li b{font-variant-numeric:tabular-nums}.fixp input{width:17px;height:17px;margin:0}
+.fixp .bar{height:7px;background:rgba(255,255,255,.18);border-radius:4px;overflow:hidden;margin:6px 0}.fixp .bar i{display:block;height:100%;width:0;background:#f2c94c}
+.fixp .btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;position:sticky;bottom:-12px;background:rgba(13,15,17,.97);padding:6px 0 8px}
+@media (max-height:520px){.fixp{top:52px;max-height:calc(100% - 64px);font-size:13px;padding:8px 12px 10px}.fixp li{padding:3px 4px}.fixp h3{font-size:15px}}.fixp button{flex:1;min-height:38px;border-radius:4px;border:2px solid #fbfbf8;background:transparent;color:#fbfbf8;font-weight:700;font-size:15px}
+.fixp button.fgo{background:#f2c94c;border-color:#f2c94c;color:#121212}
+.fixhint{position:absolute;left:0;right:0;margin-left:auto;margin-right:auto;width:max-content;top:41%;pointer-events:auto;background:rgba(13,15,17,.82);color:#fbfbf8;text-shadow:none;border:2px solid #f2c94c;border-radius:20px;padding:7px 16px;font-weight:800;font-size:16px}
 #dmgDead{top:30%;max-width:min(560px,calc(100% - 24px));text-align:center;font-weight:800;font-size:22px;background:rgba(196,32,47,.9);color:#fff;padding:10px 18px;border-radius:5px;text-shadow:none}
 
 /* the driver display: the front and rear tyres' share of their grip, and the slide (along the bottom, in the middle) */
@@ -1017,6 +1026,8 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     <div class="dmgw"></div>
   </div>
   <div id="dmgDead" hidden></div>
+  <button type="button" id="fixHint" class="fixhint" hidden>Repairs</button>
+  <div id="fixp" class="fixp" hidden role="dialog" aria-label="Repairs on the stage"></div>
   <div id="mpTags" aria-hidden="true"></div>
   <div id="mpStand" class="mpstand" hidden></div>
   <div id="mpReveal" class="mpreveal" hidden></div>
@@ -5857,7 +5868,8 @@ function stepCar(c, S, inp, dt, T, opts) {
     const ax = BK ? (G.front ? BK.F : BK.R) : null, tB = BT[i];
     // (the pads' grip at their temperature: the compound's own at its best, less cold, fading past 650 C)
     const mu = ax ? (padT ? PAD_MU.tarmac * (0.72 + 0.28 * smooth(40, 300, tB)) : PAD_MU.gravel * (0.9 + 0.1 * smooth(40, 180, tB))) * brakeFade(tB) : 0;
-    const Tp = ax ? (G.front ? pF : pR) * ax.tq * mu : bT * (AB ? (G.front ? AB.kF : AB.kR) : 1) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(tB);
+    const bwI = inp.bw ? inp.bw[i] || 0 : 0; // (a stability system's pressure at this caliper alone: see escHelp)
+    const Tp = ax ? Math.max(G.front ? pF : pR, bwI * BRK_P * (S.bpK || 1)) * ax.tq * mu : (bT * (AB ? (G.front ? AB.kF : AB.kR) : 1) + bwI * m * g * SP.brake * R0) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(tB);
     let Tb = Tp + ((wh.ty ? wh.ty.crr : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? 0.16 : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
     // (the hydraulic handbrake: its own master cylinder on the rear calipers, its pads as hot as the discs)
     const Th = G.front ? 0 : ax ? (S.hbT || 1700) * pH * mu / (padT ? PAD_MU.tarmac : PAD_MU.gravel) : (AB ? AB.kP > 0 : hb) ? (S.hbT || 1700) * (AB ? AB.kP : 1) : 0; Tb += Th;
@@ -6570,7 +6582,7 @@ const ROAD_FIXES = [
   // run on to service on its flat tyres)
   { k: 'spare', name: 'Fit the spare wheels', label: D => { const n = D.spares == null ? 4 : D.spares, f = D.w.filter(w => w.flat && !w.off).length; return n >= f ? (f === 1 ? 'Fit the spare wheel' : 'Fit the spare wheels') : `Fit the spare wheel${n > 1 ? 's' : ''}: you carry ${n} for ${f} flat tyres`; },
     need: D => D.w.some(w => w.flat && !w.off) && (D.spares == null || D.spares > 0), mins: D => 4 * Math.min(D.spares == null ? 4 : D.spares, D.w.filter(w => w.flat && !w.off).length),
-    fix: D => { let n = D.spares == null ? 4 : D.spares; for (const w of D.w) if (w.flat && !w.off && n > 0) { w.flat = 0; w.rim = 0; n--; } } },
+    fix: D => { let n = D.spares == null ? 4 : D.spares; for (const w of D.w) if (w.flat && !w.off && n > 0) { w.flat = 0; w.rim = 0; n--; D.spUsed = (D.spUsed || 0) + 1; } } },
   { k: 'tape', name: 'Patch the radiator and top up', need: D => D.rad > 0.05, mins: () => 6, fix: D => { D.rad *= 0.35; D.cool = Math.max(D.cool, 0.85); } },
   { k: 'pull', name: 'Pull the worst bent corner roughly straight', need: D => D.w.some(w => w.arm > 0 && !w.off && (Math.abs(w.toe) > 0.01 || Math.abs(w.cam) > 0.01)), mins: () => 8, fix: D => { const w = D.w.filter(w => w.arm > 0 && !w.off).sort((a, b) => Math.abs(b.toe) + Math.abs(b.cam) - Math.abs(a.toe) - Math.abs(a.cam))[0]; if (w) { w.toe *= 0.3; w.cam *= 0.4; } } }
 ];
@@ -8268,19 +8280,32 @@ const SEALED_KINDS = new Set(['tarmac', 'stone', 'concrete', 'paint', 'steel', '
 const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer', 'slush', 'loose', 'hard', 'dirt', 'powder']);
 
 // ---------- driving help for on/off controls ----------
-// The driving assists, each on or off: ABS, Slide Control, Countersteer Help, Rotation Help and the Technique Guide.
-// They are for driving the way a rally driver does, not the way a circuit racer does: none of them keeps the car from
-// sliding, and none of them drives it. Nothing brakes for a bend, holds the power back for one or steers the car into
-// one, so the throttle alone takes it no further than the first bend. Each helps a move the driver makes come off (a
-// slide held, a slide caught, the car swung round on the handbrake or with a flick), or shows which move a bend wants.
-// The car physics are untouched: the assists shape the driver's inputs (and the guide is drawn on the road and on the
-// screen); with an assist off none of it runs. In the shaping each part has a strength (assistFor: what an assist on
-// sets) and a smoothness (0.5):
-//   ABS (abs): the brakes kept from locking; on gravel and snow the wheels let slip more, so they dig in;
-//   Slide Control (slide, tc, lim): the car let slide as far as it can still be caught on the surface under it (wide on
-//     snow and gravel, small on tarmac: SLIDE_MAX), and the power eased only past that, sooner while the slide grows
-//     fast (a spin starting); the driven wheels let spin enough to drive a slide, not so far past the grip peak that
-//     the car goes; and with keys, a key held into the turn eased off only as the slide nears that angle;
+// The driving assists: Steering Assist, Stability Control, Traction Control and ABS (each off, half or full), and
+// Countersteer Help, Rotation Help and the Technique Guide (each on or off). They are for a driver of any skill: at Full
+// they hold the car near its path as a road car's own systems hold it, at Half they let it slide the way a rally driver
+// slides it and step in only to stop a spin, and off they add nothing. None of them looks at the road ahead: nothing
+// brakes for a bend before it, holds the power back for one or steers the car into one, so the throttle alone takes it
+// no further than the first bend. They answer the car as it is now - its slide, its turning, its wheels' slip - as a
+// real car's electronics answer it. The car physics are untouched: the assists shape the driver's inputs, and Stability
+// Control works the brake of a single wheel as a car's stability system works it (stepCar takes a pressure for each
+// caliper, bw); with an assist off none of it runs. In the shaping each part has a strength (assistFor: what an
+// assist's setting gives) and a smoothness (0.5):
+//   Steering Assist (sa, worked in the steering: see steerFor): keys, touch buttons and a stick ask for a share of the
+//     front tyres' best grip, pointed from the way the front wheels travel, rather than for an angle of the wheels: so
+//     steering never scrubs the front wide at any speed or on any surface, and with no input the front wheels follow
+//     the car's path, as a real car's castor turns them through loose hands, which catches a slide (half: halfway);
+//   Stability Control (esc, with slide and lim): half, the car let slide as far as it can still be caught on the
+//     surface under it (wide on snow and gravel, small on tarmac: SLIDE_MAX), the power eased only past that, sooner
+//     while the slide grows fast (a spin starting), and the front wheel on the outside braked as it goes on past;
+//     full, the slide held to a few degrees (ESC_MAX), the car turning faster than its tyres can turn it braked back
+//     by the outside front wheel, and a car running wide of the bend it is steered into, its front tyres past their
+//     best, turned in by the inside rear wheel and a little less power (see escHelp); and with keys, a key held into
+//     the turn eased off as the slide nears its limit;
+//   Traction Control (tc, tcK): the driven wheels let spin enough to drive the car (half: enough to roost and to hold
+//     a slide), not so far past the grip peak that the car goes; pulling away, the clutch's torque held to what the
+//     tyres take, as launch control holds it;
+//   ABS (abs): the brakes kept from locking; on gravel and snow the wheels let slip more, so they dig in (half: let
+//     nearer locking);
 //   Countersteer Help (csh, lock): when the driver steers against a slide, the front wheels taken to the angle that
 //     catches it - along the car's path and a little past it - more if the driver gave too little, less if too much,
 //     and back as the slide dies, so a caught slide does not throw the car the other way; nothing at all when the
@@ -8291,14 +8316,20 @@ const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer',
 // The old assists, kept for the rallycross crews (stab: the power eased in any big slide; steer: countersteer put on
 // by itself), and the first controls' strengths, are read too. Holding the brake at a standstill still gives a full
 // burnout.
-const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
-// the assists on and off, as the strengths the shaping and the steering work with
+const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, sa: 0, esc: 0, tcK: 1, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
+// an assist's setting as a strength: off 0, half 0.5, full 1 (on, as the on/off assists have it, is full)
+const asLv = v => v === true ? 1 : typeof v === 'number' && isFinite(v) ? clamp(v, 0, 1) : 0;
+// the assists as set, as the strengths the shaping and the steering work with (Slide Control, from before Stability
+// and Traction Control had their levels, is the two at half)
 function assistFor(on) {
   const o = Object.assign({}, ASSIST0), A = on || {};
-  if (A.slide) { o.tc = 1; o.slide = 1; o.lim = 1; }
+  const sc = 'sc' in A ? asLv(A.sc) : A.slide ? 0.5 : 0, tc = 'tc' in A ? asLv(A.tc) : A.slide ? 0.5 : 0;
+  if (sc > 0) { o.slide = 1; o.lim = 1; o.esc = sc; }
+  if (tc > 0) { o.tc = 1; o.tcK = tc >= 1 ? 0.6 : 1; }
   if (A.stab) { o.tc = 1; o.stab = 0.7; o.lim = 1; }
-  if (A.abs) o.abs = 1; if (A.csteer) { o.csh = 1; o.lock = 1; } if (A.steer) { o.cs = 1; o.lock = 1; } if (A.rot) o.rot = 1; if (A.cue || A.line) o.line = 1;
-  o.any = !!(A.slide || A.stab || A.abs || A.csteer || A.steer || A.rot); return o;
+  if (A.abs) o.abs = asLv(A.abs); if (A.csteer) { o.csh = 1; o.lock = 1; } if (A.steer) { o.cs = 1; o.lock = 1; } if (A.rot) o.rot = 1; if (A.cue || A.line) o.line = 1;
+  o.sa = asLv(A.sa);
+  o.any = !!(sc || tc || A.stab || A.abs || A.csteer || A.steer || A.rot); return o;
 }
 // (the old on/off assists, { steer, thr, brk }, as strengths)
 function assistParams(A) {
@@ -8307,12 +8338,13 @@ function assistParams(A) {
   return A;
 }
 // the slide a car can be held in and still caught on each surface, rad (about 17 degrees on tarmac, 36 on gravel, 40
-// on snow, 30 on ice): the wheels on the ground, each by the ground under it
-const SLIDE_MAX = { sealed: 0.3, loose: 0.62, snow: 0.7, ice: 0.52 };
+// on snow, 30 on ice); and the slide full Stability Control holds a car to (about 6 degrees on tarmac, 11 on gravel, 13
+// on snow, 9 on ice): the wheels on the ground, each by the ground under it
+const SLIDE_MAX = { sealed: 0.3, loose: 0.62, snow: 0.7, ice: 0.52 }, ESC_MAX = { sealed: 0.1, loose: 0.19, snow: 0.22, ice: 0.16 };
 const SNOW_KINDS = new Set(['snow', 'snowbank', 'snowlayer', 'slush', 'powder']);
-function slideMax(c) {
-  let s = 0, n = 0; for (const w of c.w) { if (!(w.Fz > 0)) continue; s += SEALED_KINDS.has(w.surf) ? SLIDE_MAX.sealed : w.surf === 'ice' ? SLIDE_MAX.ice : SNOW_KINDS.has(w.surf) ? SLIDE_MAX.snow : SLIDE_MAX.loose; n++; }
-  return n ? s / n : SLIDE_MAX.loose;
+function slideMax(c, M) {
+  M = M || SLIDE_MAX; let s = 0, n = 0; for (const w of c.w) { if (!(w.Fz > 0)) continue; s += SEALED_KINDS.has(w.surf) ? M.sealed : w.surf === 'ice' ? M.ice : SNOW_KINDS.has(w.surf) ? M.snow : M.loose; n++; }
+  return n ? s / n : M.loose;
 }
 function driveHelp(c, S, I, H, dt, A, T) {
   A = assistParams(A);
@@ -8321,22 +8353,23 @@ function driveHelp(c, S, I, H, dt, A, T) {
   // (how fast the slide grows, rad/s, smoothed: a spin starting grows it fast)
   { const g = H.b0 == null ? 0 : (ab - H.b0) / dt; H.b0 = ab; H.db = (H.db || 0) + (g - (H.db || 0)) * Math.min(1, dt / 0.06); }
   let cap = 1, clu = 1, ct = null; // (ct: the most torque the clutch may pass pulling away, N m; see below)
-  const bm = A.slide > 0 && c.w ? slideMax(c) : 0; H.bm = bm;
+  const full = A.esc >= 1, bm = A.slide > 0 && c.w ? slideMax(c, full ? ESC_MAX : SLIDE_MAX) : 0; H.bm = bm;
   if ((A.stab > 0 || A.slide > 0 || A.tc > 0) && !I.handbrake && c.gear > 0 && c.w) {
-    // Slide Control: the power eased only once the slide goes past what can be caught here, sooner while it grows fast;
+    // Stability Control (half; and full, at its smaller slide): the power eased only once the slide goes past what can be
+    // caught here, sooner while it grows fast;
     // the old stability: once the car slides well past a drift angle (weaker: later)
-    if (A.slide > 0) { const at = bm * (1 - 0.3 * smooth(0.5, 1.8, H.db)); cap = 1 - A.slide * fast * smooth(at, at + 0.22, ab); }
+    if (A.slide > 0) { const at = bm * (1 - 0.3 * smooth(0.5, 1.8, H.db)), wd = full ? 0.7 * bm : 0.22; cap = 1 - A.slide * fast * smooth(at, at + wd, ab); }
     else if (A.stab > 0) { const lo = 0.3 + 0.35 * (1 - A.stab); cap = 1 - A.stab * fast * smooth(lo, lo + 0.32 * (0.5 + A.stabM), ab); }
     // let the driven wheels spin enough to roost and slide, but not so far past the grip peak that the car loses the rear
-    // (more spin is allowed with the wheel straight than mid-corner, and with Slide Control more while the car slides, so
+    // (more spin is allowed with the wheel straight than mid-corner, and with Stability Control at half more while the car slides, so
     // the power holds a slide; studs on snow and ice, like rubber on tarmac, grip best at a small slip and are let slip
     // less; a weaker traction control lets them spin more); holding the brake at a standstill is a burnout, so that is
     // left alone. Pulling away, it holds the clutch's torque down the way launch control does (trimming the throttle
     // there would drop the engine off the clutch's bite point and make the car shuffle); once rolling it trims the
     // throttle. An automatic has no clutch to work: its throttle is trimmed from the start
     if (A.tc > 0 && !(I.brake > 0.5 && au < 2)) {
-      let ex = -1; const held = A.slide > 0 ? 1 + 0.9 * smooth(0.06, 0.25, ab) : 1;
-      for (let i = 0; i < 4; i++) { const w = c.w[i]; if (w.Fz <= 0 || !(i < 2 ? S.fs > 0 : S.fs < 1)) continue; const loose = !SEALED_KINDS.has(w.surf) && w.surf !== 'ice' && w.surf !== 'snow'; const allow = (loose ? Math.max(2.5, 0.3 * au) : Math.max(1.5, 0.15 * au)) * (1 + 0.45 * (1 - Math.min(1, Math.abs(I.steer) * 2.5))) * (1 + 2.5 * (1 - A.tc)) * held; ex = Math.max(ex, (w.slipL - allow) / allow); }
+      let ex = -1; const held = A.slide > 0 && !full ? 1 + 0.9 * smooth(0.06, 0.25, ab) : 1;
+      for (let i = 0; i < 4; i++) { const w = c.w[i]; if (w.Fz <= 0 || !(i < 2 ? S.fs > 0 : S.fs < 1)) continue; const loose = !SEALED_KINDS.has(w.surf) && w.surf !== 'ice' && w.surf !== 'snow'; const allow = (loose ? Math.max(2.5, 0.3 * au) : Math.max(1.5, 0.15 * au)) * (1 + 0.45 * (1 - Math.min(1, Math.abs(I.steer) * 2.5))) * (1 + 2.5 * (1 - A.tc)) * (A.tcK || 1) * held; ex = Math.max(ex, (w.slipL - allow) / allow); }
       // (a turbo without anti-lag drops off its boost once the revs fall to the road speed, and the car bogs; with one of
       // those it goes on trimming the clutch in first gear, as when pulling away, until first alone holds the engine at
       // the top of the turbo's spool)
@@ -8355,6 +8388,8 @@ function driveHelp(c, S, I, H, dt, A, T) {
       cap = Math.min(cap, 1 - 0.85 * cut * (1 - launch));
     }
   }
+  // Stability Control's brakes (and the power it takes back running wide)
+  if (A.esc > 0 && c.w) cap = Math.min(cap, escHelp(c, S, I, H, A, dt, bm, beta, sp, fast)); else if (H.bwOn) { H.bw.fill(0); H.bwOn = false; }
   const kT = 1.5 - A.tcM; // (smoother: the power cut and given back more slowly)
   H.thr += (cap - H.thr) * Math.min(1, dt * (cap < H.thr ? 30 : 5) * kT);
   H.clu += (clu - H.clu) * Math.min(1, dt * (clu < H.clu ? 30 : 4) * kT);
@@ -8375,7 +8410,37 @@ function driveHelp(c, S, I, H, dt, A, T) {
   // (traction control trims the torque, not the pedal: at low revs a little throttle gives most of the torque, see throttleShare)
   let hb = I.handbrake, thr = I.throttle * H.thr; if (H.thr < 0.999 && I.throttle > 0.02 && c.rpm > 0) { const sh = throttleShare(S, c.rpm, I.throttle); if (sh > 0) thr = throttleFor(S, c.rpm, sh * H.thr); }
   if (A.rot > 0) { hb = hbHelp(c, I, H, T, sp); thr *= flickHelp(c, I, H, T, dt, sp, A.rot); }
-  return { steer, throttle: thr, brake: I.brake * H.brk, handbrake: hb, auto: I.auto, clutch: H.clu, clutchT: ct, req: I.req };
+  return { steer, throttle: thr, brake: I.brake * H.brk, handbrake: hb, auto: I.auto, clutch: H.clu, clutchT: ct, req: I.req, bw: H.bwOn ? H.bw : null };
+}
+// Stability Control's brakes: a wheel braked on its own, as a car's stability system brakes it, and the power it takes
+// back. Half: the front wheel on the outside braked once a slide goes past what can be caught there (sooner while it
+// grows fast), to stop a spin. Full: that against a slide past a few degrees and against the car turning faster than
+// its tyres can turn it at this speed; and with the front tyres past their best while the driver steers into a bend
+// the car is not turning into enough, the inside rear wheel, which turns it in, and some of the power. Never while the
+// handbrake turns the car or just after; a wheel the brake would lock is let off. Gives the share of the power left; H.bw
+// is each caliper's pressure (a share of the most the brakes take), H.bwOn whether any is on
+function escHelp(c, S, I, H, A, dt, bm, beta, sp, fast) {
+  const bw = H.bw || (H.bw = [0, 0, 0, 0]), full = A.esc >= 1, want = [0, 0, 0, 0]; let cap = 1, n = 0;
+  H.hbAgo = I.handbrake ? 0 : (H.hbAgo != null ? H.hbAgo : 9) + dt;
+  for (const w of c.w) if (w.Fz > 0) n++;
+  if (c.u > 4 && n >= 3 && H.hbAgo > 0.8 && bm > 0) {
+    const ab = Math.abs(beta), r = c.r; let mu = 0, q = 0; for (const w of c.w) if (w.Fz > 0) { mu += w.muPk || 0.9; q++; } mu = q ? mu / q : 0.9;
+    const rMax = (full ? 1.05 : 1.15) * 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 4), spin = beta * r < 0 ? 1 : 0.3;
+    const over = Math.max(smooth(0, 1, (ab - bm) / Math.max(0.05, 0.6 * bm) + (full ? 0.5 : 0.25) * Math.max(0, H.db || 0)) * spin, full ? smooth(0, 1, (Math.abs(r) - rMax) / (0.6 * rMax)) : 0);
+    if (over > 0) want[r > 0 ? 1 : 0] = over * (full ? 0.8 : 0.4) * fast; // (turning left too fast: the right front, which turns it right)
+    // (running wide: steered hard into the bend, the front tyres at their grip - or past it - and the rear's to spare, the
+    // car turning well short of what the grip could turn it at this speed. The inside rear wheel braked turns it in, the
+    // outside one a little, to take off speed, and the power eased)
+    if (full && I.req) {
+      const rf = ((c.w[0].Fz > 0 ? c.w[0].rho || 0 : 0) + (c.w[1].Fz > 0 ? c.w[1].rho || 0 : 0)) / 2, rr = ((c.w[2].rho || 0) + (c.w[3].rho || 0)) / 2, dir = Math.sign(I.req), rL = 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 4);
+      const under = Math.abs(I.req) > 0.5 && dir * r > -0.05 && rf > 0.8 && rr < rf - 0.1 && over < 0.05 ? Math.max(smooth(0.95, 0.7, Math.abs(r) / rL), smooth(1.05, 1.4, rf)) : 0;
+      if (under > 0) { const k = dir > 0 ? 2 : 3; want[k] = Math.max(want[k], 0.4 * under * fast); want[5 - k] = Math.max(want[5 - k], 0.15 * under * fast); cap = 1 - 0.7 * under * fast; }
+    }
+  }
+  let any = false;
+  for (let i = 0; i < 4; i++) { const w = c.w[i], lk = w.Fz > 0 && c.u > 1 && w.slipL / c.u < -0.15, t = want[i] * (lk ? 0.4 : 1);
+    bw[i] += (t - bw[i]) * Math.min(1, dt * (t > bw[i] ? 25 : 8)); if (bw[i] < 0.004) bw[i] = 0; else any = true; }
+  H.bwOn = any; return cap;
 }
 // Countersteer Help: the driver's steer (share of lock) against a slide - the car rotating one way and sliding out the
 // other, the wheels turned against its rotation - taken toward the angle that catches it: the front axle's path across
@@ -8791,7 +8856,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'CE98';
+const SR86_BUILD = 'E51D';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -21410,11 +21475,11 @@ const inp = { steer: 0, throttle: 0, brake: 0, handbrake: false, auto: true, req
 const DEVS = ['keyboard', 'touch', 'gamepad', 'wheel'], DEV_NAME = { keyboard: 'Keyboard', touch: 'Touch', gamepad: 'Gamepad', wheel: 'Wheel and pedals' };
 const ACTIONS = [['left', 'Steer left'], ['right', 'Steer right'], ['gas', 'Throttle'], ['brake', 'Brake'], ['hb', 'Handbrake'], ['more', 'More lock (held with a steer key)'],
   ['reset', 'Recover'], ['cam', 'Change camera'], ['look', 'Look back (held)'], ['pause', 'Pause'], ['level', 'Next assists preset'], ['voice', 'Co-driver voice on or off'], ['lights', 'Lights'], ['fog', 'Fog lamps'],
-  ['gearbox', 'Manual gears on or off'], ['up', 'Shift up'], ['down', 'Shift down'], ['horn', 'Horn (in a race against friends)'], ['flash', 'Flash the headlights'], ['rewind', 'Flashback']];
-const KEYS_DEF = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], gas: ['ArrowUp', 'KeyW'], brake: ['ArrowDown', 'KeyS'], hb: ['Space'], more: ['ShiftLeft', 'ShiftRight'], reset: ['KeyR'], cam: ['KeyC'], look: ['KeyX'], pause: ['Escape'], level: ['KeyH'], voice: ['KeyV'], lights: ['KeyL'], fog: ['KeyF'], gearbox: ['KeyM'], up: ['KeyE'], down: ['KeyQ'], horn: ['KeyB'], flash: ['KeyN'], rewind: ['Backspace'] };
+  ['gearbox', 'Manual gears on or off'], ['up', 'Shift up'], ['down', 'Shift down'], ['horn', 'Horn (in a race against friends)'], ['flash', 'Flash the headlights'], ['rewind', 'Flashback'], ['fix', 'Repairs (stopped on a stage)']];
+const KEYS_DEF = { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], gas: ['ArrowUp', 'KeyW'], brake: ['ArrowDown', 'KeyS'], hb: ['Space'], more: ['ShiftLeft', 'ShiftRight'], reset: ['KeyR'], cam: ['KeyC'], look: ['KeyX'], pause: ['Escape'], level: ['KeyH'], voice: ['KeyV'], lights: ['KeyL'], fog: ['KeyF'], gearbox: ['KeyM'], up: ['KeyE'], down: ['KeyQ'], horn: ['KeyB'], flash: ['KeyN'], rewind: ['Backspace'], fix: ['KeyT'] };
 // (a gamepad's controls: b7 its button 7, a0 its axis 0, a2+ the positive half of axis 2; in the standard layout the left
 // stick steers and the triggers are the pedals)
-const PAD_DEF = { steer: 'a0', gas: ['b7'], brake: ['b6'], hb: ['b0', 'b2'], more: [], reset: ['b3'], cam: ['b5'], look: ['b11'], pause: ['b9'], level: [], voice: [], lights: [], fog: [], gearbox: [], up: [], down: [], horn: ['b1'], flash: ['b4'], rewind: ['b8'] };
+const PAD_DEF = { steer: 'a0', gas: ['b7'], brake: ['b6'], hb: ['b0', 'b2'], more: [], reset: ['b3'], cam: ['b5'], look: ['b11'], pause: ['b9'], level: [], voice: [], lights: [], fog: [], gearbox: [], up: [], down: [], horn: ['b1'], flash: ['b4'], rewind: ['b8'], fix: ['b10'] };
 // what the driver feels, for every controller: the driver display (on, only near the limit, off), the tyres' sound at the
 // limit, the chase camera showing a slide and the car's dive and squat, and the rumble (each a strength, 0-1)
 const FEEL_DEF = { disp: 'on', notes: 'icons', cue: 0.6, cam: 0.6, pitch: 0.5, rumble: 0.8 };
@@ -21457,9 +21522,9 @@ const Ctl = {
   p(d) { if (!this.ok) this.load(); return this.prof[d || this.dev]; },
   use(d) { if (!this.ok) this.load(); if (d === this.dev) return; this.dev = d; this.save(); if (G.state === 'menu') renderDriving(); if (ControlsUI.ov && !ControlsUI.ov.hidden) ControlsUI.render(); },
   // the preset: the player's pick, else the controller in use's
-  level() { if (!this.ok) this.load(); return this.drive.level || (this.dev === 'wheel' ? 'advanced' : 'intermediate'); },
+  level() { if (!this.ok) this.load(); return this.drive.level || (this.dev === 'wheel' ? 'advanced' : 'casual'); },
   // the assists driven with (each 1 on, 0 off): the preset's, or the player's own mix
-  assist() { const lv = this.level(); return Object.assign({}, PRESETS.advanced.as, lv === 'custom' ? this.drive.as : (PRESETS[lv] || PRESETS.intermediate).as); },
+  assist() { const lv = this.level(); return Object.assign({}, PRESETS.advanced.as, lv === 'custom' ? asNow(this.drive.as) : (PRESETS[lv] || PRESETS.intermediate).as); },
   kindOf(gp) { if (!this.ok) this.load(); const k = this.kinds[gp.id]; return k === 'wheel' || k === 'gamepad' ? k : /wheel|racing|pedal/i.test(gp.id) ? 'wheel' : 'gamepad'; },
   reset(d) { this.prof[d] = ctlDefault(d); this.save(); }
 };
@@ -21485,6 +21550,7 @@ addEventListener('keydown', e => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
   if (ControlsUI.listen) { ControlsUI.onKey(e); return; } // (a key being bound in the controls)
   if (G.state === 'replay') { if (!e.repeat || /^Arrow/.test(e.code)) { if (Replay.key(e)) e.preventDefault(); } else if (e.code === 'Space') e.preventDefault(); return; } // (the replay's own keys)
+  if (Fix.open && !isKey(e, 'fix') && Fix.key(e)) { e.preventDefault(); return; } // (the repairs panel's own keys)
   keys[e.code] = true;
   const drive = G.state !== 'menu';
   if (drive && ['left', 'right', 'gas', 'brake', 'hb'].some(a => isKey(e, a))) Ctl.use('keyboard');
@@ -21503,6 +21569,7 @@ addEventListener('keydown', e => {
     if (isKey(e, 'down')) shiftDown();
     if (isKey(e, 'flash')) CarLights.flashOn();
     if (isKey(e, 'rewind') && G.state === 'run') Flash.open();
+    if (isKey(e, 'fix') && G.state === 'run') Fix.toggle();
     // (a race against friends: a quick reaction on 1 to 6; and, watching the others, the steer keys pick whom)
     if (MP.game && /^Digit[1-6]$/.test(e.code)) MP.react(+e.code.slice(5) - 1);
     if (MP.watchOn) { if (isKey(e, 'left')) MP.watchStep(-1); else if (isKey(e, 'right')) MP.watchStep(1); }
@@ -21551,6 +21618,8 @@ function pollInput(dt) {
     for (let i = 0; i < gp.axes.length; i++) { const v = gp.axes[i] || 0; if (mine) R[i] = v; else { if (Math.abs(v - (R[i] || 0)) > 0.35) took = true; R[i] = (R[i] || 0) + (v - (R[i] || 0)) * Math.min(1, dt * 1.5); } }
     const on = a => (B[a] || []).some(b => bindVal(gp, b) > 0.5), edge = a => (Array.isArray(B[a]) ? B[a] : []).some(b => b[0] === 'b' && padBtn(gp, parseInt(b.slice(1), 10)) > 0.5 && !padPrev[b]);
     padHorn = on('horn');
+    // (the repairs: opened with their button, and the panel worked with the d-pad and face buttons)
+    if (!ControlsUI.listen && G.state === 'run') { if (Fix.open) Fix.pad(gp); else if (edge('fix')) Fix.toggle(); }
     // (the d-pad's four quick reactions in a race against friends)
     if (!ControlsUI.listen && (G.state === 'run' || G.state === 'countdown')) { if (edge('flash')) CarLights.flashOn(); if (MP.game) { const db = i => padBtn(gp, i) > 0.5 && !padPrev['b' + i]; if (db(15)) MP.react(0); if (db(12)) MP.react(1); if (db(13)) MP.react(2); if (db(14)) MP.react(3); } }
     if (!ControlsUI.listen && (G.state === 'run' || G.state === 'countdown')) { if (edge('reset')) resetCar(); if (edge('cam')) camNext(); if (edge('pause')) togglePause(); if (edge('level')) cycleLevel(); if (edge('voice')) toggleVoice(); if (edge('lights')) CarLights.cycle(); if (edge('fog')) CarLights.cycleFog(); if (edge('gearbox')) toggleGearbox(); if (edge('up')) shiftUp(); if (edge('down')) shiftDown(); if (edge('rewind') && G.state === 'run') Flash.open(); }
@@ -21571,8 +21640,8 @@ function pollInput(dt) {
   // One part of it is an assist: easing a held steer key as a slide nears the most that can be caught goes with Slide
   // Control
   const ST = P.steer, run = G.run && G.state !== 'menu' ? G.run : null, A = run ? run.as : assistFor(Ctl.assist());
-  inp.sp = { grip: ST.mode === 'grip', analog: useA, more, hb, tgt: ST.tgt, speed: ST.speed, ret: ST.ret, sens: ST.sens, range: useA ? 1 : ST.range, lim: A.lim, slide: A.slide };
-  inp.grip = inp.sp.grip && !useA && !more;
+  inp.sp = { grip: ST.mode === 'grip', analog: useA, more, hb, tgt: ST.tgt, speed: ST.speed, ret: ST.ret, sens: ST.sens, range: useA ? 1 : ST.range, lim: A.lim, slide: A.slide, sa: dev === 'wheel' ? 0 : A.sa || 0, esc: A.esc || 0, wheel: dev === 'wheel' };
+  inp.grip = inp.sp.grip && (!useA || inp.sp.sa > 0 && dev !== 'wheel') && !more; // (grip steering, a stick's with Steering Assist: no lock trimmed at speed, see driveHelp)
   // the horn, held (a race against friends: heard by the others)
   if (MP.game) MP.hornHeld(kb('horn') || !!touch.horn || padHorn);
   rumble(dt, gp);
@@ -21600,6 +21669,7 @@ function bindTouch() {
     b.addEventListener('pointerup', e => end(e, true)); b.addEventListener('pointercancel', e => end(e, false));
     b.addEventListener('click', () => { if (performance.now() - at < 1500) return; next(); }); }
   tapBtn($('#tPause'), () => togglePause());
+  tapBtn($('#fixHint'), () => Fix.toggle());
   tapBtn($('#tFlash'), () => { if (G.state === 'run') Flash.open(); });
   touchLayout();
 }
@@ -21978,7 +22048,7 @@ function startRun() {
   Duel.drop(); SSFlags.reset(); if (G.T.sss) { const dz = G.rally && Rally.cur && Rally.cur.duel; if (dz) Duel.init(G.T, dz.S, dz.t, dz.inc, dz.name);
     else { const cls = rivalCls(G.spec), pool = stockOf(cls).filter(S => S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
       Duel.init(G.T, S, stagePace(G.T, S, G.T.wet || 0).t * (RALLY_PACE[G.T.surface] || 1.35) * 0.95 * rivalCarK(G.T, G.T.wet || 0, G.spec, RALLY_LVL.national), null, 'The other car'); } } // (its car, against a build, tuned toward the build's pace)
-  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); if (G.run.as.line && !G.T.loop) Moves.plan(G.T, G.phys); else Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
+  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); if (G.run.as.line && !G.T.loop) Moves.plan(G.T, G.phys); else Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
   Particles.clear(); CrowdFx.reset(); crowdReset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1; HELP.cs = 0; inp.kThr = 0; inp.kBrk = 0;
@@ -22003,8 +22073,176 @@ function mpResetBlock(c) {
   const I = c.info, off = !!I && Math.abs(I.lat) > I.w / 2 + 1, water = !!c.flooded || (c.deep || 0) > 0.3;
   return off || water || (G.stopT || 0) >= MP_RESET_STOP ? '' : 'Reset is for a car that is stuck, stopped or off the road';
 }
+// ---------- repairs on the stage ----------
+// A crew stopped on a stage mends what two people can there with what a rally car carries - its spare wheels, a jack
+// and wheel brace, a tool roll (a club hammer, a bar, spanners), tape, cable ties, ratchet straps and wire, a tube of
+// epoxy putty, a litre of oil, their drinking water and drinks - and with what is at hand: the spectators' beer, a
+// stream. Each job takes the time two people take over it, and the stage clock counts all of it (the work is shown
+// FIX_LAPSE times as fast); the throttle, or the repair key again, puts them back in the car with the job in hand
+// left. What needs a workshop - the gearbox, a driveshaft, the engine itself, the fan - waits for service. The car is
+// mended where it stands, stopped and on its wheels; in a race against friends the others see it with the corner being
+// worked on jacked up and its wheel off (rp), and its body as the crew leave it. With damage off there is nothing to mend.
+const FIX_LAPSE = 6, COOL_L = 7; // (the work shown this many times as fast; a rally car's cooling system, litres)
+const fixT = s => { s = Math.round(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+// the time added to a stage's clock, as its result says it: the penalties (recoveries, cuts) and the repairs on the stage
+function penParts() { const fx = G.penFix || 0, cut = G.penCut || 0, all = Math.round(G.penalty - fx * (FIX_LAPSE - 1) / FIX_LAPSE); return { fx, cut, rec: Math.max(0, all - cut), all }; }
+// the jobs this car wants now, as the crew can do them here: each { k, t (what is done), s (seconds), at (the corner
+// worked at, else -1), on (ticked to start with), fix }. X: what is to hand (see Fix.ctx)
+function stageFixes(c, X) {
+  const D = c.dmg, real = D.mode === 'real', H = X.H, E = X.E, L = [], add = (k, t, s, at, on, fix) => L.push({ k, t, s: Math.round(s), at, on, fix });
+  const hot = real && D.temp > 102 ? 60 : 0, sp = X.spares; let spN = sp; // (a boiling radiator left a minute to cool before its cap comes off)
+  const strap = w => { w.arm = 0.25; w.toe *= 0.35; w.cam *= 0.4; }, fit = (i, w) => { w.flat = 0; w.rim = 0; D.spUsed = (D.spUsed || 0) + 1;
+    if (w.off) { w.off = 0; const m = G.mesh, Hm = m && m.dv; if (Hm && Hm.lost) { Hm.lost[i] = 0; const wm = m.wheels[i]; if (wm) { wm.w.scale.setScalar(1); if (wm.w2) wm.w2.scale.setScalar(1); } } } };
+  if (real) for (let i = 0; i < 4; i++) { const w = D.w[i], nm = CORNER[i], br = w.arm <= 0, tyre = w.flat || w.rim > 0.15 || w.off;
+    if (br) { if (tyre && spN > 0) { spN--; add('w' + i, `Strap up the broken ${nm} corner and fit the spare`, w.off ? 300 : 260, i, true, () => { strap(w); fit(i, w); }); }
+      else if (!w.off) add('s' + i, `Strap up the broken ${nm} corner with the ratchet straps and wire`, 180, i, true, () => strap(w)); }
+    else { if (tyre && spN > 0) { spN--; add('w' + i, `Fit the spare: ${nm} (${w.flat ? 'puncture' : 'bent rim'})`, 100, i, true, () => fit(i, w)); }
+      if (Math.abs(w.toe) > 0.008 || Math.abs(w.cam) > 0.012) add('p' + i, `Lever the bent ${nm} suspension roughly straight`, 90, i, true, () => { w.toe *= 0.3; w.cam *= 0.4; w.arm = Math.min(1, w.arm + 0.1); }); } }
+  if (real && (D.steer.lock < 0.99 || Math.abs(D.steer.off) > 0.004)) add('rack', 'Hammer the bent steering arm back near straight', 100, -1, true, () => { D.steer.off *= 0.35; D.steer.lock += (1 - D.steer.lock) * 0.6; });
+  const water = E && E.cool === 'water';
+  if (real && water && D.rad > 0.05) add('tape', 'Patch the holed radiator with tape and epoxy putty', 90, -1, true, () => { D.rad = D.rad * 0.3 < 0.03 ? 0 : D.rad * 0.3; });
+  if (real && water && D.cool < 0.96) {
+    // (any liquid will do for the road to service: beer is nearly all water. The first to hand is ticked)
+    const lo = (1 - D.cool) * COOL_L, srcs = [];
+    if (X.stream) srcs.push(['cs', `Fetch water from the stream ${X.stream} m away to fill the radiator`, 160, () => { D.cool = 1; }]);
+    if (X.crowd) srcs.push(['cb', `Fill the radiator with the spectators’ beer`, 140, () => { D.cool = 1; }]);
+    if (!X.used.has('cw')) srcs.push(['cw', `Pour your drinking water into the radiator (2 of the ${lo.toFixed(1)} litres it is down)`, 45, () => { D.cool = Math.min(1, D.cool + 2 / COOL_L); X.used.add('cw'); }]);
+    if (!X.used.has('cd')) srcs.push(['cd', 'Pour your drinks into the radiator (a litre)', 35, () => { D.cool = Math.min(1, D.cool + 1 / COOL_L); X.used.add('cd'); }]);
+    srcs.forEach(([k, t, s, fix], n) => add(k, t + (hot ? ', once it is cool enough to open' : ''), s + hot, -1, n === 0, fix)); }
+  if (real && (D.sump > 0.02 || D.oil < 0.9)) add('oil', D.sump > 0.02 ? 'Plug the holed sump with putty and pour in the spare litre of oil' : 'Pour in the spare litre of oil', D.sump > 0.02 ? 150 : 40, -1, true, () => { D.sump = D.sump * 0.25 < 0.01 ? 0 : D.sump * 0.25; D.oil = Math.min(1, D.oil + 1 / 4.5); });
+  if (real && D.turbo < 0.95 && E && E.blown) add('boost', 'Push the boost hose back on and tape the split intercooler pipe', 75, -1, true, () => { D.turbo = Math.max(D.turbo, D.crack ? 0.75 : 0.92); });
+  if (real && c.es && c.es.run === 'lock' && !D.drowned) add('plugs', 'Pull the spark plugs and crank the water out of the cylinders', 120, -1, true, () => engineRecover(c));
+  // the body: the deepest dents knocked back out by hand, boot and hammer (roughly: about half their depth stays)
+  const deep = D.dents.filter(d => d.d > 0.035).sort((a, b) => b.d - a.d).slice(0, 8);
+  if (deep.length) add('dent', `Knock out the worst dents (${deep.length})`, clamp(30 + 15 * deep.length, 45, 150), -1, false, () => { const set = new Set(deep);
+    D.dents = D.dents.map(d => set.has(d) ? Object.assign({}, d, { d: d.d * 0.45 }) : d); D.aero = (D.aero || 0) * 0.5; D.ver++; });
+  const loose = H && H.panels ? H.panels.filter(Q => Q.st === 'loose') : [];
+  if (loose.length) add('panel', `Strap down the loose ${loose.length > 1 ? 'panels' : 'panel'} (${loose.length})`, 30 * loose.length, -1, true, () => { for (const Q of loose) if (Q.st === 'loose') { Q.st = 'jam'; Q.th = 0.03; CarDmg.panelPose(Q); } });
+  if (H && H.broken && H.broken.ws && !H.wsOut) add('ws', 'Kick out the smashed windscreen', 45, -1, true, () => CarDmg.screenOut(G.mesh, false));
+  if (H && H.exhOff && !H.exhWired) add('exh', 'Wire the broken exhaust back up', 60, -1, false, () => { H.exhWired = true; Snd.exhaustOpen(false); });
+  return L;
+}
+// what waits for service, said in the panel
+function stageNoFix(D) { if (D.mode !== 'real') return []; const L = [];
+  if (D.box < 0.99 || D.lost.length) L.push('the gearbox'); if (!D.shaft.f || !D.shaft.r) L.push('a broken driveshaft'); if (D.eng < 0.97 || D.drowned) L.push('the engine'); if (D.fan) L.push('the radiator fan'); return L; }
+// the crew's work as the car shows it (rp: [the corner worked at, 0 none / 1 jacked up / 2 its wheel off]): the body
+// lifted at that corner, turning about the corner opposite as a jack lifts it, and the wheel lifted clear, or off
+function fixPose(m, rp, KW) {
+  if (!m || !m.tilt) return; const U = m.tilt.userData; if (U.y0 == null) U.y0 = m.tilt.position.y;
+  const i = rp && rp[1] > 0 ? rp[0] : -1, prev = m.fixW;
+  if (prev != null && prev !== i) { const w = m.wheels[prev], lost = m.dv && m.dv.lost && m.dv.lost[prev]; if (w && !lost) { w.w.scale.setScalar(1); if (w.w2) w.w2.scale.setScalar(1); } m.fixW = null; }
+  if (i < 0 || !KW || !KW[i]) { if (m.tilt.position.y !== U.y0) m.tilt.position.y = U.y0; return; }
+  const h = 0.12, lx = Math.abs(KW[i].lx) > 0.2 ? KW[i].lx : 0.75, lz = Math.abs(KW[i].lz) > 0.2 ? KW[i].lz : 1.2;
+  m.tilt.rotation.set(-h / (4 * lz), 0, h / (4 * lx)); m.tilt.position.y = U.y0 + h / 2;
+  const w = m.wheels[i]; if (!w) return; const off = rp[1] === 2 || (m.dv && m.dv.lost && m.dv.lost[i]); w.piv.position.y += h * 0.8; w.w.scale.setScalar(off ? 1e-3 : 1); if (w.w2) w.w2.scale.setScalar(off ? 1e-3 : 1); m.fixW = i;
+}
+const Fix = {
+  open: false, busy: null, list: [], f: 0, used: new Set(), still: 0, hintT: 0, hasJobs: false, rp: null, pp: {},
+  on() { return this.open || !!this.busy; },
+  kn() { const pad = Ctl.dev === 'gamepad', b = (Ctl.p(pad ? 'gamepad' : 'keyboard').bind.fix || [])[0]; return pad ? (b === 'b10' ? 'L3' : 'the repairs button') : b ? keyName(b) : 'T'; },
+  reset() { G.penFix = 0; this.open = false; this.busy = null; this.used = new Set(); this.still = 0; this.hasJobs = false; this.pub(null); const e = $('#fixp'); if (e) e.hidden = true; const h = $('#fixHint'); if (h) h.hidden = true; },
+  // what is to hand: the spares left, the engine's cooling, the car's panels and glass, spectators near, a stream near
+  ctx(c) {
+    const S = G.phys || G.spec, D = c.dmg, cr = Crowd.C && Crowd.C.list ? Crowd.C.list.some(o => !o.kid && Math.hypot(o.x - c.x, o.z - c.z) < 70) : false;
+    let st = 0; if (G.T && G.T.wcs) for (const r of [30, 60, 100]) if (wcLevelAt(G.T, c.x, c.z, r, 5) !== null) { st = r; break; }
+    return { spares: Math.max(0, sparesOf(G.spec) - (D.spUsed || 0)), E: engLayout(S), H: G.mesh && G.mesh.dv, crowd: cr, stream: st, used: this.used };
+  },
+  // why the crew cannot get out now ('' if they can; 'no' for nothing worth saying)
+  can(c) {
+    if (G.state !== 'run' || G.finished || G.paused || G.mpMenu || RX.on || !c || !c.dmg || c.dmg.mode === 'off') return 'no';
+    if (Math.hypot(c.u, c.v) > 0.8) return 'Stop the car to make repairs';
+    if (c.over || c.stuck) return 'Get back on your wheels first (Recover)';
+    return '';
+  },
+  toggle() {
+    if (this.busy) { this.stop(); return; } if (this.open) { this.close(); return; }
+    const c = G.car, why = this.can(c); if (why) { if (why !== 'no') flash(why); return; }
+    this.list = stageFixes(c, this.ctx(c)); if (!this.list.length) { flash('Nothing the crew can mend here'); return; }
+    this.open = true; this.f = 0; this.draw(true);
+  },
+  close() { this.open = false; const e = $('#fixp'); if (e) e.hidden = true; this.inGear(); },
+  // (held on its brakes in neutral while the crew were out: an automatic back in first, ready to go)
+  inGear() { const c = G.car; if (c && c.gear === 0 && inp.auto !== false && !this.busy) c.gear = 1; },
+  start() {
+    const L = this.list.filter(j => j.on); if (!L.length) { this.close(); return; }
+    this.open = false; this.busy = { L, i: 0, t: 0, tot: L.reduce((s, j) => s + j.s, 0), done: 0, armed: false, ph: -1 };
+    if (G.steerSt) G.steerSt = steerState(); this.draw(true); flash(`Repairs: ${fixT(this.busy.tot)} on the clock`);
+  },
+  // the crew back in the car: the jobs done stay done, the one in hand is left
+  stop(quiet) {
+    const B = this.busy; if (!B) return; this.busy = null; this.pub(null); this.draw(true); this.inGear();
+    if (!quiet) flash(B.i >= B.L.length ? `Repairs done: ${fixT(B.tot)} on the clock` : `Back in the car: ${B.i} of ${B.L.length} jobs done`);
+  },
+  // every frame: the work going on, the clock counting all of it
+  step(dt) {
+    const B = this.busy; if (!B || !(dt > 0)) return;
+    if (G.state !== 'run' || G.finished || !G.car || !G.car.dmg) { this.stop(true); return; }
+    if (!B.armed) B.armed = !(inp.throttle > 0.1); else if (inp.throttle > 0.5) { this.stop(); return; }
+    const j = B.L[B.i], k = FIX_LAPSE; G.penalty += dt * (k - 1); G.penFix = (G.penFix || 0) + dt * k; B.t += dt * k;
+    // (a wheel's job: the corner jacked up, its wheel off from a quarter of the way through to the last fifth)
+    const wj = j.k[0] === 'w', ph = j.at < 0 ? 0 : wj && B.t > 0.25 * j.s && B.t < 0.8 * j.s ? 2 : 1, rp = j.at < 0 ? null : [j.at, ph];
+    if (B.ph !== (rp ? rp[0] * 4 + rp[1] : -1)) { B.ph = rp ? rp[0] * 4 + rp[1] : -1; this.pub(rp); }
+    if (B.t >= j.s) {
+      const D = G.car.dmg; j.fix(); dmgState(D, G.phys || G.spec); D.ver++; if (G.mesh) { CarDmg.deform(G.mesh, D, true); if (G.mesh.dv) G.mesh.dv.fver = D.ver; }
+      B.done += j.s; B.t = 0; B.i++; Snd.rip && Snd.rip('metal', null, G.mesh ? G.mesh.root.position : null);
+      if (B.i >= B.L.length) { this.stop(); return; }
+    }
+    this.draw(false);
+  },
+  // in a race against friends: the corner being worked at, for the others to see
+  pub(rp) { const k = rp ? rp.join() : ''; if (k === (this.rp || '')) return; this.rp = k || null; if (MP.game) MP.pub({ rp: rp ? rp.slice() : null }); },
+  pose() { const B = this.busy; if (!B) return null; const j = B.L[B.i]; if (!j || j.at < 0) return null; return [j.at, j.k[0] === 'w' && B.t > 0.25 * j.s && B.t < 0.8 * j.s ? 2 : 1]; },
+  // the panel: the jobs to tick (ticked: what matters most), their time and the clock's; then the work going on
+  draw(full) {
+    const e = $('#fixp'); if (!e) return; const B = this.busy;
+    if (!this.open && !B) { e.hidden = true; return; } e.hidden = false;
+    const pad = Ctl.dev === 'gamepad', tch = Ctl.dev === 'touch', fk = this.kn();
+    if (this.open) {
+      if (full) { e.textContent = ''; const D = G.car.dmg, X = this.ctx(G.car), no = stageNoFix(D);
+        e.append(el('h3', { text: 'Repairs on the stage' }), el('p', { text: `The clock runs on: it counts every minute of the work. ${X.spares === 1 ? 'One spare wheel' : X.spares ? X.spares + ' spare wheels' : 'No spare wheels'} left.` }));
+        const ul = el('ul'); this.list.forEach((j, n) => { const cb = el('input', { type: 'checkbox' }); cb.checked = j.on; cb.addEventListener('change', () => { j.on = cb.checked; this.f = n; this.draw(false); });
+          ul.append(el('li', { 'data-n': String(n) }, el('label', { style: 'display:contents' }, cb, el('span', { text: j.t }), el('b', { text: fixT(j.s) })))); });
+        e.append(ul, el('p', { class: 'fsum' })); if (no.length) e.append(el('p', { class: 'fno', text: `Beyond a roadside fix: ${no.join(', ')}. That waits for service.` }));
+        e.append(el('div', { class: 'btns' }, el('button', { type: 'button', class: 'fgo', text: 'Start the repairs', onclick: () => this.start() }), el('button', { type: 'button', text: 'Back', onclick: () => this.close() })),
+          el('p', { class: 'fkeys', text: pad ? 'D-pad: choose · A: tick · X: start · B: back' : tch ? 'Tick the jobs, then start.' : `↑ ↓ choose · Space: tick · Enter: start · Esc or ${fk}: back` })); }
+      const t = this.list.reduce((s, j) => s + (j.on ? j.s : 0), 0); setText(e.querySelector('.fsum'), t ? `${fixT(t)} on the clock.` : 'Nothing ticked.');
+      e.querySelectorAll('li').forEach(li => { const n = +li.dataset.n; li.classList.toggle('f', n === this.f && !tch); const cb = li.querySelector('input'); if (cb && cb.checked !== this.list[n].on) cb.checked = this.list[n].on; });
+      return; }
+    const j = B.L[B.i]; if (!j) return;
+    if (full || e.dataset.i !== String(B.i)) { e.dataset.i = String(B.i); e.textContent = '';
+      e.append(el('h3', { text: 'Repairs under way' }), el('p', { class: 'fjob', text: j.t }), el('div', { class: 'bar' }, el('i')), el('p', { class: 'fleft' }),
+        el('div', { class: 'btns' }, el('button', { type: 'button', text: 'Back in the car', onclick: () => this.stop() })), el('p', { class: 'fkeys', text: pad || tch ? 'The throttle puts you back in the car.' : `The throttle or ${fk} puts you back in the car.` })); }
+    const bar = e.querySelector('.bar i'); if (bar) bar.style.width = (100 * clamp(B.t / j.s, 0, 1)).toFixed(1) + '%';
+    setText(e.querySelector('.fleft'), `Job ${B.i + 1} of ${B.L.length}: ${fixT(Math.max(0, j.s - B.t))} left${B.i + 1 < B.L.length ? `, ${fixT(B.tot - B.done - B.t)} in all` : ''}.`);
+  },
+  // the keys in the panel
+  key(e) {
+    if (!this.open) return false; const n = this.list.length;
+    if (e.code === 'ArrowUp' || e.code === 'ArrowDown') { this.f = (this.f + (e.code === 'ArrowUp' ? n - 1 : 1)) % n; this.draw(false); return true; }
+    if (e.code === 'Space') { if (!e.repeat) { const j = this.list[this.f]; if (j) j.on = !j.on; this.draw(false); } return true; }
+    if (e.code === 'Enter' || e.code === 'NumpadEnter') { if (!e.repeat) this.start(); return true; }
+    if (e.code === 'Escape') { this.close(); return true; }
+    return false;
+  },
+  // a gamepad in the panel: the d-pad up and down, A to tick, X to start, B to go back
+  pad(gp) {
+    if (!this.open) return; const ed = i => padBtn(gp, i) > 0.5 && !padPrev['b' + i], n = this.list.length;
+    if (ed(12)) { this.f = (this.f + n - 1) % n; this.draw(false); } if (ed(13)) { this.f = (this.f + 1) % n; this.draw(false); }
+    if (ed(0)) { const j = this.list[this.f]; if (j) { j.on = !j.on; this.draw(false); } } if (ed(2)) this.start(); else if (ed(1)) this.close();
+  },
+  // the reminder that the crew can get out, while the car stands with something to mend
+  hint(c, dt) {
+    const h = $('#fixHint'); if (!h) return; this.still = c && Math.hypot(c.u, c.v) < 0.5 ? this.still + dt : 0;
+    let show = false;
+    if (!this.on() && this.still > 1.2 && !this.can(c)) { this.hintT -= dt; if (this.hintT <= 0) { this.hintT = 0.5; this.hasJobs = stageFixes(c, this.ctx(c)).length > 0; } show = this.hasJobs; }
+    else this.hintT = 0;
+    if (show) setText(h, Ctl.dev === 'touch' ? 'Repairs: tap here' : `Repairs: ${this.kn()}`);
+    if (h.hidden === show) h.hidden = !show;
+  }
+};
 function resetCar() {
   if (!G.car || G.finished) return; const T = G.T, mp = MP.phase === 'race';
+  if (Fix.on()) { if (Fix.busy) flash('The crew are at work: the throttle puts you back in the car'); else Fix.close(); return; }
   if (G.state !== 'run') { if (G.state === 'countdown') flash('Reset works once you are under way'); return; } // (never off the grid, ahead of the start)
   if (mp || RX.on) { const why = mpResetBlock(G.car); if (why) { flash(why); return; } }
   if (RX.on && RX.me) { RX.recover(RX.me); G.resetAt = G.time; G.stopT = 0; if (G.steerSt) G.steerSt = steerState(); G.cut = null; Rec.mark('reset'); flash('Back on the track: a ghost until clear of the others'); G.camYaw = G.car.psi; snapCamera(); return; }
@@ -22022,7 +22260,7 @@ function resetCar() {
   if (G.state === 'run') { if (plugs) { G.penalty += 120; flash('Plugs out and the water cranked out of the cylinders: 2 minute penalty'); } else if (river) { G.penalty += 30; flash('Pulled out of the river and back on the road: 30 s penalty'); } else if (righted) { G.penalty += 30; flash('Spectators put you back on your wheels and the road: 30 s penalty'); } else { G.penalty += 5; flash(mp ? 'Recovered: 5 s penalty. A ghost until clear of the other cars' : 'Recovered: 5 second penalty'); } }
   G.camYaw = p.h; snapCamera();
 }
-function togglePause() { if (G.state !== 'run' && G.state !== 'countdown') return; if (G.finished && G.rally) return;
+function togglePause() { if (G.state !== 'run' && G.state !== 'countdown') return; if (G.finished && G.rally) return; if (Fix.open) { Fix.close(); return; }
   if (MP.phase === 'race' || MP.phase === 'done') { G.mpMenu = !G.mpMenu; $('#pause').hidden = !G.mpMenu; $('#pH').textContent = G.mpMenu ? 'Race menu' : 'Paused'; $('#pFlash').hidden = true; $('#pRestart').hidden = true; $('#pRetire').hidden = true; $('#pRallyNote').hidden = true; $('#pMenu').hidden = false; $('#pMenu').textContent = 'Leave the race';
     const sub = $('#pause .sub'); if (sub) sub.textContent = 'The race goes on: your car is braked while this is open.'; const pt = $('#pTyres'); if (pt) pt.textContent = ''; return; }
   { const sub = $('#pause .sub'); if (sub) sub.textContent = 'The clock is stopped.'; $('#pH').textContent = 'Paused'; $('#pMenu').textContent = RX.on ? 'Leave the race' : 'Main menu'; $('#pRestart').textContent = RX.on ? 'Restart race' : 'Restart stage'; $('#pRetire').textContent = RX.on ? 'Retire from this race' : 'Retire from this stage'; }
@@ -22059,7 +22297,7 @@ function finishRun() {
   const carBests = lsGet('sr86.carbest', {}); const ck = key + ':' + G.spec.id; const prevCar = carBests[ck]; if (!prevCar || total < prevCar) { carBests[ck] = total; lsSet('sr86.carbest', carBests); }
   $('#finTime').textContent = fmtT(total);
   const lines = [];
-  if (G.penalty > 0) { const cut = G.penCut || 0, rec = G.penalty - cut; lines.push('Includes ' + [rec ? `${rec} s for recoveries` : '', cut ? `${cut} s for cutting the course` : ''].filter(Boolean).join(' and ') + '.'); }
+  if (G.penalty > 0) { const { fx, cut, rec } = penParts(); lines.push('Includes ' + [rec ? `${rec} s for recoveries` : '', cut ? `${cut} s for cutting the course` : '', fx > 0.5 ? `${fixT(fx)} of repairs on the stage` : ''].filter(Boolean).join(' and ') + '.'); }
   lines.push(lv === 'hardcore' ? 'Hardcore: no assists, no flashbacks, the driver\u2019s view.' : `Assists: ${levelName(lv)}${lv === 'custom' ? ' (' + assistList(Ctl.assist()) + ')' : ''}.`);
   if (G.run && G.run.as && G.run.as.line) { const ml = Moves.line(); if (ml) lines.push(ml); }
   if (Flash.used) lines.push(`Flashbacks used: ${Flash.used} of ${FB_PER}.`);
@@ -22595,12 +22833,15 @@ function updateFlyoverOld(dt) {
 //     best at this speed on this surface (a little under it: the grip target), pointed from the way the front axle is
 //     going. So holding a key never scrubs the front tyres wide, and as the rear steps out the wheels follow the slide:
 //     the opposite key steers the front along the car's path plus the grip target, which is how a driver catches a
-//     slide. A short tap gives a smaller angle; held, it builds in a quarter of a second. With Slide Control on (P.lim,
+//     slide. A short tap gives a smaller angle; held, it builds in a quarter of a second. With Steering Assist on (P.sa)
+//     a stick does the same (pushed part way, that share of it, at once), and with no input the front wheels follow the
+//     car's path instead of the car's nose (half: halfway): the castor's pull through loose hands, which catches a
+//     slide without the driver knowing to countersteer. With Stability Control on (P.lim,
 //     P.slide), a key held into the turn asks a little less of the front only as the car's slide nears the most that can
 //     be caught on that surface (sooner while it grows fast), so holding it lets the car drift but does not spin it; to
 //     go past that on purpose, hold the More lock key (Shift) with it. (The rallycross crews' own stability, P.lim
 //     alone, eases it whenever the car turns faster than its grip holds or the rear is at its limit.) Let go, the
-//     wheels come back straight. At a crawl it is direct
+//     wheels come back straight (with Steering Assist, to the path). At a crawl it is direct
 //     steering (a hairpin's full lock). It is the keys' filtering of what they ask, as rally games have always filtered
 //     a pad's steering for control; More lock takes it off.
 // With keys and touch buttons the rack is then moved as a driver's hands move a wheel (steerHands): never at a fixed
@@ -22616,14 +22857,15 @@ const GRIP = { tap0: 0.55, tap: 0.2, lim: 0.92, limK: 30, yaw: 1.15, ahead: 0.12
 const HANDS = { wOn: 22, wOnFast: 15, zOn: 0.82, vOn: 2.8, wRel: 12, zRel: 0.75, vRel: 6, sat: 12, trail: 0.05, shake: 0.0065, hz: 5.5, rock: 0.9, bump: 0.35 };
 const ROAD_FEEL = { gravel: 1, loose: 1, hard: 0.8, dirt: 0.9, snow: 0.5, snowbank: 0.7, snowlayer: 0.45, slush: 0.5, powder: 0.65, grass: 0.75, tarmac: 0.16, stone: 0.45, concrete: 0.14, paint: 0.1, steel: 0.2, moss: 0.3, ice: 0.06 };
 function steerState() { return { d: 0, v: 0, n: 0, nv: 0, hold: 0, dir: 0, k: 1, rp: null, dr: 0, evN: 0, fz: null }; }
-// P: { lim (Slide Control's part, 0-1; slide: it is Slide Control's), grip (keys use grip steering), analog (a stick or wheel), more (More lock
+// P: { lim (Stability Control's part, 0-1; slide: it is Stability Control's), grip (keys use grip steering), analog (a stick or wheel), more (More lock
 // held), hb (the handbrake held: the wheels go further, for a hairpin, and the rear's limit is not watched), tgt (the
 // grip target, a share of the peak's slip angle), speed and ret (the steering and return speeds, times the usual), sens
-// (how much slower the steering moves at speed, 0-1), range (the share of lock at full input) }
+// (how much slower the steering moves at speed, 0-1), range (the share of lock at full input), sa (Steering Assist, 0-1),
+// esc (Stability Control, 0-1: at full a key held into a spin eases right off), wheel (a wheel: always direct) }
 function steerFor(c, S, req, P, st, dt) {
   req = clamp(req, -1, 1); const u = c.u, sp = Math.hypot(c.u, c.v), lock = S.lock, K = carSetup(S);
   const dir = req > 0.02 ? 1 : req < -0.02 ? -1 : 0; if (dir && dir === st.dir) st.hold += dt; else st.hold = dir ? dt : 0; st.dir = dir;
-  const grip = P.grip && !P.analog && !P.more; let tgt;
+  const pad = !!P.analog && P.sa > 0 && !P.wheel, grip = P.grip && (!P.analog || pad) && !P.more; let tgt;
   if (!grip) tgt = req * P.range;
   else {
     // the front tyres' best slip angle now, and the way the front axle is going across the car
@@ -22637,15 +22879,25 @@ function steerFor(c, S, req, P, st, dt) {
       const into = dir !== 0 && Math.abs(c.r) > 0.05 && dir === Math.sign(c.r), rl = GRIP.yaw * 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 4), rp = Math.abs(c.r + GRIP.ahead * st.dr);
       st.hbAgo = P.hb ? 0 : (st.hbAgo != null ? st.hbAgo : 9) + dt; // (not while the handbrake turns it, nor just after)
       const lim = P.lim != null ? P.lim : 1, ab = Math.abs(u) > 2 ? Math.abs(Math.atan2(c.v, Math.abs(u))) : 0;
-      const over = !(lim > 0 && into && st.hbAgo > 0.8) ? 0 : P.slide ? lim * GRIP.slideK * Math.max(0, (ab + GRIP.slideAhead * Math.max(0, HELP.db || 0)) / (HELP.bm || SLIDE_MAX.loose) - GRIP.slideAt)
-        : lim * (GRIP.limK * Math.max(0, rr - GRIP.lim) + GRIP.yawK * Math.max(0, rp / rl - 1));
-      st.k = over > 0 ? Math.max(1 - (1 - GRIP.kMin) * lim, st.k - dt * over) : Math.min(1, st.k + dt * GRIP.rel); }
-    const tap = Math.min(1, GRIP.tap0 + (1 - GRIP.tap0) * st.hold / GRIP.tap), ar = Math.abs(req);
-    const dg = bf * ar + req * aPk * P.tgt * st.k * tap * (P.hb ? GRIP.hb : 1); // (with the handbrake: more, for a hairpin)
+      const over = !(lim > 0 && into && st.hbAgo > 0.8) ? 0 : (P.slide ? lim * GRIP.slideK * Math.max(0, (ab + GRIP.slideAhead * Math.max(0, HELP.db || 0)) / (HELP.bm || SLIDE_MAX.loose) - GRIP.slideAt) : 0)
+        + (!P.slide || P.esc >= 1 ? lim * (GRIP.limK * Math.max(0, rr - GRIP.lim) + GRIP.yawK * Math.max(0, rp / rl - 1)) : 0); // (full Stability Control: both)
+      const kMin = P.esc >= 1 ? 0 : GRIP.kMin; st.k = over > 0 ? Math.max(1 - (1 - kMin) * lim, st.k - dt * over) : Math.min(1, st.k + dt * GRIP.rel); }
+    // (with Steering Assist a tap at speed asks less, and a held key builds more slowly there: a touch on a key is a
+    // touch on the wheel, so a car weaved down a fast straight by quick taps does not snake off the road)
+    const self = P.sa > 0 ? P.sa : 0, fk = self * smooth(8, 25, sp), t0 = GRIP.tap0 * (1 - 0.5 * fk), tT = GRIP.tap * (1 + 1.2 * fk);
+    const tap = P.analog ? 1 : Math.min(1, t0 + (1 - t0) * st.hold / tT), ar = Math.abs(req);
+    // (Steering Assist at full: a key or stick asks the car to turn, at most as fast as the tyres' grip turns it at this
+    // speed (the yaw rate whose cornering the grip holds); turning faster than asked - a turn-in that throws the tail
+    // out, a car swinging back as a slide is caught, or turning at all with nothing asked - the front's grip eased,
+    // and past that turned against it, at once: as a driver's hands feel a car rotate and take the lock off before the
+    // slide grows. Not on the handbrake or just after: a hairpin taken on it, or a flick, is the driver's to turn)
+    let yd = 0; if (P.sa >= 1 && sp > 5 && !P.hb && st.hbAgo > 0.8) { let mu = 0, q = 0; for (const w of c.w) if (w.Fz > 0) { mu += w.muPk || 0.9; q++; } mu = q ? mu / q : 0.9;
+      const rs = 0.95 * 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 5), e = c.r - req * rs * st.k; if (e * c.r > 0) yd = -aPk * 1.5 * e / rs; }
+    const dg = bf * (ar + (1 - ar) * self) + clamp(req * aPk * P.tgt * st.k * tap * (P.hb ? GRIP.hb : 1) + yd, -1.2 * aPk * (P.hb ? GRIP.hb : 1), 1.2 * aPk * (P.hb ? GRIP.hb : 1)); // (with the handbrake: more, for a hairpin; let go, with Steering Assist: along the path)
     tgt = lerp(req * P.range, dg / lock, smooth(3, 7, u) * (P.hb ? smooth(12, 20, sp) : 1)); // (at a crawl, and on the handbrake in a hairpin: the share of lock)
   }
   tgt = clamp(tgt, -1, 1);
-  if (P.analog) { st.d = tgt; st.v = 0; st.n = 0; st.nv = 0; return tgt; } // (a stick or wheel sets the rack directly, as always)
+  if (P.analog) { if (pad) st.d += (tgt - st.d) * Math.min(1, dt / 0.035); else st.d = tgt; st.v = 0; st.n = 0; st.nv = 0; return st.d; } // (a stick or wheel sets the rack directly, as always: a stick asking for grip, smoothed a little)
   return steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K);
 }
 // The hands on the wheel, for keys and touch buttons: the rack moved toward what is asked (tgt) as a driver's hands
@@ -22689,25 +22941,32 @@ function steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K) {
 // The assists as the menus show them, and the player's own state for them (HELP); what each does, and the shaping
 // itself (driveHelp), are with the rival crews' driving, which uses them too: see simai.js.
 const HELP = { thr: 1, brk: 1, clu: 1, cs: 0 };
-// the five, as the menus show them
+// the seven, as the menus show them (a fourth entry: set off, half or full)
 const ASSISTS = [
-  ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers. On gravel and snow it lets the wheels slip a little more, so they dig in.'],
-  ['slide', 'Slide Control', 'Lets the car slide as far as you can still catch it on the surface under it (wide on snow and gravel, small on tarmac). It steps in only to stop a spin: the power is eased, and a held steer key eased off, once a slide goes past that.'],
-  ['csteer', 'Countersteer Help', 'When you steer against a slide, the front wheels go to the angle that catches it: more if you gave too little, less if you gave too much, and back as the slide dies. If you do not countersteer, it does nothing. It also trims a stick’s or wheel’s lock at speed.'],
-  ['rot', 'Rotation Help', 'Your handbrake turns and flicks swing the car round by the right amount: the handbrake is let off once the car will point down the road, and a flick gets a moment’s lift as you swing the car back into the bend. You still start every move.'],
+  ['sa', 'Steering Assist', 'Keys, touch and a stick steer by grip, not by angle: full input turns the front tyres to their best grip at any speed on any surface, so the front never washes wide. Let go, the front wheels follow the car\u2019s path, as a real car\u2019s castor turns them through loose hands, and that catches a slide by itself. Half: half of that catch. A wheel always steers directly.', 1],
+  ['sc', 'Stability Control', 'Full: holds the car to a few degrees of slide, easing the power and braking single wheels as a road car\u2019s stability system does, against a slide or a spin, and to tuck the car in when it runs wide. Half: lets the car slide as far as you can still catch it on the surface under it (wide on snow and gravel, small on tarmac) and steps in only to stop a spin.', 1],
+  ['tc', 'Traction Control', 'Keeps the driven wheels from spinning their grip away: Full holds them near their best grip, Half lets them spin enough to throw gravel and hold a slide. Pulling away, it holds the clutch to what the tyres take, as launch control does.', 1],
+  ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers. On gravel and snow it lets the wheels slip a little more, so they dig in. Half: lets them nearer locking.', 1],
+  ['csteer', 'Countersteer Help', 'When you steer against a slide, the front wheels go to the angle that catches it: more if you gave too little, less if you gave too much, and back as the slide dies. If you do not countersteer, it does nothing. It also trims a wheel\u2019s lock, and a stick\u2019s without Steering Assist, at speed.'],
+  ['rot', 'Rotation Help', 'Your handbrake turns and flicks swing the car round by the right amount: the handbrake is let off once the car will point down the road, and a flick gets a moment\u2019s lift as you swing the car back into the bend. You still start every move.'],
   ['cue', 'Technique Guide', 'Shows the move each bend ahead wants, for its surface, how sharp it is and your car: brake, flick, lift, handbrake, left-foot brake or power. The racing line is drawn on the road (green: accelerate, amber: lift, red: brake), and a tick shows when you have done the move.']];
 const PRESETS = {
-  casual: { name: 'Casual', as: { abs: 1, slide: 1, csteer: 1, rot: 1, cue: 1 }, note: 'Every assist on: the car slides as far as you can catch it but will not spin, your countersteer is made exact, handbrake turns and flicks swing it round by the right amount, and the guide shows the move for each bend. Every move is still yours to make.' },
-  intermediate: { name: 'Intermediate', as: { abs: 1, slide: 1, csteer: 0, rot: 1, cue: 0 }, note: 'ABS, Slide Control and Rotation Help: the brakes do not lock, a slide stops short of a spin, and handbrake turns and flicks swing the car round by the right amount. Catching slides and choosing each move are yours.' },
-  advanced: { name: 'Advanced', as: { abs: 0, slide: 0, csteer: 0, rot: 0, cue: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
+  casual: { name: 'Casual', as: { sa: 1, sc: 1, tc: 1, abs: 1, csteer: 1, rot: 1, cue: 1 }, note: 'Every assist at full: steering by grip that catches slides when you let go, Stability Control holding the car near its path, Traction Control, ABS, Countersteer Help, Rotation Help and the guide. The car still drives as a real one does: you brake for the bends, and nothing slows you before one.' },
+  intermediate: { name: 'Intermediate', as: { sa: 1, sc: 0.5, tc: 0.5, abs: 1, csteer: 0, rot: 1, cue: 0 }, note: 'Steering Assist and ABS at full, Stability and Traction Control at half, and Rotation Help: the car slides as far as you can catch it but will not spin, and handbrake turns and flicks swing it round by the right amount. Holding slides and choosing each move are yours.' },
+  advanced: { name: 'Advanced', as: { sa: 0, sc: 0, tc: 0, abs: 0, csteer: 0, rot: 0, cue: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
 };
 const PRESET_IDS = Object.keys(PRESETS);
 // (a mix saved with the assists the game had before - Stability Control, Steering Assist, the Dynamic Racing Line, and
-// Corner Braking and Throttle Management, which drove the car and are gone - as the nearest of these)
-const asNow = a => a && typeof a === 'object' && !('slide' in a) && ('stab' in a || 'steer' in a || 'line' in a || 'brake' in a || 'thr' in a)
-  ? { abs: a.abs ? 1 : 0, slide: a.stab ? 1 : 0, csteer: a.steer ? 1 : 0, rot: a.brake || a.thr ? 1 : 0, cue: a.line ? 1 : 0 } : a;
+// Corner Braking and Throttle Management, which drove the car and are gone - as the nearest of these; and one from
+// before the assists had their levels, its Slide Control as Stability and Traction Control at half, and its steering
+// assisted with Slide Control or Countersteer Help on)
+const asNow = a => {
+  if (!a || typeof a !== 'object') return a;
+  if (!('slide' in a) && !('sc' in a) && ('stab' in a || 'steer' in a || 'line' in a || 'brake' in a || 'thr' in a)) a = { abs: a.abs ? 1 : 0, slide: a.stab ? 1 : 0, csteer: a.steer ? 1 : 0, rot: a.brake || a.thr ? 1 : 0, cue: a.line ? 1 : 0 };
+  if ('slide' in a && !('sc' in a)) { const o = Object.assign({}, a), s = a.slide ? 0.5 : 0; delete o.slide; return Object.assign(o, { sa: a.slide || a.csteer ? 1 : 0, sc: s, tc: s }); }
+  return a; };
 // the assists on, as a list
-const assistList = on => { const L = ASSISTS.filter(([k]) => on && on[k]).map(([, n]) => n); return L.length ? L.join(', ') : 'no assists'; };
+const assistList = on => { const L = ASSISTS.filter(([k]) => on && on[k]).map(([k, n, , lv]) => lv && on[k] < 1 ? n + ' (half)' : n); return L.length ? L.join(', ') : 'no assists'; };
 // ---------- end driving help ----------
 
 // ---------- course cutting ----------
@@ -22907,10 +23166,11 @@ function physics(dt) {
   if (A && A.any && !hold && !G.finished) I = driveHelp(c, G.phys, I, HELP, dt, A, T);
   if (G.finished) { const sp = Math.hypot(c.u, c.v); const d = RX.on ? 45 : Math.max(1, (T.stopIdx - c.hint) * STEP - 3); const need = sp * sp / (2 * d); I = { steer: inp.steer, throttle: 0, brake: sp < 0.4 || c.u < -0.3 ? 1 : G.koStop ? 0.6 : Math.max(clamp(need / 6.5, 0, 1), sp < 4 ? 0.35 : 0), handbrake: false, auto: true }; } // (knocked out of a race: pulled up there and then; and once down to a walking pace, brought to a stop, not left to creep on in gear to the stop line)
   if (G.mpMenu) I = { steer: 0, throttle: 0, brake: 1, handbrake: false, auto: true }; // (a race does not stop for the menu)
+  if (Fix.on()) I = { steer: 0, throttle: 0, brake: 1, handbrake: true, auto: true }; // (the crew out of the car, mending it)
   if (MP.game) MP.stepRivals(dt);
   // (held on the brakes, at the finish or under the race menu, a car stops and stays stopped: the brake held at a
   // standstill doesn't select reverse as it does when the driver holds it)
-  stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished || !!G.mpMenu });
+  stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished || !!G.mpMenu || Fix.on() });
   if (RX.on) { G.time = G.finished ? G.time + dt : RX.t; RX.post(dt); return; } // (a rallycross race keeps its own clock, laps and finish; past the finish the run's clock goes on, for the car pulling up)
   if (!hold) { G.time += dt; }
   if (!hold && !G.finished) {
@@ -22937,6 +23197,7 @@ function updateRun(dt) {
   // frame to frame - the crew feeling a blow, the driver's head, the replay's clock - goes by this, or a steady drive
   // would seem to lurch at every frame that took one step more or less)
   G.physDt = steps * PH; Rec.tick(G.physDt); if (!MP.game) Atmos.wt += G.physDt; // (the weather's clock: see Atmos.evolve)
+  Fix.step(G.physDt); // (repairs on the stage: the work and the clock)
   G.engEv = []; processEvents(c);
   // a big bang in the exhaust (the engine model reports each one; see EngineSoundLogic) shows as a flame at the tailpipe
   if (Snd.flame()) { G.mesh.flame.visible = true; G.mesh.flame.scale.setScalar((0.7 + Math.random() * 0.8) * (G.mesh.flame.userData.k || 1)); clearTimeout(G.flT); G.flT = setTimeout(() => { if (G.mesh) G.mesh.flame.visible = false; }, 55); }
@@ -22970,7 +23231,7 @@ function updateRun(dt) {
   { const hc = carSetup(S).sp.hcg, Q = c.Q, off = qRot(Q, [0, hc - rideY, 0]);
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0);
     for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
-    ckBogies(m, c); }
+    ckBogies(m, c); fixPose(m, Fix.pose(), KW); }
   m.sync(); CarDmg.update(m, c, S, dt); Damage.tick(dt); Debris.update(dt); Stones.update();
   // the banner for a car that cannot go on as it is: upturned (help is at hand) or broken (retire)
   { const dd = $('#dmgDead'), D = c.dmg, tap = G.coarse == null ? (G.coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) : G.coarse,
@@ -22978,7 +23239,8 @@ function updateRun(dt) {
       : D && D.dead && !G.finished ? `${{ water: 'Engine wrecked by water', engine: 'Engine seized', driveshaft: 'No drive', gearbox: 'Gearbox gone', suspension: 'Suspension broken', wheel: 'Wheel lost' }[D.dead]}: the car cannot go on. ` + (G.rally ? (tap ? 'Tap Pause, then Retire.' : 'Esc, then Retire.') : (tap ? 'Tap Pause to restart the stage.' : 'Esc to restart the stage.'))
       : c.es && c.es.run === 'lock' && !G.finished ? `Hydrolocked: water in the cylinders. ${D && D.mode === 'real' ? (tap ? 'Tap Reset to pull the plugs and crank the water out (+2 min).' : 'Press R to pull the plugs and crank the water out (+2 min).') : (tap ? 'Tap Reset to be pulled out and have it cleared (+30 s).' : 'Press R to be pulled out and have it cleared (+30 s).')}`
       : c.flooded && !G.finished ? `${(c.deep || 0) > 0.3 ? 'In the river with the engine flooded' : 'The engine has stalled in the water'}: ${tap ? 'tap Reset' : 'press R'} to be pulled out (+30 s).` : ''; // (each a whole sentence for other languages)
-    if (dd) { setText(dd, txt); dd.hidden = !txt; } }
+    if (dd) { const tx = Fix.on() ? '' : txt && D && D.dead && !G.finished && !c.stuck && Fix.hasJobs ? txt + ` Or mend it here: ${tap ? 'tap Repairs' : 'press ' + Fix.kn()}.` : txt; setText(dd, tx); dd.hidden = !tx; } } // (and what the crew can do about it on the spot; nothing while they are at it)
+  Fix.hint(c, dt);
   animateInterior(m, c, S, G.physDt, !!inp.handbrake && !G.finished, G.camMode === 2 && !orbitOn());
   if (MP.game) MP.frame(dt);
   // ghost
@@ -23453,7 +23715,7 @@ const GUIDE = [
     ['Pace notes', 'The co-driver’s calls about the road ahead: which way each bend goes and how sharp it is, from 1 (very tight, almost a hairpin) to 6 (nearly flat out), and warnings such as crest, jump, narrows or don’t cut. Shown on screen too.'],
     ['Splits', 'Your time at points along the stage, against the best time or the leader. Green: you are quicker; red: slower.'],
     ['Seed', 'The number a stage is made from. The same number makes the same stage for everyone, so you can challenge a friend.'],
-    ['Assists', 'Help with the moves of rally driving: holding a slide, catching it, swinging the car round on the handbrake or with a flick, and which move each bend wants. None of them drives the car for you. Casual helps the most; Advanced not at all. Custom is your own mix.'],
+    ['Assists', 'Help for a driver of any skill: steering by the tyres\u2019 grip that catches slides when you let go, Stability and Traction Control, ABS, and help with the moves of rally driving - catching a slide, swinging the car round on the handbrake or with a flick, and which move each bend wants. None of them brakes for a bend or drives the car for you. Casual helps the most; Advanced not at all. Custom is your own mix.'],
     ['Hardcore', 'No assists, no flashbacks, and the view from the driver’s seat only.'],
     ['Flashback', 'Go back to a moment before a mistake and drive on from there, as if it never happened.'],
     ['Damage', 'Off: nothing breaks. Visual: the car looks damaged but drives the same. Realistic: damage changes how the car drives and can end your run.'],
@@ -23461,6 +23723,7 @@ const GUIDE = [
     ['Main menu (service park)', 'Where you pick the stage, the car and the mode. In rallying the service park is where the cars are repaired between stages.']]],
   ['Rallies', [
     ['Full rally', 'One to three days of stages against 15 rival crews. The lowest total time wins.'],
+    ['Repairs on the stage', 'Stopped on a stage, you and your co-driver mend what a crew can there: wheels changed from your spares, a broken corner strapped up, bent suspension and steering knocked straight, the radiator patched and filled with your water, your drinks or the spectators\u2019 beer, the sump plugged, dents knocked out. The stage clock counts all of it.'],
     ['Service', 'A stop between stages where the team repairs the car; you can change tyres and the setup there.'],
     ['Road section', 'The drive on public roads between stages. A puncture can be changed there if you carry a spare wheel.'],
     ['Shakedown', 'A short practice stage before the rally, to try the car and its setup. Its time does not count.'],
@@ -23611,13 +23874,13 @@ const ControlsUI = {
   drivingTab(body) {
     const D = Ctl.drive, lv0 = Ctl.level(), cur = () => Ctl.assist();
     if (this.note) body.append(el('p', { class: 'cwarn', role: 'status', text: this.note }));
-    body.append(el('p', { class: 'cnote', text: 'For every controller. Until you pick one, the preset follows the controller in use: Intermediate for keys, touch and a gamepad, Advanced for a wheel.' }));
+    body.append(el('p', { class: 'cnote', text: 'For every controller. Until you pick one, the preset follows the controller in use: Casual for keys, touch and a gamepad, Advanced for a wheel.' }));
     this.sec(body, 'Preset');
     this.row(body, 'Assists', lv0 === 'custom' ? 'Your own mix, below.' : PRESETS[lv0].note, this.seg(PRESET_IDS.map(id => [id, PRESETS[id].name]).concat(lv0 === 'custom' ? [['custom', 'Custom']] : []), () => Ctl.level(), v => { if (v !== 'custom') D.level = v; }, 'Assists preset'), true);
     const setA = (k, v) => { if (Ctl.level() !== 'custom') { D.as = Ctl.assist(); D.level = 'custom'; } D.as[k] = v; };
-    this.sec(body, 'Assists', 'each on or off');
-    for (const [k, name, hint] of ASSISTS) this.row(body, name, hint, this.seg([[0, 'Off'], [1, 'On']], () => cur()[k] ? 1 : 0, v => setA(k, v), name));
-    body.append(el('p', { class: 'cnote', text: 'Advanced, or every assist off, adds nothing to what you do with the controls. Each controller\u2019s own steering is set on its tab (keys: Grip or Direct). Changes made during a stage count from then on; the stage keeps the easiest preset it was driven on.' }));
+    this.sec(body, 'Assists', 'each off, half or full, or on or off');
+    for (const [k, name, hint, lv] of ASSISTS) this.row(body, name, hint, lv ? this.seg([[0, 'Off'], [0.5, 'Half'], [1, 'Full']], () => { const v = cur()[k]; return v === true ? 1 : v || 0; }, v => setA(k, v), name) : this.seg([[0, 'Off'], [1, 'On']], () => cur()[k] ? 1 : 0, v => setA(k, v), name));
+    body.append(el('p', { class: 'cnote', text: 'Advanced, or every assist off, adds nothing to what you do with the controls. Each controller\u2019s own steering is set on its tab (keys, touch and a gamepad: Grip or Direct; Steering Assist works with Grip). Changes made during a stage count from then on; the stage keeps the easiest preset it was driven on.' }));
   },
   devTab(body, dev) {
     const P = Ctl.prof[dev], pad = dev === 'gamepad' || dev === 'wheel', D = ctlDefault(dev);
@@ -23629,7 +23892,7 @@ const ControlsUI = {
     // steering
     const S = P.steer, SD = D.steer; this.sec(body, 'Steering', pad ? (dev === 'wheel' ? 'with the wheel' : 'with the stick') : dev === 'touch' ? 'with the buttons' : 'with the keys');
     if (!pad) {
-      this.row(body, 'Steering mode', 'Grip: a held key turns the front wheels as far as the tyres grip best, and follows a slide. Direct: a held key turns them all the way.', this.seg([['grip', 'Grip'], ['direct', 'Direct']], () => S.mode, v => { S.mode = v; }, 'Steering mode'));
+      this.row(body, 'Steering mode', 'Grip: a held key turns the front wheels as far as the tyres grip best and follows a slide; with Steering Assist on, let go they follow the car\u2019s path. Direct: a held key turns them all the way.', this.seg([['grip', 'Grip'], ['direct', 'Direct']], () => S.mode, v => { S.mode = v; }, 'Steering mode'));
       this.row(body, 'Grip target', 'How close to the tyres’ best grip a held key aims (100%: right at it).', this.range(() => S.tgt, v => { S.tgt = v; }, 0.7, 1.1, 0.01, this.pct, SD.tgt));
       this.row(body, 'Steering speed', 'How fast the wheels turn when a key is pressed.', this.range(() => S.speed, v => { S.speed = v; }, 0.5, 2, 0.05, v => v.toFixed(2) + '×', SD.speed));
       this.row(body, 'Return speed', 'How fast they come back when it is let go.', this.range(() => S.ret, v => { S.ret = v; }, 0.5, 2, 0.05, v => v.toFixed(2) + '×', SD.ret));
@@ -23637,6 +23900,7 @@ const ControlsUI = {
       this.row(body, 'Steering range', 'The share of the car’s lock a key reaches (Direct steering, and at a crawl).', this.range(() => S.range, v => { S.range = v; }, 0.5, 1, 0.05, this.pct, SD.range));
     } else {
       this.row(body, 'Steering axis', 'Turn the wheel or move the stick when asked.', this.bindBox(dev, 'steer', true));
+      if (dev === 'gamepad') this.row(body, 'Steering mode', 'Grip: with Steering Assist on, the stick asks for a share of the front tyres\u2019 best grip and, let go, the front wheels follow the car\u2019s path. Direct: the stick sets the wheels\u2019 angle.', this.seg([['grip', 'Grip'], ['direct', 'Direct']], () => S.mode, v => { S.mode = v; }, 'Steering mode'));
       if (dev === 'wheel') {
         this.row(body, 'Wheel rotation', 'Degrees the wheel turns, lock to lock, for the car’s full lock.', this.range(() => S.rot, v => { S.rot = v; }, 180, 1080, 10, v => Math.round(v) + '°', SD.rot));
         this.row(body, 'The wheel’s own range', 'Its full turn as its own settings have it (often 900°).', this.range(() => S.hw, v => { S.hw = v; }, 180, 1080, 10, v => Math.round(v) + '°', SD.hw));
@@ -23645,7 +23909,7 @@ const ControlsUI = {
       this.row(body, 'Outer deadzone', 'Movement near the end that counts as full.', this.range(() => S.odz, v => { S.odz = v; }, 0, 0.2, 0.01, this.pct, SD.odz));
       this.row(body, 'Response curve', '1: straight. Higher: softer near the centre, for fine control.', this.range(() => S.curve, v => { S.curve = v; }, 1, 3, 0.05, v => v.toFixed(2), SD.curve));
       this.row(body, 'Steering range', 'The share of the car’s lock at full input.', this.range(() => S.range, v => { S.range = v; }, 0.5, 1, 0.05, this.pct, SD.range));
-      body.append(el('p', { class: 'cnote', text: (dev === 'wheel' ? 'The wheel sets the front wheels\u2019 angle directly.' : 'The stick sets the front wheels\u2019 angle directly.') + ' With Countersteer Help on, the lock is trimmed at speed to what the front tyres can use and your countersteer is made exact; with it off, a stick turns the wheels all the way at any speed.' }));
+      body.append(el('p', { class: 'cnote', text: (dev === 'wheel' ? 'The wheel sets the front wheels\u2019 angle directly, whatever the assists.' : 'With Steering Assist on and Grip steering, the stick asks for a share of the front tyres\u2019 grip, as keys do; otherwise it sets the front wheels\u2019 angle directly.') + ' With Countersteer Help on, your countersteer is made exact, and a directly set lock is trimmed at speed to what the front tyres can use; with both off, a stick turns the wheels all the way at any speed.' }));
     }
     // pedals
     this.sec(body, pad ? 'Throttle and brake' : 'Throttle and brake keys');
@@ -28830,7 +29094,7 @@ const MP = {
     // (built as its own page built it: the same lamps, fittings and panels, counted; if not, its dents alone)
     const same = !o.g || (o.g[0] === m.lamps.length && o.g[1] === H.fits.length && o.g[2] === (H.panels || []).length);
     this.asRival(r, px => {
-      const list = o.dents.map(e => { let d = r.dents.get(e.s); if (!d) { d = { s: e.s }; r.dents.set(e.s, d); } Object.assign(d, e); return d; }), keep = new Set(o.dents.map(e => e.s));
+      const list = o.dents.map(e => { let d = r.dents.get(e.s); if (!d || e.d < d.d - 0.002) { d = { s: e.s }; r.dents.set(e.s, d); } Object.assign(d, e); return d; }) /* (a dent knocked out: a new one, so the body is reshaped from the car as built) */, keep = new Set(o.dents.map(e => e.s));
       for (const k of [...r.dents.keys()]) if (!keep.has(k)) r.dents.delete(k);
       const D = r.D || (r.D = { dents: [], ver: 0, mode: 'real' }); D.dents = list; D.ver++; px.dmg = D;
       if (same) {
@@ -28903,7 +29167,7 @@ const MP = {
     if (Array.isArray(P.bl)) this.blowsIn(r, P.bl); else if (r.blN === undefined) r.blN = -1;
     // its times at the splits, its horn, the figures of its run, and a reaction (each shown once, by its number)
     r.sp = Array.isArray(P.sp) ? P.sp.slice(0, 8).map(v => mpNum(v, 0, 1e5)).filter(v => v != null) : [];
-    r.hn = P.hn === 1 ? 1 : 0; r.aw = this.statsIn(P.aw);
+    r.hn = P.hn === 1 ? 1 : 0; r.aw = this.statsIn(P.aw); r.rp = Array.isArray(P.rp) && P.rp.length === 2 && P.rp.every(Number.isInteger) && P.rp[0] >= 0 && P.rp[0] < 4 && P.rp[1] >= 0 && P.rp[1] <= 2 ? P.rp.slice() : null;
     if (Array.isArray(P.rx) && P.rx.length === 2 && Number.isInteger(P.rx[0]) && Number.isInteger(P.rx[1]) && P.rx[1] >= 0 && P.rx[1] < MP_REACT.length) {
       if (r.rxN === undefined) r.rxN = P.rx[0]; // (one sent before this page heard of the car: not shown now)
       else if (P.rx[0] !== r.rxN) { r.rxN = P.rx[0]; this.heard(r, P.rx[1]); } }
@@ -29103,7 +29367,7 @@ const MP = {
       // (each wheel as its page has it: steered, leaning (a bent corner's toe and camber with it), and turning at its own
       // pace - spinning up or locked)
       for (let i = 0; i < 4; i++) { const w = m.wheels[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - s.L[i], w.z0 + KW[i].lz); w.piv.rotation.set(0, s.dw ? s.dw[i] : i < 2 ? s.steer : 0, -(s.lb ? s.lb[i] : 0)); w.a = (w.a || 0) + (s.om ? s.om[i] : om) * dt; w.w.rotation.x = w.a; }
-      ckBogies(m, null);
+      ckBogies(m, null); fixPose(m, r.rp, KW); // (its crew at work on a corner)
       // (a panel swinging loose, at the angle its page has it)
       if (s.pn && s.pn.length && m.dv && m.dv.panels) for (const [j, th] of s.pn) { const P = m.dv.panels[j]; if (P && P.g && P.st === 'loose') { P.th = th; CarDmg.panelPose(P); } }
       // (past the haze a rival is not drawn at all, and from a little way off without its cabin: the seats, cage and crew
@@ -30345,7 +30609,7 @@ const Flash = {
   take() {
     if (!Rec.on || G.state !== 'run' || G.finished || this.left <= 0 || !this.allowed() || !G.car) return; const t = Rec.t; if (Rec.last !== t || t === this.lastT) return; this.lastT = t;
     const c = G.car, m = G.mesh, H = m && m.dv;
-    this.buf.push({ rt: t, g: { time: G.time, penalty: G.penalty, prog: G.prog, odo: G.odo, odoAtProg: G.odoAtProg, cut: G.cut ? Object.assign({}, G.cut) : null, penCut: G.penCut || 0, resetAt: G.resetAt, stopT: G.stopT, recN: G.rec.length, recT: G.recT, progN: G.progT.length, splits: G.splits.slice(), stuckT: G.stuckT, waterWas: G.waterWas, noteK: G.noteK, calledTo: G.calledTo, callFrom: G.callFrom.slice(), camYaw: G.camYaw },
+    this.buf.push({ rt: t, g: { time: G.time, penalty: G.penalty, prog: G.prog, odo: G.odo, odoAtProg: G.odoAtProg, cut: G.cut ? Object.assign({}, G.cut) : null, penCut: G.penCut || 0, penFix: G.penFix || 0, resetAt: G.resetAt, stopT: G.stopT, recN: G.rec.length, recT: G.recT, progN: G.progT.length, splits: G.splits.slice(), stuckT: G.stuckT, waterWas: G.waterWas, noteK: G.noteK, calledTo: G.calledTo, callFrom: G.callFrom.slice(), camYaw: G.camYaw },
       car: this.copy(c), steer: this.copy(G.steerSt), help: { thr: HELP.thr, brk: HELP.brk, clu: HELP.clu, cs: HELP.cs }, k: [inp.kThr, inp.kBrk], lead: G.lead ? Object.assign({}, G.lead) : null,
       vis: H ? CarDmg.save(m) : null, pan: H && H.panels ? H.panels.map(Q => [Q.th || 0, Q.w || 0]) : null, rec: { n: Rec.n, ev: Rec.ev.length, last: Rec.last }, stones: stonesSave(G.T), skid: Skids.at(),
       wx: { tSim: Atmos.tSim, t: Atmos.t, bolt: Atmos.bolt, wt: Atmos.wt }, duel: Duel.on ? Duel.finT : undefined, rx: RX.on ? RX.save() : undefined });
@@ -30353,6 +30617,7 @@ const Flash = {
   },
   // the driver's button: into the flashback (see Replay.open), or why not
   open() {
+    Fix.stop(true); Fix.close();
     if (this.can()) { Replay.open(true); return; }
     if (G.state !== 'run' || G.finished || G.paused || G.mpMenu) return;
     flash(G.hard ? 'Hardcore: no flashbacks' : MP.game ? 'No flashbacks in a race against friends' : this.left <= 0 ? 'No flashbacks left on this stage' : 'Nothing to go back to yet');
@@ -30365,7 +30630,7 @@ const Flash = {
   },
   restore(s, cand) {
     const T = G.T, c = this.copy(s.car), g = s.g;
-    G.car = c; Object.assign(G, { time: g.time, penalty: g.penalty, prog: g.prog, odo: g.odo, odoAtProg: g.odoAtProg, cut: g.cut ? Object.assign({}, g.cut) : null, penCut: g.penCut, resetAt: g.resetAt, stopT: g.stopT, recT: g.recT, splits: g.splits.slice(), stuckT: g.stuckT, waterWas: g.waterWas, noteK: g.noteK, calledTo: g.calledTo, callFrom: g.callFrom.slice(), shake: 0, camYaw: g.camYaw, lead: s.lead ? Object.assign({}, s.lead) : G.lead });
+    G.car = c; Object.assign(G, { time: g.time, penalty: g.penalty, prog: g.prog, odo: g.odo, odoAtProg: g.odoAtProg, cut: g.cut ? Object.assign({}, g.cut) : null, penCut: g.penCut, penFix: g.penFix || 0, resetAt: g.resetAt, stopT: g.stopT, recT: g.recT, splits: g.splits.slice(), stuckT: g.stuckT, waterWas: g.waterWas, noteK: g.noteK, calledTo: g.calledTo, callFrom: g.callFrom.slice(), shake: 0, camYaw: g.camYaw, lead: s.lead ? Object.assign({}, s.lead) : G.lead });
     if (G.rec.length > g.recN) G.rec.length = g.recN; if (G.progT.length > g.progN) G.progT.length = g.progN;
     G.steerSt = this.copy(s.steer); Object.assign(HELP, s.help); inp.kThr = s.k[0]; inp.kBrk = s.k[1]; Damage.q.length = 0;
     // the weather's clock as it was then (the showers, the wind, the sun), and the car on the other lane
@@ -33651,7 +33916,7 @@ const Rally = {
     const fin = res.t.map((t, i) => [t, i, res.how[i]]).filter(q => q[2] === 'ok').sort((a, b) => a[0] - b[0]), p = fin.findIndex(q => q[1] === 0) + 1;
     const rows = standings(st, s), me = rows.find(r => r.i === 0);
     card.append(el('p', { class: 'rkick', text: `SS${g.n} · stop control` }), el('h2', { id: 'rH', text: p === 1 ? 'Fastest time' : `${ordinal(p)} fastest` }), el('div', { class: 'rbig', text: fmtR(res.t[0]) }),
-      el('p', { class: 'sub', text: [p > 1 ? `${fmtGap(res.t[0] - fin[0][0])} s behind ${surname(crewName(st, fin[0][1]))}.` : '', G.penalty > 0 ? `Includes ${G.penalty} s of penalties.` : '', // (each a sentence of its own)
+      el('p', { class: 'sub', text: [p > 1 ? `${fmtGap(res.t[0] - fin[0][0])} s behind ${surname(crewName(st, fin[0][1]))}.` : '', (P => [P.all > 0 ? `Includes ${P.all} s of penalties.` : '', P.fx > 0.5 ? `Repairs on the stage took ${fixT(P.fx)}.` : ''].filter(Boolean).join(' '))(penParts()), // (each a sentence of its own)
         !me.pos ? '' : me.pos === 1 ? 'Leading the rally.' : `${ordinal(me.pos)} overall, ${fmtGap(me.tot - rows[0].tot)} behind the lead.`].filter(Boolean).join(' ') }));
     if (g.sss && Duel.on) card.append(el('p', { class: 'rnote', text: duelLine(res.t[0]) }));
     if (g.power && p >= 1 && p <= 5) card.append(el('p', { class: 'rnote', text: p < 5 ? `Power Stage: ${PTS_BONUS[p - 1]} bonus points for ${ordinal(p)} fastest, if you are classified at the finish.` : `Power Stage: 1 bonus point for ${ordinal(p)} fastest, if you are classified at the finish.` }));
@@ -33707,7 +33972,7 @@ const Rally = {
   // allowed is a late arrival at the next time control: 10 s for every minute
   jobs(list, D, V, real) { return list.filter(j => (real || !j.mech) && j.need(D, V)).map(j => ({ j, mins: Math.max(1, j.mins(D, V)) })); },
   repairPanel(card, list, allowed, kind, done) {
-    const st = this.st, D = st.cd ? dmgLoad(st.cd, st.dmg) : newDamage(st.dmg), V = st.cv; if (kind === 'road') D.spares = sparesOf(carById(st.car)); const jobs = this.jobs(list, D, V, st.dmg === 'real');
+    const st = this.st, D = st.cd ? dmgLoad(st.cd, st.dmg) : newDamage(st.dmg), V = st.cv; if (kind === 'road') D.spares = Math.max(0, sparesOf(carById(st.car)) - (D.spUsed || 0)); const jobs = this.jobs(list, D, V, st.dmg === 'real');
     const wrap = el('div'); card.append(wrap);
     if (!jobs.length) { wrap.append(el('p', { class: 'small', text: kind === 'road' ? 'Nothing the crew can mend on the road.' : 'The car is in good order: the crew checks it over and fits fresh tyres.' })); return () => { if (kind === 'svc') this.freshTyres(); done(0); }; }
     // ticked to start with: the jobs that matter most, as many as fit the time
@@ -33726,7 +33991,7 @@ const Rally = {
     };
   },
   // at service the car always gets fresh tyres
-  freshTyres() { const st = this.st; if (!st.cd) return; const D = dmgLoad(st.cd, st.dmg); for (const w of D.w) if (!w.off) { w.flat = 0; w.rim = 0; } st.cd = dmgSave(D); },
+  freshTyres() { const st = this.st; if (!st.cd) return; const D = dmgLoad(st.cd, st.dmg); for (const w of D.w) if (!w.off) { w.flat = 0; w.rim = 0; } D.spUsed = 0; st.cd = dmgSave(D); }, // (and the spare wheels made up again)
   screenService(it) {
     const st = this.st, card = this.card('center'), s = lastDone(st), hurt = st.dmg && st.dmg !== 'off';
     card.append(el('p', { class: 'rkick', text: `Day ${it.d + 1} · ${clockStr(it.clock)}` }), el('h2', { id: 'rH', text: `Service · ${it.mins} minutes` }),
@@ -33738,7 +34003,7 @@ const Rally = {
   // a road section comes before a stage that follows another stage directly, when the car has something the crew can mend
   roadDue(it) {
     const st = this.st, P = this.plan(), prev = P.items[st.at - 1]; if (!prev || prev.k !== 'ss' || st.roadAt === st.at || !st.dmg || st.dmg === 'off' || !st.cd) return false;
-    const D = dmgLoad(st.cd, st.dmg); D.spares = sparesOf(carById(st.car)); return this.jobs(ROAD_FIXES, D, st.cv, st.dmg === 'real').length > 0;
+    const D = dmgLoad(st.cd, st.dmg); D.spares = Math.max(0, sparesOf(carById(st.car)) - (D.spUsed || 0)); return this.jobs(ROAD_FIXES, D, st.cv, st.dmg === 'real').length > 0;
   },
   screenRoad(it) {
     const st = this.st, card = this.card('center'), g = this.plan().stages[it.s];
