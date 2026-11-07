@@ -8288,7 +8288,7 @@ const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer',
 // the first bend. They answer the car as it is now - its slide, its turning, its wheels' slip - as a real car's
 // electronics answer it. The car physics are untouched: the assists shape the driver's inputs, and Stability Control
 // works the brake of a single wheel as a car's stability system works it (stepCar takes a pressure for each caliper,
-// bw); with an assist off none of it runs. None of them steers for the driver. In the shaping each part has a strength
+// bw); with an assist off none of it runs. Only Drift Assist steers, and only in a slide. In the shaping each part has a strength
 // (assistFor: what an assist's setting gives) and a smoothness (0.5):
 //   Stability Control (esc, with slide and lim): half, the car let slide as far as it can still be caught on the
 //     surface under it (wide on snow and gravel, small on tarmac: SLIDE_MAX), the power eased only past that, sooner
@@ -8302,6 +8302,8 @@ const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer',
 //     tyres take, as launch control holds it;
 //   ABS (abs): the brakes kept from locking; on gravel and snow the wheels let slip more, so they dig in (half: let
 //     nearer locking);
+//   Drift Assist (da): in a slide, the front wheels turned for the driver, smoothly, to hold the slide where the driver
+//     wants it (into the bend: a drift; let go: it dies away; out: caught), and the power eased past it (see DRIFT);
 //   Countersteer Help (csh, lock): when the driver steers against a slide, the front wheels taken to the angle that
 //     catches it - along the car's path and a little past it - more if the driver gave too little, less if too much,
 //     and back as the slide dies, so a caught slide does not throw the car the other way; nothing at all when the
@@ -8312,7 +8314,7 @@ const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer',
 // The old assists, kept for the rallycross crews (stab: the power eased in any big slide; steer: countersteer put on
 // by itself), and the first controls' strengths, are read too. Holding the brake at a standstill still gives a full
 // burnout.
-const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, esc: 0, tcK: 1, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
+const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, esc: 0, tcK: 1, da: 0, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
 // an assist's setting as a strength: off 0, half 0.5, full 1 (on, as the on/off assists have it, is full)
 const asLv = v => v === true ? 1 : typeof v === 'number' && isFinite(v) ? clamp(v, 0, 1) : 0;
 // the assists as set, as the strengths the shaping and the steering work with (Slide Control, from before Stability
@@ -8324,7 +8326,8 @@ function assistFor(on) {
   if (tc > 0) { o.tc = 1; o.tcK = tc >= 1 ? 0.6 : 1; }
   if (A.stab) { o.tc = 1; o.stab = 0.7; o.lim = 1; }
   if (A.abs) o.abs = asLv(A.abs); if (A.csteer) { o.csh = 1; o.lock = 1; } if (A.steer) { o.cs = 1; o.lock = 1; } if (A.rot) o.rot = 1; if (A.cue || A.line) o.line = 1;
-  o.any = !!(sc || tc || A.stab || A.abs || A.csteer || A.steer || A.rot); return o;
+  o.da = asLv(A.da);
+  o.any = !!(sc || tc || A.stab || A.abs || A.csteer || A.steer || A.rot || o.da); return o;
 }
 // (the old on/off assists, { steer, thr, brk }, as strengths)
 function assistParams(A) {
@@ -8387,6 +8390,8 @@ function driveHelp(c, S, I, H, dt, A, T) {
   }
   // Stability Control's brakes (and the power it takes back running wide)
   if (A.esc > 0 && c.w) cap = Math.min(cap, escHelp(c, S, I, H, A, dt, bm, beta, sp, fast)); else if (H.bwOn) { H.bw.fill(0); H.bwOn = false; }
+  // Drift Assist: the slide wanted, and the power eased past it
+  if (A.da > 0 && c.w) cap = Math.min(cap, driftState(c, S, I, H, A, dt, beta, sp)); else H.daW = 0;
   const kT = 1.5 - A.tcM; // (smoother: the power cut and given back more slowly)
   H.thr += (cap - H.thr) * Math.min(1, dt * (cap < H.thr ? 30 : 5) * kT);
   H.clu += (clu - H.clu) * Math.min(1, dt * (clu < H.clu ? 30 : 4) * kT);
@@ -8403,6 +8408,7 @@ function driveHelp(c, S, I, H, dt, A, T) {
   if (A.csM > 0.5) { H.cs += (cs - H.cs) * Math.min(1, dt / ((A.csM - 0.5) * 0.5)); cs = H.cs; } else H.cs = cs;
   let steer = clamp(I.steer * k2 + cs, -1, 1);
   if (A.csh > 0 && c.w) steer = counterHelp(c, S, steer, A.csh, beta);
+  if (A.da > 0 && c.w) steer = driftSteer(c, S, steer, H, A, dt, beta);
   // Rotation Help
   // (traction control trims the torque, not the pedal: at low revs a little throttle gives most of the torque, see throttleShare)
   let hb = I.handbrake, thr = I.throttle * H.thr; if (H.thr < 0.999 && I.throttle > 0.02 && c.rpm > 0) { const sh = throttleShare(S, c.rpm, I.throttle); if (sh > 0) thr = throttleFor(S, c.rpm, sh * H.thr); }
@@ -8452,6 +8458,56 @@ function counterHelp(c, S, steer, k, beta) {
   const need = Math.min(S.lock, Math.abs(bf) + 0.5 * aPk), have = Math.abs(d);
   const out = have < need ? have + (need - have) * k * smooth(0, 0.5 * need, have) : need + (have - need) * (1 - 0.8 * k);
   return clamp(Math.sign(d) * out / S.lock, -1, 1);
+}
+// Drift Assist (da): in a slide - the car turning one way, its tail out the other - the front wheels turned for the
+// driver, smoothly, to hold the slide where the driver wants it, as drift games hold it. Steering into the bend sets a
+// drift, wider the further in (DRIFT.hold to DRIFT.hold + DRIFT.wide of the slide that can still be caught there, see
+// SLIDE_MAX); letting go lets the slide die away over a second or so; steering out of the bend catches it at once. The
+// front wheels are taken toward the way the front axle is going (the countersteer that catches a slide) and then into
+// or out of the bend by a share of the front tyres' best grip: into it while the slide is smaller than wanted (the front
+// carrying the car round the bend), out of it while the slide is larger or growing fast. It comes in between DRIFT.on0
+// and DRIFT.on1 of slide and goes as the slide ends, turns the wheels no quicker than hands turn one (DRIFT.rate, share
+// of lock a second), and while the handbrake is held does a third as much. With the slide past what is wanted, the
+// power is eased on a car driven at the rear (a front-driven one pulls itself straight on the power). Below DRIFT.on0
+// of slide it does nothing at all, so ordinary driving is untouched; a wheel and pedals are never steered for (I.whl).
+const DRIFT = { on0: 0.07, on1: 0.2, hold: 0.25, wide: 0.2, die: 0.25, catch: 2, base: 0.3, kp: 1, ahead: 0.3, kr: 0.6, rate: 3, tau: 0.06, hb: 0.35 };
+// (the slide wanted and how far the assist has come in - kept on, once in, through a caught slide's swing back until
+// the car has settled; the slide measured the way it first went, and how fast that grows; the share of the power left)
+function driftState(c, S, I, H, A, dt, beta, sp) {
+  const r = c.r, ab = Math.abs(beta), now = beta * r < 0 && Math.abs(r) > 0.05 ? Math.sign(r) : 0;
+  let on = 0, mu = 0; for (const w of c.w) if (w.Fz > 0) { on++; mu += w.muPk || 0.9; } mu = on ? mu / on : 0.9;
+  const rL = 0.95 * 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 4), w0 = H.daW || 0;
+  if (now && now !== H.daSide) { H.daSide = now; H.daS0 = null; } // (a new slide, or a swing back become one the other way)
+  const side = H.daSide || 0, abS = side ? -beta * side : 0;
+  { const g = H.daS0 == null ? 0 : (abS - H.daS0) / dt; H.daS0 = abS; H.daDb = H.daS0 === abS && H.daDb != null ? H.daDb + (g - H.daDb) * Math.min(1, dt / 0.06) : 0; }
+  const slide = now ? smooth(DRIFT.on0, DRIFT.on1, ab) : 0, aw = Math.abs(r) / rL;
+  const settle = w0 > 0.05 ? Math.max(smooth(DRIFT.on0, DRIFT.on1, ab), r * side < 0 ? smooth(0.5, 0.9, aw) : smooth(1.05, 1.5, aw)) : 0;
+  let wT = !I.whl && c.u > 1.5 && on >= 2 ? Math.max(slide, settle) * smooth(2.5, 5, sp) : 0; if (I.handbrake) wT *= DRIFT.hb;
+  H.daW = w0 + (wT - w0) * Math.min(1, dt / (wT > w0 ? 0.08 : 0.4));
+  const bm = slideMax(c), into = side ? clamp(I.req || 0, -1, 1) * side : 0;
+  let bt = H.daT || 0;
+  if (into > 0.15) bt = bm * (DRIFT.hold + DRIFT.wide * into); // (steered into the bend: a drift)
+  else if (into < -0.15) bt = Math.max(0, bt - DRIFT.catch * dt); // (steered out: caught)
+  else bt = Math.max(0, Math.min(bt, Math.max(0, abS)) - DRIFT.die * dt); // (let go: dying away)
+  H.daT = bt; H.daBm = bm; H.daRL = rL; H.daIn = into; H.daAb = abS;
+  const w = H.daW * A.da; if (w < 0.01 || !(S.fs < 0.75)) return 1;
+  return 1 - w * smooth(0, 1, (ab - 1.1 * bt) / (0.25 * bm) + 0.4 * Math.max(0, H.daDb || 0));
+}
+// (the steering: the front tyres' slip from the way the front axle is going - toward the slide wanted, looking a
+// moment ahead so a caught slide does not swing back the other way, and against any turning faster than the drift asks
+// - and the driver's own steering taken toward it as far as the assist has come in, no quicker than hands turn a wheel)
+function driftSteer(c, S, steer, H, A, dt, beta) {
+  const w = (H.daW || 0) * A.da, side = H.daSide || 0;
+  if (w < 0.01 || !side) { H.daO = steer; H.daF = null; return steer; }
+  const K = carSetup(S), abS = H.daAb || 0, bt = H.daT || 0, bm = H.daBm || SLIDE_MAX.loose, rL = H.daRL || 1, into = H.daIn || 0;
+  let tp = 0, n = 0; for (let i = 0; i < 2; i++) { const q = c.w[i]; if (q.Fz > 0 && q.tanPk > 0) { tp += q.tanPk; n++; } }
+  const aPk = Math.atan(n ? tp / n : 0.15), bf = Math.atan2(c.v + K.a * c.r, Math.max(0.5, c.u)), sc = 0.25 * bm + 0.05;
+  const rWant = bt > 0.02 ? side * rL * 0.9 * Math.max(0, into) : 0;
+  const pull = side * ((bt > 0.02 ? DRIFT.base : 0) + DRIFT.kp * (bt - (abS + DRIFT.ahead * (H.daDb || 0))) / sc) - DRIFT.kr * (c.r - rWant) / rL;
+  const tgt = clamp((bf + clamp(pull, -1, 1) * aPk) / S.lock, -1, 1);
+  H.daF = H.daF == null ? tgt : H.daF + (tgt - H.daF) * Math.min(1, dt / DRIFT.tau);
+  const o0 = H.daO != null ? H.daO : steer, want = steer + (H.daF - steer) * w, out = o0 + clamp(want - o0, -DRIFT.rate * dt, DRIFT.rate * dt);
+  H.daO = out; return clamp(out, -1, 1);
 }
 // Rotation Help, the handbrake: held, it is let off once the car, turning toward the bend on it, will point down the
 // road a little way ahead within about a quarter of a second at the rate it turns (the road's heading 5 m plus a
@@ -8853,7 +8909,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'F06B';
+const SR86_BUILD = 'F8A1';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -21628,7 +21684,7 @@ function pollInput(dt) {
   const dev = Ctl.dev, P = Ctl.prof[dev], pad = dev === 'gamepad' || dev === 'wheel';
   // a steer key or button pressed steers, whatever else is plugged in; otherwise a stick or wheel in use
   const useA = pad && analog && dS === 0;
-  inp.req = dS !== 0 ? dS : useA ? aS : 0; inp.analog = useA; inp.more = more; inp.look = look; // (look: looking back, held)
+  inp.req = dS !== 0 ? dS : useA ? aS : 0; inp.analog = useA; inp.more = more; inp.look = look; inp.whl = dev === 'wheel'; // (look: looking back, held; whl: a wheel, never steered for)
   // keys and touch buttons ramp the pedals in (the profile's ramp times); a pedal or trigger passes straight through
   const PR = dev === 'touch' ? Ctl.prof.touch : KB;
   inp.kThr += clamp(dThr - inp.kThr, -dt * 10, dt / Math.max(0.01, PR.thr.ramp)); inp.kBrk += clamp(dBrk - inp.kBrk, -dt * 10, dt / Math.max(0.01, PR.brk.ramp));
@@ -22924,18 +22980,19 @@ function steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K) {
 // The assists as the menus show them, and the player's own state for them (HELP); what each does, and the shaping
 // itself (driveHelp), are with the rival crews' driving, which uses them too: see simai.js.
 const HELP = { thr: 1, brk: 1, clu: 1, cs: 0 };
-// the six, as the menus show them (a fourth entry: set off, half or full)
+// the seven, as the menus show them (a fourth entry: set off, half or full)
 const ASSISTS = [
   ['sc', 'Stability Control', 'Full: holds the car to a few degrees of slide, easing the power and braking single wheels as a road car\u2019s stability system does, against a slide or a spin, and to tuck the car in when it runs wide. Half: lets the car slide as far as you can still catch it on the surface under it (wide on snow and gravel, small on tarmac) and steps in only to stop a spin.', 1],
   ['tc', 'Traction Control', 'Keeps the driven wheels from spinning their grip away: Full holds them near their best grip, Half lets them spin enough to throw gravel and hold a slide. Pulling away, it holds the clutch to what the tyres take, as launch control does.', 1],
   ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers. On gravel and snow it lets the wheels slip a little more, so they dig in. Half: lets them nearer locking.', 1],
+  ['da', 'Drift Assist', 'When the car slides, the front wheels are turned for you, smoothly, to hold the slide where you want it, as drift games do: steer into the bend and the car holds a drift round it, let go and the slide dies away, steer out and it is caught. The power is eased if the slide grows too far, so even a rear-driven car on snow stays in hand. In ordinary driving it does nothing, and a wheel is never steered for. Half: half as much.', 1],
   ['csteer', 'Countersteer Help', 'When you steer against a slide, the front wheels go to the angle that catches it: more if you gave too little, less if you gave too much, and back as the slide dies. If you do not countersteer, it does nothing. It also trims a stick’s or wheel’s lock at speed.'],
   ['rot', 'Rotation Help', 'Your handbrake turns and flicks swing the car round by the right amount: the handbrake is let off once the car will point down the road, and a flick gets a moment\u2019s lift as you swing the car back into the bend. You still start every move.'],
   ['cue', 'Technique Guide', 'Shows the move each bend ahead wants, for its surface, how sharp it is and your car: brake, flick, lift, handbrake, left-foot brake or power. The racing line is drawn on the road (green: accelerate, amber: lift, red: brake), and a tick shows when you have done the move.']];
 const PRESETS = {
-  casual: { name: 'Casual', as: { sc: 1, tc: 1, abs: 1, csteer: 1, rot: 1, cue: 1 }, note: 'Every assist at full: Stability Control holding the car near its path, Traction Control, ABS, Countersteer Help, Rotation Help and the guide. The car still drives as a real one does: you steer it and brake for the bends, and nothing slows you before one.' },
-  intermediate: { name: 'Intermediate', as: { sc: 0.5, tc: 0.5, abs: 1, csteer: 0, rot: 1, cue: 0 }, note: 'ABS at full, Stability and Traction Control at half, and Rotation Help: the car slides as far as you can catch it but will not spin, and handbrake turns and flicks swing it round by the right amount. Catching slides and choosing each move are yours.' },
-  advanced: { name: 'Advanced', as: { sc: 0, tc: 0, abs: 0, csteer: 0, rot: 0, cue: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
+  casual: { name: 'Casual', as: { sc: 0.5, tc: 0.5, abs: 1, da: 1, csteer: 1, rot: 1, cue: 1 }, note: 'Drift Assist, ABS, Countersteer Help, Rotation Help and the guide, with Stability and Traction Control at half: the car slides as you ask it to and Drift Assist holds the slide for you - into the bend a drift, let go and it dies away - and it will not spin. You still steer it into the bends and brake for them; nothing slows you before one.' },
+  intermediate: { name: 'Intermediate', as: { sc: 0.5, tc: 0.5, abs: 1, da: 0, csteer: 0, rot: 1, cue: 0 }, note: 'ABS at full, Stability and Traction Control at half, and Rotation Help: the car slides as far as you can catch it but will not spin, and handbrake turns and flicks swing it round by the right amount. Catching slides and choosing each move are yours.' },
+  advanced: { name: 'Advanced', as: { sc: 0, tc: 0, abs: 0, da: 0, csteer: 0, rot: 0, cue: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
 };
 const PRESET_IDS = Object.keys(PRESETS);
 // (a mix saved with the assists the game had before - Stability Control, Steering Assist, the Dynamic Racing Line, and
@@ -23697,7 +23754,7 @@ const GUIDE = [
     ['Pace notes', 'The co-driver’s calls about the road ahead: which way each bend goes and how sharp it is, from 1 (very tight, almost a hairpin) to 6 (nearly flat out), and warnings such as crest, jump, narrows or don’t cut. Shown on screen too.'],
     ['Splits', 'Your time at points along the stage, against the best time or the leader. Green: you are quicker; red: slower.'],
     ['Seed', 'The number a stage is made from. The same number makes the same stage for everyone, so you can challenge a friend.'],
-    ['Assists', 'Help for a driver of any skill: Stability and Traction Control, ABS, and help with the moves of rally driving - catching a slide, swinging the car round on the handbrake or with a flick, and which move each bend wants. None of them steers, brakes for a bend or drives the car for you. Casual helps the most; Advanced not at all. Custom is your own mix.'],
+    ['Assists', 'Help for a driver of any skill: Stability and Traction Control, ABS, Drift Assist (which holds a slide for you once the car is sliding), and help with the moves of rally driving - catching a slide, swinging the car round on the handbrake or with a flick, and which move each bend wants. None of them brakes for a bend or drives the car for you. Casual helps the most; Advanced not at all. Custom is your own mix.'],
     ['Hardcore', 'No assists, no flashbacks, and the view from the driver’s seat only.'],
     ['Flashback', 'Go back to a moment before a mistake and drive on from there, as if it never happened.'],
     ['Damage', 'Off: nothing breaks. Visual: the car looks damaged but drives the same. Realistic: damage changes how the car drives and can end your run.'],
