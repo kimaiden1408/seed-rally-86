@@ -2140,9 +2140,41 @@ function sssRivalStage(T) {
 // the quintic ease from 0 to 1 (its first and second derivatives nil at both ends)
 const ease5 = t => { t = clamp(t, 0, 1); return t * t * t * (t * (t * 6 - 15) + 10); };
 
+// A special stage runs from its start to a finish somewhere else. Laid out freely, its road can wander round - along a
+// coast, round a valley, back down a mountainside - and finish where it began, or within sight of it. Such a stage is
+// laid out again from the same seed, in the same country and on the same surface (only the road's own choices differ),
+// until its finish lies well away from its start - a kilometre in a straight line, or a quarter of a short stage's
+// length - with the last of it (the run to the finish and the stop control beyond) clear of the start, and its road not
+// coming back past its start line either. Every other stage keeps the road it always had. T.relaid: the layout taken
+// (none for nearly every stage); a stage laid out again has a board of its own (see regTag). Super specials and
+// rallycross circuits are built round their start, and are left as they are
+const FAR_FINISH = { d: 1000, frac: 0.25, area: 0.5, back: 150, tries: 12 };
+// (how far a stage is from finishing near its start: 1 or more, far enough - its finish from its start line, and its
+// finish area, the last 200 m before the finish and the 200 m of the stop control, from the road's first 140 m)
+function finishGap(T) {
+  const P = T.pts, S = P[T.startIdx], d = (a, b) => Math.hypot(a.x - b.x, a.z - b.z), need = Math.min(FAR_FINISH.d, FAR_FINISH.frac * T.length);
+  let m = 1e9; for (let i = Math.max(0, T.finishIdx - 100); i <= T.stopIdx; i += 2) for (let j = 0; j <= T.startIdx + 25; j += 2) m = Math.min(m, d(P[i], P[j]));
+  return Math.min(d(S, P[T.finishIdx]) / need, m / (FAR_FINISH.area * need));
+}
+// (and how far its road, from a kilometre on, keeps from its start line: 1 or more, far enough)
+function backGap(T) {
+  const P = T.pts, S = P[T.startIdx]; let m = 1e9; for (let i = T.startIdx + 500; i < P.length; i += 2) m = Math.min(m, Math.hypot(P[i].x - S.x, P[i].z - S.z));
+  return m / FAR_FINISH.back;
+}
 // force (optional): { type: a stage type id, pass: 2 } — a rally lays all its stages in one kind of country, and runs
 // each of them twice; the second time through the road is the same road, only rougher (see the end of the rocks)
 function generateStage(seedStr, force) {
+  seedStr = String(seedStr); const T = layStage(seedStr, force);
+  if (T.loop || T.sss || finishGap(T) >= 1) return T;
+  let best = T, bs = Math.min(finishGap(T), backGap(T)), bk = 0;
+  for (let k = 1; k <= FAR_FINISH.tries && bs < 1; k++) {
+    const U = layStage(seedStr + '/' + k, Object.assign({}, force, { type: T.type.id })), s = Math.min(finishGap(U), backGap(U));
+    if (s > bs) { best = U; bs = s; bk = k; }
+  }
+  return bk ? Object.assign(best, { seed: seedStr, natural: T.natural, forced: T.forced, relaid: bk }) : T;
+}
+// one way of laying out a stage from a seed (see generateStage)
+function layStage(seedStr, force) {
   seedStr = String(seedStr);
   const R = makeRng(seedStr);
   const nseed = strHash('noise:' + seedStr) % 100000;
@@ -8922,7 +8954,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'A91C';
+const SR86_BUILD = 'B3D9';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -21924,7 +21956,7 @@ const STAGE_VER = 7, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : 
 // a stage's times are kept under the stage's own key; each time keeps the assists preset it was driven on (lv)
 const runKey = seed => recKey(seed);
 // (a stage laid out in a country other than its seed's own is a stage of its own, with a board of its own)
-function regTag() { const T = G.T; return (T && T.forced ? '@' + T.type.id : '') + (T && T.sss ? '!ss' + (['arena', 'twin', 'rx'].includes(T.sss.kind) ? 3 : 2) + '-' + T.sss.kind : ''); } // (a super special: a board for each way of laying one out; ss3: the loops laid out freely, see sssFree)
+function regTag() { const T = G.T; return (T && T.forced ? '@' + T.type.id : '') + (T && T.sss ? '!ss' + (['arena', 'twin', 'rx'].includes(T.sss.kind) ? 3 : 2) + '-' + T.sss.kind : '') + (T && T.relaid ? '^' + T.relaid : ''); } // (a super special: a board for each way of laying one out; ss3: the loops laid out freely, see sssFree; a stage laid out again because it finished near its start, see generateStage: a board of its own)
 // ---------- conditions ----------
 // A stage's own time of day and weather come from its seed, so everyone running it gets the same light and weather.
 // Either can be changed for a run; times set in other conditions than the stage's own go on a board of their own.
