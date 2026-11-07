@@ -8280,54 +8280,38 @@ const SEALED_KINDS = new Set(['tarmac', 'stone', 'concrete', 'paint', 'steel', '
 const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer', 'slush', 'loose', 'hard', 'dirt', 'powder']);
 
 // ---------- driving help for on/off controls ----------
-// The driving assists: Stability Control, Traction Control and ABS (each off, half or full), and Countersteer Help,
-// Rotation Help and the Technique Guide (each on or off). They are for a driver of any skill: at Full they hold the car
-// near its path as a road car's own systems hold it, at Half they let it slide the way a rally driver slides it and
-// step in only to stop a spin, and off they add nothing. None of them looks at the road ahead: nothing brakes for a bend
-// before it, holds the power back for one or steers the car into one, so the throttle alone takes it no further than
-// the first bend. They answer the car as it is now - its slide, its turning, its wheels' slip - as a real car's
-// electronics answer it. The car physics are untouched: the assists shape the driver's inputs, and Stability Control
-// works the brake of a single wheel as a car's stability system works it (stepCar takes a pressure for each caliper,
-// bw); with an assist off none of it runs. Only Drift Assist steers, and only in a slide. In the shaping each part has a strength
-// (assistFor: what an assist's setting gives) and a smoothness (0.5):
-//   Stability Control (esc, with slide and lim): half, the car let slide as far as it can still be caught on the
-//     surface under it (wide on snow and gravel, small on tarmac: SLIDE_MAX), the power eased only past that, sooner
-//     while the slide grows fast (a spin starting), and the front wheel on the outside braked as it goes on past;
-//     full, the slide held to a few degrees (ESC_MAX), the car turning faster than its tyres can turn it braked back
-//     by the outside front wheel, and a car running wide of the bend it is steered into, its front tyres past their
-//     best, turned in by the inside rear wheel and a little less power (see escHelp); at either, with keys, a key held
-//     into the turn eased off only as the slide nears what can be caught (SLIDE_MAX);
-//   Traction Control (tc, tcK): the driven wheels let spin enough to drive the car (half: enough to roost and to hold
-//     a slide), not so far past the grip peak that the car goes; pulling away, the clutch's torque held to what the
-//     tyres take, as launch control holds it;
-//   ABS (abs): the brakes kept from locking; on gravel and snow the wheels let slip more, so they dig in (half: let
-//     nearer locking);
-//   Drift Assist (da): in a slide, the front wheels turned for the driver, smoothly, to hold the slide where the driver
-//     wants it (into the bend: a drift; let go: it dies away; out: caught), and the power eased past it (see DRIFT);
-//   Countersteer Help (csh, lock): when the driver steers against a slide, the front wheels taken to the angle that
-//     catches it - along the car's path and a little past it - more if the driver gave too little, less if too much,
-//     and back as the slide dies, so a caught slide does not throw the car the other way; nothing at all when the
-//     driver does not countersteer; and a stick's or wheel's lock trimmed at speed to what the front tyres can use;
-//   Rotation Help (rot): the handbrake let off once the car, turning on it, will point down the road, so a handbrake
-//     turn does not swing it past the exit; and in a flick (steered away and back into the bend at speed on a loose or
-//     slippery road), a moment's lift as it swings back, so the weight goes onto the nose and the tail comes round.
-// The old assists, kept for the rallycross crews (stab: the power eased in any big slide; steer: countersteer put on
-// by itself), and the first controls' strengths, are read too. Holding the brake at a standstill still gives a full
+// The driving assists, each on or off, as the rally games of 2011 had them: ABS, the Dynamic Racing Line, Stability
+// Control, Auto Steer, Corner Braking and Throttle Management, in three presets (Casual, Intermediate, Advanced). The
+// car physics are untouched: the assists shape the driver's inputs (and the racing line is drawn on the road); with an
+// assist off none of it runs. Corner Braking, Throttle Management and Auto Steer look at the road ahead, on the line the
+// stage's pace is run on (racingLine, stagePace): what the car may carry at each point and still make the bends after it.
+//   ABS (abs): the brakes kept from locking; on gravel and snow the wheels let slip more, so they dig in;
+//   Dynamic Racing Line (line): the racing line drawn on the road, green where the car could go faster, amber where it
+//     should lift, red where it must already be braking (see RaceLine);
+//   Stability Control (stab, with tc and lim): the car kept from spinning when it is accelerated hard - the driven
+//     wheels kept from spinning their grip away, the power eased in any big slide, and with keys a held steer key eased
+//     as the car turns faster than its grip turns it or the rear reaches its limit;
+//   Auto Steer (steer: as, with lock and cs): the car kept toward the racing line (lineSteer), a stick's or wheel's lock
+//     trimmed at speed so the car cannot be steered into a spin, and the front wheels following a slide a little;
+//   Corner Braking (brake: cb): the brakes put on for the driver when the car comes into a bend faster than it can be
+//     taken, so it does not overshoot (cornerSpeed);
+//   Throttle Management (thr: tm): the power held back as the car nears the most it may carry for the bends ahead, so it
+//     does not speed into one.
+// The assists of the builds between - Stability and Traction Control in levels with a stability system's brakes
+// (escHelp), Drift Assist (driftState, driftSteer), Countersteer Help (counterHelp) and Rotation Help (hbHelp,
+// flickHelp) - are kept, unused by the presets; a mix saved with them is read as the nearest of these (asNow). The
+// rallycross crews drive with ABS and Stability Control. Holding the brake at a standstill still gives a full
 // burnout.
-const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, esc: 0, tcK: 1, da: 0, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
+const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, esc: 0, tcK: 1, da: 0, as: 0, cb: 0, tm: 0, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
 // an assist's setting as a strength: off 0, half 0.5, full 1 (on, as the on/off assists have it, is full)
 const asLv = v => v === true ? 1 : typeof v === 'number' && isFinite(v) ? clamp(v, 0, 1) : 0;
-// the assists as set, as the strengths the shaping and the steering work with (Slide Control, from before Stability
-// and Traction Control had their levels, is the two at half)
+// the assists as set, as the strengths the shaping and the steering work with (a mix from the builds between, with
+// Slide Control, or Stability and Traction Control in levels, has Stability Control)
 function assistFor(on) {
   const o = Object.assign({}, ASSIST0), A = on || {};
-  const sc = 'sc' in A ? asLv(A.sc) : A.slide ? 0.5 : 0, tc = 'tc' in A ? asLv(A.tc) : A.slide ? 0.5 : 0;
-  if (sc > 0) { o.slide = 1; o.lim = 1; o.esc = sc; }
-  if (tc > 0) { o.tc = 1; o.tcK = tc >= 1 ? 0.6 : 1; }
-  if (A.stab) { o.tc = 1; o.stab = 0.7; o.lim = 1; }
-  if (A.abs) o.abs = asLv(A.abs); if (A.csteer) { o.csh = 1; o.lock = 1; } if (A.steer) { o.cs = 1; o.lock = 1; } if (A.rot) o.rot = 1; if (A.cue || A.line) o.line = 1;
-  o.da = asLv(A.da);
-  o.any = !!(sc || tc || A.stab || A.abs || A.csteer || A.steer || A.rot || o.da); return o;
+  if (A.stab || A.slide || asLv(A.sc) || asLv(A.tc)) { o.tc = 1; o.stab = 0.7; o.lim = 1; }
+  if (A.abs) o.abs = 1; if (A.steer) { o.as = 1; o.lock = 1; o.cs = 1; } if (A.brake) o.cb = 1; if (A.thr) o.tm = 1; if (A.line || A.cue) o.line = 1;
+  o.any = !!(o.tc || o.abs || o.as || o.cb || o.tm); return o;
 }
 // (the old on/off assists, { steer, thr, brk }, as strengths)
 function assistParams(A) {
@@ -8390,13 +8374,17 @@ function driveHelp(c, S, I, H, dt, A, T) {
   }
   // Stability Control's brakes (and the power it takes back running wide)
   if (A.esc > 0 && c.w) cap = Math.min(cap, escHelp(c, S, I, H, A, dt, bm, beta, sp, fast)); else if (H.bwOn) { H.bw.fill(0); H.bwOn = false; }
+  // Throttle Management and Corner Braking: the most the car may carry here for the bends ahead
+  H.cbB = 0; if ((A.tm > 0 || A.cb > 0) && T && !T.loop && c.u > 2 && c.w) { const over = sp - cornerSpeed(c, S, T, H, dt);
+    if (A.tm > 0) cap = Math.min(cap, smooth(-0.5, -CBRAKE.lift, over));
+    if (A.cb > 0 && over > 0) { H.cbB = clamp(over / CBRAKE.brake, 0, CBRAKE.max); cap = 0; } }
   // Drift Assist: the slide wanted, and the power eased past it
   if (A.da > 0 && c.w) cap = Math.min(cap, driftState(c, S, I, H, A, dt, beta, sp)); else H.daW = 0;
   const kT = 1.5 - A.tcM; // (smoother: the power cut and given back more slowly)
   H.thr += (cap - H.thr) * Math.min(1, dt * (cap < H.thr ? 30 : 5) * kT);
   H.clu += (clu - H.clu) * Math.min(1, dt * (clu < H.clu ? 30 : 4) * kT);
   let want = 1;
-  if (A.abs > 0 && c.w && au > 3 && c.gear !== -1 && I.throttle < 0.3) {
+  if (A.abs > 0 && c.w && au > 3 && c.gear !== -1 && (I.throttle < 0.3 || H.cbB > 0)) {
     let k = 0, loose = false; for (const i of [0, 1]) { const w = c.w[i]; if (w.Fz > 0) { k = Math.min(k, w.slipL / au); if (!SEALED_KINDS.has(w.surf) && w.surf !== 'ice' && w.surf !== 'snow') loose = true; } }
     const tgt = (loose ? -0.2 : -0.12) * (1 + 2 * (1 - A.abs)); if (k < tgt) want = clamp(1 - (tgt - k) * 3, 0.35, 1); // (weaker: the wheels let nearer locking)
   }
@@ -8409,11 +8397,12 @@ function driveHelp(c, S, I, H, dt, A, T) {
   let steer = clamp(I.steer * k2 + cs, -1, 1);
   if (A.csh > 0 && c.w) steer = counterHelp(c, S, steer, A.csh, beta);
   if (A.da > 0 && c.w) steer = driftSteer(c, S, steer, H, A, dt, beta);
+  if (A.as > 0 && T && !T.loop && c.w && c.u > 2) steer = lineSteer(c, S, T, H, steer, I, sp, dt); else H.asO = null; // Auto Steer
   // Rotation Help
   // (traction control trims the torque, not the pedal: at low revs a little throttle gives most of the torque, see throttleShare)
   let hb = I.handbrake, thr = I.throttle * H.thr; if (H.thr < 0.999 && I.throttle > 0.02 && c.rpm > 0) { const sh = throttleShare(S, c.rpm, I.throttle); if (sh > 0) thr = throttleFor(S, c.rpm, sh * H.thr); }
   if (A.rot > 0) { hb = hbHelp(c, I, H, T, sp); thr *= flickHelp(c, I, H, T, dt, sp, A.rot); }
-  return { steer, throttle: thr, brake: I.brake * H.brk, handbrake: hb, auto: I.auto, clutch: H.clu, clutchT: ct, req: I.req, bw: H.bwOn ? H.bw : null };
+  return { steer, throttle: thr, brake: Math.max(I.brake, H.cbB || 0) * H.brk, handbrake: hb, auto: I.auto, clutch: H.clu, clutchT: ct, req: I.req, bw: H.bwOn ? H.bw : null };
 }
 // Stability Control's brakes: a wheel braked on its own, as a car's stability system brakes it, and the power it takes
 // back. Half: the front wheel on the outside braked once a slide goes past what can be caught there (sooner while it
@@ -8508,6 +8497,30 @@ function driftSteer(c, S, steer, H, A, dt, beta) {
   H.daF = H.daF == null ? tgt : H.daF + (tgt - H.daF) * Math.min(1, dt / DRIFT.tau);
   const o0 = H.daO != null ? H.daO : steer, want = steer + (H.daF - steer) * w, out = o0 + clamp(want - o0, -DRIFT.rate * dt, DRIFT.rate * dt);
   H.daO = out; return clamp(out, -1, 1);
+}
+// Corner Braking and Throttle Management: the most the car may carry here and still make every bend of the next few
+// hundred metres on the racing line, braking as the tyres under it allow - the racing line's own reckoning (RaceLine),
+// on the stage's pace a little under its limit (CBRAKE.k). Worked out every twentieth of a second
+const CBRAKE = { k: 0.85, dec: 0.6, ahead: 400, lift: 4, brake: 4, max: 0.9 };
+function cornerSpeed(c, S, T, H, dt) {
+  H.vnT = (H.vnT || 0) - dt; if (H.vnT > 0 && H.vN != null) return H.vN; H.vnT = 0.05;
+  const L = racingLine(T), pace = stagePace(T, S, Math.round((T.wet || 0) * 10) / 10), n = L.n, k0 = clamp(c.hint - L.a, 0, n - 2);
+  let mu = 0, q = 0; for (const w of c.w) if (w.Fz > 0) { mu += w.muPk || 0.9; q++; } mu = q ? mu / q : 0.9;
+  const dec = CBRAKE.dec * 9.81 * clamp(mu, 0.25, 1.3); let v = Infinity, d = 0;
+  for (let k = k0 + 1; k < n && d < CBRAKE.ahead; k++) { d += L.ds[k - 1]; const vb = pace.vb[k] * CBRAKE.k; v = Math.min(v, Math.sqrt(vb * vb + 2 * dec * d)); }
+  return H.vN = v;
+}
+// Auto Steer: the steering taken part of the way to the angle that follows the racing line (a point on it a little
+// ahead, further the faster the car goes, reached on an arc), more while the driver leaves the steering alone; turned no
+// quicker than hands turn a wheel
+const AUTOSTEER = { look: 5, lookK: 0.45, free: 0.6, held: 0.35, rate: 3 };
+function lineSteer(c, S, T, H, steer, I, sp, dt) {
+  const L = racingLine(T), n = L.n, k0 = clamp(c.hint - L.a, 0, n - 2), look = AUTOSTEER.look + AUTOSTEER.lookK * sp; let d = 0, k = k0;
+  while (k < n - 1 && d < look) { d += L.ds[k]; k++; }
+  const dx = L.x[k] - c.x, dz = L.z[k] - c.z, D = Math.max(3, Math.hypot(dx, dz)), ang = wrapAngle(Math.atan2(dx, dz) - c.psi), K = carSetup(S);
+  const tgt = clamp(Math.atan(2 * (K.a + K.b) * Math.sin(ang) / D) / S.lock, -1, 1), w = Math.abs(I.req || 0) > 0.05 ? AUTOSTEER.held : AUTOSTEER.free;
+  const o0 = H.asO != null ? H.asO : steer, want = steer + (tgt - steer) * w, out = o0 + clamp(want - o0, -AUTOSTEER.rate * dt, AUTOSTEER.rate * dt);
+  H.asO = out; return clamp(out, -1, 1);
 }
 // Rotation Help, the handbrake: held, it is let off once the car, turning toward the bend on it, will point down the
 // road a little way ahead within about a quarter of a second at the rate it turns (the road's heading 5 m plus a
@@ -8909,7 +8922,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'F8A1';
+const SR86_BUILD = 'A91C';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -22101,7 +22114,7 @@ function startRun() {
   Duel.drop(); SSFlags.reset(); if (G.T.sss) { const dz = G.rally && Rally.cur && Rally.cur.duel; if (dz) Duel.init(G.T, dz.S, dz.t, dz.inc, dz.name);
     else { const cls = rivalCls(G.spec), pool = stockOf(cls).filter(S => S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
       Duel.init(G.T, S, stagePace(G.T, S, G.T.wet || 0).t * (RALLY_PACE[G.T.surface] || 1.35) * 0.95 * rivalCarK(G.T, G.T.wet || 0, G.spec, RALLY_LVL.national), null, 'The other car'); } } // (its car, against a build, tuned toward the build's pace)
-  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); if (G.run.as.line && !G.T.loop) Moves.plan(G.T, G.phys); else Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
+  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); Moves.stop(); // (the racing line alone: the moves the guide of the builds between showed are not) G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
   Particles.clear(); CrowdFx.reset(); crowdReset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1; HELP.cs = 0; inp.kThr = 0; inp.kBrk = 0;
@@ -22980,30 +22993,27 @@ function steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K) {
 // The assists as the menus show them, and the player's own state for them (HELP); what each does, and the shaping
 // itself (driveHelp), are with the rival crews' driving, which uses them too: see simai.js.
 const HELP = { thr: 1, brk: 1, clu: 1, cs: 0 };
-// the seven, as the menus show them (a fourth entry: set off, half or full)
+// the six, as the menus show them, each on or off
 const ASSISTS = [
-  ['sc', 'Stability Control', 'Full: holds the car to a few degrees of slide, easing the power and braking single wheels as a road car\u2019s stability system does, against a slide or a spin, and to tuck the car in when it runs wide. Half: lets the car slide as far as you can still catch it on the surface under it (wide on snow and gravel, small on tarmac) and steps in only to stop a spin.', 1],
-  ['tc', 'Traction Control', 'Keeps the driven wheels from spinning their grip away: Full holds them near their best grip, Half lets them spin enough to throw gravel and hold a slide. Pulling away, it holds the clutch to what the tyres take, as launch control does.', 1],
-  ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers. On gravel and snow it lets the wheels slip a little more, so they dig in. Half: lets them nearer locking.', 1],
-  ['da', 'Drift Assist', 'When the car slides, the front wheels are turned for you, smoothly, to hold the slide where you want it, as drift games do: steer into the bend and the car holds a drift round it, let go and the slide dies away, steer out and it is caught. The power is eased if the slide grows too far, so even a rear-driven car on snow stays in hand. In ordinary driving it does nothing, and a wheel is never steered for. Half: half as much.', 1],
-  ['csteer', 'Countersteer Help', 'When you steer against a slide, the front wheels go to the angle that catches it: more if you gave too little, less if you gave too much, and back as the slide dies. If you do not countersteer, it does nothing. It also trims a stick’s or wheel’s lock at speed.'],
-  ['rot', 'Rotation Help', 'Your handbrake turns and flicks swing the car round by the right amount: the handbrake is let off once the car will point down the road, and a flick gets a moment\u2019s lift as you swing the car back into the bend. You still start every move.'],
-  ['cue', 'Technique Guide', 'Shows the move each bend ahead wants, for its surface, how sharp it is and your car: brake, flick, lift, handbrake, left-foot brake or power. The racing line is drawn on the road (green: accelerate, amber: lift, red: brake), and a tick shows when you have done the move.']];
+  ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers.'],
+  ['line', 'Dynamic Racing Line', 'Shows the racing line on the road, coloured for where to accelerate (green), lift (amber) and brake (red).'],
+  ['stab', 'Stability Control', 'Stops the car spinning when you accelerate hard: the driven wheels are kept from spinning their grip away, and the power is eased in a big slide.'],
+  ['steer', 'Auto Steer', 'Helps keep the car on the racing line, and stops you steering so hard that it spins.'],
+  ['brake', 'Corner Braking', 'Brakes for you when you come into a bend too fast, so you do not overshoot it.'],
+  ['thr', 'Throttle Management', 'Holds the power back so you do not speed into the next bend.']];
 const PRESETS = {
-  casual: { name: 'Casual', as: { sc: 0.5, tc: 0.5, abs: 1, da: 1, csteer: 1, rot: 1, cue: 1 }, note: 'Drift Assist, ABS, Countersteer Help, Rotation Help and the guide, with Stability and Traction Control at half: the car slides as you ask it to and Drift Assist holds the slide for you - into the bend a drift, let go and it dies away - and it will not spin. You still steer it into the bends and brake for them; nothing slows you before one.' },
-  intermediate: { name: 'Intermediate', as: { sc: 0.5, tc: 0.5, abs: 1, da: 0, csteer: 0, rot: 1, cue: 0 }, note: 'ABS at full, Stability and Traction Control at half, and Rotation Help: the car slides as far as you can catch it but will not spin, and handbrake turns and flicks swing it round by the right amount. Catching slides and choosing each move are yours.' },
-  advanced: { name: 'Advanced', as: { sc: 0, tc: 0, abs: 0, da: 0, csteer: 0, rot: 0, cue: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
+  casual: { name: 'Casual', as: { abs: 1, line: 1, stab: 1, steer: 1, brake: 1, thr: 1 }, note: 'Every assist on: the racing line on the road, the car kept on it and slowed for the bends, and kept from spinning. You steer and accelerate; the assists do the rest.' },
+  intermediate: { name: 'Intermediate', as: { abs: 1, line: 1, stab: 1, steer: 0, brake: 0, thr: 0 }, note: 'ABS, the racing line and Stability Control: the brakes do not lock and the car does not spin, but the steering and the braking for the bends are yours.' },
+  advanced: { name: 'Advanced', as: { abs: 0, line: 0, stab: 0, steer: 0, brake: 0, thr: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
 };
 const PRESET_IDS = Object.keys(PRESETS);
-// (a mix saved with the assists the game had before - Stability Control, Steering Assist, the Dynamic Racing Line, and
-// Corner Braking and Throttle Management, which drove the car and are gone - as the nearest of these; and one from
-// before the assists had their levels, its Slide Control as Stability and Traction Control at half; a Steering Assist
-// saved with a mix, from the build that had it, is left out by the merge)
+// (a mix saved in the builds between, with Slide Control or Stability and Traction Control in levels, Drift Assist,
+// Countersteer Help, Rotation Help and the Technique Guide, as the nearest of these: its stability and traction control
+// as Stability Control, its guide as the racing line)
 const asNow = a => {
-  if (!a || typeof a !== 'object') return a;
-  if (!('slide' in a) && !('sc' in a) && ('stab' in a || 'steer' in a || 'line' in a || 'brake' in a || 'thr' in a)) a = { abs: a.abs ? 1 : 0, slide: a.stab ? 1 : 0, csteer: a.steer ? 1 : 0, rot: a.brake || a.thr ? 1 : 0, cue: a.line ? 1 : 0 };
-  if ('slide' in a && !('sc' in a)) { const o = Object.assign({}, a), s = a.slide ? 0.5 : 0; delete o.slide; return Object.assign(o, { sc: s, tc: s }); }
-  return a; };
+  if (!a || typeof a !== 'object' || 'stab' in a || 'steer' in a || 'line' in a || 'brake' in a || 'thr' in a) return a;
+  return { abs: a.abs ? 1 : 0, line: a.cue ? 1 : 0, stab: a.slide || a.sc || a.tc ? 1 : 0, steer: 0, brake: 0, thr: 0 };
+};
 // the assists on, as a list
 const assistList = on => { const L = ASSISTS.filter(([k]) => on && on[k]).map(([k, n, , lv]) => lv && on[k] < 1 ? n + ' (half)' : n); return L.length ? L.join(', ') : 'no assists'; };
 // ---------- end driving help ----------
@@ -23754,7 +23764,7 @@ const GUIDE = [
     ['Pace notes', 'The co-driver’s calls about the road ahead: which way each bend goes and how sharp it is, from 1 (very tight, almost a hairpin) to 6 (nearly flat out), and warnings such as crest, jump, narrows or don’t cut. Shown on screen too.'],
     ['Splits', 'Your time at points along the stage, against the best time or the leader. Green: you are quicker; red: slower.'],
     ['Seed', 'The number a stage is made from. The same number makes the same stage for everyone, so you can challenge a friend.'],
-    ['Assists', 'Help for a driver of any skill: Stability and Traction Control, ABS, Drift Assist (which holds a slide for you once the car is sliding), and help with the moves of rally driving - catching a slide, swinging the car round on the handbrake or with a flick, and which move each bend wants. None of them brakes for a bend or drives the car for you. Casual helps the most; Advanced not at all. Custom is your own mix.'],
+    ['Assists', 'ABS, the Dynamic Racing Line, Stability Control, Auto Steer, Corner Braking and Throttle Management, each on or off. Casual has them all: the car is kept on the racing line and slowed for the bends. Advanced has none. Custom is your own mix.'],
     ['Hardcore', 'No assists, no flashbacks, and the view from the driver’s seat only.'],
     ['Flashback', 'Go back to a moment before a mistake and drive on from there, as if it never happened.'],
     ['Damage', 'Off: nothing breaks. Visual: the car looks damaged but drives the same. Realistic: damage changes how the car drives and can end your run.'],
@@ -23917,7 +23927,7 @@ const ControlsUI = {
     this.sec(body, 'Preset');
     this.row(body, 'Assists', lv0 === 'custom' ? 'Your own mix, below.' : PRESETS[lv0].note, this.seg(PRESET_IDS.map(id => [id, PRESETS[id].name]).concat(lv0 === 'custom' ? [['custom', 'Custom']] : []), () => Ctl.level(), v => { if (v !== 'custom') D.level = v; }, 'Assists preset'), true);
     const setA = (k, v) => { if (Ctl.level() !== 'custom') { D.as = Ctl.assist(); D.level = 'custom'; } D.as[k] = v; };
-    this.sec(body, 'Assists', 'each off, half or full, or on or off');
+    this.sec(body, 'Assists', 'each on or off');
     for (const [k, name, hint, lv] of ASSISTS) this.row(body, name, hint, lv ? this.seg([[0, 'Off'], [0.5, 'Half'], [1, 'Full']], () => { const v = cur()[k]; return v === true ? 1 : v || 0; }, v => setA(k, v), name) : this.seg([[0, 'Off'], [1, 'On']], () => cur()[k] ? 1 : 0, v => setA(k, v), name));
     body.append(el('p', { class: 'cnote', text: 'Advanced, or every assist off, adds nothing to what you do with the controls. Each controller\u2019s own steering is set on its tab (keys: Grip or Direct). Changes made during a stage count from then on; the stage keeps the easiest preset it was driven on.' }));
   },
@@ -23947,7 +23957,7 @@ const ControlsUI = {
       this.row(body, 'Outer deadzone', 'Movement near the end that counts as full.', this.range(() => S.odz, v => { S.odz = v; }, 0, 0.2, 0.01, this.pct, SD.odz));
       this.row(body, 'Response curve', '1: straight. Higher: softer near the centre, for fine control.', this.range(() => S.curve, v => { S.curve = v; }, 1, 3, 0.05, v => v.toFixed(2), SD.curve));
       this.row(body, 'Steering range', 'The share of the car’s lock at full input.', this.range(() => S.range, v => { S.range = v; }, 0.5, 1, 0.05, this.pct, SD.range));
-      body.append(el('p', { class: 'cnote', text: (dev === 'wheel' ? 'The wheel sets the front wheels’ angle directly.' : 'The stick sets the front wheels’ angle directly.') + ' With Countersteer Help on, the lock is trimmed at speed to what the front tyres can use and your countersteer is made exact; with it off, a stick turns the wheels all the way at any speed.' }));
+      body.append(el('p', { class: 'cnote', text: (dev === 'wheel' ? 'The wheel sets the front wheels’ angle directly.' : 'The stick sets the front wheels’ angle directly.') + ' With Auto Steer on, the lock is trimmed at speed to what the front tyres can use; with it off, a stick turns the wheels all the way at any speed.' }));
     }
     // pedals
     this.sec(body, pad ? 'Throttle and brake' : 'Throttle and brake keys');
