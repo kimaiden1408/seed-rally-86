@@ -933,6 +933,7 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
         <div class="mpopt"><span>Teams</span><div class="assist"><button id="mp_tt0" type="button">Off</button><button id="mp_tt1" type="button">Two teams</button></div></div>
         <div class="mpopt"><span>Stage</span><div class="assist"><button id="mp_ns0" type="button">Same</button><button id="mp_ns1" type="button">New each race</button></div></div>
         <div class="mpopt"><span>Surprise</span><div class="assist"><button id="mp_sc0" type="button">Off</button><button id="mp_sc1" type="button">Time and weather</button></div></div>
+        <div class="mpopt"><span>Events</span><div class="assist"><button id="mp_ev0" type="button">Off</button><button id="mp_ev1" type="button">On</button></div></div>
         <p id="mpRuleNote" class="small"></p>
         <div id="mpSeries" class="mpseries" hidden></div>
         <p id="mpFacts"></p>
@@ -8312,38 +8313,45 @@ const SEALED_KINDS = new Set(['tarmac', 'stone', 'concrete', 'paint', 'steel', '
 const LOOSE_KINDS = new Set(['gravel', 'snow', 'grass', 'snowbank', 'snowlayer', 'slush', 'loose', 'hard', 'dirt', 'powder']);
 
 // ---------- driving help for on/off controls ----------
-// The driving assists, each on or off, as the rally games of 2011 had them: ABS, the Dynamic Racing Line, Stability
-// Control, Auto Steer, Corner Braking and Throttle Management, in three presets (Casual, Intermediate, Advanced). The
-// car physics are untouched: the assists shape the driver's inputs (and the racing line is drawn on the road); with an
-// assist off none of it runs. Corner Braking, Throttle Management and Auto Steer look at the road ahead, on the line the
-// stage's pace is run on (racingLine, stagePace): what the car may carry at each point and still make the bends after it.
+// The driving assists, each on or off: ABS, Traction Control, Stability Control, Steering Assist, Drift Assist and the
+// Racing Line, in three presets (Casual, Intermediate, Advanced). They make the car forgiving - easy to slide and hard
+// to spin, as a sim-cade driving game has it - and never drive it: none looks at the road ahead, brakes for a bend,
+// holds the power back for one or steers the car along a line. They answer the car as it is now - its slide, its
+// turning, its wheels' slip - as a real car's electronics answer it, and shape the driver's own inputs; the car physics
+// are untouched, and with an assist off none of it runs. Stability Control also works the brake of a single wheel, as a
+// car's stability system works it (stepCar takes a pressure for each caliper, bw). Each part has a strength (assistFor:
+// what an assist gives) and a smoothness (0.5):
 //   ABS (abs): the brakes kept from locking; on gravel and snow the wheels let slip more, so they dig in;
-//   Dynamic Racing Line (line): the racing line drawn on the road, green where the car could go faster, amber where it
-//     should lift, red where it must already be braking (see RaceLine);
-//   Stability Control (stab, with tc and lim): the car kept from spinning when it is accelerated hard - the driven
-//     wheels kept from spinning their grip away, the power eased in any big slide, and with keys a held steer key eased
-//     as the car turns faster than its grip turns it or the rear reaches its limit;
-//   Auto Steer (steer: as, with lock and cs): the car kept toward the racing line (lineSteer), a stick's or wheel's lock
-//     trimmed at speed so the car cannot be steered into a spin, and the front wheels following a slide a little;
-//   Corner Braking (brake: cb): the brakes put on for the driver when the car comes into a bend faster than it can be
-//     taken, so it does not overshoot (cornerSpeed);
-//   Throttle Management (thr: tm): the power held back as the car nears the most it may carry for the bends ahead, so it
-//     does not speed into one.
-// The assists of the builds between - Stability and Traction Control in levels with a stability system's brakes
-// (escHelp), Drift Assist (driftState, driftSteer), Countersteer Help (counterHelp) and Rotation Help (hbHelp,
-// flickHelp) - are kept, unused by the presets; a mix saved with them is read as the nearest of these (asNow). The
-// rallycross crews drive with ABS and Stability Control. Holding the brake at a standstill still gives a full
-// burnout.
-const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, esc: 0, tcK: 1, da: 0, as: 0, cb: 0, tm: 0, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
+//   Traction Control (tc, tcK): the driven wheels let spin enough to drive the car, throw gravel and hold a slide, not
+//     so far past the grip peak that the car goes; pulling away, the clutch's torque held to what the tyres take, as
+//     launch control holds it;
+//   Stability Control (slide, lim, esc at half): the car let slide as far as it can still be caught on the surface under
+//     it (wide on snow and gravel, small on tarmac: SLIDE_MAX), the power eased only past that, sooner while the slide
+//     grows fast (a spin starting), and the front wheel on the outside braked as it goes on past (see escHelp); with keys,
+//     a key held into the turn eased off only as the slide nears what can be caught;
+//   Steering Assist (csh, lock): a stick's lock trimmed at speed to what the front tyres can use, and the driver's own
+//     countersteer made exact - the front wheels taken to the angle that catches the slide, and back as it dies (see
+//     counterHelp); when the driver does not countersteer it does nothing;
+//   Drift Assist (da): in a slide, the front wheels turned for the driver, smoothly, to hold the slide where the driver
+//     wants it (into the bend: a drift; let go: it dies away; out: caught), and the power eased past it (see DRIFT);
+//   Racing Line (line): the racing line drawn on the road, green where the car could go faster, amber where it should
+//     lift, red where it must already be braking (see RaceLine); it only shows.
+// The rival crews drive with ABS and the old stability (stab: the power eased in any big slide, the driven wheels held),
+// as they always have. Rotation Help (hbHelp, flickHelp) and full Stability Control (esc 1) are kept, unused by the
+// presets; a mix saved in an earlier build is read as the nearest of these (asNow). Holding the brake at a standstill
+// still gives a full burnout.
+const ASSIST0 = { tc: 0, stab: 0, slide: 0, abs: 0, cs: 0, csh: 0, lock: 0, rot: 0, line: 0, lim: 0, esc: 0, tcK: 1, da: 0, tcM: 0.5, stabM: 0.5, absM: 0.5, csM: 0.5, lockM: 0.5 };
 // an assist's setting as a strength: off 0, half 0.5, full 1 (on, as the on/off assists have it, is full)
 const asLv = v => v === true ? 1 : typeof v === 'number' && isFinite(v) ? clamp(v, 0, 1) : 0;
-// the assists as set, as the strengths the shaping and the steering work with (a mix from the builds between, with
-// Slide Control, or Stability and Traction Control in levels, has Stability Control)
+// the assists as set, as the strengths the shaping and the steering work with: Traction Control lets the wheels spin
+// enough to slide the car (tcK 1), Stability Control lets it slide as far as it can be caught (esc 0.5); stab is the
+// rival crews' old stability
 function assistFor(on) {
   const o = Object.assign({}, ASSIST0), A = on || {};
-  if (A.stab || A.slide || asLv(A.sc) || asLv(A.tc)) { o.tc = 1; o.stab = 0.7; o.lim = 1; }
-  if (A.abs) o.abs = 1; if (A.steer) { o.as = 1; o.lock = 1; o.cs = 1; } if (A.brake) o.cb = 1; if (A.thr) o.tm = 1; if (A.line || A.cue) o.line = 1;
-  o.any = !!(o.tc || o.abs || o.as || o.cb || o.tm); return o;
+  if (A.stab) { o.tc = 1; o.stab = 0.7; o.lim = 1; }
+  if (A.abs) o.abs = 1; if (A.tc) { o.tc = 1; o.tcK = 1; } if (A.sc) { o.slide = 1; o.lim = 1; o.esc = 0.5; }
+  if (A.steer) { o.csh = 1; o.lock = 1; } if (A.drift) o.da = 1; if (A.line) o.line = 1;
+  o.any = !!(o.tc || o.abs || o.slide || o.csh || o.lock || o.da); return o;
 }
 // (the old on/off assists, { steer, thr, brk }, as strengths)
 function assistParams(A) {
@@ -8406,17 +8414,13 @@ function driveHelp(c, S, I, H, dt, A, T) {
   }
   // Stability Control's brakes (and the power it takes back running wide)
   if (A.esc > 0 && c.w) cap = Math.min(cap, escHelp(c, S, I, H, A, dt, bm, beta, sp, fast)); else if (H.bwOn) { H.bw.fill(0); H.bwOn = false; }
-  // Throttle Management and Corner Braking: the most the car may carry here for the bends ahead
-  H.cbB = 0; if ((A.tm > 0 || A.cb > 0) && T && !T.loop && c.u > 2 && c.w) { const over = sp - cornerSpeed(c, S, T, H, dt);
-    if (A.tm > 0) cap = Math.min(cap, smooth(-0.5, -CBRAKE.lift, over));
-    if (A.cb > 0 && over > 0) { H.cbB = clamp(over / CBRAKE.brake, 0, CBRAKE.max); cap = 0; } }
   // Drift Assist: the slide wanted, and the power eased past it
   if (A.da > 0 && c.w) cap = Math.min(cap, driftState(c, S, I, H, A, dt, beta, sp)); else H.daW = 0;
   const kT = 1.5 - A.tcM; // (smoother: the power cut and given back more slowly)
   H.thr += (cap - H.thr) * Math.min(1, dt * (cap < H.thr ? 30 : 5) * kT);
   H.clu += (clu - H.clu) * Math.min(1, dt * (clu < H.clu ? 30 : 4) * kT);
   let want = 1;
-  if (A.abs > 0 && c.w && au > 3 && c.gear !== -1 && (I.throttle < 0.3 || H.cbB > 0)) {
+  if (A.abs > 0 && c.w && au > 3 && c.gear !== -1 && I.throttle < 0.3) {
     let k = 0, loose = false; for (const i of [0, 1]) { const w = c.w[i]; if (w.Fz > 0) { k = Math.min(k, w.slipL / au); if (!SEALED_KINDS.has(w.surf) && w.surf !== 'ice' && w.surf !== 'snow') loose = true; } }
     const tgt = (loose ? -0.2 : -0.12) * (1 + 2 * (1 - A.abs)); if (k < tgt) want = clamp(1 - (tgt - k) * 3, 0.35, 1); // (weaker: the wheels let nearer locking)
   }
@@ -8429,12 +8433,11 @@ function driveHelp(c, S, I, H, dt, A, T) {
   let steer = clamp(I.steer * k2 + cs, -1, 1);
   if (A.csh > 0 && c.w) steer = counterHelp(c, S, steer, A.csh, beta);
   if (A.da > 0 && c.w) steer = driftSteer(c, S, steer, H, A, dt, beta);
-  if (A.as > 0 && T && !T.loop && c.w && c.u > 2) steer = lineSteer(c, S, T, H, steer, I, sp, dt); else H.asO = null; // Auto Steer
   // Rotation Help
   // (traction control trims the torque, not the pedal: at low revs a little throttle gives most of the torque, see throttleShare)
   let hb = I.handbrake, thr = I.throttle * H.thr; if (H.thr < 0.999 && I.throttle > 0.02 && c.rpm > 0) { const sh = throttleShare(S, c.rpm, I.throttle); if (sh > 0) thr = throttleFor(S, c.rpm, sh * H.thr); }
   if (A.rot > 0) { hb = hbHelp(c, I, H, T, sp); thr *= flickHelp(c, I, H, T, dt, sp, A.rot); }
-  return { steer, throttle: thr, brake: Math.max(I.brake, H.cbB || 0) * H.brk, handbrake: hb, auto: I.auto, clutch: H.clu, clutchT: ct, req: I.req, bw: H.bwOn ? H.bw : null };
+  return { steer, throttle: thr, brake: I.brake * H.brk, handbrake: hb, auto: I.auto, clutch: H.clu, clutchT: ct, req: I.req, bw: H.bwOn ? H.bw : null };
 }
 // Stability Control's brakes: a wheel braked on its own, as a car's stability system brakes it, and the power it takes
 // back. Half: the front wheel on the outside braked once a slide goes past what can be caught there (sooner while it
@@ -8529,30 +8532,6 @@ function driftSteer(c, S, steer, H, A, dt, beta) {
   H.daF = H.daF == null ? tgt : H.daF + (tgt - H.daF) * Math.min(1, dt / DRIFT.tau);
   const o0 = H.daO != null ? H.daO : steer, want = steer + (H.daF - steer) * w, out = o0 + clamp(want - o0, -DRIFT.rate * dt, DRIFT.rate * dt);
   H.daO = out; return clamp(out, -1, 1);
-}
-// Corner Braking and Throttle Management: the most the car may carry here and still make every bend of the next few
-// hundred metres on the racing line, braking as the tyres under it allow - the racing line's own reckoning (RaceLine),
-// on the stage's pace a little under its limit (CBRAKE.k). Worked out every twentieth of a second
-const CBRAKE = { k: 0.85, dec: 0.6, ahead: 400, lift: 4, brake: 4, max: 0.9 };
-function cornerSpeed(c, S, T, H, dt) {
-  H.vnT = (H.vnT || 0) - dt; if (H.vnT > 0 && H.vN != null) return H.vN; H.vnT = 0.05;
-  const L = racingLine(T), pace = stagePace(T, S, Math.round((T.wet || 0) * 10) / 10), n = L.n, k0 = clamp(c.hint - L.a, 0, n - 2);
-  let mu = 0, q = 0; for (const w of c.w) if (w.Fz > 0) { mu += w.muPk || 0.9; q++; } mu = q ? mu / q : 0.9;
-  const dec = CBRAKE.dec * 9.81 * clamp(mu, 0.25, 1.3); let v = Infinity, d = 0;
-  for (let k = k0 + 1; k < n && d < CBRAKE.ahead; k++) { d += L.ds[k - 1]; const vb = pace.vb[k] * CBRAKE.k; v = Math.min(v, Math.sqrt(vb * vb + 2 * dec * d)); }
-  return H.vN = v;
-}
-// Auto Steer: the steering taken part of the way to the angle that follows the racing line (a point on it a little
-// ahead, further the faster the car goes, reached on an arc), more while the driver leaves the steering alone; turned no
-// quicker than hands turn a wheel
-const AUTOSTEER = { look: 5, lookK: 0.45, free: 0.6, held: 0.35, rate: 3 };
-function lineSteer(c, S, T, H, steer, I, sp, dt) {
-  const L = racingLine(T), n = L.n, k0 = clamp(c.hint - L.a, 0, n - 2), look = AUTOSTEER.look + AUTOSTEER.lookK * sp; let d = 0, k = k0;
-  while (k < n - 1 && d < look) { d += L.ds[k]; k++; }
-  const dx = L.x[k] - c.x, dz = L.z[k] - c.z, D = Math.max(3, Math.hypot(dx, dz)), ang = wrapAngle(Math.atan2(dx, dz) - c.psi), K = carSetup(S);
-  const tgt = clamp(Math.atan(2 * (K.a + K.b) * Math.sin(ang) / D) / S.lock, -1, 1), w = Math.abs(I.req || 0) > 0.05 ? AUTOSTEER.held : AUTOSTEER.free;
-  const o0 = H.asO != null ? H.asO : steer, want = steer + (tgt - steer) * w, out = o0 + clamp(want - o0, -AUTOSTEER.rate * dt, AUTOSTEER.rate * dt);
-  H.asO = out; return clamp(out, -1, 1);
 }
 // Rotation Help, the handbrake: held, it is let off once the car, turning toward the bend on it, will point down the
 // road a little way ahead within about a quarter of a second at the rate it turns (the road's heading 5 m plus a
@@ -8954,7 +8933,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'B3D9';
+const SR86_BUILD = 'C5D2';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -9465,6 +9444,19 @@ function wxStory(Rg, Rw, wx0, clock0, key, dyn, snow) {
   }
   return K;
 }
+// A race against friends with its events on: the weather turns for every driver at the same moment, a third to two
+// thirds of the way through the race as it should go (the stage, or the laps, at 80 km/h): from dry to rain, a downpour,
+// a storm or showers (snow on a snow stage), or from rain or snow to a clearing sky - or, where the country has none of
+// those, to fog, mist, wind or dust - coming over in a minute or two and holding to the end (the story's own changes
+// from a minute and a half before the turn on are dropped). Laid out from the race's key, as the rest of its story is
+function wxTurn(K, Rw, snow, key, T, rc) {
+  const R = mulberry32(strHash('wxturn:' + key)), ok = Rw.opts || [], est = (T.loop ? (rc.lp || 5) : 1) * (T.length || 6000) / 22, t = Math.round(est * (0.3 + 0.35 * R()));
+  let now = K[0].wx; for (const k of K) if (k.t <= t) now = k.wx;
+  const W0 = WEATHER[now] || WEATHER.clear, pick = L => { const A = L.filter(w => w !== now && ok.includes(w) && WEATHER[w]); return A.length ? A[Math.floor(R() * A.length)] : null; };
+  const to = (W0.rain + W0.snow > 0.1 ? pick(['clear', 'partly']) : pick(snow ? ['snow', 'blizzard', 'flurries'] : ['rain', 'downpour', 'storm', 'showers'])) || pick(['fog', 'mist', 'icefog', 'windy', 'dust', 'gale', 'overcast', 'partly', 'clear']);
+  if (!to) return K;
+  const out = K.filter(k => k.t === 0 || k.t < t - 90); out.push({ t, wx: to, dur: 60 + 40 * R(), turn: 1 }); return out;
+}
 const _v3c = new THREE.Color();
 // (and never clearer than this, nearest layer first: the near land is lost in its haze a kilometre out, and the far
 // country stands beyond it as the hills do on a hazy day)
@@ -9704,7 +9696,8 @@ const Atmos = {
   storyFor(T, cond) {
     const rally = !!(T && T.rallyCond), mp = typeof MP !== 'undefined' && MP.game, dyn = mp || (rally ? !!(Rally.st && Rally.st.dyn) : COND.dyn !== 'fixed');
     const key = (mp && MP.raceKey ? 'race:' + MP.raceKey() : T.seed + (T.rallyKey ? ':' + T.rallyKey : '') + regTag()) + ':' + cond.time + '.' + cond.wx;
-    return wxStory(this.Rg, regionWx(T), WEATHER[cond.wx] ? cond.wx : 'clear', this.t0 + this.Rg.tz, key, dyn, T.surface === 'snow');
+    const K = wxStory(this.Rg, regionWx(T), WEATHER[cond.wx] ? cond.wx : 'clear', this.t0 + this.Rg.tz, key, dyn, T.surface === 'snow'), rc = mp && (MP.rc || MP.cfg);
+    return rc && rc.ev && MP.phase === 'race' ? wxTurn(K, regionWx(T), T.surface === 'snow', key, T, rc) : K;
   },
   // the weather at t on the stage's clock (into o)
   wxAt(t, o) {
@@ -22128,7 +22121,7 @@ function placeCar(idx) {
   G.car = makeCar(G.phys || G.spec, G.T, idx);
 }
 function startRun() {
-  FullScr.go(); // (the screen filled again as a stage starts, if the player left full screen in the menu)
+  RaceEvents.clear(); FullScr.go(); // (the screen filled again as a stage starts, if the player left full screen in the menu)
   if (Replay.on) Replay.exit(); Inspect.close();
   if (G.show) G.show.mesh.root.visible = false;
   // the car the physics drives: the chosen car with its setup for this stage (in a rally, the one fitted at service)
@@ -22146,7 +22139,7 @@ function startRun() {
   Duel.drop(); SSFlags.reset(); if (G.T.sss) { const dz = G.rally && Rally.cur && Rally.cur.duel; if (dz) Duel.init(G.T, dz.S, dz.t, dz.inc, dz.name);
     else { const cls = rivalCls(G.spec), pool = stockOf(cls).filter(S => S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
       Duel.init(G.T, S, stagePace(G.T, S, G.T.wet || 0).t * (RALLY_PACE[G.T.surface] || 1.35) * 0.95 * rivalCarK(G.T, G.T.wet || 0, G.spec, RALLY_LVL.national), null, 'The other car'); } } // (its car, against a build, tuned toward the build's pace)
-  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); Moves.stop(); // (the racing line alone: the moves the guide of the builds between showed are not) G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
+  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
   Particles.clear(); CrowdFx.reset(); crowdReset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1; HELP.cs = 0; inp.kThr = 0; inp.kBrk = 0;
@@ -22162,10 +22155,12 @@ function startRun() {
   if (G.T.loop && RX.cfg) RX.begin(); else RX.end(true); // (a rallycross race: the rest of the field on the grid; see RX)
   snapCamera(); Rec.start(); Flash.reset(); // (recorded from the grid, with what damage it carries: see Rec; the flashbacks: see Flash)
 }
-// In a race against friends a reset is for a car in trouble: one stopped for two seconds (stuck, beached, or on its side
-// or roof), or off the road, or in the water. Never more often than once in ten seconds, put back no further on than it
-// had got, and away from the other cars (see MP.resetSpot); it comes back a ghost, passing through them until clear
-const MP_RESET_GAP = 10, MP_RESET_STOP = 2;
+// In a race against friends a reset is for a car in trouble: one stopped for a second (stuck, beached, or on its side or
+// roof), or off the road, or in the water. As often as once in five seconds, put back no further on than it had got, and
+// away from the other cars (see MP.resetSpot); it comes back a ghost, passing through them until clear. It costs no
+// time beyond the stop itself, whatever put the car there: a race against friends is for the fun of driving, and of
+// knocking into each other (single stages and rallies keep their penalties)
+const MP_RESET_GAP = 5, MP_RESET_STOP = 1;
 function mpResetBlock(c) {
   const left = (G.resetAt != null ? G.resetAt : -1e9) + MP_RESET_GAP - G.time; if (left > 0) return `Reset again in ${Math.ceil(left)} s`;
   const I = c.info, off = !!I && Math.abs(I.lat) > I.w / 2 + 1, water = !!c.flooded || (c.deep || 0) > 0.3;
@@ -22355,7 +22350,7 @@ function resetCar() {
   if (mp) { G.resetAt = G.time; G.stopT = 0; c.ghost = true; c.ghostAt = G.time; c.rivals = null; MP.pub({ gh: 1 }); MP.onReset(); }
   engineRecover(c); // (out of the water, it turns again unless the water broke it)
   G.cut = null; G.odoAtProg = G.odo; Rec.mark('reset'); // (the replay jumps here)
-  if (G.state === 'run') { if (plugs) { G.penalty += 120; flash('Plugs out and the water cranked out of the cylinders: 2 minute penalty'); } else if (river) { G.penalty += 30; flash('Pulled out of the river and back on the road: 30 s penalty'); } else if (righted) { G.penalty += 30; flash('Spectators put you back on your wheels and the road: 30 s penalty'); } else { G.penalty += 5; flash(mp ? 'Recovered: 5 s penalty. A ghost until clear of the other cars' : 'Recovered: 5 second penalty'); } }
+  if (G.state === 'run') { if (mp) flash((plugs ? 'Plugs out and the water cranked out of the cylinders' : river ? 'Out of the river' : righted ? 'Back on your wheels' : 'Back on the road') + ': no time lost. A ghost until clear of the other cars'); else if (plugs) { G.penalty += 120; flash('Plugs out and the water cranked out of the cylinders: 2 minute penalty'); } else if (river) { G.penalty += 30; flash('Pulled out of the river and back on the road: 30 s penalty'); } else if (righted) { G.penalty += 30; flash('Spectators put you back on your wheels and the road: 30 s penalty'); } else { G.penalty += 5; flash('Recovered: 5 second penalty'); } }
   G.camYaw = p.h; snapCamera();
 }
 function togglePause() { if (G.state !== 'run' && G.state !== 'countdown') return; if (G.finished && G.rally) return; if (Fix.open) { Fix.close(); return; }
@@ -23027,24 +23022,24 @@ function steerHands(c, S, tgt, dir, P, st, dt, sp, u, lock, K) {
 const HELP = { thr: 1, brk: 1, clu: 1, cs: 0 };
 // the six, as the menus show them, each on or off
 const ASSISTS = [
-  ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers.'],
-  ['line', 'Dynamic Racing Line', 'Shows the racing line on the road, coloured for where to accelerate (green), lift (amber) and brake (red).'],
-  ['stab', 'Stability Control', 'Stops the car spinning when you accelerate hard: the driven wheels are kept from spinning their grip away, and the power is eased in a big slide.'],
-  ['steer', 'Auto Steer', 'Helps keep the car on the racing line, and stops you steering so hard that it spins.'],
-  ['brake', 'Corner Braking', 'Brakes for you when you come into a bend too fast, so you do not overshoot it.'],
-  ['thr', 'Throttle Management', 'Holds the power back so you do not speed into the next bend.']];
+  ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers. On gravel and snow it lets the wheels slip a little more, so they dig in.'],
+  ['tc', 'Traction Control', 'Stops the driven wheels spinning their grip away, but lets them spin enough to slide the car and throw gravel. Pulling away, it holds the clutch to what the tyres take.'],
+  ['sc', 'Stability Control', 'Lets the car slide as far as you can still catch it on the surface under it, and stops it spinning: past that, the power is eased and a front wheel braked.'],
+  ['steer', 'Steering Assist', 'Keeps the steering to what the front tyres can use at speed, and makes your countersteer exact when you catch a slide. It never steers for you.'],
+  ['drift', 'Drift Assist', 'Once the car slides, holds the slide where you put it, as drift games do: steer into the bend and it drifts round, let go and it straightens, steer out and it is caught. The power is eased if the slide grows too far. In ordinary driving it does nothing.'],
+  ['line', 'Racing Line', 'Shows the racing line on the road: green to accelerate, amber to lift, red to brake. It only shows the way; it never drives.']];
 const PRESETS = {
-  casual: { name: 'Casual', as: { abs: 1, line: 1, stab: 1, steer: 1, brake: 1, thr: 1 }, note: 'Every assist on: the racing line on the road, the car kept on it and slowed for the bends, and kept from spinning. You steer and accelerate; the assists do the rest.' },
-  intermediate: { name: 'Intermediate', as: { abs: 1, line: 1, stab: 1, steer: 0, brake: 0, thr: 0 }, note: 'ABS, the racing line and Stability Control: the brakes do not lock and the car does not spin, but the steering and the braking for the bends are yours.' },
-  advanced: { name: 'Advanced', as: { abs: 0, line: 0, stab: 0, steer: 0, brake: 0, thr: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
+  casual: { name: 'Casual', as: { abs: 1, tc: 1, sc: 1, steer: 1, drift: 1, line: 1 }, note: 'Every assist on: the car slides as you ask it to, Drift Assist holds the slide for you and it will not spin. You still do all the driving - steering, braking and accelerating; nothing does it for you.' },
+  intermediate: { name: 'Intermediate', as: { abs: 1, tc: 1, sc: 1, steer: 0, drift: 0, line: 1 }, note: 'ABS, Traction Control, Stability Control and the racing line: the brakes do not lock and the car will not spin, but catching slides and holding drifts are yours.' },
+  advanced: { name: 'Advanced', as: { abs: 0, tc: 0, sc: 0, steer: 0, drift: 0, line: 0 }, note: 'No assists: nothing is added to what you do with the controls.' }
 };
 const PRESET_IDS = Object.keys(PRESETS);
-// (a mix saved in the builds between, with Slide Control or Stability and Traction Control in levels, Drift Assist,
-// Countersteer Help, Rotation Help and the Technique Guide, as the nearest of these: its stability and traction control
-// as Stability Control, its guide as the racing line)
+// (a mix saved in an earlier build as the nearest of these: Slide Control, and Stability and Traction Control in levels,
+// as both on; the guide as the racing line; Countersteer Help, and the steering that followed a line, as Steering Assist;
+// what braked for the bends or held the power back for them, as Traction Control)
 const asNow = a => {
-  if (!a || typeof a !== 'object' || 'stab' in a || 'steer' in a || 'line' in a || 'brake' in a || 'thr' in a) return a;
-  return { abs: a.abs ? 1 : 0, line: a.cue ? 1 : 0, stab: a.slide || a.sc || a.tc ? 1 : 0, steer: 0, brake: 0, thr: 0 };
+  if (!a || typeof a !== 'object' || 'drift' in a) return a; const on = v => v === true || asLv(v) > 0 ? 1 : 0;
+  return { abs: on(a.abs), tc: on(a.tc) || on(a.slide) || on(a.stab) || on(a.thr) ? 1 : 0, sc: on(a.sc) || on(a.slide) || on(a.stab) ? 1 : 0, steer: on(a.steer) || on(a.csteer) ? 1 : 0, drift: on(a.da), line: on(a.line) || on(a.cue) ? 1 : 0 };
 };
 // the assists on, as a list
 const assistList = on => { const L = ASSISTS.filter(([k]) => on && on[k]).map(([k, n, , lv]) => lv && on[k] < 1 ? n + ' (half)' : n); return L.length ? L.join(', ') : 'no assists'; };
@@ -23235,6 +23230,211 @@ const Moves = {
   line() { return this.n.of ? `Technique Guide: you made ${this.n.done} of the ${this.n.of} moves it showed.` : ''; }
 };
 
+// ---------- surprises on the road: a race against friends ----------
+// With its events on (the room's Events: On), a race against friends holds surprises, the same for every driver in it.
+// They are drawn from the race's own key (its room and number: MP.raceKey), so every page lays the same ones in the same
+// places, and timed by the race's clock (MP.raceNow), which every page shares. Two to four along a stage, about one
+// every two kilometres, none within 350 m of the start or the finish, nor on a bridge, through a gate, at a ford or over
+// a jump: a herd of the country's animals wandering across the road (sheep, cows, horses, deer or reindeer), or
+// something blocking part of the road - a tree come down across it, the rocks of a slide, a broken-down tractor -
+// always with room to get by on one side. Partway through the race the weather turns, for every driver at the same
+// moment (see wxTurn). An animal is a body of its own weight to the car that meets it (a rival to bodyCars: a box for
+// its body and legs); struck, it is knocked away as such a body would be, and the knock is sent to the other pages
+// (ek), so it flies the same way for every driver: a knock is a time and a velocity, the flight worked out from them
+// alone, and of two drivers hitting the same animal the knock first by the race's clock stands. A knocked animal comes
+// down, slides, lies a moment and gets up and trots off the road. The co-driver calls each surprise out 150 m before
+// it. A rallycross circuit has the weather alone.
+const REV = { per: 2000, min: 2, max: 4, edge: 350, gap: 600, warn: 150, knock: 0.3, near: 14 };
+// the animals: legs (to the belly), the body's height, half length and half width, the head's reach ahead of the body,
+// the weight (kg), the herd, how far along the road it spreads, how widely they wander (a share of the road's half
+// width and more) and how slowly (a crossing and back, s), and their colours
+const REV_ANIMAL = {
+  sheep: { leg: 0.42, bh: 0.48, hl: 0.52, hw: 0.27, head: 0.3, m: 65, n: [6, 10], span: 18, wide: 0.6, P: [26, 44], body: ['#e8e2d2', '#ddd5c2', '#efe9dc', '#cfc6b2'], face: '#2e2a26', legC: '#3a3430' },
+  cows: { leg: 0.72, bh: 0.72, hl: 1.0, hw: 0.38, head: 0.5, m: 600, n: [3, 5], span: 16, wide: 1, P: [44, 70], body: ['#2a2826', '#e8e4dc', '#6a3a22', '#3a2a22'] },
+  horse: { leg: 0.86, bh: 0.62, hl: 0.92, hw: 0.3, head: 0.62, m: 450, n: [2, 4], span: 14, wide: 1, P: [34, 52], body: ['#3a2a22', '#7a3a22', '#2a2422', '#8a6a4a'] },
+  deer: { leg: 0.74, bh: 0.48, hl: 0.66, hw: 0.21, head: 0.48, m: 90, n: [2, 4], span: 12, wide: 1.6, P: [11, 18], body: ['#7a5a3a', '#8a6440', '#6e5034'] },
+  reindeer: { leg: 0.7, bh: 0.55, hl: 0.74, hw: 0.25, head: 0.46, m: 110, n: [4, 7], span: 16, wide: 1.3, P: [16, 28], body: ['#7a7064', '#6a5e52', '#8a8072'], antlers: '#cbb894' } };
+const REV_SAY = { animals: e => `Caution: ${{ sheep: 'sheep', cows: 'cows', horse: 'horses', deer: 'deer', reindeer: 'reindeer' }[e.ak]} on the road ahead!`,
+  tractor: () => 'Caution: a broken-down tractor on the road ahead!', tree: () => 'Caution: a fallen tree across the road ahead!', rocks: () => 'Caution: rocks fallen on the road ahead!' };
+// (parts of one colour each - a geometry, a colour, where - made one mesh with its colours in its vertices, each face lit
+// flat)
+function revMesh(parts, mat) {
+  let n = 0; const L = parts.map(([g, col, M]) => { const q = g.index ? g.toNonIndexed() : g.clone(); g.dispose(); q.applyMatrix4(M); q.computeVertexNormals(); n += q.attributes.position.count; return [q, hexC(col)]; });
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), cl = new Float32Array(n * 3); let o = 0;
+  for (const [q, c] of L) { const k = q.attributes.position.count; pos.set(q.attributes.position.array, o * 3); nor.set(q.attributes.normal.array, o * 3); for (let v = 0; v < k; v++) { cl[(o + v) * 3] = c.r; cl[(o + v) * 3 + 1] = c.g; cl[(o + v) * 3 + 2] = c.b; } o += k; q.dispose(); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3)); g.computeBoundingSphere();
+  const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; return m;
+}
+const _rvM = new THREE.Matrix4(), _rvQ = new THREE.Quaternion(), _rvE = new THREE.Euler(), _rvV = new THREE.Vector3(), _rvS = new THREE.Vector3(), _rvL = new THREE.Matrix4(), _rvC = new THREE.Color();
+const revAt = (x, y, z, rx, ry, rz, sx, sy, sz) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz, 'YXZ')), new THREE.Vector3(sx, sy == null ? sx : sy, sz == null ? sx : sz));
+// (a cylinder's matrix from a to b, radius r)
+const revRod = (a, b, r) => { const d = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]), L = d.length() || 1e-3; return new THREE.Matrix4().compose(new THREE.Vector3((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()), new THREE.Vector3(r, L, r)); };
+const revShade = (hex, R, k) => { _rvC.set(hex); const f = 1 + (R() - 0.5) * 2 * k; return '#' + _rvC.setRGB(clamp(_rvC.r * f, 0, 1), clamp(_rvC.g * f, 0, 1), clamp(_rvC.b * f, 0, 1)).getHexString(); };
+const RaceEvents = {
+  on: false, T: null, L: [], knk: new Map(), mine: [], said: new Set(), wxSaid: false, rt: null, grp: null, mat: null, _near: [],
+  // the race's surprises, laid out from its key (a race against friends with its events on; on a circuit the weather
+  // alone)
+  begin(T, key, rc) {
+    this.clear(); if (!T || !rc || !rc.ev) return; this.T = T; this.on = true; if (T.loop) return;
+    const R = mulberry32(strHash('rev:' + key)), P = T.pts, a = T.startIdx + Math.round(REV.edge / STEP), b = T.finishIdx - Math.round(REV.edge / STEP); if (b - a < 100) return;
+    const n = clamp(Math.round(T.length / REV.per), REV.min, REV.max), E = T.look || lookOf(T), at = [];
+    const bad = i => { for (let k = i - 14; k <= i + 14; k++) { const p = P[clamp(k, 0, P.length - 1)]; if (p.wall || p.tag === 'jump' || p.tag === 'bridge' || p.tag === 'ford' || p.w < 5) return true; } return false; };
+    for (let tries = 0; at.length < n && tries < 80; tries++) { const i = a + Math.floor(R() * (b - a)); if (!bad(i) && !at.some(j => Math.abs(j - i) * STEP < REV.gap)) at.push(i); }
+    at.sort((x, y) => x - y);
+    const kinds = ['animals', 'animals', 'animals', 'rocks']; if (E.fields) kinds.push('tractor', 'tractor'); if (E.flora && E.flora.forest && E.flora.forest.length) kinds.push('tree', 'tree');
+    this.mat = new THREE.MeshLambertMaterial({ vertexColors: true }); this.grp = new THREE.Group(); scene.add(this.grp);
+    at.forEach((i, k) => { const e = { k, kind: kinds[Math.floor(R() * kinds.length)], i, side: R() < 0.5 ? 1 : -1, R: mulberry32(strHash('rev:' + key + ':' + k)), cols: [], A: [] }; this[e.kind](T, e, E); this.L.push(e); });
+  },
+  // (the road lat metres across from point i and s metres on: where, its heading and width)
+  at(T, i, s, lat) {
+    const P = T.pts, f = i + s / STEP, j = clamp(Math.floor(f), 0, P.length - 2), u = clamp(f - j, 0, 1), A = P[j], B = P[j + 1], h = A.h + wrapAngle(B.h - A.h) * u;
+    return { x: A.x + (B.x - A.x) * u + Math.cos(h) * lat, z: A.z + (B.z - A.z) * u - Math.sin(h) * lat, h, w: A.w + (B.w - A.w) * u };
+  },
+  // (a solid of the stage's own kinds - rock, block - at x, z, filed by its nearest point of the road)
+  col(T, e, o) { const l = locate(T, o.x, o.z, e.i), c = Object.assign({ i: l.i, lat: l.lat, rev: 1 }, o); T.colliders.push(c); (T.colAt[c.i] || (T.colAt[c.i] = [])).push(c); e.cols.push(c); return c; },
+  // the rocks of a slide, come down from the higher side: three big enough to stop a car, the rest small enough to bump
+  // over, all on the near part of the road, leaving at least 3.2 m clear on the far side
+  rocks(T, e, E) {
+    const R = e.R, p = this.at(T, e.i, 0, 0), up = s => { const q = this.at(T, e.i, 0, s * (p.w / 2 + 6)); return groundY(T, q.x, q.z); };
+    e.side = up(1) >= up(-1) ? 1 : -1; const parts = [], n = 6 + (R() * 4 | 0), rc = E.rock || '#7c776d';
+    for (let k = 0; k < n; k++) {
+      const big = k < 3, a = big ? 0.55 + 0.45 * R() : 0.22 + 0.2 * R(), b = a * (0.65 + 0.3 * R()), H = big ? 0.55 + 0.5 * R() : 0.16 + 0.14 * R(), th = R() * Math.PI;
+      const reach = Math.min(p.w * (big ? 0.15 + 0.35 * R() : 0.05 + 0.55 * R()), Math.max(0.5, p.w - 3.2 - a)), q = this.at(T, e.i, (R() - 0.5) * 12, e.side * (p.w / 2 - reach)), gy = groundY(T, q.x, q.z);
+      this.col(T, e, { x: q.x, z: q.z, kind: 'rock', r: a, v: 0, a, b, th, H });
+      const g = new THREE.IcosahedronGeometry(1, 1), v = g.attributes.position; for (let m = 0; m < v.count; m++) { const f = 0.82 + 0.3 * R(); v.setXYZ(m, v.getX(m) * f, v.getY(m) * f, v.getZ(m) * f); }
+      parts.push([g, revShade(rc, R, 0.12), revAt(q.x, gy - 0.12 * H, q.z, 0, th, 0, a, H, b)]);
+    }
+    for (let k = 0; k < 14; k++) { const q = this.at(T, e.i, (R() - 0.5) * 16, e.side * (p.w / 2 - R() * p.w * 0.6)), s = 0.06 + 0.08 * R(); parts.push([new THREE.IcosahedronGeometry(1, 0), revShade(rc, R, 0.15), revAt(q.x, groundY(T, q.x, q.z), q.z, R() * 3, R() * 3, 0, s)]); }
+    this.grp.add(revMesh(parts, this.mat));
+  },
+  // a tractor broken down half on the road, its hazard triangle on the road behind it: its rear wheels' width and its
+  // nose as two solids, as tall as it is
+  tractor(T, e, E) {
+    const R = e.R, p = this.at(T, e.i, 0, 0), lat = e.side * (p.w / 2 - 0.45), q = this.at(T, e.i, 0, lat), back = R() < 0.5, h = q.h + (back ? Math.PI : 0) + (R() - 0.5) * 0.2, gy = groundY(T, q.x, q.z);
+    const fx = Math.sin(h), fz = Math.cos(h), body = ['#b8261e', '#2f6b2a', '#2a4f8a', '#c8a028'][Math.floor(R() * 4)], rim = body === '#c8a028' ? '#2a2826' : R() < 0.5 ? '#e8d24a' : '#e8e4dc', tyre = '#1d1c1b', dark = '#2c2c2c';
+    this.col(T, e, { x: q.x - fx * 0.75, z: q.z - fz * 0.75, kind: 'block', r: 1.05, H: 2.6 });
+    this.col(T, e, { x: q.x + fx * 1.15, z: q.z + fz * 1.15, kind: 'block', r: 0.72, H: 1.7 });
+    const parts = [], W = (x, y, z) => { const c = Math.cos(h), s = Math.sin(h); return [q.x + x * c + z * s, gy + y, q.z - x * s + z * c]; }, box = (x, y, z, sx, sy, sz, col) => { const w = W(x, y, z); parts.push([new THREE.BoxGeometry(1, 1, 1), col, revAt(w[0], w[1], w[2], 0, h, 0, sx, sy, sz)]); };
+    const wheel = (x, z, r, wd) => { const w = W(x, r, z); parts.push([new THREE.CylinderGeometry(1, 1, 1, 16), tyre, revAt(w[0], w[1], w[2], 0, h, Math.PI / 2, r, wd, r)]); const w2 = W(x + Math.sign(x) * (wd / 2 + 0.005), r, z); parts.push([new THREE.CylinderGeometry(1, 1, 1, 12), rim, revAt(w2[0], w2[1], w2[2], 0, h, Math.PI / 2, r * 0.55, 0.02, r * 0.55)]); };
+    wheel(0.82, -0.75, 0.78, 0.42); wheel(-0.82, -0.75, 0.78, 0.42); wheel(0.68, 1.2, 0.45, 0.26); wheel(-0.68, 1.2, 0.45, 0.26);
+    box(0, 0.95, 0.75, 0.62, 0.62, 1.55, body); box(0, 0.62, 0.55, 0.5, 0.36, 1.9, dark); box(0, 1.3, 1.53, 0.58, 0.08, 0.04, '#9a9a9a'); // (bonnet, engine and frame, grille)
+    box(0, 1.0, -0.65, 1.1, 0.12, 0.8, dark); box(0, 1.25, -0.8, 0.42, 0.42, 0.06, '#3a3a3a'); // (floor of the cab, its seat back)
+    for (const sx of [1, -1]) { box(sx * 0.84, 1.55, -0.75, 0.38, 0.06, 1.0, body); for (const sz of [-1.15, -0.3]) box(sx * 0.55, 1.85, sz, 0.06, 1.65, 0.06, dark); } // (mudguards over the rear wheels, the cab's posts)
+    box(0, 2.68, -0.72, 1.24, 0.08, 1.05, body); box(0, 1.55, 0.1, 0.06, 0.6, 0.06, dark); // (the roof; the steering column)
+    { const a = W(0.28, 1.25, 1.1), b = W(0.28, 2.75, 1.1); parts.push([new THREE.CylinderGeometry(1, 1, 1, 6), dark, revRod(a, b, 0.05)]); } // (the exhaust stack)
+    { const t = this.at(T, e.i, -22, e.side * (p.w / 2 - 0.9)), ty = groundY(T, t.x, t.z), g = new THREE.CylinderGeometry(0.3, 0.3, 0.04, 3); parts.push([g, '#d82a1e', revAt(t.x, ty + 0.27, t.z, Math.PI / 2, t.h + Math.PI / 2, 0, 1, 1, 1)]); }
+    this.grp.add(revMesh(parts, this.mat));
+  },
+  // a tree down across the road from one side, its roots torn out of the verge: its trunk lies over all but 3-4 m of the
+  // far side (blocks along it, as high as it is thick), its crown at the tip (seen, not solid)
+  tree(T, e, E) {
+    const R = e.R, p = this.at(T, e.i, 0, 0), gap = 2.9 + 0.8 * R(), sk = (R() - 0.5) * 7, A = this.at(T, e.i, -sk / 2, e.side * (p.w / 2 + 2.5 + R())), B = this.at(T, e.i, sk / 2, -e.side * (p.w / 2 - gap));
+    const r = 0.22 + 0.12 * R(), ya = groundY(T, A.x, A.z) + r, yb = groundY(T, B.x, B.z) + r * 0.7, L = Math.hypot(B.x - A.x, B.z - A.z), sp = E.flora.forest[0][0], con = /spruce|scots|pine|larch|cedar|fir|cypress/.test(sp);
+    const bare = !con && E.flora.leaf && E.flora.leaf[sp] === 'bare', bark = E.logs && E.logs.bark || '#5a4a3a', leafC = con ? '#2f4a2a' : '#4f6e2e';
+    for (let d = 0; d <= L; d += 0.5) { const f = d / L; this.col(T, e, { x: A.x + (B.x - A.x) * f, z: A.z + (B.z - A.z) * f, kind: 'block', r: r * (1 - 0.3 * f) + 0.05, H: 2 * r * (1 - 0.3 * f) + 0.05 }); }
+    const parts = [[new THREE.CylinderGeometry(0.7, 1, 1, 9), bark, revRod([A.x, ya, A.z], [B.x, yb, B.z], r)]];
+    { const ux = (B.x - A.x) / L, uz = (B.z - A.z) / L, g = new THREE.CylinderGeometry(1, 1, 1, 10); parts.push([g, '#4a3a2a', revAt(A.x - ux * 0.3, ya + 0.3, A.z - uz * 0.3, Math.PI / 2, Math.atan2(ux, uz), 0, 1.0 + 0.4 * R(), 0.45, 1.0 + 0.4 * R())]); } // (the root plate, standing up)
+    for (let k = 0; k < 8; k++) { const f = 0.45 + 0.55 * k / 8, x = A.x + (B.x - A.x) * f, z = A.z + (B.z - A.z) * f, y = ya + (yb - ya) * f, a = R() * 6.28, l = 0.9 + 1.4 * R(), up = 0.3 + 0.9 * R();
+      parts.push([new THREE.CylinderGeometry(0.6, 1, 1, 5), bark, revRod([x, y, z], [x + Math.cos(a) * l * 0.7, y + up, z + Math.sin(a) * l * 0.7], r * 0.25)]); }
+    if (!bare) for (let k = 0; k < 7; k++) { const f = 0.62 + 0.38 * R(), x = A.x + (B.x - A.x) * f + (R() - 0.5) * 1.6, z = A.z + (B.z - A.z) * f + (R() - 0.5) * 1.6, s = 0.6 + 0.5 * R();
+      parts.push([new THREE.IcosahedronGeometry(1, 0), revShade(leafC, R, 0.12), revAt(x, ya + (yb - ya) * f + 0.35 + 0.4 * R(), z, R() * 3, R() * 3, 0, s, s * (con ? 1.3 : 0.8), s)]); }
+    this.grp.add(revMesh(parts, this.mat));
+  },
+  // a herd of the country's animals about the road (the fields' own, or the wild ones), each drawn from instances of a
+  // body (and head) and of a leg
+  animals(T, e, E) {
+    const wk = E.wild && E.wild[0] && E.wild[0].kind; let kind = E.animals || (wk === 'horse' || wk === 'reindeer' ? wk : 'deer'); if (!REV_ANIMAL[kind]) kind = 'deer';
+    const K = REV_ANIMAL[kind], R = e.R, n = K.n[0] + Math.floor(R() * (K.n[1] - K.n[0] + 1)), w = this.at(T, e.i, 0, 0).w; e.ak = kind; e.K = K;
+    for (let j = 0; j < n; j++) e.A.push({ s: (j + 0.5) / n * K.span - K.span / 2 + (R() - 0.5) * 2, c: kind === 'sheep' ? (R() - 0.5) * w / 2 : 0, amp: (w / 2 + 1.5) * K.wide * (0.7 + 0.3 * R()), P: K.P[0] + R() * (K.P[1] - K.P[0]), ph: R() * 6.283, ph2: R() * 6.283, sc: 0.9 + 0.2 * R(), col: K.body[Math.floor(R() * K.body.length)], o: {} });
+    // (the body about its middle: the barrel, the head on its neck reaching forward, a reindeer's antlers)
+    const yc = 0, parts = [[new THREE.SphereGeometry(1, 10, 7), '#ffffff', revAt(0, yc, 0, 0, 0, 0, K.hw, K.bh / 2, K.hl)]], hy = K.bh * (kind === 'sheep' ? 0.15 : 0.55), hz = K.hl + K.head * 0.55;
+    if (kind !== 'sheep') parts.push([new THREE.CylinderGeometry(0.7, 1, 1, 6), '#ffffff', revRod([0, K.bh * 0.15, K.hl * 0.75], [0, hy, hz - K.head * 0.2], K.hw * 0.42)]);
+    parts.push([new THREE.SphereGeometry(1, 8, 6), K.face || '#ffffff', revAt(0, hy, hz, kind === 'sheep' ? 0.3 : 0.6, 0, 0, K.hw * 0.48, K.hw * 0.55, K.head * 0.55)]);
+    if (K.antlers) for (const sx of [1, -1]) { const b = [sx * 0.08, hy + 0.12, hz - 0.05], t = [sx * 0.3, hy + 0.55, hz - 0.2]; parts.push([new THREE.CylinderGeometry(0.6, 1, 1, 4), K.antlers, revRod(b, t, 0.025)]); parts.push([new THREE.CylinderGeometry(0.6, 1, 1, 4), K.antlers, revRod([b[0] * 2, b[1] + 0.25, b[2] - 0.05], [sx * 0.15, hy + 0.5, hz + 0.15], 0.018)]); }
+    const bm = new THREE.InstancedMesh(revMesh(parts, this.mat).geometry, this.mat, n), lg = new THREE.CylinderGeometry(0.75, 1, 1, 5); lg.translate(0, -0.5, 0);
+    const lm = new THREE.InstancedMesh(revMesh([[lg, '#ffffff', revAt(0, 0, 0, 0, 0, 0, K.hw * 0.22, K.leg + K.bh * 0.25, K.hw * 0.22)]], this.mat).geometry, this.mat, n * 4);
+    for (const m of [bm, lm]) { m.castShadow = true; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; }
+    for (let j = 0; j < n; j++) { const c = hexC(e.A[j].col); bm.setColorAt(j, c); for (let k = 0; k < 4; k++) lm.setColorAt(j * 4 + k, K.legC ? hexC(K.legC) : c); }
+    e.bm = bm; e.lm = lm; this.grp.add(bm, lm); this.draw(e, typeof MP !== 'undefined' && MP.raceNow ? MP.raceNow() || 0 : 0);
+  },
+  // an animal walking: across the road and back over its own period, drifting a little along it; how far it has walked,
+  // for its legs. A knocked one goes by its knock (flown)
+  walk(e, j, t, o) {
+    const a = e.A[j], f = 2 * Math.PI / a.P, T = this.T, th = f * t + a.ph, lat = a.c + a.amp * Math.sin(th), s = a.s + 2.5 * Math.sin(f / 1.7 * t + a.ph2), p = this.at(T, e.i, s, lat);
+    const vl = a.amp * f * Math.cos(th), vs = 2.5 * f / 1.7 * Math.cos(f / 1.7 * t + a.ph2), vx = Math.sin(p.h) * vs + Math.cos(p.h) * vl, vz = Math.cos(p.h) * vs - Math.sin(p.h) * vl, sp = Math.hypot(vx, vz);
+    const m = Math.floor(th / Math.PI);
+    o.x = p.x; o.z = p.z; o.y = groundY(T, p.x, p.z); o.vx = vx; o.vz = vz; o.sp = sp; o.h = sp > 0.02 ? Math.atan2(vx, vz) : o.h || p.h; o.roll = 0; o.dist = a.amp * (2 * m + 1 - Math.cos(th - m * Math.PI)); return o;
+  },
+  pose(e, j, t, o) { const kn = this.knk.get(e.k + ':' + j); return kn && t >= kn.t ? this.flown(e, j, kn, t, o) : this.walk(e, j, t, o); },
+  // a knocked animal: thrown up and away, coming down a 2 g/9.8 later, sliding to a stop, lying a moment, then up and
+  // trotting off the road for ten seconds
+  flown(e, j, kn, t, o) {
+    const T = this.T, dt = t - kn.t, [vx, vy, vz] = kn.v, vh = Math.hypot(vx, vz) || 1e-6, tf = 2 * vy / 9.81, p = kn.p;
+    o.vx = 0; o.vz = 0; o.sp = 0; o.dist = 0; o.h = kn.h + kn.rs * Math.min(dt, tf) * 1.5;
+    if (dt < tf) { o.x = p.x + vx * dt; o.z = p.z + vz * dt; o.y = Math.max(groundY(T, o.x, o.z), p.y + vy * dt - 4.905 * dt * dt); o.roll = kn.rs * Math.min(1, dt / tf) * Math.PI / 2; return o; }
+    const v1 = vh * 0.55, ts = v1 / 7, u = Math.min(dt - tf, ts), d = v1 * u - 3.5 * u * u, x = p.x + vx * tf + vx / vh * d, z = p.z + vz * tf + vz / vh * d, tl = dt - tf - ts;
+    o.x = x; o.z = z; o.y = groundY(T, x, z); o.roll = kn.rs * Math.PI / 2;
+    if (tl > 3) { o.roll *= 1 - Math.min(1, (tl - 3) / 0.6);
+      if (tl > 3.6) { const l = kn.l || (kn.l = locate(T, x, z, e.i)), aw = l.lat >= 0 ? 1 : -1, hx = Math.cos(l.h) * aw, hz = -Math.sin(l.h) * aw, run = Math.min(10, tl - 3.6) * 2.2;
+        o.x = x + hx * run; o.z = z + hz * run; o.y = groundY(T, o.x, o.z); o.h = Math.atan2(hx, hz); o.sp = tl < 13.6 ? 2.2 : 0; o.dist = run; } }
+    return o;
+  },
+  // (the animal as a body to bodyCars: a box from the ground to its back and from its tail to its nose, and points over it)
+  spec(K) {
+    if (K._S) return K._S; const y0 = -(K.leg + K.bh / 2), y1 = K.bh / 2 + 0.05, z0 = -K.hl, z1 = K.hl + K.head, x0 = -K.hw, x1 = K.hw, P = [], st = 0.22, rng = (a, b) => { const n = Math.max(1, Math.ceil((b - a) / st)), L = []; for (let i = 0; i <= n; i++) L.push(a + (b - a) * i / n); return L; };
+    for (const x of rng(x0, x1)) for (const y of rng(y0, y1)) for (const z of rng(z0, z1)) if (x === x0 || x === x1 || y === y0 || y === y1 || z === z0 || z === z1) P.push([x, y, z]);
+    return K._S = { id: 'animal', _shell: { boxes: [[x0, y0, z0, x1, y1, z1]], rP: Math.hypot(K.hw, y0, Math.max(-z0, z1)) }, _cpts: P };
+  },
+  // each physics step: the animals near the car (those not knocked) put among the bodies it can meet
+  pre(c, dt) {
+    const near = this._near; near.length = 0; if (!this.L.length || !c || G.finished || c.ghost || MP.phase !== 'race' || G.state !== 'run') return;
+    const t = this.rt != null ? this.rt : (this.rt = MP.raceNow() || 0);
+    for (const e of this.L) { if (e.kind !== 'animals' || Math.abs(e.i - c.hint) > 40) continue;
+      for (let j = 0; j < e.A.length; j++) { if (this.knk.has(e.k + ':' + j)) continue; const a = e.A[j], o = this.walk(e, j, t, a.o); if (Math.hypot(o.x - c.x, o.z - c.z) > REV.near) continue;
+        const r = a.pr || (a.pr = { S: this.spec(e.K), M: new Array(9), m: e.K.m * a.sc * a.sc * a.sc, V: [0, 0, 0], W: [0, 0, 0], kv: [0, 0, 0], ev: e, j });
+        r.x = o.x; r.z = o.z; r.yb = o.y + (e.K.leg + e.K.bh / 2) * a.sc; bodyAxes(quatOf(o.h, 0, 0), r.M); r.V[0] = o.vx; r.V[2] = o.vz; near.push(r); } }
+    if (near.length) c.rivals = c.rivals ? c.rivals.concat(near) : near.slice();
+  },
+  // after the step: an animal the car has pushed (the change of speed bodyCars gave it) is knocked away - most of that
+  // speed along the ground (the rest gone in the blow), and up off its feet, the harder the blow the higher, to 5 m/s
+  post(c) {
+    for (const r of this._near) { const k = r.kv, s = Math.hypot(k[0], k[1], k[2]); if (s < REV.knock) { k[0] = k[1] = k[2] = 0; continue; }
+      const up = 1 + 0.08 * s; this.knock(r.ev.k, r.j, Math.round((this.rt || 0) * 1000), [r.V[0] + 0.7 * k[0], Math.min(5, Math.max(up, 0.5 * k[1] + up)), r.V[2] + 0.7 * k[2]], true); k[0] = k[1] = k[2] = 0; }
+  },
+  // a knock: this page's (sent on to the others) or another page's; the first by the race's clock stands
+  knock(ek, j, tms, v, mine) {
+    const e = this.L[ek], id = ek + ':' + j, old = this.knk.get(id); if (!e || !e.A || !e.A[j] || e.kind !== 'animals') return;
+    if (old && (old.tms < tms || (old.tms === tms && Math.hypot(...old.v) >= Math.hypot(...v)))) return;
+    const t = tms / 1000, o = this.walk(e, j, t, {}); this.knk.set(id, { t, tms, v, p: { x: o.x, y: o.y, z: o.z }, h: o.h, rs: j % 2 ? 1 : -1 });
+    if (mine) { this.mine = this.mine.filter(q => q[0] !== ek || q[1] !== j); this.mine.push([ek, j, tms, Math.round(v[0] * 100), Math.round(v[1] * 100), Math.round(v[2] * 100)]); if (this.mine.length > 8) this.mine.shift(); MP.pub({ ek: this.mine.slice() }); }
+  },
+  knocksIn(L) { if (!this.on) return; for (const q of L.slice(0, 8)) { if (!Array.isArray(q) || q.length !== 6 || !q.every(x => typeof x === 'number' && isFinite(x)) || !Number.isInteger(q[0]) || !Number.isInteger(q[1])) continue; this.knock(q[0], q[1], q[2], [clamp(q[3] / 100, -40, 40), clamp(q[4] / 100, 0, 20), clamp(q[5] / 100, -40, 40)], false); } },
+  // each frame: the race's clock; the weather's turn and each surprise called out; the animals drawn where they are
+  frame(dt, c) {
+    const t = typeof MP !== 'undefined' && MP.raceNow ? MP.raceNow() : null; this.rt = t; if (t == null) return;
+    if (!this.wxSaid && Atmos.story) { const tk = Atmos.story.find(k => k.turn); if (tk && t >= tk.t - 3 && WEATHER[tk.wx]) { this.wxSaid = true; const W = WEATHER[tk.wx];
+      flash(W.rain + W.snow > 0.1 ? `The weather is turning: ${W.name.toLowerCase()} on the way` : W.vis < 300 ? `The weather is turning: ${W.name.toLowerCase()} rolling in` : 'The weather is turning: the sky is clearing'); } }
+    if (c && G.state === 'run' && !G.finished) for (const e of this.L) { if (this.said.has(e.k)) continue; const d = (e.i - c.hint) * STEP; if (d > 0 && d < REV.warn) { this.said.add(e.k); flash(REV_SAY[e.kind](e)); } }
+    for (const e of this.L) if (e.kind === 'animals' && (!c || Math.abs(e.i - c.hint) < 600)) this.draw(e, t);
+  },
+  draw(e, t) {
+    const K = e.K, yc = K.leg + K.bh / 2;
+    for (let j = 0; j < e.A.length; j++) {
+      const a = e.A[j], o = this.pose(e, j, t, a.d || (a.d = {})), s = a.sc, rl = o.roll || 0, lie = Math.abs(Math.sin(rl)), y = o.y + (yc * (1 - lie) + K.hw * 1.1 * lie) * s;
+      _rvQ.setFromEuler(_rvE.set(0, o.h, rl, 'YXZ')); _rvM.compose(_rvV.set(o.x, y, o.z), _rvQ, _rvS.set(s, s, s)); e.bm.setMatrixAt(j, _rvM);
+      const sw = 0.45 * Math.min(1, o.sp / 0.7) * (1 - lie), ph = o.dist / (K.leg * 1.1) * Math.PI;
+      for (let k = 0; k < 4; k++) { const fx = k & 1 ? -1 : 1, fz = k < 2 ? 1 : -1, w = sw * Math.sin(ph + (k === 0 || k === 3 ? 0 : Math.PI));
+        _rvL.compose(_rvV.set(fx * K.hw * 0.62, -K.bh * 0.25, fz * K.hl * 0.62), _rvQ.setFromEuler(_rvE.set(w, 0, 0)), _rvS.set(1, 1, 1)); e.lm.setMatrixAt(j * 4 + k, _rvL.premultiply(_rvM)); }
+    }
+    e.bm.instanceMatrix.needsUpdate = true; e.lm.instanceMatrix.needsUpdate = true;
+  },
+  clear() {
+    const T = this.T; if (T) for (const e of this.L) for (const c of e.cols) { const A = T.colAt[c.i], k = A ? A.indexOf(c) : -1; if (k >= 0) A.splice(k, 1); const m = T.colliders ? T.colliders.indexOf(c) : -1; if (m >= 0) T.colliders.splice(m, 1); }
+    if (this.grp) { scene.remove(this.grp); this.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); }); this.grp = null; }
+    if (this.mat) { this.mat.dispose(); this.mat = null; }
+    this.L = []; this.knk.clear(); this.mine = []; this.said.clear(); this._near.length = 0; this.on = false; this.T = null; this.rt = null; this.wxSaid = false;
+  }
+};
 // ---------- per-frame update ----------
 const PH = 1 / 240; let acc = 0;
 function physics(dt) {
@@ -23249,9 +23449,11 @@ function physics(dt) {
   if (G.mpMenu) I = { steer: 0, throttle: 0, brake: 1, handbrake: false, auto: true }; // (a race does not stop for the menu)
   if (Fix.on()) I = { steer: 0, throttle: 0, brake: 1, handbrake: true, auto: true }; // (the crew out of the car, mending it)
   if (MP.game) MP.stepRivals(dt);
+  if (RaceEvents.on) RaceEvents.pre(c, dt); // (a race's animals near the car: see RaceEvents)
   // (held on the brakes, at the finish or under the race menu, a car stops and stays stopped: the brake held at a
   // standstill doesn't select reverse as it does when the driver holds it)
   stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished || !!G.mpMenu || Fix.on() });
+  if (RaceEvents.on) RaceEvents.post(c);
   if (RX.on) { G.time = G.finished ? G.time + dt : RX.t; RX.post(dt); return; } // (a rallycross race keeps its own clock, laps and finish; past the finish the run's clock goes on, for the car pulling up)
   if (!hold) { G.time += dt; }
   if (!hold && !G.finished) {
@@ -23320,10 +23522,11 @@ function updateRun(dt) {
       : D && D.dead && !G.finished ? `${{ water: 'Engine wrecked by water', engine: 'Engine seized', driveshaft: 'No drive', gearbox: 'Gearbox gone', suspension: 'Suspension broken', wheel: 'Wheel lost' }[D.dead]}: the car cannot go on. ` + (G.rally ? (tap ? 'Tap Pause, then Retire.' : 'Esc, then Retire.') : (tap ? 'Tap Pause to restart the stage.' : 'Esc to restart the stage.'))
       : c.es && c.es.run === 'lock' && !G.finished ? `Hydrolocked: water in the cylinders. ${D && D.mode === 'real' ? (tap ? 'Tap Reset to pull the plugs and crank the water out (+2 min).' : 'Press R to pull the plugs and crank the water out (+2 min).') : (tap ? 'Tap Reset to be pulled out and have it cleared (+30 s).' : 'Press R to be pulled out and have it cleared (+30 s).')}`
       : c.flooded && !G.finished ? `${(c.deep || 0) > 0.3 ? 'In the river with the engine flooded' : 'The engine has stalled in the water'}: ${tap ? 'tap Reset' : 'press R'} to be pulled out (+30 s).` : ''; // (each a whole sentence for other languages)
-    if (dd) { const tx = Fix.on() ? '' : txt && D && D.dead && !G.finished && !c.stuck && Fix.hasJobs ? txt + ` Or mend it here: ${tap ? 'tap Repairs' : 'press ' + Fix.kn()}.` : txt; setText(dd, tx); dd.hidden = !tx; } } // (and what the crew can do about it on the spot; nothing while they are at it)
+    if (dd) { const tx = Fix.on() ? '' : txt && D && D.dead && !G.finished && !c.stuck && Fix.hasJobs ? txt + ` Or mend it here: ${tap ? 'tap Repairs' : 'press ' + Fix.kn()}.` : txt; setText(dd, MP.phase === 'race' ? tx.split(' (+30 s)').join('').split(' (+2 min)').join('') : tx); dd.hidden = !tx; } } // (and what the crew can do about it on the spot; nothing while they are at it)
   Fix.hint(c, dt);
   animateInterior(m, c, S, G.physDt, !!inp.handbrake && !G.finished, G.camMode === 2 && !orbitOn());
   if (MP.game) MP.frame(dt);
+  if (RaceEvents.on) RaceEvents.frame(dt, c);
   // ghost
   if (G.ghostMesh && G.ghost && G.state === 'run') {
     const f = G.ghost.f, n = f.length / 4; const tt = G.time / 0.05; const i0 = Math.min(n - 1, Math.floor(tt)), i1 = Math.min(n - 1, i0 + 1), a = tt - Math.floor(tt);
@@ -23796,7 +23999,7 @@ const GUIDE = [
     ['Pace notes', 'The co-driver’s calls about the road ahead: which way each bend goes and how sharp it is, from 1 (very tight, almost a hairpin) to 6 (nearly flat out), and warnings such as crest, jump, narrows or don’t cut. Shown on screen too.'],
     ['Splits', 'Your time at points along the stage, against the best time or the leader. Green: you are quicker; red: slower.'],
     ['Seed', 'The number a stage is made from. The same number makes the same stage for everyone, so you can challenge a friend.'],
-    ['Assists', 'ABS, the Dynamic Racing Line, Stability Control, Auto Steer, Corner Braking and Throttle Management, each on or off. Casual has them all: the car is kept on the racing line and slowed for the bends. Advanced has none. Custom is your own mix.'],
+    ['Assists', 'ABS, Traction Control, Stability Control, Steering Assist, Drift Assist and the racing line, each on or off. They make the car forgiving - easy to slide, hard to spin - but never drive it: nothing steers along a line, brakes for a bend or lifts for you. Casual has them all; Advanced has none. Custom is your own mix.'],
     ['Hardcore', 'No assists, no flashbacks, and the view from the driver’s seat only.'],
     ['Flashback', 'Go back to a moment before a mistake and drive on from there, as if it never happened.'],
     ['Damage', 'Off: nothing breaks. Visual: the car looks damaged but drives the same. Realistic: damage changes how the car drives and can end your run.'],
@@ -23989,7 +24192,7 @@ const ControlsUI = {
       this.row(body, 'Outer deadzone', 'Movement near the end that counts as full.', this.range(() => S.odz, v => { S.odz = v; }, 0, 0.2, 0.01, this.pct, SD.odz));
       this.row(body, 'Response curve', '1: straight. Higher: softer near the centre, for fine control.', this.range(() => S.curve, v => { S.curve = v; }, 1, 3, 0.05, v => v.toFixed(2), SD.curve));
       this.row(body, 'Steering range', 'The share of the car’s lock at full input.', this.range(() => S.range, v => { S.range = v; }, 0.5, 1, 0.05, this.pct, SD.range));
-      body.append(el('p', { class: 'cnote', text: (dev === 'wheel' ? 'The wheel sets the front wheels’ angle directly.' : 'The stick sets the front wheels’ angle directly.') + ' With Auto Steer on, the lock is trimmed at speed to what the front tyres can use; with it off, a stick turns the wheels all the way at any speed.' }));
+      body.append(el('p', { class: 'cnote', text: (dev === 'wheel' ? 'The wheel sets the front wheels’ angle directly.' : 'The stick sets the front wheels’ angle directly.') + ' With Steering Assist on, the lock is trimmed at speed to what the front tyres can use; with it off, a stick turns the wheels all the way at any speed.' }));
     }
     // pedals
     this.sec(body, pad ? 'Throttle and brake' : 'Throttle and brake keys');
@@ -28752,7 +28955,7 @@ function crewSafe(m, f) {
 //   a new stage after each race, and conditions kept a surprise: the time of day and the weather drawn at the start.
 // Each driver's page also sends, as it races: its times at the splits, its horn (held), a quick reaction (one of
 // MP_REACT, by number: never free text) and, at the end, how its run went for the awards.
-const MP_V = 3, MP_MAX = 8, MP_HZ = 20, MP_CODE = 'abcdefghjkmnpqrstuvwxyz23456789', MP_WIDE = 1.8;
+const MP_V = 4, MP_MAX = 8, MP_HZ = 20, MP_CODE = 'abcdefghjkmnpqrstuvwxyz23456789', MP_WIDE = 1.8;
 // (how far on a car's last state is carried: news older than this is held there; a blow too slight to send on, as the
 // other car's change of speed (m/s); how long two cars that have just met pass through each other once a blow from the
 // other page has been taken, so the one blow is not felt twice (s); how far apart in time a blow this car felt itself and
@@ -28820,7 +29023,7 @@ const MP = {
   newCode() { let s = ''; for (let i = 0; i < 4; i++) s += MP_CODE[Math.floor(Math.random() * MP_CODE.length)]; return s; },
   defaultCfg() { const sd = String(($('#seed') && $('#seed').value) || (G.T && G.T.seed) || Math.floor(Math.random() * 999999) + 1).replace(/\D/g, '').slice(0, 6) || '1';
     return { v: MP_V, sd: String(parseInt(sd, 10)), ty: '', tm: '', wx: '', wd: 1, ct: 1, dg: Damage.mode || 'real', rd: 0, ph: 'lobby', go: 0, gr: [],
-      fm: 'side', cr: 'own', cc: '', hs: 0, sr: 1, tt: 0, ns: 0, sc: 0, cs: null, dl: null, tg: null, ko: [], sn: 1, pt: {}, tp: [0, 0], sx: 0, lr: null, pl: {}, co: '', lp: 5, gd: null }; },
+      fm: 'side', cr: 'own', cc: '', hs: 0, sr: 1, tt: 0, ns: 0, sc: 0, ev: 1, cs: null, dl: null, tg: null, ko: [], sn: 1, pt: {}, tp: [0, 0], sx: 0, lr: null, pl: {}, co: '', lp: 5, gd: null }; },
   // (a new code each time, and another if a race already has it: a host never lands in someone else's room)
   async hostRace() { if (!this.room) return;
     for (let k = 0; k < 4; k++) { await this.enter(this.newCode(), true); const g = this.game; if (!g) return;
@@ -28849,7 +29052,7 @@ const MP = {
     const g = this.game; if (!g) return;
     const wasRacing = this.phase === 'race' || this.phase === 'done';
     this.game = null; this.code = ''; this.host = false; this.alone = false; this.endAt = 0; this.hostPeer = null; this.phase = 'off'; this.peers = []; this.cfg = null; this.cfgKey = ''; this.goAt = 0; this.rdy = 0; this.seen.clear(); this.carAt.clear(); this.ckSeen.clear(); window.__mpDmg = null; this.mine = {};
-    this.clearRivals(); this.ownCar(); this.raceUI(false); try { await g.leave(); } catch (e) { }
+    this.clearRivals(); RaceEvents.clear(); this.ownCar(); this.raceUI(false); try { await g.leave(); } catch (e) { }
     if (this.room) this.room.presence({ race: null }).catch(() => {});
     if (wasRacing && G.state !== 'menu') toMenu();
     if (!quiet) { Damage.render(); this.render(); if (Rally.mode === 'mp' && G.state === 'menu') { const sd = $('#seed').value || '1'; G.T = null; setSeed(sd, { force: true }); } }
@@ -28908,7 +29111,7 @@ const MP = {
     // (each driver's place in each race of the series so far, a digit a race, 0 for none: for ties on points)
     const pl = {}; if (c.pl && typeof c.pl === 'object' && !Array.isArray(c.pl)) { let k = 0; for (const id of Object.keys(c.pl)) { if (k++ >= 24) break; const v = c.pl[id]; if (id.length < 80 && typeof v === 'string' && /^[0-8]{1,5}$/.test(v)) pl[id] = v; } }
     return { v: MP_V, sd, ty, tm, wx, wd: c.wd ? 1 : 0, ct: c.ct ? 1 : 0, dg: ['off', 'visual', 'real'].includes(c.dg) ? c.dg : 'real', rd: mpNum(c.rd, 0, 2e9) | 0, ph: c.ph === 'race' ? 'race' : 'lobby', go: mpNum(c.go, 0, 1e15) || 0, gr,
-      fm: MP_FMT.includes(c.fm) ? c.fm : 'side', cr: MP_CARS.includes(c.cr) ? c.cr : 'own', cc: CLASSES.includes(c.cc) ? c.cc : '', hs: c.hs ? 1 : 0, sr, tt: c.tt ? 1 : 0, ns: c.ns ? 1 : 0, sc: c.sc ? 1 : 0,
+      fm: MP_FMT.includes(c.fm) ? c.fm : 'side', cr: MP_CARS.includes(c.cr) ? c.cr : 'own', cc: CLASSES.includes(c.cc) ? c.cc : '', hs: c.hs ? 1 : 0, sr, tt: c.tt ? 1 : 0, ns: c.ns ? 1 : 0, sc: c.sc ? 1 : 0, ev: c.ev ? 1 : 0,
       cs, dl, tg, ko, sn: clamp(mpNum(c.sn, 1, 5) | 0 || 1, 1, sr), pt, tp, sx: c.sx ? 1 : 0, lr, pl, co: c.co === 'rx' ? 'rx' : '', lp: [3, 4, 5, 6, 8].includes(c.lp) ? c.lp : 5,
       gd: Array.isArray(c.gd) && c.gd.length === 3 ? c.gd.map(x => mpNum(x, 0, 20) || 0) : null }; // (gd: the size of the cars on the grid, for spacing it: see gridDims)
   },
@@ -29044,7 +29247,7 @@ const MP = {
     for (const p of this.peers) if (!p.sameTab && this.gr.includes(p.peer)) this.rivalFor(p);
     if (typeof SetupUI !== 'undefined' && SetupUI.close) try { SetupUI.close(); } catch (e) { }
     RX.set(c.co === 'rx' ? { kind: 'mp', laps: c.lp || 5, level: 'pro', field: [{ me: true, name: 'You', car: G.spec.id, num: this.slot + 1 }], label: (c.lp || 5) === 1 ? 'Rallycross race, 1 lap' : `Rallycross race, ${c.lp || 5} laps`, mp: true, slot: this.slot, n: this.gr.length, rd: c.rd, gd: c.gd } : null);
-    startRun();
+    startRun(); RaceEvents.begin(G.T, this.raceKey(), c); // (the race's surprises: see RaceEvents)
     this.splitAt = c.co === 'rx' ? [] : this.splitsFor(c, G.T); // (laps, not splits, on a circuit)
     // the start on this page's clock (kept up to date as the host's clock is reckoned better), and at least a second's
     // countdown for a page that heard of the start late; a car away later (a rally start, a handicap) that much later
@@ -29074,7 +29277,7 @@ const MP = {
     const c = makeCar(G.phys || G.spec, T, i), lat = rl ? 0 : (col ? -1 : 1) * Math.min(2.7, p.w / 4);
     c.x += Math.cos(p.h) * lat; c.z -= Math.sin(p.h) * lat; settleCar(c, G.phys || G.spec, T); G.car = c;
   },
-  back() { // the race is over, and everyone at the start again (a driver who watched it, ready for this one, still ready)
+  back() { RaceEvents.clear(); // the race is over, and everyone at the start again (a driver who watched it, ready for this one, still ready)
     const keep = this.phase === 'watch' ? this.rdy : 0;
     this.phase = 'lobby'; this.clearRivals(); this.gr = []; this.slot = -1; this.ownCar(); this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true;
     if (G.state !== 'menu') toMenu();
@@ -29244,7 +29447,7 @@ const MP = {
     { const kt = this.kitOf(P); if (kt && r.kit && !r.ghost && (kt[0] !== r.kit[0] || kt[1] !== r.kit[1])) this.remesh(r, kt); }
     { const dm = P.dm && typeof P.dm === 'object' && !Array.isArray(P.dm) && P.dm.r === this.round ? P.dm : null, k = dm ? JSON.stringify(dm) : ''; if (k !== r.dmKey) { r.dmKey = k; r.dmIn = dm ? this.dmCheck(dm) : null; r.dmDirty = true; } }
     // the blows its page says it gave: one at this car taken, one between two others heard (see blowIn)
-    if (Array.isArray(P.bl)) this.blowsIn(r, P.bl); else if (r.blN === undefined) r.blN = -1;
+    if (Array.isArray(P.bl)) this.blowsIn(r, P.bl); else if (r.blN === undefined) r.blN = -1; if (Array.isArray(P.ek)) RaceEvents.knocksIn(P.ek);
     // its times at the splits, its horn, the figures of its run, and a reaction (each shown once, by its number)
     r.sp = Array.isArray(P.sp) ? P.sp.slice(0, 8).map(v => mpNum(v, 0, 1e5)).filter(v => v != null) : [];
     r.hn = P.hn === 1 ? 1 : 0; r.aw = this.statsIn(P.aw); r.rp = Array.isArray(P.rp) && P.rp.length === 2 && P.rp.every(Number.isInteger) && P.rp[0] >= 0 && P.rp[0] < 4 && P.rp[1] >= 0 && P.rp[1] <= 2 ? P.rp.slice() : null;
@@ -29589,7 +29792,7 @@ const MP = {
     else if (c.dl) L.push(['Handicap', 'your car is the slowest here: you are first away']);
     if (c.fm === 'rally' && c.dl && c.dl[k] > 0.05) L.push(['Handicap', `${c.dl[k].toFixed(1)} s added to your time`]);
     if (c.fm === 'ko') { const K = this.splitAt.length; L.push(['Knockout', K ? `the last car at each of the ${K} splits is out` : 'two cars: first to the finish']); }
-    if (c.sc && T && T.rallyCond) L.push(['Surprise', `${TIME_NAMES[T.rallyCond.time]}, ${WEATHER[T.rallyCond.wx].name.toLowerCase()}`]);
+    if (c.sc && T && T.rallyCond) L.push(['Surprise', `${TIME_NAMES[T.rallyCond.time]}, ${WEATHER[T.rallyCond.wx].name.toLowerCase()}`]); if (c.ev) L.push(['Events', T && T.loop ? 'the weather turns partway through' : 'the weather turns partway through; animals and obstacles on the road']);
     if (c.sr > 1) L.push(['Series', `race ${c.sn} of ${c.sr}`]);
     const box = $('#mpReveal'); if (!box) return; box.textContent = ''; for (const [a, b, col] of L) { const row = mel('div', { class: 'mprv' }, mel('small', { text: a }), mel('b', { text: b })); if (col) row.style.setProperty('--tc', col); box.append(row); }
     this.revealUntil = L.length ? Date.now() + 7000 : 0; box.hidden = !L.length;
@@ -29802,7 +30005,7 @@ const MP = {
     for (const v of MP_FMT) on('#mp_fm_' + v, 'click', () => this.setRule({ fm: v }));
     for (const v of MP_CARS) on('#mp_cr_' + v, 'click', () => this.setRule({ cr: v }));
     on('#mpCc', 'change', e => this.setRule({ cc: e.target.value }));
-    for (const v of [0, 1]) for (const k of ['hs', 'tt', 'ns', 'sc']) on(`#mp_${k}${v}`, 'click', () => this.setRule({ [k]: v }));
+    for (const v of [0, 1]) for (const k of ['hs', 'tt', 'ns', 'sc', 'ev']) on(`#mp_${k}${v}`, 'click', () => this.setRule({ [k]: v }));
     on('#mp_co0', 'click', () => this.setCfg({ co: '' })); on('#mp_co1', 'click', () => this.setCfg({ co: 'rx', fm: 'side' }));
     for (const v of [3, 4, 5, 6, 8]) on('#mp_lp' + v, 'click', () => this.setRule({ lp: v }));
     for (const v of [1, 3, 5]) on('#mp_sr' + v, 'click', () => { if (this.cfg && this.cfg.sr !== v) this.setRule({ sr: v, sn: 1, pt: {}, tp: [0, 0], sx: 0, lr: null, pl: {} }); });
@@ -29895,7 +30098,7 @@ const MP = {
   renderRules(c) {
     const pr = (id, on) => { const b = $(id); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false'); };
     for (const v of MP_FMT) pr('#mp_fm_' + v, c.fm === v); for (const v of MP_CARS) pr('#mp_cr_' + v, c.cr === v); for (const v of [1, 3, 5]) pr('#mp_sr' + v, c.sr === v);
-    for (const v of [0, 1]) for (const k of ['hs', 'tt', 'ns', 'sc']) pr(`#mp_${k}${v}`, (c[k] ? 1 : 0) === v);
+    for (const v of [0, 1]) for (const k of ['hs', 'tt', 'ns', 'sc', 'ev']) pr(`#mp_${k}${v}`, (c[k] ? 1 : 0) === v);
     const cr = $('#mpClsRow'); if (cr) cr.hidden = c.cr !== 'cls'; const cc = $('#mpCc'); if (cc && cc.value !== (c.cc || '')) cc.value = c.cc || '';
     const L = [];
     L.push(c.fm === 'ko' ? 'Knockout: everyone away together; the last car at each split is out, and the last two race for the finish.' : c.fm === 'rally' ? `Rally start: one car away every ${MP_GAP} seconds, the others seen as ghosts; the times at each split show how it stands.` : 'Everyone away together, side by side.');
