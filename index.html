@@ -4165,19 +4165,19 @@ const CARS = [
     tq: [[1000, 230], [3000, 380], [4500, 460], [5500, 490], [6000, 480], [6500, 470], [7500, 446], [8000, 418], [8500, 388]], na: 0.42, boost: 'turbo', spool: [3500, 5800], lag: 0.65, als: true,
     gears: [3.08, 2.1, 1.66, 1.37, 1.15, 0.98], final: 4.6, len: 4.24, width: 1.86, tyres: [235, 235], aero: [0.95, 0.55, 0.4],
     susp: { fF: 1.95, fR: 1.75, arbF: 0.12, arbR: 0.06, rcF: 0.06, rcR: 0.1, camF: -1.2, camR: -0.8, gainF: -12, gainR: -10, hcg: 0.505, bias: 0.64, Ie: 0.22 },
-    diff: { f: { pre: 15 }, c: { pre: 2500 }, r: { pre: 80, ramp: 0.5 } },
+    diff: { f: { type: 'open', pre: 15 }, c: { type: 'locked', pre: 1e6 }, r: { type: 'plate', pre: 80, ramp: 0.5 } },
     note: 'Inline five hung ahead of the front axle, its coolers moved to the tail to even out the weight, and a centre diff run locked. Turbo lag at low revs, softened by anti-lag that keeps the turbo spinning between corners. Six close gears. Rotate it early or it pushes wide.' },
   { id: 'vespera_sc', name: 'Vespera SC', num: 2, drive: 'Rear-wheel drive, plate limited slip', motor: '2.1-litre supercharged four, mid-mounted, about 325 hp', mass: 960, wf: 0.40, fs: 0, wb: 2.44, track: [1.5, 1.49], yawK: 0.85, lock: 0.58, idle: 1050, redline: 8500, cyl: 4,
     tq: [[1000, 200], [2500, 270], [4000, 315], [5000, 333], [6500, 320], [8000, 285], [8500, 265]], na: 1, boost: 'sc',
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.12, len: 3.89, width: 1.8, tyres: [205, 235], aero: [0.72, 0.12, 0.4],
     susp: { fF: 1.85, fR: 1.75, arbF: 0.07, arbR: 0.02, rcF: 0.06, rcR: 0.12, gainF: -24, gainR: -22, hcg: 0.47, bias: 0.6, Ie: 0.14 },
-    diff: { r: { pre: 60, ramp: 0.55 } },
+    diff: { r: { type: 'plate', pre: 60, ramp: 0.55 } },
     note: 'Roots supercharger, so boost is there the instant you open the throttle. Lightest rear-drive chassis: power oversteer is yours to manage.' },
   { id: 'petrel_m4', name: 'Petrel M4', num: 3, drive: 'Four-wheel drive, about 33:67', motor: '1.8-litre turbo four, mid-mounted, about 450 hp', mass: 910, wf: 0.46, fs: 0.33, wb: 2.54, track: [1.44, 1.44], yawK: 0.82, lock: 0.6, idle: 1000, redline: 8500, cyl: 4,
     tq: [[1000, 200], [3000, 330], [4500, 450], [5500, 490], [6500, 470], [8000, 395], [8500, 370]], na: 0.42, boost: 'turbo', spool: [3800, 5800], lag: 0.55, als: true,
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.12, len: 3.825, width: 1.77, tyres: [215, 215], aero: [0.86, 0.25, 0.35],
     susp: { fF: 1.85, fR: 1.85, arbF: 0.085, arbR: 0.03, gainF: -22, gainR: -20, hcg: 0.505, bias: 0.62, Ie: 0.15 },
-    diff: { f: { pre: 20 }, c: { pre: 30, kv: 35 }, r: { pre: 60, ramp: 0.4 } },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 30, vc: 1750 }, r: { type: 'plate', pre: 60, ramp: 0.4 } },
     note: 'Transverse mid-engine and a long wheelbase for a short car. Rear-biased drive through a viscous centre coupling, so it rotates willingly. Vanes ahead of the turbo keep it spinning between corners, without the bangs of anti-lag.' },
   // mid-mounted four, 1.8 litres: 444 hp (450 PS) at 8,000 rpm and 490 Nm at 5,500; 1,080 kg, 49:51; the published
   // five-speed ratios (3.23 ... 1.14) on a 4.375 final drive behind a 1.15 step in the transfer gears, and tyres rolling
@@ -4186,32 +4186,32 @@ const CARS = [
     tq: [[1000, 200], [3000, 330], [4500, 455], [5500, 498], [6500, 478], [8000, 395], [8500, 368], [8900, 340]], na: 0.42, boost: 'turbo', spool: [3800, 5800], lag: 0.6, als: false,
     gears: [3.23, 2.14, 1.68, 1.36, 1.14], final: 5.031, rollR: 0.325, len: 3.99, width: 1.75, tyres: [225, 225], aero: [0.82, 0.2, 0.4],
     susp: { fF: 1.7, fR: 1.8, arbF: 0.145, arbR: 0.07, travel: 0.15, droop: 0.13, gainF: -24, gainR: -22, hcg: 0.485, bias: 0.68, Ie: 0.16 },
-    diff: { f: { pre: 15, kv: 20 }, c: { pre: 20, kv: 40 }, r: { pre: 20, kv: 30 } },
+    diff: { f: { type: 'viscous', pre: 15, vc: 80 }, c: { type: 'viscous', pre: 20, vc: 2000 }, r: { type: 'viscous', pre: 20, vc: 120 } },
     note: 'Mid engine with the gearbox up front for a near 50:50 balance, and viscous couplings front, centre and rear. Short gears and revs to 8,900: quick out of corners, slow at the top. Planted and predictable.' },
   { id: 'mamba_tc', name: 'Mamba TC', num: 5, drive: 'Four-wheel drive, 40:60', motor: '1.8-litre twin-charged four, mid-mounted, about 480 hp', mass: 890, wf: 0.42, fs: 0.4, wb: 2.44, track: [1.5, 1.52], yawK: 0.85, lock: 0.6, idle: 1050, redline: 8800, cyl: 4,
     tq: [[1000, 230], [2500, 360], [4000, 460], [5000, 490], [6500, 470], [8400, 401], [8800, 380]], na: 0.42, boost: 'twin', spool: [3500, 5500], lag: 0.45, als: false,
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.05, len: 3.99, width: 1.88, tyres: [225, 235], aero: [0.88, 0.3, 0.4],
     susp: { fF: 1.95, fR: 1.85, arbF: 0.045, arbR: 0.02, gainF: -24, gainR: -22, hcg: 0.49, bias: 0.6, Ie: 0.15 },
-    diff: { f: { pre: 20 }, c: { pre: 30, kv: 40 }, r: { pre: 70, ramp: 0.45 } },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 30, vc: 2000 }, r: { type: 'plate', pre: 70, ramp: 0.45 } },
     note: 'A supercharger covers low revs and hands over to the turbo above about 5,000 rpm, so there is no lag gap. The most powerful and lightest four-wheel-drive car here.' },
   { id: 'tasman_6r', name: 'Tasman 6R', num: 6, drive: 'Rear-wheel drive, 40% limited slip', motor: '3.0-litre flat six, rear-mounted, about 255 hp', mass: 1057, wf: 0.39, fs: 0, wb: 2.272, track: [1.43, 1.47], yawK: 1.1, lock: 0.56, idle: 1100, redline: 7300, cyl: 6,
     tq: [[1000, 170], [3000, 215], [4500, 238], [5500, 248], [6500, 256], [7000, 256], [7300, 245]], na: 1, boost: 'na',
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 4.19, len: 4.235, width: 1.78, tyres: [205, 235], aero: [0.82, -0.2, 0.75],
     susp: { fF: 1.7, fR: 1.95, arbF: 0.24, arbR: 0.02, rcF: 0.05, rcR: 0.14, gainR: -18, toeR: 0.35, antiSquat: 0.3, gainF: -12, hcg: 0.515, bias: 0.57, Ie: 0.18 },
-    diff: { r: { pre: 50, ramp: 0.4 } },
+    diff: { r: { type: 'plate', pre: 50, ramp: 0.4 } },
     note: 'Naturally aspirated flat six behind the rear axle: huge traction and instant response, but lift mid-corner and the tail swings like a pendulum. The front lifts slightly at speed.' },
   { id: 'bantam_6x', name: 'Bantam 6X', num: 7, drive: 'Four-wheel drive, 35:65 epicyclic centre diff', motor: '3.0-litre high-rev V6, mid-mounted, about 410 hp', mass: 1030, wf: 0.44, fs: 0.35, wb: 2.4, track: [1.52, 1.55], yawK: 0.88, lock: 0.6, idle: 1350, redline: 9500, cyl: 6,
     tq: [[1000, 170], [3000, 250], [5000, 320], [6500, 360], [7500, 355], [9000, 324], [9500, 300]], na: 1, boost: 'na',
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.6, len: 3.657, width: 1.86, tyres: [225, 235], aero: [0.98, 0.42, 0.42],
     susp: { fF: 1.9, fR: 1.9, arbF: 0.08, arbR: 0.02, gainF: -12, gainR: -10, hcg: 0.505, bias: 0.63, Ie: 0.14 },
-    diff: { f: { pre: 30, ramp: 0.2 }, c: { pre: 40 }, r: { pre: 70, ramp: 0.45 } },
+    diff: { f: { type: 'plate', pre: 30, ramp: 0.2 }, c: { type: 'open', pre: 40 }, r: { type: 'plate', pre: 70, ramp: 0.45 } },
     note: 'High-revving naturally aspirated V6 behind the crew: no lag at all, power arrives the instant you ask. Short wheelbase makes it twitchy, and the big aero costs top speed.' },
   // mid-mounted four, 1,527 cc: about 350 hp and 421 Nm; 905 kg; tracks 1.39 m front and 1.49 m rear
   { id: 'corbeau_maxi', name: 'Corbeau Maxi', num: 8, drive: 'Rear-wheel drive, plate limited slip', motor: '1.5-litre high-boost turbo four, mid-mounted, about 350 hp', mass: 905, wf: 0.38, fs: 0, wb: 2.43, track: [1.39, 1.49], yawK: 0.86, lock: 0.58, idle: 1000, redline: 7800, cyl: 4,
     tq: [[1000, 150], [3000, 255], [4500, 390], [5000, 418], [5500, 421], [6500, 383], [7500, 332], [7800, 318]], na: 0.42, boost: 'turbo', spool: [3500, 5500], lag: 0.68, als: true,
     gears: [2.92, 1.95, 1.48, 1.17, 0.97], final: 5.0, len: 3.7, width: 1.77, tyres: [195, 235], aero: [0.8, 0.05, 0.4],
     susp: { fF: 1.75, fR: 1.8, arbF: 0.15, arbR: 0.02, rcF: 0.05, rcR: 0.13, gainF: -22, gainR: -20, hcg: 0.515, bias: 0.56, Ie: 0.13 },
-    diff: { r: { pre: 70, ramp: 0.6 } },
+    diff: { r: { type: 'plate', pre: 70, ramp: 0.6 } },
     note: 'Small high-boost turbo with real lag below 3,500 rpm, then an explosive mid-range surge through the rear wheels; vanes ahead of the turbo keep it spinning between corners. 62% of the weight is at the back: trail-brake to keep the front tyres pinned.' }
 ];
 // ---- group A cars ----
@@ -4235,21 +4235,21 @@ const CARS_A = [
     tq: [[1000, 170], [2500, 330], [3500, 410], [4500, 405], [5500, 385], [6500, 335], [7500, 270]], na: 0.38, boost: 'turbo', spool: [2600, 4400], lag: 0.45, als: true,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.0, len: 3.9, width: 1.77, tyres: [215, 215], aero: [0.84, -0.05, 0.6],
     susp: { fF: 1.95, fR: 1.85, arbF: 0.11, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.545, bias: 0.63, Ie: 0.16 },
-    diff: { f: { pre: 20 }, c: { pre: 40, kv: 45 }, r: { pre: 30, ramp: 0.55 } }, diffType: { f: 'Open', c: 'Epicyclic 47:53 with viscous coupling', r: 'Torque-sensing (worm gear) limited slip' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 40, vc: 2250 }, r: { type: 'torsen', pre: 10, tbr: 3.5 } }, diffType: { f: 'Open', c: 'Epicyclic 47:53 with viscous coupling', r: 'Torque-sensing (worm gear) limited slip, 3.5:1 bias' },
     note: 'Short, square five-door with a torque-sensing rear diff: it digs out of slow corners better than anything here. Anti-lag keeps the turbo lit between them.' },
   { id: 'sentai_gt4', name: 'Sentai GT4', num: 10, drive: 'Four-wheel drive, 50:50', motor: '2.0-litre twin-entry turbo four, about 295 hp', engine: 'Front transverse inline four, twin-entry turbocharger, water-to-air intercooler', litres: 2.0,
     mass: 1100, wf: 0.61, fs: 0.5, wb: 2.525, track: [1.49, 1.48], yawK: 1.08, lock: 0.58, idle: 950, redline: 7400, cyl: 4, lever: 'H',
     tq: [[1000, 170], [2500, 350], [3500, 440], [4000, 459], [5000, 420], [5700, 375], [6500, 315], [7400, 255]], na: 0.4, boost: 'turbo', spool: [2600, 4400], lag: 0.48, als: true,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 4.9, len: 4.41, width: 1.745, tyres: [215, 215], aero: [0.7, -0.05, 0.6],
     susp: { fF: 1.9, fR: 1.8, arbF: 0.12, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.535, bias: 0.64, Ie: 0.17 },
-    diff: { f: { pre: 20 }, c: { pre: 40, kv: 40 }, r: { pre: 30, ramp: 0.4 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Torque-sensing (worm gear) limited slip' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 40, vc: 2000 }, r: { type: 'torsen', pre: 10, tbr: 2.5 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Torque-sensing (worm gear) limited slip, 2.5:1 bias' },
     note: 'Long, heavy coupe: the steadiest car here on fast gravel and over crests, but its weight pushes it wide in hairpins. The twin-entry turbo pulls hard from low revs.' },
   { id: 'acrobat_2t', name: 'Acrobat 2T', num: 11, drive: 'Four-wheel drive, 50:50, active centre diff', motor: '2.0-litre turbo flat four, about 300 hp', engine: 'Front longitudinal flat four, turbocharged and intercooled', litres: 2.0,
     mass: 1200, wf: 0.57, fs: 0.5, wb: 2.52, track: [1.47, 1.46], yawK: 0.98, lock: 0.6, idle: 950, redline: 7200, cyl: 4, flat: true, lever: 'H',
     tq: [[1000, 180], [2500, 370], [3500, 450], [4000, 470], [5000, 430], [5500, 390], [6500, 320], [7200, 275]], na: 0.4, boost: 'turbo', spool: [2500, 4200], lag: 0.45, als: true,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.1, len: 4.34, width: 1.69, tyres: [215, 215], aero: [0.81, 0.05, 0.3],
     susp: { fF: 1.95, fR: 1.85, arbF: 0.1, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.535, bias: 0.63, Ie: 0.16 },
-    diff: { f: { pre: 25 }, c: { pre: 120, ramp: 0.3, kv: 20 }, r: { pre: 50, ramp: 0.5 } }, diffType: { f: 'Open', c: 'Active multi-plate, clamped harder under power', r: 'Mechanical plate limited slip' },
+    diff: { f: { type: 'open', pre: 25 }, c: { type: 'active', T0: 120, kT: 0.3, kC: 0.05, kS: 20, kB: 0.5, kSt: 0, Tmax: 2500 }, r: { type: 'plate', pre: 50, ramp: 0.5 } }, diffType: { f: 'Open', c: 'Active multi-plate, clamped harder under power', r: 'Mechanical plate limited slip' },
     note: 'The flat four sits low in the nose, so it turns in sharply and rolls least of the four-wheel-drive cars. The active centre diff tightens up as you squeeze the throttle out of a corner.' },
   // four-door saloon, 1,230 kg: 290 hp at 6,000 rpm and 510 Nm at 3,500 through the smaller 34 mm restrictor of its
   // later day, its turbo on full boost by then
@@ -4258,14 +4258,14 @@ const CARS_A = [
     tq: [[1000, 190], [2000, 360], [3000, 480], [3500, 510], [4000, 500], [5000, 410], [6000, 344], [7000, 280], [7500, 252]], na: 0.38, boost: 'turbo', spool: [2000, 3500], lag: 0.48, als: true,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.0, len: 4.35, width: 1.77, tyres: [215, 215], aero: [0.83, 0.05, 0.3],
     susp: { fF: 1.9, fR: 1.85, arbF: 0.11, arbR: 0.08, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.55, bias: 0.63, Ie: 0.16 },
-    diff: { f: { pre: 20 }, c: { pre: 40, kv: 40 }, r: { pre: 90, ramp: 0.5 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Mechanical plate limited slip' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 40, vc: 2000 }, r: { type: 'plate', pre: 90, ramp: 0.5 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Mechanical plate limited slip' },
     note: 'Tall sedan with a plate limited slip at the back, so it rotates readily on the throttle. The big front mouth feeds a turbo that is strongest between 3,500 and 6,500 rpm.' },
   { id: 'bastion_rs', name: 'Bastion RS', num: 13, drive: 'Four-wheel drive, 34:66', motor: '2.0-litre turbo four, about 300 hp', engine: 'Front longitudinal inline four, 16 valves, turbocharged and intercooled', litres: 2.0,
     mass: 1230, wf: 0.56, fs: 0.34, wb: 2.55, track: [1.52, 1.52], yawK: 1.04, lock: 0.6, idle: 1000, redline: 7300, cyl: 4,
     tq: [[1000, 180], [2500, 360], [3500, 440], [4000, 460], [5000, 420], [5500, 385], [6500, 320], [7300, 270]], na: 0.38, boost: 'turbo', spool: [2800, 4600], lag: 0.55, als: true,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.0, len: 4.211, width: 1.738, tyres: [215, 225], aero: [0.88, 0.16, 0.19],
     susp: { fF: 1.9, fR: 1.85, arbF: 0.12, arbR: 0.05, rcF: 0.07, rcR: 0.11, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.555, bias: 0.62, Ie: 0.17 },
-    diff: { f: { pre: 20 }, c: { pre: 30, kv: 35 }, r: { pre: 40, kv: 40 } }, diffType: { f: 'Open', c: 'Epicyclic 34:66 with viscous coupling', r: 'Viscous limited slip' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 30, vc: 1750 }, r: { type: 'viscous', pre: 40, vc: 160 } }, diffType: { f: 'Open', c: 'Epicyclic 34:66 with viscous coupling', r: 'Viscous limited slip' },
     note: 'Two thirds of the torque goes to the back, so this is the four-wheel-drive car that slides most like a rear-driven one. The long wheelbase and big wing make it planted at speed.' },
   // about 295 hp in its last rally form (as a works car's history tells it); its torque and rally weight were not published
   { id: 'kaiser_3r', name: 'Kaiser 3R', num: 14, drive: 'Rear-wheel drive, 75% limited slip', motor: '2.3-litre four, no turbo, about 295 hp', engine: 'Front longitudinal inline four, 16 valves, naturally aspirated, revs to 9,000', litres: 2.3,
@@ -4273,7 +4273,7 @@ const CARS_A = [
     tq: [[1000, 140], [3000, 215], [5000, 255], [6500, 280], [7500, 276], [8500, 247], [9000, 228]], na: 1, boost: 'na',
     gears: [2.92, 2.05, 1.6, 1.3, 1.1], final: 4.9, len: 4.345, width: 1.68, tyres: [225, 225], aero: [0.71, -0.1, 0.55],
     susp: { fF: 2.1, fR: 2.0, arbF: 0.2, arbR: 0.05, rcF: 0.06, rcR: 0.12, camF: -1.6, camR: -1.1, gainF: -16, gainR: -14, hcg: 0.545, bias: 0.65, Ie: 0.13 },
-    diff: { r: { pre: 60, ramp: 0.75 } }, diffType: { r: 'Mechanical ramp limited slip, 75% locking' },
+    diff: { r: { type: 'plate', pre: 60, ramp: 0.75 } }, diffType: { r: 'Mechanical ramp limited slip, 75% locking' },
     note: 'Rear drive and no turbo: a light, high-revving four with instant response, built for tarmac. Keep it above 6,000 rpm, and be gentle with the throttle on gravel.' },
   // three-door hatch, the maker's figures for its works car: 3.975 m, wheelbase 2.43 m, 1.695 m, tracks 1.445 / 1.435 m,
   // over 1,100 kg; 2,026 cc, 300 PS (296 hp) at 6,400 rpm and over 373 Nm at 4,800
@@ -4282,14 +4282,14 @@ const CARS_A = [
     tq: [[1000, 150], [2500, 290], [3500, 350], [4800, 373], [5500, 362], [6400, 328], [7300, 275]], na: 0.4, boost: 'turbo', spool: [2700, 4500], lag: 0.5, als: false,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.1, len: 3.975, width: 1.69, tyres: [205, 205], aero: [0.78, -0.05, 0.6],
     susp: { fF: 1.95, fR: 1.9, arbF: 0.11, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.555, bias: 0.63, Ie: 0.15 },
-    diff: { f: { pre: 20 }, c: { pre: 30, kv: 40 }, r: { pre: 20, kv: 35 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Viscous limited slip' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 30, vc: 2000 }, r: { type: 'viscous', pre: 20, vc: 140 } }, diffType: { f: 'Open', c: 'Viscous coupling, 50:50', r: 'Viscous limited slip' },
     note: 'Shortest car here: nimble and quick to change direction, but nervous over crests. Viscous diffs everywhere keep it predictable. No anti-lag, so keep the revs up.' },
   { id: 'hiryu_18t', name: 'Hiryu 18T', num: 16, drive: 'Four-wheel drive, 43:57', motor: '1.8-litre turbo four, about 285 hp', engine: 'Front transverse inline four, 16 valves, turbocharged and intercooled', litres: 1.8,
     mass: 1140, wf: 0.6, fs: 0.43, wb: 2.45, track: [1.44, 1.44], yawK: 1.0, lock: 0.6, idle: 950, redline: 7500, cyl: 4, lever: 'H',
     tq: [[1000, 140], [2500, 280], [3500, 355], [4500, 360], [5500, 350], [6500, 315], [7500, 260]], na: 0.38, boost: 'turbo', spool: [3000, 4800], lag: 0.55, als: false,
     gears: [3.08, 2.15, 1.66, 1.32, 1.08, 0.9], final: 5.2, len: 3.996, width: 1.675, tyres: [205, 205], aero: [0.76, -0.12, 0.55],
     susp: { fF: 1.95, fR: 1.85, arbF: 0.1, arbR: 0.06, rcF: 0.07, rcR: 0.1, camF: -1.3, camR: -0.9, gainF: -12, gainR: -10, hcg: 0.55, bias: 0.63, Ie: 0.15 },
-    diff: { f: { pre: 20 }, c: { pre: 30, kv: 35 }, r: { pre: 30, kv: 30 } }, diffType: { f: 'Open', c: 'Planetary 43:57 with viscous coupling', r: 'Viscous limited slip' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'viscous', pre: 30, vc: 1750 }, r: { type: 'viscous', pre: 30, vc: 120 } }, diffType: { f: 'Open', c: 'Planetary 43:57 with viscous coupling', r: 'Viscous limited slip' },
     note: 'Smallest engine of the lot, but light and compact, and the rear-biased split lets it rotate on the throttle. No anti-lag: keep it above 4,000 rpm.' }
 ];
 // ---- F2 kit cars ----
@@ -4303,7 +4303,7 @@ const CARS_A = [
 // dog box; lever: 'H' for a dog box worked through a conventional gate (the others have a sequential lever).
 const F2_SUSP = { fF: 2.3, fR: 2.4, travel: 0.1, droop: 0.09, arbF: 0.16, arbR: 0.24, rcF: 0.06, rcR: 0.1, camF: -2.0, camR: -1.2, gainF: -10, gainR: -8, toeR: 0.1, antiDive: 0.2, hcg: 0.45, bias: 0.68, Ie: 0.11 };
 const f2Spec = (o, susp) => Object.assign({ drive: 'Front-wheel drive, plate limited slip', fs: 1, cyl: 4, na: 1, boost: 'na', lock: 0.6, shiftUp: 0.06, shiftDown: 0.05,
-  diff: { f: { pre: 50, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip' } }, o, { susp: Object.assign({}, F2_SUSP, susp || {}) });
+  diff: { f: { type: 'plate', pre: 50, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip' } }, o, { susp: Object.assign({}, F2_SUSP, susp || {}) });
 const CARS_F2 = [
   // three-door hatch: 3.995 m, wheelbase 2.58 m, 1.835 m over the arches, 960 kg; 1,998 cc (86 x 86 mm), 280 hp at
   // 8,700 rpm, 255 Nm at 5,900; six-speed sequential (3.166 ... 1.272) and a 4.428 final drive. Tracks est.
@@ -4327,7 +4327,7 @@ const CARS_F2 = [
     mass: 960, wf: 0.62, wb: 2.555, track: [1.62, 1.6], yawK: 1.06, idle: 1200, redline: 9300,
     tq: [[1000, 112], [3000, 165], [4500, 208], [6000, 241], [7500, 255], [8000, 248], [8750, 232], [9300, 213]],
     gears: [3.0, 2.384, 2.0, 1.722, 1.5, 1.315], final: 4.428, len: 4.167, width: 1.855, tyres: [225, 225], aero: [0.8, 0.12, 0.42],
-    diff: { f: { pre: 60, ramp: 0.6 } }, diffType: { f: 'Multi-plate limited slip, electronically controlled' },
+    diff: { f: { type: 'active', T0: 60, kT: 0.6, kC: 0.3, kS: 25, kB: 0.3, kSt: 0.7, Tmax: 2200 } }, diffType: { f: 'Multi-plate limited slip, electronically controlled' },
     note: 'The biggest and widest of these cars, with the shortest-stroke engine: it revs highest and is the steadiest on fast roads. It needs the revs kept above 7,000.' }, { arbR: 0.27, hcg: 0.53 }),
   // three-door hatch: 3.869 m, wheelbase 2.44 m, 1.763 m, 1.369 m tall, 960 kg; 1,984 cc, 265 hp at 7,800 rpm, 250 Nm
   // at 6,000; six-speed sequential (3.000 ... 1.333) on a 4.429 final drive. Tracks and rev limit est.
@@ -4335,7 +4335,7 @@ const CARS_F2 = [
     mass: 960, wf: 0.62, wb: 2.44, track: [1.53, 1.52], yawK: 0.94, idle: 1100, redline: 8800,
     tq: [[1000, 118], [3000, 176], [4500, 222], [6000, 250], [7000, 248], [7800, 242], [8300, 222], [8800, 205]],
     gears: [3.0, 2.583, 2.2, 1.846, 1.556, 1.333], final: 4.429, len: 3.869, width: 1.763, tyres: [215, 215], aero: [0.76, 0.06, 0.45],
-    diff: { f: { pre: 40, ramp: 0.5 } }, diffType: { f: 'Limited slip' },
+    diff: { f: { type: 'plate', pre: 40, ramp: 0.5 } }, diffType: { f: 'Limited slip' },
     note: 'The shortest and narrowest: the most agile in hairpins and quickest away from them on its short gearing, but the lowest top speed.' }, { hcg: 0.525, arbR: 0.22, fF: 2.4 }),
   // three-door 2+2 liftback coupe: 4.34 m, wheelbase 2.475 m, 1.77 m (barely wider than the road car), 955 kg; 1,975 cc
   // (82 x 93.5 mm), 265 hp at 7,700 rpm, 250 Nm at 7,100; the homologated six-speed (2.571 ... 1.115) on a 4.056 final
@@ -4344,7 +4344,7 @@ const CARS_F2 = [
     mass: 955, wf: 0.62, wb: 2.475, track: [1.545, 1.525], yawK: 1.1, idle: 1100, redline: 8500,
     tq: [[1000, 120], [3000, 172], [4500, 212], [6000, 240], [7100, 250], [7700, 245], [8200, 226], [8500, 214]],
     gears: [2.571, 1.941, 1.579, 1.348, 1.217, 1.115], final: 4.056, len: 4.34, width: 1.77, tyres: [215, 215], aero: [0.78, 0.06, 0.45],
-    diff: { f: { pre: 30, ramp: 0.5 } }, diffType: { f: 'Torque-sensing (helical) limited slip' },
+    diff: { f: { type: 'torsen', pre: 15, tbr: 3 } }, diffType: { f: 'Torque-sensing (helical) limited slip, 3:1 bias' },
     note: 'Long coupe with long overhangs and the tallest gearing here: the fastest in a straight line, but slow away from hairpins and reluctant to turn in.' }, { hcg: 0.515, arbR: 0.22 }),
   // three-door hatch: 4.14 m, wheelbase 2.525 m, 1.80 m over the front arches and 1.83 m over the rear; 1,998 cc
   // (86 x 86 mm), chain-driven cams, 280 hp; six-speed sequential (3.000 ... 1.273) and a 4.364 final drive. Weight
@@ -4362,7 +4362,7 @@ const CARS_F2 = [
     mass: 960, wf: 0.62, wb: 2.6, track: [1.555, 1.545], yawK: 1.0, idle: 1100, redline: 8500,
     tq: [[1000, 120], [3000, 172], [4500, 215], [6000, 240], [7000, 236], [8000, 223], [8500, 205]],
     gears: [2.786, 2.333, 1.882, 1.579, 1.381, 1.227], final: 4.4, len: 4.1, width: 1.8, tyres: [215, 215], aero: [0.77, 0.04, 0.5],
-    diff: { f: { pre: 60, ramp: 0.9 } }, diffType: { f: 'Multi-plate limited slip, about 90% locking' },
+    diff: { f: { type: 'plate', pre: 60, ramp: 0.9 } }, diffType: { f: 'Multi-plate limited slip, about 90% locking' },
     note: 'The least power here and no rear wing, but its front differential locks hard, so it pulls out of slow corners well; it pushes wide if you power through the middle of a bend, and the tail goes light over fast crests.' }, { hcg: 0.525 }),
   // three-door hatch: 4.12 m, wheelbase 2.535 m, 1.847 m over the arches; 1,995 cc (88 x 82 mm), chain-driven cams,
   // limited to 8,750 rpm; a six-speed sequential dog box shifted flat (3.083 ... 1.158), a final drive within its
@@ -4385,8 +4385,11 @@ const CARS_F2 = [
 // turbo is on full boost by the car's published torque peak.
 // Fields as for the Group A and F2 cars; lever: 'paddle' for a semi-automatic box shifted by paddles behind the wheel.
 const WRC_SUSP = { fF: 1.9, fR: 1.85, travel: 0.16, droop: 0.15, arbF: 0.1, arbR: 0.07, rcF: 0.07, rcR: 0.1, camF: -1.2, camR: -0.8, gainF: -12, gainR: -10, hcg: 0.48, bias: 0.62, Ie: 0.15 };
-// active differentials, as the simulation models them: clamped harder under power, with a viscous term
-const WRC_ACTIVE = { f: { pre: 40, ramp: 0.45 }, c: { pre: 120, ramp: 0.35, kv: 25 }, r: { pre: 60, ramp: 0.5 } };
+// active differentials, each run by the car's computer to its map (see diffActive): the centre clamped harder the more
+// torque goes through it and the more the axles slip, opened on the brakes, on turn-in at speed and with the handbrake;
+// the front opened on turn-in; the rear closing on the overrun too, to keep the car straight
+const WRC_ACTIVE = { f: { type: 'active', T0: 60, kT: 0.45, kC: 0.2, kS: 30, kB: 0.4, kSt: 0.8, Tmax: 2000 }, c: { type: 'active', T0: 150, kT: 0.35, kC: 0.1, kS: 60, kB: 0.8, kSt: 0.6, Tmax: 3000, hb: 1 },
+  r: { type: 'active', T0: 80, kT: 0.5, kC: 0.35, kS: 40, kB: 0.2, kSt: 0.3, Tmax: 2500 } };
 const wrcSpec = (o, susp) => Object.assign({ drive: 'Four-wheel drive, 50:50, active differentials', fs: 0.5, cyl: 4, litres: 2.0, mass: 1230, na: 0.42, boost: 'turbo', spool: [2000, 3500], lag: 0.36, als: true,
   lock: 0.62, idle: 1000, redline: 7500, tyres: [205, 205], lever: 'sequential', shiftUp: 0.06, shiftDown: 0.05,
   diff: WRC_ACTIVE, diffType: { f: 'Active multi-plate, computer controlled', c: 'Active multi-plate, 50:50, computer controlled', r: 'Active multi-plate, computer controlled' } }, o, { susp: Object.assign({}, WRC_SUSP, susp || {}) });
@@ -4432,7 +4435,7 @@ const CARS_WRC = [
     drive: 'Four-wheel drive, 50:50, mechanical differentials', wf: 0.57, wb: 2.6, track: [1.55, 1.55], yawK: 1.05,
     tq: [[1000, 190], [2000, 340], [2750, 470], [3500, 539], [4500, 455], [5500, 384], [6500, 312], [7500, 255]],
     gears: [2.846, 1.938, 1.476, 1.17, 0.96], final: 4.15, len: 4.36, width: 1.77, aero: [0.86, 0.42, 0.41],
-    diff: { f: { pre: 40, ramp: 0.5 }, c: { pre: 60, ramp: 0.4 }, r: { pre: 80, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip', c: 'Epicyclic 50:50, mechanical plate limited slip', r: 'Mechanical plate limited slip' },
+    diff: { f: { type: 'plate', pre: 40, ramp: 0.5 }, c: { type: 'plate', pre: 60, ramp: 0.4 }, r: { type: 'plate', pre: 80, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip', c: 'Epicyclic 50:50, mechanical plate limited slip', r: 'Mechanical plate limited slip' },
     note: 'Plain mechanical differentials rather than computer-controlled ones: less help out of slow corners, but nothing surprising either. Tall gearing for the fastest top speed here.' }, { hcg: 0.5 }),
   // five-door hatch: 4.002 m, wheelbase 2.462 m, 1.77 m, 1.429 m tall; 1,999 cc (82.5 x 93.5 mm), 300 bhp at 5,500
   // rpm and 600 Nm at 3,500 (the most torque here); a six-speed sequential shifted by paddles; three active
@@ -4450,7 +4453,7 @@ const CARS_WRC = [
     drive: 'Four-wheel drive, 50:50, active centre differential', wf: 0.56, wb: 2.608, track: [1.585, 1.585], yawK: 1.05, spool: [1600, 2750], lever: 'paddle', shiftUp: 0.05, shiftDown: 0.045,
     tq: [[1000, 230], [2000, 460], [2750, 569], [3500, 548], [4500, 476], [5500, 408], [6500, 330], [7500, 262]],
     gears: WRC_GEARS6, final: 4.17, len: 4.274, width: 1.8, aero: [0.84, 0.42, 0.43],
-    diff: { f: { pre: 50, ramp: 0.5 }, c: WRC_ACTIVE.c, r: { pre: 70, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip', c: 'Active multi-plate, 50:50, computer controlled', r: 'Mechanical plate limited slip' },
+    diff: { f: { type: 'plate', pre: 50, ramp: 0.5 }, c: WRC_ACTIVE.c, r: { type: 'plate', pre: 70, ramp: 0.55 } }, diffType: { f: 'Mechanical plate limited slip', c: 'Active multi-plate, 50:50, computer controlled', r: 'Mechanical plate limited slip' },
     note: 'The newest design here, the widest and the most powerful of the transverse cars, with a long wheelbase: fast and planted, but mechanical front and rear differentials make it push wide if you power on too early.' }, { hcg: 0.505 }),
   // three-door hatch: 4.20 m, wheelbase 2.44 m, 1.77 m, 1.332 m tall, tracks 1.55 m; 1,998 cc (84 x 90 mm), 300 bhp at
   // 5,300 rpm, 520 Nm at 3,500; a six-speed sequential by lever; active front and centre differentials, a mechanical
@@ -4459,7 +4462,7 @@ const CARS_WRC = [
     drive: 'Four-wheel drive, 50:50, active front and centre differentials', wf: 0.58, wb: 2.44, track: [1.55, 1.55], yawK: 0.99,
     tq: [[1000, 180], [2000, 320], [2750, 450], [3500, 520], [4300, 470], [5300, 403], [6300, 325], [7500, 250]],
     gears: WRC_GEARS6, final: 4.17, len: 4.2, width: 1.77, aero: [0.88, 0.36, 0.43],
-    diff: { f: WRC_ACTIVE.f, c: WRC_ACTIVE.c, r: { pre: 70, ramp: 0.55 } }, diffType: { f: 'Active multi-plate, computer controlled', c: 'Active multi-plate, 50:50, computer controlled', r: 'Mechanical plate limited slip' },
+    diff: { f: WRC_ACTIVE.f, c: WRC_ACTIVE.c, r: { type: 'plate', pre: 70, ramp: 0.55 } }, diffType: { f: 'Active multi-plate, computer controlled', c: 'Active multi-plate, 50:50, computer controlled', r: 'Mechanical plate limited slip' },
     note: 'Short wheelbase and long overhangs: lively and willing to rotate, but it needs a calm hand over fast crests. The least torque of these cars, so keep it above 3,500 rpm.' }, { hcg: 0.49 })
 ];
 // ---- Rally2 cars ----
@@ -4478,7 +4481,7 @@ const CARS_WRC = [
 // Fields as for the World Rally Cars, plus: rigidC, the front and rear axles joined without a centre differential.
 const R2_SUSP = { fF: 1.85, fR: 1.8, travel: 0.17, droop: 0.15, arbF: 0.1, arbR: 0.06, rcF: 0.07, rcR: 0.1, camF: -1.0, camR: -0.6, gainF: -12, gainR: -10, hcg: 0.5, bias: 0.62, Ie: 0.13 };
 // plate limited-slip differentials: ramps that lock harder driving than on the overrun, the rear more than the front
-const R2_LSD = { f: { pre: 50, ramp: 0.5, coast: 0.3 }, r: { pre: 70, ramp: 0.55, coast: 0.45 } };
+const R2_LSD = { f: { type: 'plate', pre: 50, ramp: 0.5, coast: 0.3 }, r: { type: 'plate', pre: 70, ramp: 0.55, coast: 0.45 } };
 const r2Spec = (o, susp) => Object.assign({ drive: 'Four-wheel drive, no centre differential', fs: 0.5, rigidC: true, cyl: 4, litres: 1.6, mass: 1230, na: 0.42, boost: 'turbo', spool: [2200, 3600], lag: 0.38, als: true,
   lock: 0.62, idle: 1000, redline: 7000, tyres: [205, 205], lever: 'sequential', shiftUp: 0.06, shiftDown: 0.05,
   diff: R2_LSD, diffType: { f: 'Mechanical plate limited slip', r: 'Mechanical plate limited slip; the handbrake declutches the rear drive' } }, o, { susp: Object.assign({}, R2_SUSP, susp || {}) });
@@ -4559,7 +4562,7 @@ const CARS_G4 = [
     mass: 950, wf: 0.41, wb: 2.18, track: [1.49, 1.57], yawK: 0.85, idle: 1100, redline: 9000, cyl: 6, dogleg: true,
     tq: [[1000, 150], [2500, 200], [4000, 255], [5000, 285], [6000, 300], [7000, 290], [8000, 262], [8500, 246], [9000, 222]],
     gears: [3.143, 2.24, 1.762, 1.417, 1.154], final: 4.206, len: 3.71, width: 1.86, tyres: [205, 225], tyreSize: ['205/65-15', '225/60-15'], rollR: 0.325, aero: [0.78, -0.3, 0.45],
-    diff: { r: { pre: 50, ramp: 0.4, coast: 0.3 } }, diffType: { r: 'Plate limited slip, about 40% locking' },
+    diff: { r: { type: 'plate', pre: 50, ramp: 0.4, coast: 0.3 } }, diffType: { r: 'Plate limited slip, about 40% locking' },
     note: 'The shortest wheelbase here, with most of the weight behind the cabin: it turns in like nothing else and snaps sideways just as fast. A high-revving V6 with no lag: keep it above 6,000 rpm and steer it on the throttle.' }, { hcg: 0.475, Ie: 0.12, fF: 1.75, fR: 1.7, arbF: 0.1, arbR: 0.03 }),
   // pushrod four behind the rear axle: 175 hp at 7,200, 195 Nm (est. at 5,500); 730 kg, 36:64
   // gravel tyres 165/80-13 front, 185/70-13 rear (est.)
@@ -4567,7 +4570,7 @@ const CARS_G4 = [
     mass: 730, wf: 0.36, wb: 2.1, track: [1.358, 1.337], yawK: 0.95, idle: 1000, redline: 7600, cyl: 4,
     tq: [[1000, 105], [2500, 145], [4000, 178], [5000, 192], [5500, 195], [6500, 188], [7200, 173], [7600, 160]],
     gears: [3.61, 2.37, 1.7, 1.3, 1.03], final: 4.125, len: 3.845, width: 1.65, tyres: [165, 185], tyreSize: ['165/80-13', '185/70-13'], rollR: 0.3, aero: [0.62, -0.35, 0.6],
-    diff: { r: { pre: 40, ramp: 0.4, coast: 0.25 } }, diffType: { r: 'Plate limited slip' },
+    diff: { r: { type: 'plate', pre: 40, ramp: 0.4, coast: 0.25 } }, diffType: { r: 'Plate limited slip' },
     note: 'Featherweight, with its engine hung out behind the rear axle: huge traction and a light nose that skips across the road. Lift mid-corner and the tail swings wide. Small engine, so carry your speed.' }, { hcg: 0.48, Ie: 0.1, fF: 1.6, fR: 1.75, arbF: 0.14, arbR: 0.02 }),
   // 16-valve twin cam on mechanical injection: 230 hp at 7,500, 225 Nm at 5,750; independent rear suspension
   // gravel tyres 205/60-15
@@ -4575,7 +4578,7 @@ const CARS_G4 = [
     mass: 980, wf: 0.5, wb: 2.49, track: [1.46, 1.458], yawK: 1.0, idle: 1000, redline: 8000, cyl: 4,
     tq: [[1000, 115], [2500, 160], [4000, 200], [5000, 218], [5750, 225], [6500, 224], [7500, 218], [8000, 198]],
     gears: [2.654, 1.895, 1.568, 1.244, 1.0], final: 4.88, len: 4.181, width: 1.72, tyres: [205, 205], tyreSize: ['205/60-15', '205/60-15'], rollR: 0.3135, aero: [0.86, -0.34, 0.45],
-    diff: { r: { pre: 60, ramp: 0.45, coast: 0.3 } }, diffType: { r: 'Plate limited slip' },
+    diff: { r: { type: 'plate', pre: 60, ramp: 0.45, coast: 0.3 } }, diffType: { r: 'Plate limited slip' },
     note: 'Independent rear suspension and an even balance: the steadiest of the rear-drive saloons, it slides progressively and puts its power down well on rough roads.' }, { hcg: 0.545, Ie: 0.14 }),
   // belt-driven 16-valve twin cam on mechanical injection (1979): 270 hp at 9,000, 237 Nm at 6,900; the close ZF set
   // from the homologation form; live axle; a works car's 45:55 split with the engine set back
@@ -4584,7 +4587,7 @@ const CARS_G4 = [
     mass: 1000, wf: 0.45, wb: 2.407, track: [1.415, 1.435], yawK: 0.98, idle: 1100, redline: 9300, cyl: 4, dogleg: true,
     tq: [[1000, 105], [3000, 160], [5000, 210], [6000, 230], [6900, 237], [7800, 232], [8500, 224], [9000, 213], [9300, 200]],
     gears: [2.3, 1.8, 1.36, 1.14, 1.0], final: 5.3, len: 3.978, width: 1.7, tyres: [185, 185], tyreSize: ['185/70-13', '185/70-13'], rollR: 0.3, aero: [0.84, -0.38, 0.5],
-    diff: { r: { pre: 70, ramp: 0.5, coast: 0.35 } }, diffType: { r: 'Plate limited slip' },
+    diff: { r: { type: 'plate', pre: 70, ramp: 0.5, coast: 0.35 } }, diffType: { r: 'Plate limited slip' },
     note: 'A short, light saloon on a live rear axle with an engine that revs past 9,000: flick it into a slide and hold it on the throttle. Keep it screaming, there is little below 5,000 rpm.' }, { hcg: 0.55, Ie: 0.12, gainR: 0, camR: 0, rcR: 0.28 }),
   // slanted 16-valve twin cam on two carburettors: 245 hp at 7,000, 256 Nm at 6,000; ZF box, first on a dog leg
   // gravel tyres 185/70-13 (est.)
@@ -4592,7 +4595,7 @@ const CARS_G4 = [
     mass: 1000, wf: 0.53, wb: 2.413, track: [1.415, 1.41], yawK: 0.98, idle: 1000, redline: 7800, cyl: 4, dogleg: true,
     tq: [[1000, 125], [2500, 175], [4000, 220], [5000, 245], [6000, 256], [7000, 249], [7500, 230], [7800, 218]],
     gears: [2.3, 1.8, 1.36, 1.14, 1.0], final: 4.6, len: 3.83, width: 1.709, tyres: [185, 185], tyreSize: ['185/70-13', '185/70-13'], rollR: 0.3, aero: [0.84, -0.36, 0.5],
-    diff: { r: { pre: 60, ramp: 0.45, coast: 0.3 } }, diffType: { r: 'Plate limited slip' },
+    diff: { r: { type: 'plate', pre: 60, ramp: 0.45, coast: 0.3 } }, diffType: { r: 'Plate limited slip' },
     note: 'A small hatchback with a big engine on a live rear axle: short and nimble, it rotates eagerly, so feed the power in gently out of slow corners.' }, { hcg: 0.555, Ie: 0.13, gainR: 0, camR: 0, rcR: 0.28 }),
   // long-stroke 16-valve twin cam on two carburettors: 260 hp at 7,000, 280 Nm at 5,500 (the maker's figures); a close
   // Getrag set; 75-80% limited slip on a live axle
@@ -4601,7 +4604,7 @@ const CARS_G4 = [
     mass: 1050, wf: 0.53, wb: 2.518, track: [1.455, 1.445], yawK: 1.02, idle: 950, redline: 8000, cyl: 4, dogleg: true,
     tq: [[1000, 150], [2500, 205], [4000, 255], [5000, 275], [5500, 280], [6500, 274], [7000, 264], [7600, 240], [8000, 222]],
     gears: [2.328, 1.674, 1.352, 1.144, 1.0], final: 4.75, len: 4.315, width: 1.76, tyres: [205, 225], tyreSize: ['205/65-15', '225/60-15'], rollR: 0.325, aero: [0.86, -0.32, 0.5],
-    diff: { r: { pre: 80, ramp: 0.75, coast: 0.45 } }, diffType: { r: 'Plate limited slip, 75-80% locking' },
+    diff: { r: { type: 'plate', pre: 80, ramp: 0.75, coast: 0.45 } }, diffType: { r: 'Plate limited slip, 75-80% locking' },
     note: 'The longest saloon here, with the most torque of the atmospheric fours and a hard-locking rear differential: it pulls from low revs and slides in long, controllable arcs. Stable on fast roads, a little lazy in hairpins.' }, { hcg: 0.545, Ie: 0.15, gainR: 0, camR: 0, rcR: 0.28 }),
   // pushrod 1.4 ahead of the rear axle, turbocharged and intercooled: about 250 hp at 6,500, 300 Nm at 4,500 (est.
   // within the published range); rear limited slip 40%; the 40:60 weight split published for the road car; centre of
@@ -4611,7 +4614,7 @@ const CARS_G4 = [
     mass: 900, wf: 0.4, wb: 2.43, track: [1.346, 1.474], yawK: 0.86, idle: 1000, redline: 7000, cyl: 4, na: 0.45, boost: 'turbo', spool: [3000, 4500], lag: 0.9, als: false,
     tq: [[1000, 105], [2500, 140], [3500, 210], [4500, 300], [5500, 292], [6500, 274], [7000, 250]],
     gears: [3.25, 2.235, 1.619, 1.25, 1.035], final: 3.889, len: 3.664, width: 1.752, tyres: [185, 225], tyreSize: ['185/70-15', '225/60-15'], rollR: 0.325, aero: [0.8, -0.34, 0.45],
-    diff: { r: { pre: 50, ramp: 0.4, coast: 0.3 } }, diffType: { r: 'Plate limited slip, 40% locking' },
+    diff: { r: { type: 'plate', pre: 50, ramp: 0.4, coast: 0.3 } }, diffType: { r: 'Plate limited slip, 40% locking' },
     note: 'A small turbo with the lag of its day and no anti-lag: nothing below 3,500 rpm, then a rush of power through the rear wheels. Keep it on the boil and brake early: the light nose runs wide.' }, { hcg: 0.52, Ie: 0.13, fR: 1.75, arbF: 0.14, arbR: 0.02 }),
   // 10-valve five ahead of the front axle, turbocharged and intercooled: 310 hp at 6,500, 412 Nm at 3,500; 1,200 kg,
   // 60:40; open centre with a lock (run locked), open front, 75% limited slip at the rear
@@ -4620,7 +4623,7 @@ const CARS_G4 = [
     mass: 1200, wf: 0.6, wb: 2.524, track: [1.465, 1.502], yawK: 1.12, idle: 950, redline: 7000, cyl: 5, na: 0.4, boost: 'turbo', spool: [2500, 3600], lag: 0.95, als: false,
     tq: [[1000, 170], [2500, 300], [3500, 412], [4500, 405], [5500, 375], [6500, 340], [7000, 315]],
     gears: [3.0, 2.0, 1.5, 1.217, 1.04], final: 4.111, len: 4.404, width: 1.733, tyres: [205, 205], tyreSize: ['205/65-15', '205/65-15'], rollR: 0.324, aero: [0.86, -0.32, 0.45],
-    diff: { f: { pre: 20 }, c: { pre: 2500 }, r: { pre: 80, ramp: 0.75 } }, diffType: { f: 'Open', c: 'Open, with a lock (run locked)', r: 'Plate limited slip, 75% locking' },
+    diff: { f: { type: 'open', pre: 20 }, c: { type: 'locked', pre: 1e6 }, r: { type: 'plate', pre: 80, ramp: 0.75 } }, diffType: { f: 'Open', c: 'Open, with a lock (run locked)', r: 'Plate limited slip, 75% locking' },
     note: 'The first four-wheel-drive car here: it pulls out of every corner, but the heavy five hangs ahead of the front axle and the centre runs locked, so it pushes wide. Turbo lag below 3,000 rpm: brake early, power on early.' }, { hcg: 0.525, Ie: 0.18, fF: 1.8, fR: 1.7 }),
   // air-cooled flat six behind the rear axle: about 275 hp (est. at 7,200), 300 Nm at 5,500; the Group 4 gear set and
   // final drive from the homologation form; 40% limited slip
@@ -4629,7 +4632,7 @@ const CARS_G4 = [
     mass: 1040, wf: 0.39, wb: 2.272, track: [1.437, 1.462], yawK: 1.1, idle: 1000, redline: 7600, cyl: 6, flat: true,
     tq: [[1000, 165], [2500, 225], [4000, 270], [5000, 293], [5500, 300], [6500, 292], [7200, 272], [7600, 255]],
     gears: [2.4, 1.684, 1.318, 1.08, 0.889], final: 4.375, len: 4.235, width: 1.778, tyres: [185, 215], tyreSize: ['185/70-15', '215/60-15'], rollR: 0.3195, aero: [0.8, -0.45, 0.6],
-    diff: { r: { pre: 60, ramp: 0.4, coast: 0.25 } }, diffType: { r: 'Plate limited slip, 40% locking' },
+    diff: { r: { type: 'plate', pre: 60, ramp: 0.4, coast: 0.25 } }, diffType: { r: 'Plate limited slip, 40% locking' },
     note: 'Its flat six hangs behind the rear axle: enormous traction and instant throttle response, but lift or brake mid-corner and the tail swings like a pendulum. The nose goes light at speed.' }, { hcg: 0.54, Ie: 0.17, fF: 1.6, fR: 1.85, arbF: 0.2, arbR: 0.02, rcR: 0.14, toeR: 0.35 }),
   // all-alloy 5.0 V8: about 300 hp (est. at 6,000), 422 Nm at 4,300; the three-speed automatic of 1979 (2.31, 1.46,
   // 1.00) behind its torque converter; 80% limited slip
@@ -4638,7 +4641,7 @@ const CARS_G4 = [
     mass: 1420, wf: 0.53, wb: 2.815, track: [1.452, 1.44], yawK: 1.15, idle: 750, redline: 6300, cyl: 8, tc: { k: 0.0065, tr: 2.0 }, shiftUp: 0.35, shiftDown: 0.3,
     tq: [[1000, 270], [2000, 340], [3000, 390], [4300, 422], [5000, 410], [5500, 390], [6000, 356], [6300, 330]],
     gears: [2.31, 1.46, 1.0], final: 3.46, len: 4.75, width: 1.79, tyres: [205, 205], tyreSize: ['205/70-14', '205/70-14'], rollR: 0.3215, aero: [0.95, -0.38, 0.5],
-    diff: { r: { pre: 80, ramp: 0.8, coast: 0.3 } }, diffType: { r: 'Plate limited slip, about 80% locking' },
+    diff: { r: { type: 'plate', pre: 80, ramp: 0.8, coast: 0.3 } }, diffType: { r: 'Plate limited slip, about 80% locking' },
     note: 'A big V8 coupe on an automatic gearbox, built for the long rough rallies: heavy and soft-riding, it soaks up bumps, slides slowly and pulls hard from any speed. Brake early: there is a lot of it to stop.' }, { hcg: 0.54, Ie: 0.22, fF: 1.5, fR: 1.5, travel: 0.18, droop: 0.16, gainR: 0, camR: 0, brake: 1.15 }),
   // 8-valve slanted four above its gearbox, turbocharged: 270 hp at 6,000, 340 Nm at 5,000; a close four-speed set behind
   // 1.174 constant gears (folded into the final drive: 3.89 x 1.174)
@@ -4647,7 +4650,7 @@ const CARS_G4 = [
     mass: 1080, wf: 0.61, wb: 2.473, track: [1.41, 1.43], yawK: 1.05, idle: 900, redline: 6800, cyl: 4, na: 0.45, boost: 'turbo', spool: [3200, 4800], lag: 0.85, als: false,
     tq: [[1000, 130], [2500, 190], [3500, 290], [4500, 335], [5000, 340], [6000, 320], [6500, 296], [6800, 280]],
     gears: [2.2, 1.53, 1.22, 1.0], final: 4.567, len: 4.421, width: 1.69, tyres: [175, 175], tyreSize: ['175/70-15', '175/70-15'], rollR: 0.3115, aero: [0.83, -0.36, 0.5],
-    diff: { f: { pre: 40, ramp: 0.35, coast: 0.15 } }, diffType: { f: 'Plate limited slip' },
+    diff: { f: { type: 'plate', pre: 40, ramp: 0.35, coast: 0.15 } }, diffType: { f: 'Plate limited slip' },
     note: 'Front-wheel drive, a torquey turbo and only four gears: on snow and loose gravel it digs in and pulls itself straight. Left-foot brake it into corners to bring the tail round, then let the front wheels haul it out.' }, { hcg: 0.56, Ie: 0.15 }),
   // narrow V4 ahead of the front axle on two carburettors: about 160 hp (est. at 7,200), torque est.; a close five-speed
   // gravel tyres 175/70-13
@@ -4655,7 +4658,7 @@ const CARS_G4 = [
     mass: 850, wf: 0.62, wb: 2.33, track: [1.39, 1.335], yawK: 1.0, idle: 1000, redline: 7600, cyl: 4,
     tq: [[1000, 90], [2500, 125], [4000, 155], [5000, 168], [5500, 172], [6500, 168], [7200, 158], [7600, 148]],
     gears: [2.492, 1.844, 1.46, 1.208, 1.0], final: 4.3, len: 3.935, width: 1.57, tyres: [175, 175], tyreSize: ['175/70-13', '175/70-13'], rollR: 0.2875, aero: [0.7, -0.33, 0.55],
-    diff: { f: { pre: 30, ramp: 0.3, coast: 0.15 } }, diffType: { f: 'Plate limited slip' },
+    diff: { f: { type: 'plate', pre: 30, ramp: 0.3, coast: 0.15 } }, diffType: { f: 'Plate limited slip' },
     note: 'The oldest design here: small, light and front-driven, with a revvy little V4. Little power, so momentum is everything: brake late, turn in early and keep the front wheels pulling.' }, { hcg: 0.535, Ie: 0.1 })
 ];
 // The special vehicles: three working vehicles entered as they are built, each with its own wheels (S.wheel, see
@@ -4696,29 +4699,29 @@ const CARS_SP = [
     wheel: { R: 0.51, I: 16, mu: 300, muR: 640, kt: 900000, ct: 2600, sx: 0.48, sy: 0.85, Fz0: 9500, ca: 0.75, tk: [6, 2.6], ulim: 0.03 }, tandem: { d: 0.61, lim: 0.26, dual: true }, tyreSet: { all: 'xc' }, hbT: 3000, brkC: 7,
     air: { V: 50, p0: 7.6, cut: [7.0, 8.4], comp: 0.28, vc: [1.2, 2.0], tl: [0.03, 0.07], tx: [0.05, 0.07], tf: [0.08, 0.11], te: [0.07, 0.09], crack: 0.4, ref: 7.7,
       vs: 2.0, ts: [0.4, 0.22], sp: [1.5, 4.5], warn: 4.5, pop: 2.8, reach: 0.5, push: 0.1, drag: [6, 1.2] },
-    diff: { f: { pre: 15 }, r: { pre: 300, ramp: 0.8, coast: 0.3 } }, diffType: { f: 'Open', r: 'Locking differentials on both bogie axles' },
+    diff: { f: { type: 'open', pre: 15 }, r: { type: 'locker', pre: 60 } }, diffType: { f: 'Open', r: 'Automatic locking differentials on both bogie axles' },
     crewEra: { era: 'classic', turns: 5.5, wheel: { r: 0.255, t: 0.017, dish: 0.035, style: 'truck' }, hub: 0.42, tilt: 0.95, helmet: ['open', 'open'], mic: [true, true], hans: false,
       seat: 'plain', colors: { rim: '#a1a892', spoke: '#a1a892', wpad: '#99a08a', hub: '#8d947e', knob: '#1b1b1d', seatM: '#7d8565', seatB: '#717959', seatS: '#59604a', belt: '#3b4031' } },
     susp: { fF: 2.3, fR: 2.55, travel: 0.1, droop: 0.09, arbF: 0, arbR: 0, leafF: 0.47, leafR: 0.53, rcF: 0.8, rcR: 0.9, camF: 0, camR: 0, gainF: 0, gainR: 0, solidF: true, solidR: true, caster: 4, kpi: 8, toeR: 0, ack: 0.8,
       antiDive: 0.08, antiSquat: 0.2, hcg: 1.28, bias: 0.42, brake: 0.7, Ie: 1.5, gyP: 4.2, gyR: 0.75, zB: 0.2, zR: 0.32 },
     note: 'A long six-wheeled army truck carrying a water tank and decontamination gear: over ten tonnes on a 183 hp diesel, so it pulls hard in the low gears and little more than 100 km/h flat out. It needs room to turn, its tall load leans and it will roll over long before the tyres let go: brake early, turn in gently and let all six wheels drag it through mud and snow. Its air brakes come on a moment after the pedal, and the handbrake is a knob on the dash the driver has to reach and pull.' },
   { id: 'limber_4x4', name: 'Limber 4x4', num: 52, drive: 'Full-time four-wheel drive, lockable centre and rear differentials, automatic', motor: '3.0-litre turbo-diesel V6, 225 hp', engine: 'Front-mounted V6 turbo-diesel, common-rail injection, variable-geometry turbo', litres: 2.959,
-    mass: 6200, wf: 0.47, wb: 3.925, track: [1.86, 1.86], yawK: 1.13, lock: 0.47, idle: 700, redline: 4000, cyl: 6, boost: 'turbo', na: 0.45, spool: [800, 1600], lag: 0.5, fs: 0.4, lever: 'auto', tc: { k: 0.0095, tr: 2.0 }, shiftUp: 0.35, shiftDown: 0.3, upK: 0.47,
+    mass: 6200, wf: 0.47, wb: 3.925, track: [1.86, 1.86], yawK: 1.13, lock: 0.47, idle: 700, redline: 4000, cyl: 6, boost: 'turbo', na: 0.45, spool: [800, 1600], lag: 0.5, fs: 0.4, lever: 'auto', tc: { k: 0.0095, tr: 2.0, lock: 2 }, shiftUp: 0.35, shiftDown: 0.3, upK: 0.47,
     tq: [[700, 260], [1000, 330], [1250, 420], [1500, 480], [1750, 500], [2500, 500], [3200, 500], [3600, 440], [3900, 350], [4100, 240]],
     gears: [3.795, 2.473, 1.613, 1.177, 1.0, 0.831, 0.689, 0.571], final: 4.56, len: 5.95, width: 2.195, tyres: [318, 318], tyreSize: ['37x12.50R16.5', '37x12.50R16.5'], rollR: 0.455, aero: [4.6, -0.3, 0.5], sideA: 13, sideZ: -0.25,
     wheel: { R: 0.47, I: 9, mu: 150, kt: 600000, ct: 1800, sx: 0.42, sy: 0.75, Fz0: 10800, ca: 0.8, tk: [4.5, 2.2] }, tyreSet: { all: 'mt' }, hbT: 2500, brkC: 4.5,
-    diff: { f: { pre: 30, ramp: 0.2 }, c: { pre: 80, ramp: 0.35 }, r: { pre: 60, ramp: 0.35 } }, diffType: { f: 'Open', c: 'Lockable centre differential', r: 'Lockable rear differential' },
+    diff: { f: { type: 'open', pre: 30 }, c: { type: 'lockable', pre: 80, lock: 0 }, r: { type: 'lockable', pre: 60, lock: 0 } }, diffType: { f: 'Open', c: 'Lockable centre differential', r: 'Lockable rear differential' },
     crewEra: { era: 'golden', turns: 3.8, wheel: { r: 0.19, t: 0.017, dish: 0.03, style: 'car' }, hub: 0.47, tilt: 0.55, helmet: ['full', 'open'], mic: [false, true], hans: false,
       seat: 'car', colors: { rim: '#1c1c1e', spoke: '#2b2c2f', wpad: '#232427', knob: '#1b1b1d', seatM: '#4b4d52', seatB: '#1e1f22', seatS: '#2a2b2e', belt: '#1c1c1e' } },
     susp: { fF: 1.85, fR: 2.0, travel: 0.16, droop: 0.14, arbF: 0.12, arbR: 0.06, rcF: 0.25, rcR: 0.3, camF: 0, camR: 0, gainF: -8, gainR: -8, caster: 5, kpi: 10, toeR: 0.1, ack: 0.6,
       antiDive: 0.15, antiSquat: 0.2, hcg: 1.08, bias: 0.6, brake: 0.95, Ie: 0.45, gyP: 2.9, gyR: 0.62, zB: 0.28, zR: 0.45 },
     note: 'A light tactical vehicle with a tall box body and its roof gear: over six tonnes on big run-flat tyres and long-travel independent suspension. It shrugs off rocks and ruts that would break a rally car, but it sits high and leans: carry your speed smoothly and let the automatic gearbox and the four-wheel drive do the work.' },
   { id: 'palanquin_25d', name: 'Palanquin 25D', num: 53, drive: 'Rear-wheel drive, open differential, automatic', motor: '2.5-litre turbo-diesel four, 170 hp', engine: 'Front-mounted inline four turbo-diesel, common-rail injection, variable-geometry turbo', litres: 2.497,
-    mass: 2710, wf: 0.5, wb: 3.2, track: [1.685, 1.66], yawK: 0.98, lock: 0.62, idle: 750, redline: 4400, cyl: 4, boost: 'turbo', na: 0.45, spool: [800, 1500], lag: 0.45, fs: 0, lever: 'auto', tc: { k: 0.0076, tr: 2.1 }, shiftUp: 0.4, shiftDown: 0.35, upK: 0.47,
+    mass: 2710, wf: 0.5, wb: 3.2, track: [1.685, 1.66], yawK: 0.98, lock: 0.62, idle: 750, redline: 4400, cyl: 4, boost: 'turbo', na: 0.45, spool: [800, 1500], lag: 0.45, fs: 0, lever: 'auto', tc: { k: 0.0076, tr: 2.1, lock: 2 }, shiftUp: 0.4, shiftDown: 0.35, upK: 0.47,
     tq: [[750, 180], [1000, 235], [1250, 290], [1500, 335], [1750, 372], [2000, 392], [2500, 392], [3000, 368], [3400, 340], [3800, 314], [4100, 270], [4400, 170]],
     gears: [3.73, 2.308, 1.519, 1.0, 0.84], final: 2.929, len: 5.125, width: 1.92, tyres: [215, 215], tyreSize: ['215/70R16', '215/70R16'], rollR: 0.343, aero: [1.5, -0.25, 0.5], sideA: 8.6, sideZ: -0.15,
-    wheel: { R: 0.354, I: 1.9, mu: 52, muR: 75, kt: 300000, ct: 600, sx: 0.32, sy: 0.6, Fz0: 7000, ca: 0.9, tk: [1.6, 1.3] }, tyreSet: { all: 'rd', snow: 'rdW' }, hbT: 1600, brkC: 2,
-    diff: { r: { pre: 15, ramp: 0.05 } }, diffType: { r: 'Open' },
+    wheel: { R: 0.354, I: 1.9, mu: 52, muR: 75, kt: 300000, ct: 600, sx: 0.32, sy: 0.6, Fz0: 7000, ca: 0.9, tk: [1.6, 1.3] }, tyreSet: { all: 'rd', snow: 'rdW' }, hbT: 1600, brkC: 2, brakeKind: ['disc', 'drum'],
+    diff: { r: { type: 'open', pre: 15, ramp: 0.05 } }, diffType: { r: 'Open' },
     crewEra: { era: 'golden', turns: 3.6, wheel: { r: 0.19, t: 0.017, dish: 0.03, style: 'car' }, hub: 0.45, tilt: 0.85, helmet: ['full', 'open'], mic: [false, true], hans: false,
       seat: 'car', colors: { rim: '#1c1c1e', spoke: '#2b2c2f', wpad: '#232427', knob: '#1b1b1d', seatM: '#3e4045', seatB: '#202124', seatS: '#2a2b2e', belt: '#1c1c1e' } },
     susp: { fF: 1.6, fR: 1.75, travel: 0.1, droop: 0.1, arbF: 0.25, arbR: 0, leafR: 0.66, rcF: 0.08, rcR: 0.42, camF: -0.3, camR: 0, gainF: -10, gainR: 0, solidR: true, caster: 3.5, kpi: 12, toeR: 0, ack: 0.7,
@@ -4737,10 +4740,11 @@ for (const S of CARS) { const pk = Math.max(...S.tq.map(p => p[1])); S.tmax = pk
 // steering lock at the road wheels: a rally car's rack (about 12:1, one and a half to two turns lock to lock) gives
 // 22-30 degrees each way; the figures above were drawn with more, so each keeps its character a little nearer that
 for (const S of CARS) if (S.cls !== 'SP') S.lock = Math.round(S.lock * 0.87 * 1000) / 1000; // (the special vehicles' locks are their own, from their turning circles)
-// the handbrake: a World Rally Car's active centre differential cuts the rear drive while the handbrake is pulled, and a
+// the handbrake: a World Rally Car's active centre differential cuts the rear drive while the handbrake is pulled (one
+// with plain mechanical differentials has no clutch to open), and a
 // Rally2 car's handbrake opens a clutch in its rear drive, so the front wheels keep pulling through a hairpin (see the
 // driveline in stepCar)
-for (const S of CARS) { S.hbCut = S.cls === 'WRC' || S.cls === 'R2'; if (S.cls === 'WRC' && S.diffType && S.diffType.c) S.diffType = Object.assign({}, S.diffType, { c: S.diffType.c + '; the handbrake cuts the rear drive' }); }
+for (const S of CARS) { S.hbCut = S.cls === 'R2' || (S.cls === 'WRC' && diffKind(S.diff && S.diff.c) === 'active'); if (S.hbCut && S.cls === 'WRC' && S.diffType && S.diffType.c) S.diffType = Object.assign({}, S.diffType, { c: S.diffType.c + '; the handbrake cuts the rear drive' }); }
 function engineCurve(S, rpm) { const P = S.tq; if (rpm <= P[0][0]) return P[0][1]; for (let i = 1; i < P.length; i++) if (rpm <= P[i][0]) { const [r0, t0] = P[i - 1], [r1, t1] = P[i]; return t0 + (t1 - t0) * (rpm - r0) / (r1 - r0); } return P[P.length - 1][1]; }
 // boost: turbos need exhaust flow (revs and throttle) and take time to spool; anti-lag holds them spun up off throttle;
 // a Roots supercharger is driven by the crank so boost tracks revs instantly; the twin-charged engine uses its
@@ -4853,6 +4857,21 @@ const SUSP_TYPE = {
 };
 for (const S of CARS) {
   const ty = S.suspT = SUSP_TYPE[S.id] || ['strut', 'strut'], r = ty[1], p = Object.assign({}, S.susp || {});
+  // (the kingpin's offset at the hub and its scrub radius at the ground, m: a strut's or wishbone's out by the wheels'
+  // offset on their hubs - a 1970s car's wheels set further out than a modern one's - a beam axle's at its ends)
+  { const f = ty[0], so = /^(beam|live|leaf)$/.test(f), et = S.cls === 'G4' ? 0.015 : S.cls === 'B' ? 0.025 : 0.043, ko = f === 'strut' ? 0.145 - et : so ? 0.2 : 0.1 - et;
+    if (p.kpo == null) p.kpo = ko; if (p.scrub == null) p.scrub = f === 'strut' ? ko - 0.075 : so ? 0.08 : Math.max(0, ko - 0.055); }
+  // (each type's linkage: a double wishbone front's camber gain; how far each axle's roll centre moves for each metre the
+  // body comes down, by the ride height or the travel; the toe a rising wheel takes, degrees a metre, + in; a solid axle's
+  // roll steer, its steer for its roll, + with the turn; anti-dive and anti-squat, the share of the pitch the links take)
+  { const f = ty[0], MIG = { strut: 2, wishbone: 1.2, multi: 1.2, semi: 0.8, trailing: 0, twist: 0.5, live: 0.5, beam: 0.5, leaf: 0.5 };
+    if (f === 'wishbone' && !(p.gainF <= -18)) p.gainF = -22;
+    if (p.rcMigF == null) p.rcMigF = MIG[f] != null ? MIG[f] : 1; if (p.rcMigR == null) p.rcMigR = MIG[r] != null ? MIG[r] : 1;
+    if (p.toeGainF == null) p.toeGainF = f === 'strut' ? -1 : 0; if (p.toeGainR == null) p.toeGainR = r === 'strut' || r === 'multi' ? 3 : r === 'wishbone' ? 1 : 0;
+    if (p.rollSteerR == null) p.rollSteerR = r === 'live' ? 0.08 : r === 'leaf' ? 0.12 : 0;
+    if (p.antiDive == null) p.antiDive = f === 'wishbone' ? 0.25 : /^(beam|live|leaf)$/.test(f) ? 0.1 : 0.15;
+    if (p.antiSquat == null) p.antiSquat = { strut: 0.2, semi: 0.5, multi: 0.4, trailing: 0.3, twist: 0.2, wishbone: 0.35, live: 0.6, leaf: 0.3, beam: 0.15 }[r] || 0.2;
+    if (p.leafFric == null && (f === 'leaf' || r === 'leaf')) p.leafFric = [f === 'leaf' ? (S.tandem ? 2500 : 400) : 0, r === 'leaf' ? (S.tandem ? 3000 : 450) : 0]; }
   if (r === 'live' || r === 'beam') { p.solidR = true; p.rcR = Math.max(p.rcR != null ? p.rcR : 0.11, 0.28); p.gainR = 0; if (!S.wheel) S.muR = r === 'live' ? 58 : 46; }
   else if (r === 'trailing') { p.gainR = 0; p.rcR = 0.04; }
   else if (r === 'twist') { p.solidR = 0.45; p.gainR = 0; p.rcR = 0.12; }
@@ -4860,6 +4879,11 @@ for (const S of CARS) {
   else if (r === 'multi') { if (!(p.gainR <= -14)) p.gainR = -16; }
   S.susp = p;
 }
+// each car's gear lever where its figures name none - a sequential box in the Group A, F2, World Rally and Rally2 cars,
+// an H gate before them and in the specials - and its shift times where it has none: an H gate's 0.16 s up and 0.13
+// down (the clutch dipped), a sequential's 0.06 and 0.05, paddles' 0.05 and 0.045 (shifting up flat: see stepCar)
+for (const S of CARS) { if (S.tc || S.cvt) continue; if (!S.lever) S.lever = ['A', 'F2', 'WRC', 'R2'].includes(S.cls) ? 'sequential' : 'H';
+  if (S.shiftUp == null) { const H = S.lever === 'H', P = S.lever === 'paddle'; S.shiftUp = H ? 0.16 : P ? 0.05 : 0.06; S.shiftDown = H ? 0.13 : P ? 0.045 : 0.05; } }
 function idleOf(S) {
   if (S._idl && S._idl.id === S.id) return S._idl; const r = IDLE[S.id] || [S.idle || 950, 'ecu', 30, 0.5];
   // (how hard it is drawn back, Nm per rpm: an idle control hard; a throttle stop gently, more for a bigger engine, whose
@@ -5208,8 +5232,89 @@ function airStep(c, S, brk, hb, run, rpm, dt) {
 const tyreLoad = (kt, p) => kt * Math.min(p, 0.07) + (p > 0.07 ? 3 * kt * (p - 0.07) : 0);
 const HBS = [0.08, 20]; // hydraulic bump stop: the length of travel it works over (m), its strength against the main bump damping
 const SUSP_DEF = { fF: 1.8, fR: 1.8, zB: 0.3, zR: 0.55, travel: 0.13, droop: 0.12, arbF: 0.3, arbR: 0.25, rcF: 0.07, rcR: 0.11, antiDive: 0.15, antiSquat: 0.2, camF: -1.5, camR: -1.0, gainF: -14, gainR: -10, rollCam: 1.0, caster: 5, kpi: 10, toeR: 0.2, ack: 0.6, hcg: 0.46, bias: 0.62, brake: 1.35, Ie: 0.17 };
-const DIFF_DEF = { f: { pre: 20 }, r: { pre: 60, ramp: 0.4 }, c: { pre: 100, ramp: 0.4 } };
-const RIGID_C = { pre: 1e6 }; // a solid drive between the axles: a coupling no torque can slip
+const DIFF_DEF = { f: { type: 'open', pre: 20 }, r: { type: 'plate', pre: 60, ramp: 0.4 }, c: { type: 'plate', pre: 100, ramp: 0.4 } };
+const RIGID_C = { type: 'locked', pre: 1e6 }; // a solid drive between the axles: a coupling no torque can slip
+// What each differential (and a four-wheel-drive car's centre coupling) is, and how it shares the torque between its
+// two outputs. Each holds the difference between the torques at its outputs (as the wheels feel them, N m) to its
+// friction torque, and lets them turn apart beyond it (see diffSolve):
+//   open: its own friction alone, pre (and a little more with the torque through it, ramp)
+//   plate (a clutch pack loaded by ramps): its preload, pre, and a share of the torque through it - ramp driving, coast
+//     on the overrun (as ramp if not given) - its locking factor, the torque difference over the torque through it: a
+//     40% differential holds its outputs to 1.4 and 0.6 of an even share, a torque bias of 2.33:1
+//   torsen (worm or helical gears): its torque bias ratio, tbr, whichever way the torque goes, and only a little
+//     friction without torque through it, pre: with one wheel in the air it can pass almost nothing to the other
+//   viscous: a pack of plates in silicone fluid, vc N m at 100 rpm between its outputs (as the wheels turn), less than in
+//     proportion beyond as the fluid thins under shear; worked hard and long, the fluid's heat swells it until the plates
+//     touch and it turns solid - the hump - until it has cooled
+//   locker (an automatic locking differential): solid while it drives and a wheel spins, a wheel free to run ahead of
+//     the other where the road turns it faster (the outer wheel in a bend)
+//   lockable: open, or locked solid by the driver (lock 1, set in the setup)
+//   active: a multi-plate clutch clamped hydraulically to a computer's map (see diffActive)
+//   locked: solid
+function diffKind(d) { return !d ? 'open' : d.type || (d.pre >= 1000 ? 'locked' : d.ramp || d.coast ? 'plate' : d.vc || d.kv ? 'viscous' : 'open'); }
+// (a viscous coupling: how the fluid thins; the heat that humps it and lets it go again, J; how fast it cools, s; its
+// torque humped, N m)
+const VC_N = 0.85, VC_HUMP = [25000, 10000], VC_COOL = 4, VC_SOLID = 4000;
+const vcTorque = (d, w) => (d.vc != null ? d.vc : (d.kv || 0) * 40) * Math.pow(Math.abs(w) * 0.0955, VC_N);
+// an active differential's computer. Its map is the differential's own entry: T0 its clamping at rest (N m); kT and kC
+// the share of the torque through it it clamps to, driving and on the overrun; kS how much more per rad/s of slip across
+// it; Tmax its most; kB how far the brake pedal opens it; kSt how far it opens with the wheel turned at speed (at full
+// lock); hb, the handbrake opens it. On each surface the teams' map for it (ACT_SURF: T0 and kT scaled - snow clamps it
+// harder, tarmac lighter), and its hydraulics' lag, ACT_LAG s
+const ACT_SURF = { gravel: [1, 1], mixed: [0.8, 0.9], tarmac: [0.55, 0.75], snow: [1.6, 1.3] }, ACT_LAG = 0.07;
+function diffActive(c, S, d, k, Tax, slip, X, dt) {
+  const sf = ACT_SURF[X.surf] || ACT_SURF.gravel, a = Math.abs(Tax);
+  let T = (d.T0 || 0) * sf[0] + (Tax >= 0 ? (d.kT || 0) * sf[1] : d.kC || 0) * a + (d.kS || 0) * Math.abs(slip);
+  T = Math.min(T, d.Tmax || 3000) * (1 - (d.kB || 0) * clamp(X.brk, 0, 1)) * (1 - (d.kSt || 0) * Math.min(1, Math.abs(X.delta) / Math.max(0.1, S.lock || 0.6)) * smooth(5, 25, X.v));
+  if (d.hb && X.hb) T = 0;
+  c.dfA[k] += (Math.max(0, T) - c.dfA[k]) * Math.min(1, dt / ACT_LAG);
+}
+// The differentials, every step, in gear or not: the centre coupling and each axle's differential hold the torque
+// difference across them to their friction torque (see diffKind), solved together - the transfer through each added up
+// over a few passes and held, in all, to half its friction torque either way (an accumulated, clamped impulse), as what
+// each axle's differential carries depends on what the centre sends it. Tw: the drive at the wheels (N m: + driving,
+// - on the overrun); kF, kR: how the drive reaches each axle (none where cut); X: what an active differential's computer
+// reads (throttle, brake, handbrake, steering, speed, surface). c.dfA: each active one's clamping now, c.dfE and c.dfH a
+// viscous one's heat and whether it has humped ([front, centre, rear])
+const DIFF_X = { thr: 0, brk: 0, hb: false, delta: 0, v: 0, surf: 'gravel' };
+function diffSolve(c, S, DF, W, IF, IR, Ic, Tw, dt, kF, kR, DR, X) {
+  const DT0 = c.dfT || (c.dfT = [0, 0, 0]); DT0[0] = DT0[1] = DT0[2] = 0; // (what each coupling passed across this step, N m: front, rear, centre)
+  const axF = S.fs > 0 && !(DR && (DR.w[0].off || DR.w[1].off)), axR = S.fs < 1 && !(DR && (DR.w[2].off || DR.w[3].off)), cen = kF > 0 && kR > 0 && S.fs > 0 && S.fs < 1;
+  if (!axF && !axR && !cen) return;
+  const shF = kF / Math.max(1e-6, kF + kR), E = c.dfE || (c.dfE = [0, 0, 0]), H = c.dfH || (c.dfH = [0, 0, 0]); if (!c.dfA) c.dfA = [0, 0, 0];
+  const dF0 = W[0].omega - W[1].omega, dR0 = W[2].omega - W[3].omega, dC0 = (W[0].omega + W[1].omega - W[2].omega - W[3].omega) / 2;
+  const kc = cen ? diffKind(DF.c) : '', kf = axF ? diffKind(DF.f) : '', kr = axR ? diffKind(DF.r) : '';
+  // (an active one's clamping: from the torque its axle has from the engine and the slip across it)
+  if (kc === 'active') diffActive(c, S, DF.c, 1, Tw, dC0, X, dt);
+  if (kf === 'active') diffActive(c, S, DF.f, 0, shF * Tw, dF0, X, dt);
+  if (kr === 'active') diffActive(c, S, DF.r, 2, (1 - shF) * Tw, dR0, X, dt);
+  // the friction torque of differential d (of kind q, coupling k) with Tax through it and its outputs turning w0 apart
+  // (i, j: its wheels, for a locker)
+  const Tf = (d, q, k, Tax, w0, i, j) => {
+    const a = Math.abs(Tax), pre = d.pre || 0;
+    if (q === 'locked') return 1e7;
+    if (q === 'plate') return pre + (Tax >= 0 || d.coast == null ? d.ramp || 0 : d.coast) * a;
+    if (q === 'torsen') { const b = Math.max(1, d.tbr || 3); return pre + (b - 1) / (b + 1) * a; }
+    if (q === 'viscous') return H[k] ? VC_SOLID : pre + vcTorque(d, w0);
+    if (q === 'active') return c.dfA[k];
+    if (q === 'lockable') return d.lock ? 1e7 : pre;
+    if (q === 'locker') { if (Tax <= 30 || i == null) return pre; const f = w0 >= 0 ? i : j, s = f === i ? j : i; return (W[f].slipL || 0) - (W[s].slipL || 0) > 0.6 ? 1e7 : pre; }
+    return pre + (d.ramp || 0) * a;
+  };
+  // (a Rally2 car's handbrake clutch closing again: slipping at a torque that rises as it closes)
+  const hbC = cen && S.rigidC && c.hbc < 1 ? 1e4 * c.hbc : -1;
+  let lc = 0, lf = 0, lr = 0;
+  for (let it = 0; it < 5; it++) {
+    if (cen) { const dC = (W[0].omega + W[1].omega - W[2].omega - W[3].omega) / 2, lim = (hbC >= 0 ? hbC : Tf(DF.c, kc, 1, Tw, dC0)) / 2;
+      const ln = clamp(lc + dC * Ic / dt, -lim, lim), q = (ln - lc) / 2 * dt; lc = ln; W[0].omega -= q / IF; W[1].omega -= q / IF; W[2].omega += q / IR; W[3].omega += q / IR; }
+    if (axF) { const lim = Tf(DF.f, kf, 0, shF * Tw - lc, dF0, 0, 1) / 2, ln = clamp(lf + (W[0].omega - W[1].omega) * IF / (2 * dt), -lim, lim), q = (ln - lf) * dt / IF; lf = ln; W[0].omega -= q; W[1].omega += q; }
+    if (axR) { const lim = Tf(DF.r, kr, 2, (1 - shF) * Tw + lc, dR0, 2, 3) / 2, ln = clamp(lr + (W[2].omega - W[3].omega) * IR / (2 * dt), -lim, lim), q = (ln - lr) * dt / IR; lr = ln; W[2].omega -= q; W[3].omega += q; }
+  }
+  DT0[0] = lf; DT0[1] = lr; DT0[2] = lc;
+  // (a viscous coupling's heat: what it turns to heat, less what it sheds)
+  const heat = (k, P) => { E[k] += (P - E[k] / VC_COOL) * dt; H[k] = E[k] > VC_HUMP[0] ? 1 : E[k] < VC_HUMP[1] ? 0 : H[k]; };
+  if (kc === 'viscous') heat(1, Math.abs(lc * dC0)); if (kf === 'viscous') heat(0, Math.abs(lf * dF0)); if (kr === 'viscous') heat(2, Math.abs(lr * dR0));
+}
 // The crew: driver and co-driver in their suits, helmets and head restraints, about 160 kg, sitting low between the axles.
 // Every rally car's published weight is without them (the homologation minimum); a working vehicle's includes its crew.
 const CREW_KG = 160;
@@ -5225,8 +5330,10 @@ const drivelineEta = S => S.eta || (S.tandem ? 0.88 : S.fs >= 0.999 ? 0.955 : S.
 // torque - a stab of throttle, the clutch snatching, a shift, a wheel landing - winds them up and lets them go again in a
 // shunt or two (about 6 Hz in first gear against the car, quicker in the higher gears) before it settles
 const DRIVE_K = 18000, DRIVE_Z = 0.1;
-// a damper's slow-speed circuit works up to this shaft speed (m/s), its fast-speed (bump) circuit beyond it
-const DAMP_KNEE = 0.12;
+// a damper's slow-speed circuit works up to this shaft speed (m/s), its fast-speed circuit beyond it - in bump and in
+// rebound - a gravel damper's blowing off: at the middle clicks the fast bump at half the slow one, the fast rebound at
+// 55% of the slow (so a sharp rock or a landing is taken softly, and the body still held)
+const DAMP_KNEE = 0.12, DAMP_FAST = [0.5, 0.55];
 const RIDE_K = 0.82; // (the cars' spring figures to a gravel rally car's ride: see carSetup)
 function carSetup(S) {
   if (S._sp) return S._sp;
@@ -5252,7 +5359,7 @@ function carSetup(S) {
   // (set by the setup's clicks, else from the ride's damping ratios, so dampers stay matched to the springs)
   const W = [[a, twF, 1, 1], [a, -twF, -1, 1], [-b, twR, 1, 0], [-b, -twR, -1, 0]].map(([lz, lx, side, front], i) => {
     const k0 = kOf(front), k = (front ? sp.kF : sp.kR) || k0, F = corner(front), cc = 2 * Math.sqrt(k0 * F / 9.81), cb0 = cc * sp.zB, cb = (front ? sp.cbF : sp.cbR) || cb0, rh = front ? rhF : rhR;
-    return { lz, lx, side, front: !!front, k, k0, kb: k0 / (RIDE_K * RIDE_K), cb, cfb: (front ? sp.cfF : sp.cfR) || cb, cr: (front ? sp.crF : sp.crR) || cc * sp.zR, cb0, cbs: cb0 / RIDE_K, c0: F / k, d0: (F + MW[i] * 9.81) / (WH.kt * NT[i]), F0: F,
+    return { lz, lx, side, front: !!front, k, k0, kb: k0 / (RIDE_K * RIDE_K), cb, cfb: (front ? sp.cfF : sp.cfR) || cb * DAMP_FAST[0], cr: (front ? sp.crF : sp.crR) || cc * sp.zR, crf: ((front ? sp.crF : sp.crR) || cc * sp.zR) * DAMP_FAST[1], cb0, cbs: cb0 / RIDE_K, c0: F / k, d0: (F + MW[i] * 9.81) / (WH.kt * NT[i]), F0: F,
       travel: Math.max(0.04, sp.travel + rh), droop: Math.max(0.03, sp.droop - rh), lst: lstat - dcg + rh };
   });
   const kd = (W[0].kb + W[2].kb) / 2;
@@ -5346,9 +5453,32 @@ const CLICK = 1.07, CLICK_MID = 10;
 function setupBase(S) {
   const K = carSetup(S), sp = K.sp, df = K.df, d = {};
   const axles = { f: S.fs > 0, c: S.fs > 0 && S.fs < 1 && !S.rigidC, r: S.fs < 1 };
-  for (const a of ['f', 'c', 'r']) if (axles[a]) { const q = df[a] || {}; d[a] = { pre: q.pre || 0, pow: Math.round((q.ramp || 0) * 1000) / 10, coa: Math.round((q.coast != null ? q.coast : q.ramp || 0) * 1000) / 10, vis: q.kv || 0 }; }
-  return { c: null, pF: 1.8, pR: 1.8, rhF: 0, rhR: 0, kF: K.W[0].k / 1000, kR: K.W[2].k / 1000, bF: CLICK_MID, bR: CLICK_MID, fbF: CLICK_MID, fbR: CLICK_MID, rF: CLICK_MID, rR: CLICK_MID,
+  for (const a of ['f', 'c', 'r']) if (axles[a]) d[a] = diffSet(df[a] || {});
+  return { dv: 2, c: null, pF: 1.8, pR: 1.8, rhF: 0, rhR: 0, kF: K.W[0].k / 1000, kR: K.W[2].k / 1000, bF: CLICK_MID, bR: CLICK_MID, fbF: CLICK_MID, fbR: CLICK_MID, rF: CLICK_MID, rR: CLICK_MID,
     aF: K.karbF / 1000, aR: K.karbR / 1000, camF: sp.camF, camR: sp.camR, toeF: sp.toeF || 0, toeR: sp.toeR, lock: S.lock * 180 / Math.PI, diff: d, bias: sp.bias * 100, bp: 100, hb: 100, fd: S.final, snk: 0 };
+}
+// a differential's settings on the setup screen, by its kind (see diffKind): a plate differential's preload (N m) and
+// its locking on power and off throttle (%); a torque-sensing one's bias ratio; a viscous coupling's N m at 100 rpm; an
+// active one's map - its clamping at rest (N m), on power and off throttle (% of the torque through it), on slip (N m per
+// rad/s), and how far the brakes and turn-in open it (%); a lockable one locked or free. An open or a solid one has none
+function diffSet(q) {
+  const k = diffKind(q), r = v => Math.round(v * 1000) / 10;
+  if (k === 'active') return { k, pre: q.T0 || 0, pow: r(q.kT || 0), coa: r(q.kC || 0), vis: q.kS || 0, brk: r(q.kB || 0), str: r(q.kSt || 0) };
+  if (k === 'torsen') return { k, pre: q.pre || 0, tbr: q.tbr || 3 };
+  if (k === 'viscous') return { k, pre: q.pre || 0, vis: q.vc != null ? q.vc : (q.kv || 0) * 40 };
+  if (k === 'lockable') return { k, pre: q.pre || 0, lock: q.lock ? 1 : 0 };
+  if (k === 'plate') return { k, pre: q.pre || 0, pow: r(q.ramp || 0), coa: r(q.coast != null ? q.coast : q.ramp || 0) };
+  return { k, pre: q.pre || 0 };
+}
+// and back: the differential the physics drives, its own entry with the settings in place
+function diffOf(q0, s) {
+  const q = Object.assign({}, q0), k = diffKind(q0); if (!s || (s.k && s.k !== k)) return q;
+  if (k === 'active') Object.assign(q, { T0: s.pre, kT: s.pow / 100, kC: s.coa / 100, kS: s.vis, kB: s.brk / 100, kSt: s.str / 100 });
+  else if (k === 'torsen') Object.assign(q, { tbr: s.tbr });
+  else if (k === 'viscous') Object.assign(q, { vc: s.vis });
+  else if (k === 'lockable') q.lock = s.lock ? 1 : 0;
+  else if (k === 'plate') Object.assign(q, { pre: s.pre, ramp: s.pow / 100, coast: s.coa / 100 });
+  return q;
 }
 // the final drives on offer: the car's own and longer and shorter ones around it
 const FD_STEPS = [0.88, 0.92, 0.96, 1, 1.04, 1.08, 1.12];
@@ -5393,6 +5523,7 @@ function setupRec(S, env) {
   // (a tarmac stage in winter: snow, slush or ice on it take a softer car, nearer the gravel setup)
   if (f === 'tarmac' && env.lay && env.lay.snow + env.lay.ice + env.lay.slush > 0.1) { su.kF = b.kF * 1.5; su.kR = b.kR * 1.5; su.rhF = -10; su.rhR = -10; su.aF = b.aF * 1.3; su.aR = b.aR * 1.3; su.bias = b.bias; }
   if (env.safari && f === 'gravel') { su.rhF = 35; su.rhR = 35; su.kF = b.kF * 0.9; su.kR = b.kR * 0.9; su.fbF = su.fbR = CLICK_MID - 2; su.snk = 1; }
+  for (const a in su.diff) if (su.diff[a].k === 'lockable') su.diff[a].lock = a === 'c' ? (f === 'tarmac' ? 0 : 1) : f === 'snow' ? 1 : 0;
   su.c = tyreFor(env, S); su.pF = su.pR = coldFor(su.c, env.air);
   return su;
 }
@@ -5400,9 +5531,9 @@ function setupRec(S, env) {
 // pressures set at the air temperature of the morning (env.air)
 function setupSpec(S, su, env) {
   const b = setupBase(S), K0 = carSetup(S), W0 = K0.W, susp = Object.assign({}, S.susp || {}), ck = n => Math.pow(CLICK, n - CLICK_MID);
-  Object.assign(susp, { kF: su.kF * 1000, kR: su.kR * 1000, cbF: W0[0].cb * ck(su.bF), cbR: W0[2].cb * ck(su.bR), cfF: W0[0].cb * ck(su.fbF), cfR: W0[2].cb * ck(su.fbR), crF: W0[0].cr * ck(su.rF), crR: W0[2].cr * ck(su.rR),
+  Object.assign(susp, { kF: su.kF * 1000, kR: su.kR * 1000, cbF: W0[0].cb * ck(su.bF), cbR: W0[2].cb * ck(su.bR), cfF: W0[0].cb * DAMP_FAST[0] * ck(su.fbF), cfR: W0[2].cb * DAMP_FAST[0] * ck(su.fbR), crF: W0[0].cr * ck(su.rF), crR: W0[2].cr * ck(su.rR),
     karbF: su.aF * 1000, karbR: su.aR * 1000, camF: su.camF, camR: su.camR, toeF: su.toeF, toeR: su.toeR, rhF: su.rhF / 1000, rhR: su.rhR / 1000, bias: su.bias / 100, brake: K0.sp.brake * su.bp / 100 });
-  const diff = {}; for (const a in b.diff) { const q = (su.diff && su.diff[a]) || b.diff[a]; diff[a] = { pre: q.pre, ramp: q.pow / 100, coast: q.coa / 100, kv: q.vis }; }
+  const diff = {}; for (const a in b.diff) diff[a] = diffOf(K0.df[a] || {}, (su.diff && su.diff[a]) || b.diff[a]);
   const E = Object.create(S), key = TYRE_C[su.c] && tyresFor(S, env.surface).includes(su.c) ? su.c : tyreFor(env, S), C = TYRE_C[key];
   Object.assign(E, { _sp: null, _el: null, susp, diff, final: su.fd || S.final, hbT: (S.hbT || 1700) * su.hb / 100, bpK: su.bp / 100, lock: (su.lock || S.lock * 180 / Math.PI) * Math.PI / 180, setup: su, base: S, snorkel: !!su.snk });
   const dcg = (su.rhF * S.wf + su.rhR * (1 - S.wf)) / 1000;
@@ -5641,6 +5772,10 @@ function stepCar(c, S, inp, dt, T, opts) {
   // (semi-trailing arms toe in as they rise, SP.toeGainR degrees a metre: the outer wheel in a turn, steadying the tail)
   const tgR = (SP.toeGainR || 0) * Math.PI / 180;
   W[0].delta = dL - toeF; W[1].delta = dR + toeF; W[2].delta = -toe - (W[2].comp != null ? tgR * (W[2].comp - K.W[2].c0) : 0); W[3].delta = toe + (W[3].comp != null ? tgR * (W[3].comp - K.W[3].c0) : 0);
+  // (a front wheel's bump steer: SP.toeGainF degrees a metre it rises, + in; a solid rear axle's roll steer, SP.rollSteerR
+  // of its roll - its outer side down in a turn, it steers with the turn and steadies the car)
+  { const tgF = (SP.toeGainF || 0) * Math.PI / 180; if (tgF && W[0].comp != null) { W[0].delta -= tgF * (W[0].comp - K.W[0].c0); W[1].delta += tgF * (W[1].comp - K.W[1].c0); }
+    if (SP.rollSteerR && W[2].comp != null) { const as = SP.rollSteerR * (W[3].comp - W[2].comp) / (2 * K.twR); W[2].delta += as; W[3].delta += as; } }
   // the steering gives a little under the torque turning each front wheel about its kingpin (the tyre's aligning torque
   // and the lateral force behind the kingpin): at the limit, as the aligning torque falls away, the wheels come back
   W[0].delta += clamp((W[0].Mk || 0) / STEER_K, -0.03, 0.03); W[1].delta += clamp((W[1].Mk || 0) / STEER_K, -0.03, 0.03);
@@ -5833,7 +5968,10 @@ function stepCar(c, S, inp, dt, T, opts) {
     const rho = lam / TY.lamP; // (1 near the peak, for the sounds and the slides)
     wh.Fx = fx; wh.Fy = fy; wh.Mz = mz; wh.rho = rho; if (rho > maxRho) maxRho = rho;
     // what turns a front wheel about its kingpin: the aligning torque and the lateral force behind the kingpin (caster)
-    wh.Mk = G.front ? mz - fy * R0 * Math.tan(SP.caster * Math.PI / 180) : 0;
+    // and the force along it: at the patch, the scrub radius out from the axis's foot, and the drive torque's share about
+    // the inclined axis (a driving force in effect at the hub, the kingpin's offset there out) - toeing a wheel in as it
+    // drives, out as it brakes
+    wh.Mk = G.front ? mz - fy * R0 * Math.tan(SP.caster * Math.PI / 180) - G.side * (fx * (SP.scrub || 0) + (wh.Td || 0) * ((SP.kpo || 0) - (SP.scrub || 0)) / R0) : 0;
     // the work of sliding: part of it heats the tread, and it wears the tread away
     if (ty) { const tw = ty[i]; tw.P = Pw * TY.heat;
       tw.w = Math.min(1, tw.w + dt * Pw * TY.abr * TC.wear * (1 + Math.max(0, tw.T - TC.Topt - 10) / 15) / (WH.tk ? TYRE_LIFE * WH.tk[0] * K.NT[i] : TYRE_LIFE)); }
@@ -5912,7 +6050,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     // own discs by their size, see brakeHW)
     BT[i] = ax ? tB + dt * (Pin - Pout * ax.cool) / ax.C : S.brkC ? tB + dt * (Pin - Pout * Math.pow(S.brkC, 0.6)) / ((G.front ? 3200 : 2200) * S.brkC) : tB + dt * (Pin - Pout) / (G.front ? 3200 : 2200);
   }
-  // driveline: auto-clutch, centre coupling and limited-slip differentials, solved as capped lock constraints
+  // driveline: the clutch or torque converter, then the centre coupling and the differentials (diffSolve)
   let kF = S.fs / 2, kR = (1 - S.fs) / 2;
   if (DR) { const fOk = DR.shaft.f && !DR.w[0].off && !DR.w[1].off, rOk = DR.shaft.r && !DR.w[2].off && !DR.w[3].off; if (!fOk) kF = 0; if (!rOk) kR = 0; if (kF + kR > 0 && (!kF || !kR)) { kF = kF ? 0.5 : 0; kR = kR ? 0.5 : 0; } }
   // the handbrake holds the rear wheels: a front-drive car drives on (its rear wheels are not driven); a car whose rear
@@ -5935,8 +6073,8 @@ function stepCar(c, S, inp, dt, T, opts) {
   // full below 0.6 and falling away to nothing as the speeds meet. No clutch to dip and no blip.
   // (a CVT's converter locks up once the car is moving and the turbine has caught the engine up: a clutch across it then
   // carries the drive solid, as the clutch of a manual car does; it lets go again as the car slows to a crawl)
-  if (S.tc && S.tc.lock && c.gear > 0 && k2 > 0 && !(DR && DR.eng <= 0) && !eOff) { const wt0 = Gr * (kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega), r0 = wt0 * 30 / Math.PI;
-    c.lockup = c.lockup ? r0 > 1100 && !hold : r0 > 1700 && wt0 > 0.88 * Math.max(1, we); } else c.lockup = false;
+  if (S.tc && S.tc.lock && c.gear >= (S.tc.lock === true ? 1 : S.tc.lock) && k2 > 0 && !(DR && DR.eng <= 0) && !eOff) { const wt0 = Gr * (kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega), r0 = wt0 * 30 / Math.PI;
+    c.lockup = c.lockup ? r0 > 1100 && !hold && !(c.shiftT > 0) : r0 > 1700 && wt0 > 0.88 * Math.max(1, we) && !(c.shiftT > 0); } else c.lockup = false;
   if (S.tc && c.gear !== 0 && k2 > 0 && !c.lockup) {
     const ws = kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega, wt = Gr * ws, wp = Math.max(0, we), C = S.tc;
     if (!(hold || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0)))) {
@@ -5947,12 +6085,6 @@ function stepCar(c, S, inp, dt, T, opts) {
       Tp = clamp(Tp, -1.5 * S.tmax, 2.2 * S.tmax); Tt = clamp(Tt, -1.5 * S.tmax, 2.2 * S.tmax * C.tr);
       const ef = Tt >= 0 ? K.eta : 1 / K.eta; // (the gears' losses: see drivelineEta)
       we -= Tp * dt / SP.Ie; for (let i = 0; i < 4; i++) if (kk[i] > 0) W[i].omega += Gr * Tt * ef * kk[i] * dt / IW[i]; Tc = Tt;
-    }
-    for (let it = 0; it < 2; it++) {
-      const Tin = Math.abs(Gr * Tc), pwr = Gr * Tc >= 0, lockOf = d => (pwr || d.coast == null ? d.ramp : d.coast) || 0;
-      if (fsOn && S.fs > 0 && S.fs < 1) { const dC = (W[0].omega + W[1].omega) / 2 - (W[2].omega + W[3].omega) / 2; const capC = (DF.c.pre || 0) + lockOf(DF.c) * Tin + (DF.c.kv || 0) * Math.abs(dC); const tc = clamp(dC * Ic / dt, -capC, capC); W[0].omega -= tc / 2 * dt / IF; W[1].omega -= tc / 2 * dt / IF; W[2].omega += tc / 2 * dt / IR; W[3].omega += tc / 2 * dt / IR; }
-      const axle = (L, Rw, d, share, Ia) => { const dw = L.omega - Rw.omega; const capA = (d.pre || 0) + lockOf(d) * Tin * share + (d.kv || 0) * Math.abs(dw); const ta = clamp(dw * Ia / (2 * dt), -capA, capA); L.omega -= ta * dt / Ia; Rw.omega += ta * dt / Ia; };
-      if (kF > 0) axle(W[0], W[1], DF.f, shF, IF); if (kR > 0) axle(W[2], W[3], DF.r, 1 - shF, IR);
     }
   } else if (c.gear !== 0 && k2 > 0) {
     const wds = kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega;
@@ -5966,7 +6098,10 @@ function stepCar(c, S, inp, dt, T, opts) {
     let engage = Math.min(dsRpm, vRpm) < 1500 * cK ? smooth((1050 + 2700 * thrIn) * cK, (2100 + 3300 * thrIn) * cK, c.rpm) * (thrIn > 0.05 || dsRpm > 900 * cK ? 1 : 0) : 1;
     if (dsRpm < 1500 * cK && dsRpm > 900 * cK && thrIn <= 0.05) engage = Math.max(engage, smooth(900 * cK, 1500 * cK, dsRpm));
     if (c.lockup) engage = 1; // (a CVT's converter locked up)
-    if (c.shiftT > 0 || hold || ((AB ? AB.kP > 0.05 : hb) && kR > 0) || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0))) engage = 0;
+    // (a sequential or paddle box shifts up flat: the ignition cuts, the clutch stays in and the dogs change over, the
+    // engine pulled down to the new gear's speed through the shafts; an H gate's shift opens the clutch)
+    const flat = c.shiftT > 0 && !c.shiftDn && (S.lever === 'sequential' || S.lever === 'paddle' || (!S.lever && (S.shiftUp || 0.12) <= 0.07));
+    if ((c.shiftT > 0 && !flat) || hold || ((AB ? AB.kP > 0.05 : hb) && kR > 0) || (DR && DR.eng <= 0) || (eOff && !(es.jolt > 0))) engage = 0;
     if (es.jolt > 0) engage = 1; // (hydrolocked in gear: the clutch snatches the driven wheels before the driver dips it)
     // (inp.clutchT: the most torque the traction control lets the clutch pass pulling away, N m)
     const cap = Math.min(1.9 * S.tmax * engage * (inp.clutch != null ? clamp(inp.clutch, 0, 1) : 1), inp.clutchT != null ? inp.clutchT : Infinity), iE = (locked ? 1e-4 : 1) / SP.Ie; // (locked: as good as immovable)
@@ -5986,22 +6121,18 @@ function stepCar(c, S, inp, dt, T, opts) {
       // (the twist after the step: wound on by what the two ends did; while the clutch slips, what holds its torque)
       c.wind = slip ? T / Ke : th + dt * (we - Gr * (kk[0] * W[0].omega + kk[1] * W[1].omega + kk[2] * W[2].omega + kk[3] * W[3].omega));
       Tc = T; }
-    for (let it = 0; it < 2; it++) {
-      // (a plate differential's ramps lock it by a share of the torque through it: one share driving, another on the
-      // overrun with the engine braking)
-      const Tin = Math.abs(Gr * Tc), pwr = Gr * Tc >= 0, lockOf = d => (pwr || d.coast == null ? d.ramp : d.coast) || 0;
-      if (fsOn && S.fs > 0 && S.fs < 1) { const dC = (W[0].omega + W[1].omega) / 2 - (W[2].omega + W[3].omega) / 2; const capC = S.rigidC && c.hbc < 1 ? 2500 * c.hbc : (DF.c.pre || 0) + lockOf(DF.c) * Tin + (DF.c.kv || 0) * Math.abs(dC); const tc = clamp(dC * Ic / dt, -capC, capC); W[0].omega -= tc / 2 * dt / IF; W[1].omega -= tc / 2 * dt / IF; W[2].omega += tc / 2 * dt / IR; W[3].omega += tc / 2 * dt / IR; }
-      const axle = (L, Rw, d, share, Ia) => { const dw = L.omega - Rw.omega; const capA = (d.pre || 0) + lockOf(d) * Tin * share + (d.kv || 0) * Math.abs(dw); const ta = clamp(dw * Ia / (2 * dt), -capA, capA); L.omega -= ta * dt / Ia; Rw.omega += ta * dt / Ia; };
-      if (kF > 0) axle(W[0], W[1], DF.f, shF, IF); if (kR > 0) axle(W[2], W[3], DF.r, 1 - shF, IR);
-    }
   }
+  // the differentials and the centre coupling, in gear or not (see diffSolve)
+  { const X = DIFF_X; X.thr = thrIn; X.brk = brkIn; X.hb = hb; X.delta = delta; X.v = au; X.surf = T.surface; diffSolve(c, S, DF, W, IF, IR, Ic, Gr * Tc, dt, kF, kR, DR, X); }
+  // (each wheel's drive torque through its shaft, N m: its share of the gearbox's, less what the couplings passed on)
+  { const t = c.dfT || [0, 0, 0], g = Gr * Tc; W[0].Td = g * kk[0] - t[0] - t[2] / 2; W[1].Td = g * kk[1] + t[0] - t[2] / 2; W[2].Td = g * kk[2] - t[1] + t[2] / 2; W[3].Td = g * kk[3] + t[1] + t[2] / 2; }
   if (locked) we = 0;
   if (c.gear === 0 || k2 <= 0 || S.tc && !c.lockup) c.wind = 0; // (out of gear, or through a converter: nothing wound up)
   c.rpm = we * 30 / Math.PI; c.tcl = Tc;
   // a live rear axle carries its diff: the propshaft's torque into the pinion (the clutch's through the gear) twists the
   // whole axle the way the shaft turns, pressing the left rear tyre down and lifting the right (the right rear spins
   // first), while the gearbox's mountings twist the body the other way (lpT, N m about the car's length; lpF each wheel's)
-  const lpT = S.suspT && S.suspT[1] === 'live' && kR > 0 && c.gear !== 0 ? Tc * ratio : 0, lpF = lpT / (2 * K.twR); c.lpT = lpT;
+  const lpT = S.suspT && (S.suspT[1] === 'live' || S.suspT[1] === 'leaf') && kR > 0 && c.gear !== 0 ? Tc * ratio * (S.tandem ? 0.5 : 1) : 0, lpF = lpT / (2 * K.twR); c.lpT = lpT;
   // suspension: springs, dampers, stops, anti-roll bars, roll-centre and anti-dive/squat link forces, along each strut
   const FyF = (W[0].fL || 0) + (W[1].fL || 0), FyR = (W[2].fL || 0) + (W[3].fL || 0), FxF = (W[0].fF || 0) + (W[1].fF || 0), FxR = (W[2].fF || 0) + (W[3].fF || 0);
   for (let i = 0; i < 4; i++) {
@@ -6012,7 +6143,9 @@ function stepCar(c, S, inp, dt, T, opts) {
     const cx = wh.my * Ez - wh.mz * Ey, cy = wh.mz * Ex - wh.mx * Ez, cz = wh.mx * Ey - wh.my * Ex; spinOf(M, Ib, cx, cy, cz, _sv);
     wh.wB = 1 / ms + (_sv[1] * wh.mz - _sv[2] * wh.my) * Ex + (_sv[2] * wh.mx - _sv[0] * wh.mz) * Ey + (_sv[0] * wh.my - _sv[1] * wh.mx) * Ez;
     // the damper: in bump its slow circuit up to the knee and its fast circuit past it; in rebound one circuit
-    let F = G.k * kh * Math.max(0, comp) + (compV > 0 ? G.cb * Math.min(compV, DAMP_KNEE) + G.cfb * Math.max(0, compV - DAMP_KNEE) : G.cr * compV) * (ah <= 0 ? 0.3 : 1);
+    let F = G.k * kh * Math.max(0, comp) + (compV > 0 ? G.cb * Math.min(compV, DAMP_KNEE) + G.cfb * Math.max(0, compV - DAMP_KNEE) : G.cr * Math.max(compV, -DAMP_KNEE) + (G.crf != null ? G.crf : G.cr) * Math.min(0, compV + DAMP_KNEE)) * (ah <= 0 ? 0.3 : 1);
+    // (leaf springs: their leaves rubbing, a friction that holds against slow movements - SP.leafFric, N a spring)
+    if (SP.leafFric && SP.leafFric[G.front ? 0 : 1]) F += SP.leafFric[G.front ? 0 : 1] * Math.tanh(compV / 0.02);
     // bump stops soak up a hit rather than throw it back: the rubber comes back out along a line from the furthest it was
     // squeezed (em) to a fifth of the way back, and recovers after (the same loop on position as the tyre's)
     { const ex = comp - G.c0 - G.travel; let em = wh.em || 0; if (ex > em) em = ex; else em -= (em - Math.max(ex, 0)) * Math.min(1, dt / 0.15); if (ex <= 0) em = 0; wh.em = em;
@@ -6033,7 +6166,10 @@ function stepCar(c, S, inp, dt, T, opts) {
   if (SP.leafF) arbF -= (1 - SP.leafF * SP.leafF) * 0.5 * K.W[0].k * (W[0].comp - W[1].comp);
   if (SP.leafR) arbR -= (1 - SP.leafR * SP.leafR) * 0.5 * K.W[2].k * (W[2].comp - W[3].comp);
   W[0].Fs += arbF; W[1].Fs -= arbF; W[2].Fs += arbR; W[3].Fs -= arbR;
-  const linkF = FyF * SP.rcF / (2 * K.twF), linkR = FyR * SP.rcR / (2 * K.twR);
+  // (each axle's roll centre: its own height, moved by the ride height set and by how far the axle has come up from rest -
+  // a strut's twice as far as the body, a solid axle's half)
+  const rcAt = (rc, mig, rh, i) => clamp(rc + (mig || 0) * ((rh || 0) - ((W[i].comp + W[i + 1].comp) / 2 - K.W[i].c0)), -0.05, 0.45);
+  const linkF = FyF * rcAt(SP.rcF, SP.rcMigF, SP.rhF, 0) / (2 * K.twF), linkR = FyR * rcAt(SP.rcR, SP.rcMigR, SP.rhR, 2) / (2 * K.twR);
   W[0].Fs -= linkF; W[1].Fs += linkF; W[2].Fs -= linkR; W[3].Fs += linkR;
   const ad = -FxF * SP.antiDive * SP.hcg / wb / 2, as = FxR * SP.antiSquat * SP.hcg / wb / 2;
   W[0].Fs += ad; W[1].Fs += ad; W[2].Fs += as; W[3].Fs += as;
@@ -7829,13 +7965,13 @@ function cuStockBuild(S0) {
   const fuel = cls === 'SP' ? 'diesel' : 'petrol', cams = /pushrod/.test(t) ? 'pushrod' : /single cam/.test(t) || (L.cool === 'air' && !/twin cam/.test(t)) ? 'single' : 'twin';
   const tech = { G4: '70s', B: '80s', A: '90s', F2: '90s', WRC: '00s', R2: '20s' }[cls] || (S0.id === 'caisson_6x6' ? '70s' : S0.id === 'limber_4x4' ? '20s' : '00s');
   const asp = S0.boost === 'na' ? 'na' : S0.boost === 'sc' ? 'sc' : S0.boost === 'twin' ? 'twin' : /twin-turbo|twin turbo/.test(t) ? 'biturbo' : 'turbo';
-  const rm = t.match(/(\d\d) mm intake restrictor/), d = S0.diff || {}, dk = q => !q ? 'open' : q.pre >= 1000 ? 'locked' : q.kv ? 'viscous' : q.ramp ? 'plate' : 'open';
+  const rm = t.match(/(\d\d) mm intake restrictor/), d = S0.diff || {}, dk = q => { const k = diffKind(q); return k === 'torsen' || k === 'active' ? 'plate' : k === 'locker' || k === 'lockable' ? 'locked' : k; };
   const drive = S0.fs >= 1 ? 'FWD' : S0.fs <= 0 ? 'RWD' : 'AWD';
   const box = S0.tc ? 'auto' : S0.lever === 'paddle' ? 'paddle' : S0.lever === 'H' ? 'H' : S0.lever === 'sequential' || ['A', 'F2', 'WRC', 'R2'].includes(cls) ? 'seq' : 'H';
   const g = S0.gears, sp = g[0] / g[g.length - 1] / Math.pow(Math.max(1, g.length - 1) / 5, 0.6);
   const B = { v: CU_V, body: S0.id, name: S0.name, num: S0.num, pos, mount, layout, cyl: S0.cyl || 4, litres: cuR(litresOf(S0), 0.05), fuel, cams, tech, tune: 'race',
     asp, tsize: cls === 'B' ? 'large' : 'medium', boost: 1, als: S0.als ? 1 : 0, restr: rm ? +rm[1] : cls === 'A' && asp !== 'na' ? 40 : 0, rev: 0, cool: L.cool === 'air' ? 'air' : 'water', exh: cls === 'SP' ? 'quiet' : ['WRC', 'R2'].includes(cls) ? 'sport' : 'open', fly: (S0.susp && S0.susp.Ie || 0.1) <= 0.07 ? 'light' : 'standard',
-    drive, split: drive === 'AWD' ? S0.fs : 0.5, cdiff: S0.rigidC ? 'locked' : drive === 'AWD' ? (d.c && d.c.pre >= 1000 ? 'locked' : d.c && d.c.ramp && d.c.kv ? 'active' : dk(d.c)) : 'viscous', fdiff: dk(d.f), rdiff: dk(d.r), hbcut: S0.hbCut ? 1 : 0,
+    drive, split: drive === 'AWD' ? S0.fs : 0.5, cdiff: S0.rigidC ? 'locked' : drive === 'AWD' ? (diffKind(d.c) === 'active' ? 'active' : dk(d.c)) : 'viscous', fdiff: dk(d.f), rdiff: dk(d.r), hbcut: S0.hbCut ? 1 : 0,
     box, gears: g.length, spread: sp < 2.85 ? 'close' : sp < 3.55 ? 'medium' : 'wide', gearing: 'medium',
     susp: 'stock', brakes: 'stock', tyreF: S0.tyres[0], tyreR: S0.tyres[1], track: 0, ballast: 0, bpos: 'middle',
     bonnet: K.bonnet, bumpF: 1, bumpR: 1, boot: K.boot, doors: K.doors, cage: K.cage, glass: K.glass, trim: K.trim, spare: K.spare, guard: K.guard, flaps: CU_BODY[S0.id] && CU_BODY[S0.id].flaps != null ? CU_BODY[S0.id].flaps : cls === 'SP' ? 0 : 1,
@@ -8156,7 +8292,7 @@ function cuSpec(B0, id) {
   // the drive and its differentials: each as the body's car had it if left so, else as chosen; the centre's for
   // four-wheel drive (none at all, the axles turning together, if locked; cut by the handbrake if chosen)
   S.fs = B.drive === 'FWD' ? 1 : B.drive === 'RWD' ? 0 : B.split;
-  const DF = { open: { pre: 15 }, viscous: { pre: 20, kv: 35 }, plate: { pre: 60, ramp: 0.55, coast: 0.35 }, locked: { pre: 3000 } }, DC = { open: { pre: 10 }, viscous: { pre: 30, kv: 40 }, plate: { pre: 100, ramp: 0.4 }, active: { pre: 120, ramp: 0.35, kv: 25 } };
+  const DF = { open: { type: 'open', pre: 15 }, viscous: { type: 'viscous', pre: 20, vc: 140 }, plate: { type: 'plate', pre: 60, ramp: 0.55, coast: 0.35 }, locked: { type: 'locked', pre: 1e6 } }, DC = { open: { type: 'open', pre: 10 }, viscous: { type: 'viscous', pre: 30, vc: 2000 }, plate: { type: 'plate', pre: 100, ramp: 0.4 }, active: WRC_ACTIVE.c };
   const d0 = S0.diff || {}; S.diff = {}; delete S.rigidC;
   if (S.fs > 0) S.diff.f = same('fdiff') && d0.f && S0.fs > 0 ? d0.f : DF[B.fdiff]; if (S.fs < 1) S.diff.r = same('rdiff') && d0.r && S0.fs < 1 ? d0.r : DF[B.rdiff];
   if (B.drive === 'AWD') { if (same('cdiff') && K0.drive === 'AWD') { if (S0.rigidC) S.rigidC = true; if (d0.c) S.diff.c = d0.c; } else if (B.cdiff === 'locked') S.rigidC = true; else S.diff.c = DC[B.cdiff]; }
@@ -8180,6 +8316,11 @@ function cuSpec(B0, id) {
   if (BK) S.brkC = cuR3((S0.brkC || 1) * BK.brkC);
   // (anti-roll bars for a car driven at the other end: an engineer's starting balance for the new drive)
   if (B.drive !== K0.drive && S0.cls !== 'SP') Object.assign(S.susp, B.drive === 'FWD' ? { arbF: 0.16, arbR: 0.24 } : B.drive === 'RWD' ? { arbF: 0.13, arbR: 0.03 } : { arbF: 0.1, arbR: 0.07 });
+  // (a rear made to drive: a dead beam becomes a live axle on links, a twist beam or trailing arms independent links -
+  // with that linkage's own figures, and drawn so)
+  { const r0 = (S0.suspT || ['strut', 'strut'])[1]; if (S.fs < 1 && S0.cls !== 'SP' && /^(beam|twist|trailing)$/.test(r0)) { const r = r0 === 'beam' ? 'live' : 'multi', p = S.susp; S.suspT = [(S0.suspT || ['strut'])[0], r]; delete p.solidR;
+    Object.assign(p, r === 'live' ? { solidR: true, rcR: 0.28, gainR: 0, rcMigR: 0.5, toeGainR: 0, rollSteerR: 0.08, antiSquat: 0.6 } : { rcR: 0.11, gainR: -16, rcMigR: 1.2, toeGainR: 3, rollSteerR: 0, antiSquat: 0.4 });
+    if (r === 'live') S.muR = 58; else delete S.muR; } }
   // (a body's pitch inertia grows and shrinks with how far its weight lies from its middle, as its turning inertia does)
   const kI = clamp((I / m) / (S0.mass * wb * (1 - S0.wf) * wb * S0.wf * S0.yawK / S0.mass), 0.7, 1.4); S.susp.gyP = cuR3(((S0.susp && S0.susp.gyP) || 1.25) * kI);
   S.tyres = same('tyreF', 'tyreR') ? S0.tyres.slice() : [B.tyreF, B.tyreR]; if (S0.tyreSize && !same('tyreF', 'tyreR')) S.tyreSize = S0.tyreSize.map((t, i) => /^\d+\//.test(t) ? t.replace(/^\d+/, String(S.tyres[i])) : t);
@@ -8933,7 +9074,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'C5D2';
+const SR86_BUILD = 'EC8F';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -12558,9 +12699,15 @@ function ckFlare(s, path, d, xIn, xOut, sd, k) {
 }
 // a differential described for people: preload, torque sensing and viscous terms of the simulation's model
 function ckDiff(d, name) {
-  if (!d) return null; const pre = d.pre || 0, ramp = d.ramp || 0, kv = d.kv || 0;
-  const type = name || (pre >= 1000 ? 'Locked' : kv && ramp ? 'Viscous coupling with torque sensing' : kv ? 'Viscous coupling' : ramp ? 'Limited slip, torque sensing' : pre >= 50 ? 'Limited slip, preloaded' : 'Open');
-  return { type, preloadNm: pre, torqueSensingShare: ramp, viscousNmPerRadS: kv };
+  if (!d) return null; const kind = diffKind(d), pre = d.pre || 0, ramp = d.ramp || 0, bias = s => +((1 + s) / Math.max(0.01, 1 - s)).toFixed(2);
+  const type = name || { locked: 'Locked', plate: 'Plate limited slip', torsen: 'Torque-sensing limited slip', viscous: 'Viscous coupling', locker: 'Automatic locking', lockable: 'Lockable', active: 'Active multi-plate', open: 'Open' }[kind];
+  const o = { type, kind, preloadNm: kind === 'locked' ? null : pre };
+  if (kind === 'plate') Object.assign(o, { lockingPower: ramp, lockingCoast: d.coast != null ? d.coast : ramp, torqueBiasPower: bias(ramp), torqueBiasCoast: bias(d.coast != null ? d.coast : ramp) });
+  if (kind === 'torsen') o.torqueBiasRatio = d.tbr || 3;
+  if (kind === 'viscous') o.viscousNmPer100rpm = d.vc != null ? d.vc : (d.kv || 0) * 40;
+  if (kind === 'active') Object.assign(o, { map: { baseNm: d.T0 || 0, power: d.kT || 0, coast: d.kC || 0, slipNmPerRadS: d.kS || 0, maxNm: d.Tmax || 3000, brakeRelease: d.kB || 0, steerRelease: d.kSt || 0, handbrakeOpens: !!d.hb } });
+  if (kind === 'lockable') o.locked = !!d.lock;
+  return o;
 }
 
 // ---- attachments ----
@@ -12649,7 +12796,7 @@ const CK_PARTS = {
     }
   },
   roofVent(c) { const zz = c.roofFront.z - 0.3, yy = c.topAt(zz); ckBox(c.trim, [0, yy + 0.03, zz], [0.26, 0.05, 0.2], c.K0, [-0.12, 0, 0]); },
-  nacaDucts(c, o) { const z = o.z + c.zOff; c.mir(sd => { const r = c.lowAt(z); ckBox(c.trim, [sd * (c.sideX(z) + 0.004), ckLerp(r.s, r.b, 0.75), z], [0.01, 0.1, 0.34], c.K0); }); },
+  nacaDucts(c, o) { let z = o.z + c.zOff; for (const [z0] of c.axles) { const lim = c.Ra + 0.2; if (Math.abs(z - z0) < lim) z = z0 + (z >= z0 ? 1 : -1) * lim; } c.mir(sd => { const r = c.lowAt(z); ckBox(c.trim, [sd * (c.sideX(z) + 0.004), ckLerp(r.s, r.b, 0.75), z], [0.01, 0.1, 0.34], c.K0); }); },
   sideVents(c, o) { const z = o.z + c.zOff; c.mir(sd => { const r = c.lowAt(z); for (let k = 0; k < 3; k++) ckBox(c.trim, [sd * (c.sideX(z) + 0.004), ckLerp(r.s, r.b, 0.55) + k * 0.06, z], [0.01, 0.03, 0.3], c.K0); }); },
   quarterScoops(c, o) { const z = o.z + c.zOff; c.mir(sd => { const r = c.lowAt(z), x = sd * (c.sideX(z) + 0.03), y = ckLerp(r.s, r.b, 0.62); ckBox(c.body, [x, y, z], [0.06, 0.16, 0.36], c.C.base); ckBox(c.trim, [x + sd * 0.004, y, z + 0.17], [0.05, 0.13, 0.03], c.K0); }); },
   valance(c) { ckBox(c.trim, [0, 0.4, c.zr + 0.02], [c.rear.ws * 0.8, 0.14, 0.05], c.K0); },
@@ -12822,7 +12969,26 @@ function ckFitDesign(D, S) {
 // has it), and only near the camera. The working vehicles with frames of their own keep their own.
 const MECH = { near: 70, col: { hub: '#55595e', disc: '#9a9fa4', groove: '#6f7479', vane: '#3a3d40', hat: '#7c8186', cal: '#b3261e', up: '#7f858b', damp: '#6f7378',
   rod: '#c9ccd0', spring: '#d8b23a', arm: '#5a5e63', shaft: '#4a4d51', boot: '#121213', bar: '#2c2f33', axle: '#3f4246', diff: '#55585c', leaf: '#2f3236', drum: '#4d5156', bush: '#1a1b1c' } };
+// A steered wheel turns about its kingpin, not its own middle: the axis through its lower ball joint and its strut's top
+// (or upper ball joint), KP_X inboard of the wheel's middle at hub height. The wheel's middle so swings round it - out
+// and forward of the kingpin on one lock, back on the other - and the knuckle and what hangs on the axis stay put
+// (w.kp, set where its running gear is built: the axis through the wheel's middle's height, o from the wheel's middle,
+// its direction k, and the camber its lean gives the wheel as it turns, which the physics' camber already has (kpi, rad);
+// without it, an upright axis KP_X inboard)
+const KP_X = 0.12, _kq = new THREE.Quaternion(), _kq2 = new THREE.Quaternion(), _kv = new THREE.Vector3(), _ke = new THREE.Euler(), _ka = new THREE.Vector3();
+function kpShift(w, delta) {
+  if (!w.front) return; const K = w.kp; w.dSteer = delta || 0;
+  if (!K) { if (!delta) return; const a = -(Math.sign(w.piv.position.x) || 1) * KP_X; w.piv.position.x += a * (1 - Math.cos(delta)); w.piv.position.z += a * Math.sin(delta); return; }
+  const lb = -w.piv.rotation.z - (Math.sign(w.piv.position.x) || 1) * K.kpi * (1 - Math.cos(delta || 0)) - (K.cas || 0) * Math.sin(delta || 0);
+  _kq.setFromAxisAngle(_ka.set(K.k[0], K.k[1], K.k[2]), delta || 0); _kq2.setFromEuler(_ke.set(0, 0, -lb)); w.piv.quaternion.copy(_kq).multiply(_kq2);
+  _kv.set(K.o[0], K.o[1], K.o[2]).applyQuaternion(_kq); const d = w.kpd || (w.kpd = [0, 0, 0]); d[0] = K.o[0] - _kv.x; d[1] = K.o[1] - _kv.y; d[2] = K.o[2] - _kv.z; w.piv.position.x += d[0]; w.piv.position.y += d[1]; w.piv.position.z += d[2];
+}
 const MechParts = {
+  // how far the hub's face stands out from the tyre's middle (the wheel's offset, ET): as far as the rim's face leaves the
+  // dish 35 mm, 15 to 45 mm
+  // (the period's wheels set further out on their hubs: a 1970s car's 15 mm, a 1980s Group B car's 25; a tactical
+  // vehicle's deep-dish rims 15)
+  hubET(D, S, front) { if (S.cls === 'G4' || D.mech) return 0.015; if (S.cls === 'B') return 0.025; const half = D.tyreHalf ? D.tyreHalf[front ? 0 : 1] : 0.125, xf = half - Math.min(0.03, half * 0.24); return Math.max(0.015, Math.min(0.045, xf - 0.035)); },
   // a point of a part: in a frame (b the body, wN a wheel's upright, sN its turning hub: { f, p }), between two points
   // (mix: { m: [a, b], t }), or a distance along the line from one point to another (along: { l: [a, b], d })
   P: (f, x, y, z) => ({ f, p: [x, y, z] }), mix: (a, b, t) => ({ m: [a, b], t }), along: (a, b, d) => ({ l: [a, b], d }),
@@ -12835,9 +13001,12 @@ const MechParts = {
   // which side of an axle its anti-roll bar goes (+1 ahead, -1 behind): away from a diff's nose and the propshaft into it
   // (behind a front engine's driven rear axle, ahead of a mid or rear engine's - under the engine - and ahead of a front
   // axle with a diff of its own), else on the cabin's side where there is room (room: how far the cabin is from the axle)
+  // the springs a car carries where they are not coils on its dampers ([front, rear]: 'torsion' - a torsion bar), and the
+  // cars with two dampers at each rear wheel
+  springs: { tasman_6r: ['torsion', 'torsion'], ketch_30: ['torsion', 'torsion'] }, twinR: { vespera_sc: 1, halberd_x4: 1, mamba_tc: 1, petrel_m4: 1 },
   arbSide(ai, nose, epos, room) { if (nose) return ai ? (epos === 'front' ? -1 : 1) : 1; const d = ai ? 1 : -1; return room > 0.28 ? d : -d; },
   build(rig, S, D) {
-    if (!rig || !rig.wheels || rig.wheels.length !== 4 || (S.cls === 'SP' && !D.covers) || S.tandem) return null;
+    if (!rig || !rig.wheels || rig.wheels.length !== 4 || (S.cls === 'SP' && !D.covers && !D.mech && !S.tandem)) return null;
     const { P, mix, along } = this, parts = [], R = rig.wheelR || 0.3, rimR = D.rimR || 0.19, fs = S.fs != null ? S.fs : 0.5, K = carSetup(S), bk = K.bk, bay = rig.bay || {};
     const T = S.suspT || ['strut', 'strut'], col = h => { const c = new THREE.Color(h); return [c.r, c.g, c.b]; }, C = {}; for (const k in MECH.col) C[k] = col(MECH.col[k]);
     const add = o => { parts.push(o); return o; };
@@ -12846,6 +13015,25 @@ const MechParts = {
     const coil = (a, b, Rc, r, turns, k) => add({ t: 'coil', a, b, R: Rc, r, turns, k });
     const ring = (f, x0, x1, ri, ro, k, k2, k3) => add({ t: 'ring', f, x0, x1, ri, ro, k, k2: k2 || k, k3: k3 || k, n: 12 });
     const obox = (f, c, u, v, h, k) => add({ t: 'obox', f, c, u, v, h, k });
+    // where a point stands at the suspension's solid stop - its wheel up by its travel to the bump stop and the stop's
+    // rubber squashed, as the physics takes it - so that each damper and spring is sized to leave itself room there
+    const KW = K.W, hc0 = K.sp.hcg - (K.dcg || 0), lift = rig.wheels.map((w, i) => KW[i] ? Math.max(0.05, hc0 - KW[i].lst + (KW[i].travel || 0.13) + STOP_RUBBER - w.piv.position.y) : 0.17);
+    const at = (e, up) => { if (e.f) { if (e.f === 'b' || e.f === 'r') return e.p; const i = +e.f[1], W0 = rig.wheels[i], w = W0.piv.position, dz = e.f[0] === 'g' ? W0.td || 0 : e.f[0] === 'h' ? -(W0.td || 0) : 0; return [w.x + e.p[0], w.y + e.p[1] + (up ? lift[i] : 0), w.z + e.p[2] + dz]; }
+      if (e.m) { const a = at(e.m[0], up), b = at(e.m[1], up); return [0, 1, 2].map(k => a[k] + (b[k] - a[k]) * e.t); }
+      const a = at(e.l[0], up), b = at(e.l[1], up), d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(d[0], d[1], d[2]) || 1; return [0, 1, 2].map(k => a[k] + d[k] / L * e.d); };
+    // (a point on the line from a to b at height h above the wheel's middle, in wheel i's frame; the line as wheel i's
+    // kingpin axis)
+    const onAxis = (i, a, b, h) => { const c = rig.wheels[i].piv.position, p = at(a, false), r = at(b, false), t = (c.y + h - p[1]) / ((r[1] - p[1]) || 1e-6);
+      return P('w' + i, p[0] + (r[0] - p[0]) * t - c.x, h, p[2] + (r[2] - p[2]) * t - c.z); };
+    const kpAxis = (i, a, b) => { const c = rig.wheels[i].piv.position, p = at(a, false), r = at(b, false), d = [r[0] - p[0], r[1] - p[1], r[2] - p[2]], L = Math.hypot(d[0], d[1], d[2]) || 1, t = (c.y - p[1]) / (d[1] || 1e-6);
+      rig.wheels[i].kp = { o: [p[0] + d[0] * t - c.x, 0, p[2] + d[2] * t - c.z], k: d.map(v => v / L), kpi: Math.atan2(Math.abs(d[0]), Math.abs(d[1]) || 1e-6), cas: Math.atan2(-d[2], Math.abs(d[1]) || 1e-6) }; };
+    const span = (a, b, up) => { const p = at(a, up), r = at(b, up); return Math.hypot(r[0] - p[0], r[1] - p[1], r[2] - p[2]); };
+    // a damper from its lower eye lo up to its top mount hi: its body as long as still leaves 3 cm of its rod showing at
+    // the solid stop, its rod on to the mount (rb: the body's radius). Gives the body's length
+    const damper = (lo, hi, rb) => { const Lb = clamp(span(lo, hi, true) - 0.03, 0.07, 0.4), top = along(lo, hi, Lb); tube(lo, top, rb, C.damp, { n: 8 }); tube(top, hi, 0.011, C.rod); return Lb; };
+    // a coil spring from a to b (coil radius Rc, wire r): as many turns, up to n, as still leave its coils apart at the
+    // solid stop
+    const spring = (a, b, Rc, r, n) => coil(a, b, Rc, r, clamp(Math.floor((span(a, b, true) - 0.004) / (2.3 * r) * 2) / 2, 2, n), C.spring);
     // (each axle's steering and anti-roll bar on its cabin side - behind the front axle, ahead of the rear one - where
     // that leaves them clear of the bulkhead there, and on its far side where the bulkhead stands close)
     const side = [0, 1].map(ai => { const z = (rig.wheels[ai * 2].piv.position.z + rig.wheels[ai * 2 + 1].piv.position.z) / 2, cb = ai ? bay.cabR : bay.cabF, d = ai ? 1 : -1, room = cb == null ? 9 : (cb - z) * d;
@@ -12853,87 +13041,205 @@ const MechParts = {
       // (the anti-roll bar: across at zb, its arms back toward the axle to their ends at ze, where the drop links hang)
       // (the bar's ends outboard of a subframe's rails, so its drop links come down clear of them)
       return { sR: !ai && dd && dd.nose ? 1 : room > 0.18 ? d : -d, zr: !ai && dd && dd.nose ? 0.15 : 0.13, sB, room, d, z, xa, xb: Math.max(sub ? sub.hx + 0.06 : 0.3, xa - 0.42), zb: z + sB * 0.24, ze: z + sB * 0.08, yb, yr }; });
-    const M_nose = [null, null], mp = [];
+    { const EB = [], OB = []; for (const E of [bay.engF, bay.engR]) if (E) for (const B of [E, E.gb]) if (B) EB.push([B.x0, B.x1, B.y0, B.top, Math.min(B.z0, B.z1), Math.max(B.z0, B.z1)]);
+      // (the exhaust's boxes and the subframes, as [x0, x1, y0, y1, z0, z1]; its pipes as segments 3 cm thick)
+      const EX = bay.exhaust || {}; for (const q of (EX.boxes || [])) OB.push([q[0], q[1], q[2], q[3], Math.min(q[4], q[5]), Math.max(q[4], q[5])]);
+      for (const p of (bay.prims || [])) if (p.k === 'sub' && p.b) { const q = p.b; OB.push([q[0], q[1], q[2], q[3], Math.min(q[4], q[5]), Math.max(q[4], q[5])]); }
+      const runs = (EX.runs || []).map(([a, c]) => [a, c]);
+      const sd2 = (p, q, a, c) => { let best = 9; for (let k = 0; k <= 16; k++) { const t = k / 16, x = p[0] + (q[0] - p[0]) * t, y = p[1] + (q[1] - p[1]) * t, z = p[2] + (q[2] - p[2]) * t;
+        const ux = c[0] - a[0], uy = c[1] - a[1], uz = c[2] - a[2], L2 = ux * ux + uy * uy + uz * uz || 1e-9, s = clamp(((x - a[0]) * ux + (y - a[1]) * uy + (z - a[2]) * uz) / L2, 0, 1);
+        best = Math.min(best, Math.hypot(x - a[0] - ux * s, y - a[1] - uy * s, z - a[2] - uz * s)); } return best; };
+      const inBox = (x0, x1, y, z0, z1, r, B) => x1 + r > B[0] && x0 - r < B[1] && y + r > B[2] && y - r < B[3] && z1 + r > B[4] && z0 - r < B[5];
+      // (a line across the car from -xh to xh at height y and z, r thick: the block or gearbox it passes through, if any;
+      // and whether it meets the exhaust or a subframe)
+      const hit = (xh, y, z, r) => EB.find(B => inBox(-xh, xh, y, z, z, r, B));
+      const foul = (xh, y, z, r) => hit(xh, y, z, r) || OB.some(B => inBox(-xh, xh, y, z, z, r, B)) || runs.some(([a, c]) => sd2([-xh, y, z], [xh, y, z], a, c) < r + 0.03);
+      // (the clear places for it near the axle: under the block, or behind or ahead of it, not past the cabin's bulkhead
+      // and not more than lim from the axle - the nearest to where it was)
+      const place = (A, ai, xh, y, z, r, lim) => { const B = hit(xh, y, z, r); if (!B) return null; const low = (bay.fl ? bay.fl[ai] : 0) + 0.02 + r, C = [];
+        if (B[2] - 0.02 - r >= low) C.push({ y: B[2] - 0.02 - r, z });
+        for (const zz of [B[4] - 0.04 - r, B[5] + 0.04 + r]) { const dz = (zz - A.z) * A.d; if (dz > A.room - 0.06 || Math.abs(zz - A.z) > lim) continue; for (const dy of [0, 0.06, 0.12, -0.05]) if (y + dy >= low) C.push({ y: y + dy, z: zz }); }
+        const lev = q => { const ze = A.z + (q.z < A.z ? -1 : 1) * 0.08, z0 = Math.min(q.z, ze), z1 = Math.max(q.z, ze);
+          return [xh, -xh].some(x => EB.some(B => inBox(x, x, q.y, z0, z1, r, B)) || OB.some(B => inBox(x, x, q.y, z0, z1, r, B)) || runs.some(([a, c]) => sd2([x, q.y, z0], [x, q.y, z1], a, c) < r + 0.03)); };
+        const ok = C.filter(q => !foul(xh, q.y, q.z, r) && (lim > 0.7 || !lev(q))).sort((p, q) => Math.abs(p.z - z) + 2 * Math.abs(p.y - y) - Math.abs(q.z - z) - 2 * Math.abs(q.y - y)); return ok[0] || { fail: B }; };
+      side.forEach((A, ai) => { A.zk = A.z + A.sR * A.zr;
+        if (ai === 0) { const q = place(A, 0, Math.max(0.28, A.xa - 0.5), A.yr, A.zk, 0.03, 0.3); if (q && !q.fail) { A.zk = q.z; A.yr = q.y; if ((q.z - A.z) * A.sR < 0) A.sR = -A.sR; A.zr = clamp(Math.abs(q.z - A.z), 0.11, Math.min(0.15, Math.sqrt(Math.max(0.0121, (rimR - 0.035) * (rimR - 0.035) - 0.0016)))); } } // (its arms turned to face it, and reaching for it - inside the rim)
+        const q = place(A, ai, A.xb, A.yb, A.zb, 0.015, 0.6);
+        if (q && !q.fail) { A.yb = q.y; if (q.z !== A.zb) { A.zb = q.z; A.sB = q.z < A.z ? -1 : 1; A.ze = A.z + A.sB * 0.08; } }
+        // (nowhere clear: a cranked bar, its middle dropped under the block between legs down from its ends)
+        else if (q && q.fail) { let yd = q.fail[2] - 0.035; for (const B of OB) if (inBox(-A.xb, A.xb, yd, A.zb, A.zb, 0.015, B)) yd = Math.min(yd, B[2] - 0.02); A.drop = yd; }
+        // (its levers along the car, outboard of a block wide enough to be beside them)
+        // (its levers along the car: outboard of a block or gearbox beside them, where that keeps them well clear of the
+        // wheel turning; else each stopped short of it, its drop link slanting to the arm)
+        A.zeS = [A.ze, A.ze];
+        if (A.drop == null) for (const B of EB) { const zs = Math.min(A.zb, A.ze), zl = Math.max(A.zb, A.ze), hitS = [A.xb - 0.02, -A.xb + 0.02].map(x => inBox(x, x, A.yb, zs, zl, 0.015, B));
+          if (!hitS[0] && !hitS[1]) continue; const xw = Math.max(Math.abs(B[0]), Math.abs(B[1])) + 0.055;
+          if (xw <= A.xa - 0.3) { A.xb = Math.max(A.xb, xw); continue; }
+          hitS.forEach((h, k) => { if (h) A.zeS[k] = A.zb < A.ze ? Math.min(A.zeS[k], B[4] - 0.03) : Math.max(A.zeS[k], B[5] + 0.03); }); } }); }
+    const M_nose = [null, null], mp = [], rack = { arm: [], z: 0 };
+    let tprop = null;
+    if (S.tandem) {
+      // ---- a six-wheeled truck ----
+      const W = rig.wheels, zA = W[0].piv.position.z, zT = W[2].piv.position.z, sdOf = i => W[i].piv.position.x > 0 ? 1 : -1, htF = Math.abs(W[0].piv.position.x), htR = Math.abs(W[2].piv.position.x);
+      const xr = 0.47, kp = 0.2, a = (i, x, y, z) => P('a' + i, -sdOf(i) * x, y, z || 0), w = (i, x, y, z) => P('w' + i, -sdOf(i) * x, y, z || 0), g = (i, x, y, z) => P('g' + i, -sdOf(i) * x, y, z || 0), h = (i, x, y, z) => P('h' + i, -sdOf(i) * x, y, z || 0);
+      const B = (sd, x, y, z) => P('b', sd * x, y, z), tOf = (x0, x1, x) => (x - x0) / ((x1 - x0) || 1e-6);
+      // (the front wheels turn on kingpins at the axle's ends)
+      for (const i of [0, 1]) W[i].kp = { o: [-sdOf(i) * kp, 0, 0], k: [0, 1, 0], kpi: 0 };
+      // the front axle: its beam between the kingpins, the differential off to one side with its nose to the rear
+      const xL = W[0].piv.position.x - sdOf(0) * kp, xR = W[1].piv.position.x - sdOf(1) * kp, onF = (y, x, z) => mix(a(0, kp, y, z || 0), a(1, kp, y, z || 0), tOf(xL, xR, x));
+      tube(onF(0, xL), onF(0, xR), 0.065, C.axle, { n: 8 });
+      const dF = onF(0, -0.18); tube(onF(0, -0.36), onF(0, 0.0), 0.17, C.diff, { n: 10, cap: true }); const noseF = onF(-0.02, -0.18, -0.3); tube(dF, noseF, 0.08, C.diff, { n: 8, cap: true });
+      for (const i of [0, 1]) { tube(a(i, kp, -0.13), a(i, kp, 0.13), 0.055, C.up, { cap: true }); // (the kingpin's housing)
+        tube(w(i, kp, 0, 0), w(i, 0.06, 0, 0), 0.05, C.up); // (the stub axle out to the hub)
+        tube(w(i, 0.04, 0, 0), w(i, 0.18, 0, 0), 0.23, C.drum, { n: 12, cap: true }); } // (the drum)
+      // its steering: an arm back from each knuckle, the tie rod between them; the drag link from the steering box's
+      // drop arm, on the frame ahead of the axle, to an arm up from the left knuckle
+      const arm0 = w(0, 0.3, -0.07, -0.3), arm1 = w(1, 0.3, -0.07, -0.3); for (const [i, e] of [[0, arm0], [1, arm1]]) tube(w(i, kp, -0.07, 0), e, 0.025, C.up); tube(arm0, arm1, 0.022, C.arm);
+      // (inboard of the rail, out of the wheel's way as it turns)
+      const up0 = w(0, kp + 0.16, 0.14, 0.1), box = B(sdOf(0), xr - 0.1, 0.84, zA + 0.56), drop = B(sdOf(0), xr - 0.1, 0.64, zA + 0.5);
+      tube(w(0, kp, 0.12, 0), up0, 0.025, C.up); tube(drop, up0, 0.022, C.arm); tube(box, drop, 0.03, C.up); obox('b', [sdOf(0) * (xr - 0.1), 0.88, zA + 0.58], [0, 1, 0], [0, 0, 1], [0.07, 0.07, 0.1], C.diff);
+      // its leaf springs under the frame's rails: a hanger ahead, a shackle behind, the axle clamped to the spring's middle
+      for (const i of [0, 1]) { const sd = sdOf(i), seat = onF(0.08, sd * xr), fwd = B(sd, xr, 0.76, zA + 0.62), bk = B(sd, xr, 0.74, zA - 0.62);
+        for (let l = 0; l < 4; l++) { const dy = -0.02 * l, sh = 1 - 0.22 * l; tube(mix(seat, fwd, sh), seat, 0.014, C.leaf, { n: 4, dy }); tube(seat, mix(seat, bk, sh), 0.014, C.leaf, { n: 4, dy }); }
+        tube(fwd, B(sd, xr, 0.82, zA + 0.62), 0.03, C.bush, { cap: true }); tube(bk, B(sd, xr, 0.82, zA - 0.66), 0.018, C.arm); // (the hanger, the shackle up to the rail)
+        tube(onF(-0.07, sd * xr), onF(0.1, sd * xr), 0.045, C.up, { n: 6 }); // (the U-bolts' block)
+        damper(onF(-0.04, sd * (xr + 0.14)), B(sd, xr + 0.08, 0.98, zA + 0.16), 0.035); }
+      // each rear bogie: its two axles' ends, an inverted leaf spring over them rocking on the trunnion, the trunnions'
+      // cross shaft and brackets, the torque rods; drums at all four wheels
+      const sR = (i, f, y) => f(i, htR - xr, y, 0), eA = i => g(i, 0.18, 0), eB = i => h(i, 0.18, 0);
+      for (const [E, nm] of [[eA, 'g'], [eB, 'h']]) { const L0 = E(2), R0 = E(3); tube(L0, R0, 0.065, C.axle, { n: 8 }); tube(mix(L0, R0, 0.4), mix(L0, R0, 0.6), 0.16, C.diff, { n: 10, cap: true }); }
+      for (const i of [2, 3]) { const sd = sdOf(i), fA = sR(i, g, 0.16), fB = sR(i, h, 0.16), tr = w(i, htR - xr, 0.16, 0);
+        for (let l = 0; l < 5; l++) { const k = 0.5 - 0.5 * (1 - 0.18 * l); tube(mix(fA, fB, k), mix(fA, fB, 1 - k), 0.016, C.leaf, { n: 4, dy: 0.022 * l }); }
+        tube(sR(i, g, -0.07), sR(i, g, 0.16), 0.04, C.up, { n: 6 }); tube(sR(i, h, -0.07), sR(i, h, 0.16), 0.04, C.up, { n: 6 }); // (the spring's seats on the axles)
+        tube(tr, B(sd, xr, 0.86, zT), 0.06, C.up, { n: 6 }); // (the trunnion's bracket up to the rail)
+        tube(g(i, htR - xr + 0.06, -0.09, 0), w(i, htR - xr + 0.06, -0.03, 0), 0.025, C.arm); tube(h(i, htR - xr + 0.06, -0.09, 0), w(i, htR - xr + 0.06, -0.03, 0), 0.025, C.arm); // (the lower torque rods)
+        for (const f of [g, h]) tube(f(i, 0.04, 0, 0), f(i, 0.18, 0, 0), 0.23, C.drum, { n: 12, cap: true }); }
+      tube(w(2, htR - xr, 0.16, 0), w(3, htR - xr, 0.16, 0), 0.07, C.axle, { n: 8 }); // (the cross shaft between the trunnions)
+      for (const [E, s] of [[eA, 1], [eB, -1]]) tube(mix(E(2), E(3), 0.5), B(0, 0, 0.82, zT + s * 0.16), 0.03, C.arm); // (the upper torque rods, from the differentials to the frame)
+      // the drive: the gearbox's tail down to the transfer case under the floor, its outputs to the front axle's nose and to
+      // the bogie's first axle, and on through it to the second
+      const tc = [0.1, 0.66, zA - 1.55]; obox('b', tc, [0, 1, 0], [0, 0, 1], [0.2, 0.17, 0.17], C.diff);
+      const tIn = B(1, tc[0], tc[1] + 0.12, tc[2] + 0.17), tF = B(1, tc[0], tc[1] - 0.06, tc[2] + 0.17), tR = B(1, tc[0], tc[1] - 0.06, tc[2] - 0.17), gb = B(1, 0.02, 1.14, (bay.engF ? Math.min(bay.engF.z0, bay.engF.z1) : zA - 0.6) - 0.35);
+      const noseA = mix(g(2, 0.18, 0, 0.3), g(3, 0.18, 0, 0.3), 0.5), outA = mix(g(2, 0.18, 0, -0.3), g(3, 0.18, 0, -0.3), 0.5), noseB = mix(h(2, 0.18, 0, 0.3), h(3, 0.18, 0, 0.3), 0.5);
+      tube(mix(eA(2), eA(3), 0.5), noseA, 0.08, C.diff, { n: 8, cap: true }); tube(mix(eA(2), eA(3), 0.5), outA, 0.07, C.diff, { n: 8, cap: true }); tube(mix(eB(2), eB(3), 0.5), noseB, 0.08, C.diff, { n: 8, cap: true });
+      for (const [p, q] of [[gb, tIn], [tF, noseF], [tR, noseA], [outA, noseB]]) { tube(p, along(p, q, 0.06), 0.05, C.shaft, { n: 4, spin: 'prop' }); tube(along(p, q, 0.06), along(q, p, 0.06), 0.035, C.shaft, { spin: 'prop' }); tube(along(q, p, 0.06), q, 0.05, C.shaft, { n: 4, spin: 'prop' }); }
+      tprop = 1;
+    }
+    // an anti-roll bar's lever from its root on the bar (pv, in the body), L along the car (signed), to its drop link's
+    // top; the link down to the arm (am) kept at the length it has at rest
+    const lever = (pv, L, am) => { const e = { dl: [pv, Math.abs(L), Math.sign(L) || 1, am, 0] }, p0 = at(pv, false), a0 = at(am, false); e.dl[4] = Math.hypot(a0[0] - p0[0], a0[1] - p0[1], a0[2] - (p0[2] + L)); return e; };
     const drv = bay.drive || {}, axleOf = i => i < 2 ? 0 : 1;
     // the top of each axle's dampers: under its tower (bay.struts: [x, top, spring seat, tower foot]) or, where there is
     // none, just inside the wing over the wheel
     const topAt = (i, x0, z) => { const ST = bay.struts && bay.struts[axleOf(i)], sd = x0 > 0 ? 1 : -1, ht = Math.abs(x0);
       return ST ? [sd * ST[0], ST[1] - 0.05, z] : [sd * Math.max(0.35, ht - 0.2), R + 0.42, z]; };
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 4 && !S.tandem; i++) {
       const w = rig.wheels[i], x0 = w.piv.position.x, z = w.piv.position.z, sd = x0 > 0 ? 1 : -1, ht = Math.abs(x0), front = i < 2, ty = T[front ? 0 : 1], solid = ty === 'live' || ty === 'beam' || ty === 'leaf';
-      const f = 'w' + i, s = 's' + i, driven = front ? fs > 0.001 : fs < 0.999, A = side[front ? 0 : 1], q = (x, y, zz) => P(f, -sd * x, y, zz), qb = (x, y, zz) => P('b', sd * x, y, zz);
+      const f = 'w' + i, s = 's' + i, driven = front ? fs > 0.001 : fs < 0.999, A = side[front ? 0 : 1], et = this.hubET(D, S, front), q = (x, y, zz) => P(f, -sd * (x - et), y, zz), qn = (x, y, zz) => P(f, -sd * x, y, zz), qb = (x, y, zz) => P('b', sd * x, y, zz); // (q: on the hub and upright, out by the wheel's offset; qn: a solid axle's mounts, not)
       // (the corner: hub and bearing, disc on its hat, caliper; a truck's drum)
       const hw = bk ? (front ? bk.F : bk.R) : null, rd = Math.min(hw ? hw.d / 2 : rimR * 0.78, rimR - 0.022), dt = hw ? Math.max(0.012, hw.t) : 0.028, x1 = 0.034, x2 = x1 + dt, ri = Math.max(0.065, rd * 0.55);
       tube(q(0.012, 0, 0), q(x1 + 0.004, 0, 0), ri * 0.92, C.hat, { n: 12, spin: s }); // (the hat, on the hub's flange)
       // (a ventilated disc: its edge dark with the vanes between its faces; a solid one plain at its edge)
-      if (S.brkC || S.air) { tube(q(0.02, 0, 0), q(0.15, 0, 0), Math.min(rimR * 0.8, 0.21), C.drum, { n: 12, cap: true }); }
-      else ring(s, -sd * x1, -sd * x2, ri, rd, C.disc, C.groove, hw && hw.v ? C.vane : C.disc);
+      const drum = S.brakeKind ? S.brakeKind[front ? 0 : 1] === 'drum' : !!(S.brkC || S.air);
+      if (drum) { tube(q(0.02, 0, 0), q(0.15, 0, 0), Math.min(rimR * 0.8, 0.21), C.drum, { n: 12, cap: true }); }
+      else ring(s, -sd * (x1 - et), -sd * (x2 - et), ri, rd, C.disc, C.groove, hw && hw.v ? C.vane : C.disc);
       tube(q(x2 + 0.004, 0, 0), q(0.13, 0, 0), 0.062, C.up, { n: 8, cap: true }); // (the bearing's housing in the upright)
-      if (!(S.brkC || S.air)) { // the caliper: over the disc's trailing edge, a little above its middle, across the disc
+      if (!drum) { // the caliper: over the disc's trailing edge, a little above its middle, across the disc
         const ph = front ? 2.8 : 3.4, n = hw ? hw.n : 4, L = 0.07 + 0.017 * n, rc = rd - 0.022, ca = Math.cos(ph), sa = Math.sin(ph);
-        obox(f, [-sd * (x1 + dt / 2), rc * sa, rc * ca], [0, ca, -sa], [0, sa, ca], [dt / 2 + 0.026, L / 2, 0.026], C.cal); }
+        obox(f, [-sd * (x1 + dt / 2 - et), rc * sa, rc * ca], [0, ca, -sa], [0, sa, ca], [dt / 2 + 0.026, L / 2, 0.026], C.cal); }
       // the upright, and what it hangs from
-      const LBJ = q(0.11, -0.14, 0); let arm = null; // (the lower ball joint; arm: a point on the lower arm, for the anti-roll bar)
+      // (a strut's lower joint: as far out as the disc leaves it, but in far enough that its axis - up to the top mount -
+      // leans no more than 15 degrees, and that the strut's body passes the tyre's inner wall 12 mm clear where the
+      // rubber starts, at the rim: a wide tyre's strut stands further in, with more scrub)
+      const tp = ty === 'strut' ? topAt(i, x0, z) : null, tyh = D.tyreHalf ? D.tyreHalf[front ? 0 : 1] : (S.tyres ? S.tyres[front ? 0 : 1] / 2000 : 0.1); let lbx = 0.11;
+      if (tp) { const tin = ht - Math.abs(tp[0]), dy = tp[1] - w.piv.position.y + 0.14, f = (rimR + 0.012 + 0.14) / dy;
+        lbx = Math.max(0.11, et + tin - dy * Math.tan(15 * Math.PI / 180), f < 1 ? et + (tyh + 0.042 - f * tin) / (1 - f) : 0.11); }
+      // (a front kingpin leans back by the car's caster, through the wheel's middle: its lower joint ahead, its top behind)
+      const tc = front ? Math.tan((K.sp.caster || 0) * Math.PI / 180) : 0, ly = -Math.min(0.15, rimR - 0.045);
+      const LBJ = ty === 'wishbone' || ty === 'multi' ? q(0.075, ly, -ly * tc) : q(lbx, -0.14, 0.14 * tc); let arm = null; // (the lower ball joint; arm: a point on the lower arm, for the anti-roll bar)
       if (ty === 'strut') {
-        const top = P('b', ...topAt(i, x0, z)), clamp = q(0.135, 0.13, 0), dTop = along(clamp, top, 0.3), seat = along(clamp, top, 0.16);
-        tube(q(0.12, -0.14, 0), q(0.13, 0.15, 0), 0.026, C.up); // (the knuckle: from its ball joint up to the strut's clamp)
-        tube(clamp, dTop, 0.03, C.damp, { n: 8 }); tube(dTop, top, 0.011, C.rod); // (the damper's body and its rod)
-        tube(seat, along(seat, top, 0.012), 0.072, C.damp, { n: 8, cap: true }); coil(along(seat, top, 0.012), along(top, clamp, 0.03), 0.06, 0.009, 5, C.spring); // (its seat and spring)
-        tube(top, along(top, clamp, 0.03), 0.05, C.bush, { n: 8, cap: true }); // (the top mount)
+        const tq = topAt(i, x0, z), top = P('b', tq[0], tq[1], tq[2] - (tq[1] - w.piv.position.y) * tc), sc = onAxis(i, LBJ, top, 0.13); if (front) kpAxis(i, LBJ, top); // (the strut's clamp, on its axis)
+        tube(q(lbx + 0.01, -0.14, 0.14 * tc), sc, 0.026, C.up); // (the knuckle: from its ball joint up to the strut's clamp)
+        // (the spring's seat on the body: a little under halfway up, or higher where the tyre's shoulder is in its way)
+        const Lb = damper(sc, top, 0.03), tyH = (S.tyres ? S.tyres[front ? 0 : 1] : 205) / 2000, c0 = rig.wheels[i].piv.position; let dS = Math.max(0.03, Math.min(0.4 * Lb, Lb - 0.03));
+        for (; dS < Lb - 0.03; dS += 0.01) { const p = at(along(sc, top, dS), false); if (Math.abs(p[0] - c0.x) - 0.05 >= tyH + 0.008 || p[1] - c0.y >= R + 0.01 || span(along(sc, top, dS + 0.022), along(top, sc, 0.03), true) < 0.045) break; }
+        const seat = along(sc, top, dS);
+        if ((this.springs[S.id] || [])[front ? 0 : 1] !== 'torsion') { tube(seat, along(seat, top, 0.012), 0.05, C.damp, { n: 8, cap: true }); spring(along(seat, top, 0.012), along(top, sc, 0.03), 0.041, 0.0085, 5); } // (its seat and spring)
+        tube(top, along(top, sc, 0.03), 0.05, C.bush, { n: 8, cap: true }); // (the top mount)
         const sub = bay.sub && bay.sub[front ? 0 : 1], xi = sub ? sub.hx : Math.max(0.3, ht - 0.52), yi = sub ? (sub.y0 + sub.y1) / 2 : R - 0.17, lg = Math.max(0.06, Math.min(0.17, A.room - 0.05));
-        const pa = qb(xi, yi, z + A.d * lg), pb = qb(xi, yi, z - A.d * 0.2); tube(LBJ, pa, 0.017, C.arm); tube(LBJ, pb, 0.019, C.arm); tube(pa, along(pa, LBJ, 0.04), 0.03, C.bush); tube(pb, along(pb, LBJ, 0.05), 0.035, C.bush);
+        const pa = qb(xi, yi, z + A.d * lg), pb = qb(xi, yi, z - A.d * 0.2);
+        if ((this.springs[S.id] || [])[front ? 0 : 1] === 'torsion') { const pr = pa.p[2] < pb.p[2] ? pa : pb; tube(pr, P('b', pr.p[0], pr.p[1], pr.p[2] - 0.55), 0.012, C.bar); tube(P('b', pr.p[0], pr.p[1], pr.p[2] - 0.55), P('b', pr.p[0], pr.p[1], pr.p[2] - 0.6), 0.03, C.bush); } // (a torsion bar back to the body)
+        tube(LBJ, pa, 0.017, C.arm); tube(LBJ, pb, 0.019, C.arm); tube(pa, along(pa, LBJ, 0.04), 0.03, C.bush); tube(pb, along(pb, LBJ, 0.05), 0.035, C.bush);
         arm = mix(LBJ, mix(pa, pb, 0.5), 0.3);
       } else if (ty === 'wishbone') {
-        const UBJ = q(0.075, 0.19, 0); tube(LBJ, UBJ, 0.024, C.up); tube(q(0.11, 0.0, 0), q(0.075, 0.0, 0), 0.03, C.up);
+        // (the upright: its upper ball joint inside the rim's barrel, clear of it, as low as a small wheel needs)
+        const uy = Math.min(0.19, rimR - 0.045), UBJ = q(front ? 0.075 + (uy + Math.min(0.15, rimR - 0.045)) * Math.tan((K.sp.kpi || 10) * Math.PI / 180) : 0.09, uy, -uy * tc); tube(LBJ, UBJ, 0.024, C.up); tube(q(0.11, 0.0, 0), q(0.085, 0.0, 0), 0.03, C.up); if (front) kpAxis(i, LBJ, UBJ);
         // (the lower arm's bushes on the subframe's rails where there is one - its inner end then a little higher - else on
-        // the body; the upper arm's on the body, up inside the wheel arch)
-        const sub = bay.sub && bay.sub[front ? 0 : 1], xl = sub ? sub.hx : Math.max(0.28, ht - 0.44), xu = Math.max(0.3, ht - 0.26), yl = sub ? (sub.y0 + sub.y1) / 2 : R - 0.15, yu = R + 0.17;
-        const la = qb(xl, yl, z + 0.17), lb = qb(xl, yl, z - 0.17), ua = qb(xu, yu, z + 0.12), ub = qb(xu, yu, z - 0.12);
+        // the body; the upper arm's on the body, up inside the wheel arch, a little below its ball joint)
+        const kw = clamp(R / 0.31, 1, 1.6), sub = bay.sub && bay.sub[front ? 0 : 1], xl = sub ? sub.hx : Math.max(0.28, ht - 0.44 * kw), xu = Math.max(0.3, ht - 0.26 * kw), yl = sub ? (sub.y0 + sub.y1) / 2 : R - 0.15 * kw, yu = R + uy - 0.02;
+        const la = qb(xl, yl, z + 0.17 * kw), lb = qb(xl, yl, z - 0.17 * kw), ua = qb(xu, yu, z + 0.12 * kw), ub = qb(xu, yu, z - 0.12 * kw);
         for (const [a, b] of [[LBJ, la], [LBJ, lb], [UBJ, ua], [UBJ, ub]]) { tube(a, b, 0.016, C.arm); tube(b, along(b, a, 0.04), 0.028, C.bush); }
-        const foot = mix(LBJ, mix(la, lb, 0.5), 0.22), top = qb(Math.max(0.3, ht - 0.3), R + 0.4, z + 0.02);
-        tube(foot, along(foot, top, 0.24), 0.028, C.damp, { n: 8 }); tube(along(foot, top, 0.24), top, 0.011, C.rod); coil(along(foot, top, 0.07), along(top, foot, 0.03), 0.052, 0.008, 6, C.spring);
+        const foot = mix(LBJ, mix(la, lb, 0.5), 0.22), top = qb(Math.max(0.3, ht - 0.3 * kw), R + 0.4 * kw, z + 0.02);
+        damper(foot, top, 0.028); spring(along(foot, top, 0.07), along(top, foot, 0.03), 0.052, 0.008, 6);
+        if (!front && this.twinR[S.id]) { const f2 = mix(LBJ, lb, 0.3), t2 = qb(Math.max(0.3, ht - 0.3 * kw), R + 0.4 * kw, z - 0.13); damper(f2, t2, 0.028); spring(along(f2, t2, 0.07), along(t2, f2, 0.03), 0.048, 0.008, 6); } // (a second coil-over behind)
+        arm = foot;
+      } else if (ty === 'multi') {
+        // a multi-link rear: an upright as a wishbone's, two lower links in a vee to the subframe, an upper link across,
+        // a toe link behind, a trailing rod forward to the body, and a coil-over from the front lower link
+        const uy = Math.min(0.17, rimR - 0.045), UBJ = q(0.085, uy, 0); tube(LBJ, UBJ, 0.024, C.up); tube(q(0.11, 0.0, 0), q(0.085, 0.0, 0), 0.03, C.up);
+        const sub = bay.sub && bay.sub[1], xl = sub ? sub.hx : Math.max(0.28, ht - 0.44), yl = sub ? (sub.y0 + sub.y1) / 2 : R - 0.15, xu = Math.max(0.3, ht - 0.3), yu = R + uy - 0.03;
+        const la = qb(xl, yl, z + 0.15), lb = qb(xl, yl, z - 0.12), ua = qb(xu, yu, z + 0.03), ta = qb(xl, yl + 0.05, z - 0.21), tr = qb(Math.max(0.35, ht - 0.2), R - 0.04, z + 0.46);
+        for (const [a, b, r] of [[LBJ, la, 0.016], [q(0.1, -0.12, -0.07), lb, 0.016], [UBJ, ua, 0.015], [q(0.1, -0.03, -0.12), ta, 0.012], [q(0.14, -0.07, 0.06), tr, 0.017]]) { tube(a, b, r, C.arm); tube(b, along(b, a, 0.04), 0.026, C.bush); }
+        const foot = mix(LBJ, la, 0.3), top = qb(Math.max(0.3, ht - 0.28), R + 0.36, z - 0.02);
+        damper(foot, top, 0.028); spring(along(foot, top, 0.07), along(top, foot, 0.03), 0.054, 0.0085, 6);
         arm = foot;
       } else if (ty === 'semi') {
         const pi = qb(Math.max(0.24, ht - 0.62), R - 0.02, z + 0.3), po = qb(Math.max(0.4, ht - 0.3), R - 0.04, z + 0.38), h1 = q(0.13, -0.03, 0.07), h2 = q(0.13, -0.05, -0.07);
         tube(pi, h2, 0.03, C.arm); tube(po, h1, 0.03, C.arm); tube(pi, po, 0.022, C.arm); tube(h1, h2, 0.04, C.up); for (const p of [pi, po]) tube(p, along(p, h1, 0.05), 0.035, C.bush);
-        const sF = mix(h1, pi, 0.32), sT = qb(Math.max(0.3, ht - 0.42), R + 0.24, z + 0.14); tube(sF, along(sF, sT, 0.02), 0.07, C.damp, { n: 8, cap: true }); coil(along(sF, sT, 0.02), sT, 0.06, 0.009, 4.5, C.spring);
-        const dF = q(0.13, -0.06, -0.1), dT = qb(Math.max(0.3, ht - 0.24), R + 0.36, z - 0.06); tube(dF, along(dF, dT, 0.22), 0.026, C.damp, { n: 8 }); tube(along(dF, dT, 0.22), dT, 0.011, C.rod);
+        const sF = mix(h1, pi, 0.32), sT = qb(Math.max(0.3, ht - 0.42), R + 0.24, z + 0.14);
+        if ((this.springs[S.id] || [])[1] === 'torsion') tube(pi, P('b', 0, pi.p[1], pi.p[2]), 0.016, C.bar); // (a torsion bar across from the arm's pivot to the middle)
+        else { tube(sF, along(sF, sT, 0.02), 0.07, C.damp, { n: 8, cap: true }); spring(along(sF, sT, 0.02), sT, 0.06, 0.009, 4.5); }
+        const dF = q(0.13, -0.06, -0.1), dT = qb(Math.max(0.3, ht - 0.24), R + 0.36, z - 0.06); damper(dF, dT, 0.026);
         arm = sF;
       } else if (ty === 'trailing' || ty === 'twist') {
-        const hc = q(0.12, -0.02, 0), pv = qb(Math.max(0.3, ht - 0.2), R - 0.05, z + 0.44); tube(hc, pv, 0.034, C.arm); tube(pv, along(pv, hc, 0.06), 0.045, C.bush); tube(q(0.12, -0.05, 0.06), q(0.12, 0.05, -0.04), 0.04, C.up);
-        const dF = q(0.13, -0.05, -0.07), dT = qb(Math.max(0.3, ht - 0.18), R + 0.3, z - 0.1); tube(dF, along(dF, dT, 0.2), 0.026, C.damp, { n: 8 }); tube(along(dF, dT, 0.2), dT, 0.011, C.rod);
-        if (ty === 'twist') { const sF = mix(hc, pv, 0.22), sT = qb(Math.max(0.3, ht - 0.24), R + 0.2, z + 0.06); coil(sF, sT, 0.055, 0.009, 4.5, C.spring); }
+        const hc = qn(0.12, -0.02, 0), pv = qb(Math.max(0.3, ht - 0.2), R - 0.05, z + 0.44); tube(hc, pv, 0.034, C.arm); tube(pv, along(pv, hc, 0.06), 0.045, C.bush); tube(qn(0.12, -0.05, 0.06), qn(0.12, 0.05, -0.04), 0.04, C.up);
+        const dF = qn(0.13, -0.05, -0.07), dT = qb(Math.max(0.3, ht - 0.18), R + 0.3, z - 0.1); damper(dF, dT, 0.026);
+        if (ty === 'twist') { const sF = mix(hc, pv, 0.22), sT = qb(Math.max(0.3, ht - 0.24), R + 0.2, z + 0.06); spring(sF, sT, 0.055, 0.009, 4.5); }
         mp[i] = { hc, pv }; arm = mix(hc, pv, 0.5);
       } else if (solid) {
         // (a solid axle: built once, from the first of its two wheels; each wheel's end of it here)
         const e = q(0.12, 0, 0); mp[i] = { e, sd };
-        if (ty === 'leaf') { const fwd = qb(Math.max(0.3, ht - 0.24), R + 0.02, z + 0.62), bk2 = qb(Math.max(0.3, ht - 0.24), R + 0.06, z - 0.62), seat = q(0.24, 0.06, 0);
+        if (ty === 'leaf') { const fwd = qb(Math.max(0.3, ht - 0.24), R + 0.02, z + 0.62), bk2 = qb(Math.max(0.3, ht - 0.24), R + 0.06, z - 0.62), seat = qn(0.24, 0.06, 0);
           for (let l = 0; l < 3; l++) { const dy = -0.016 * l, sh = 1 - 0.28 * l, a = mix(seat, fwd, sh), b = mix(seat, bk2, sh); tube(a, seat, 0.011, C.leaf, { n: 4, dy }); tube(seat, b, 0.011, C.leaf, { n: 4, dy }); }
           tube(bk2, P('b', sd * Math.max(0.3, ht - 0.24), R + 0.16, z - 0.66), 0.012, C.arm); tube(fwd, along(fwd, seat, 0.05), 0.03, C.bush);
-          const dF = q(0.3, -0.04, 0.08), dT = qb(Math.max(0.3, ht - 0.36), R + 0.34, z + 0.22); tube(dF, along(dF, dT, 0.2), 0.026, C.damp, { n: 8 }); tube(along(dF, dT, 0.2), dT, 0.011, C.rod);
+          const dF = qn(0.3, -0.04, 0.08), dT = qb(Math.max(0.3, ht - 0.36), R + 0.34, z + 0.22); damper(dF, dT, 0.026);
         } else {
-          const lf = q(0.3, -0.08, 0), lb = qb(Math.max(0.3, ht - 0.32), R - 0.12, z + 0.56); tube(lf, lb, 0.018, C.arm); tube(lb, along(lb, lf, 0.05), 0.03, C.bush);
-          const sF = q(0.24, 0.05, -0.06), sT = qb(Math.max(0.3, ht - 0.24), R + 0.38, z - 0.06); tube(sF, along(sF, sT, 0.2), 0.028, C.damp, { n: 8 }); tube(along(sF, sT, 0.2), sT, 0.011, C.rod); coil(along(sF, sT, 0.05), along(sT, sF, 0.03), 0.055, 0.009, 5.5, C.spring);
+          const lf = qn(0.3, -0.08, 0), lb = qb(Math.max(0.3, ht - 0.32), R - 0.12, z + 0.56); tube(lf, lb, 0.018, C.arm); tube(lb, along(lb, lf, 0.05), 0.03, C.bush);
+          const sF = qn(0.24, 0.05, -0.06), sT = qb(Math.max(0.3, ht - 0.24), R + 0.38, z - 0.06); damper(sF, sT, 0.028); spring(along(sF, sT, 0.05), along(sT, sF, 0.03), 0.055, 0.009, 5.5);
         }
       }
       // (a front wheel's track rod: from the steering rack's end out to the arm on the upright, which turns with the wheel)
-      if (front && !solid) { const ra = q(0.14, -0.04, A.sR * A.zr), rk = qb(Math.max(0.28, ht - 0.5), A.yr, z + A.sR * A.zr); tube(ra, rk, 0.013, C.arm); tube(q(0.12, -0.04, 0), ra, 0.016, C.up); cone(rk, along(rk, ra, 0.09), 0.03, 0.016, C.boot); }
+      if (front && !solid) { const ra = q(0.14, -0.04, A.sR * A.zr), rk = P('r', sd * Math.max(0.28, ht - 0.5), A.yr, A.zk); tube(ra, along(ra, rk, span(ra, rk, false) - 0.035), 0.013, C.arm); tube(q(0.12, -0.04, 0), ra, 0.016, C.up); cone(rk, along(rk, ra, 0.09), 0.03, 0.016, C.boot);
+        rack.arm[i] = ra.p.slice(); }
       // (the anti-roll bar's drop link: from the bar's end down to the lower arm)
-      if (!solid && arm) tube(qb(A.xb - 0.02, A.yb, A.ze), arm, 0.01, C.bar);
+      if (!solid && arm) { const lv = lever(qb(A.xb - 0.02, A.yb, A.zb), (A.zeS ? A.zeS[sd > 0 ? 0 : 1] : A.ze) - A.zb, arm); tube(qb(A.xb, A.yb, A.zb), lv, 0.012, C.bar); tube(lv, arm, 0.01, C.bar); }
       // (the driveshaft, out from the diff's output - or the gearbox's - to the hub, its joints in their boots)
       if (driven && !solid) { const dd = drv[front ? 'f' : 'r']; const xI = dd ? dd.x : 0.2, yI = dd ? dd.y : R - 0.03, zI = dd ? dd.z : z;
-        const I0 = qb(xI, yI, zI), I1 = qb(xI + 0.07, yI, zI), O1 = P(s, -sd * 0.2, 0, 0), O0 = P(s, -sd * 0.135, 0, 0);
+        const I0 = qb(xI, yI, zI), I1 = qb(xI + 0.07, yI, zI), O1 = front ? (w.kp ? P(f, w.kp.o[0], 0, w.kp.o[2]) : P(f, -sd * (KP_X - et), 0, 0)) : P(s, -sd * (0.2 - et), 0, 0), O0 = P(s, -sd * ((front ? 0.07 : 0.135) - et), 0, 0);
         tube(I0, I1, 0.048, C.shaft, { n: 8, cap: true }); cone(I1, along(I1, O1, 0.1), 0.044, 0.017, C.boot); tube(along(I1, O1, 0.1), along(O1, I1, 0.09), 0.015, C.shaft, { spin: s });
         cone(along(O1, I1, 0.09), O1, 0.017, 0.048, C.boot); tube(O1, O0, 0.052, C.shaft, { n: 8, spin: s, cap: true }); }
     }
     // each axle: the rack across behind (or ahead of) a steered one, an independent one's anti-roll bar; a solid axle's
     // tube, its links, its Panhard rod - and a live axle's diff in the middle
-    for (const ai of [0, 1]) {
+    for (const ai of (S.tandem ? [] : [0, 1])) {
       const i0 = 2 * ai, i1 = i0 + 1, ty = T[ai], solid = ty === 'live' || ty === 'beam' || ty === 'leaf', A = side[ai], xa = A.xa, z = A.z, m0 = mp[i0], m1 = mp[i1];
-      if (ai === 0 && !solid) { const xr = Math.max(0.28, xa - 0.5), zr = z + A.sR * A.zr, a = P('b', xr, A.yr, zr), b = P('b', -xr, A.yr, zr);
-        tube(a, b, 0.024, C.damp); for (const e of [a, b]) cone(e, along(e, mix(a, b, 0.5), 0.12), 0.03, 0.022, C.boot); }
-      if (!solid) { const xb = A.xb, y = A.yb; tube(P('b', xb, y, A.zb), P('b', -xb, y, A.zb), 0.012, C.bar);
-        for (const sd of [1, -1]) tube(P('b', sd * xb, y, A.zb), P('b', sd * (xb - 0.02), y, A.ze), 0.012, C.bar); }
+      if (ai === 0 && !solid) { const xr = Math.max(0.28, xa - 0.5), zr = A.zk, a = P('b', xr - 0.12, A.yr, zr), b = P('b', -xr + 0.12, A.yr, zr), ra = P('r', xr, A.yr, zr), rb = P('r', -xr, A.yr, zr);
+        tube(a, b, 0.024, C.damp); tube(ra, rb, 0.012, C.rod); for (const e of [ra, rb]) cone(e, along(e, mix(ra, rb, 0.5), 0.13), 0.03, 0.022, C.boot); }
+      if (!solid) { const xb = A.xb, y = A.yb; if (A.drop == null) tube(P('b', xb, y, A.zb), P('b', -xb, y, A.zb), 0.012, C.bar);
+        else { const yd = A.drop; for (const sd of [1, -1]) tube(P('b', sd * xb, y, A.zb), P('b', sd * xb, yd, A.zb), 0.012, C.bar); tube(P('b', xb, yd, A.zb), P('b', -xb, yd, A.zb), 0.012, C.bar); } }
+      if (solid && m0 && m1 && (ai ? K.karbR : K.karbF) > 0 && ty !== 'beam') { const xb = Math.max(0.3, xa - 0.42), y = R + 0.1, zb = z - 0.26 * (ai ? 1 : -1);
+        tube(P('b', xb, y, zb), P('b', -xb, y, zb), 0.012, C.bar);
+        for (const [mm, k] of [[m0, 0.1], [m1, 0.9]]) { const am = mix(m0.e, m1.e, k), sd = mm.sd, lv = lever(P('b', sd * (xb - 0.02), y, zb), (ai ? 0.17 : -0.17), am); tube(P('b', sd * xb, y, zb), lv, 0.012, C.bar); tube(lv, am, 0.01, C.bar); } }
       if (ty === 'twist' && m0 && m1) tube(mix(m0.hc, m0.pv, 0.62), mix(m1.hc, m1.pv, 0.62), 0.036, C.axle, { n: 6 });
       if (ty === 'trailing' && m0 && m1) tube(m0.pv, m1.pv, 0.016, C.bar); // (the torsion bars across, between the arms' pivots)
       if (solid && m0 && m1) {
@@ -12953,7 +13259,7 @@ const MechParts = {
     }
     // the propshaft: from the gearbox's tail down the tunnel, on its centre bearing, into the diff's nose (bay.prop; to a
     // live axle's nose, which moves with the axle)
-    const pr = bay.prop; let prop = null;
+    const pr = S.tandem ? null : bay.prop; let prop = tprop;
     if (pr) { const ai = pr.r ? 1 : 0, end = M_nose[ai] || (pr.b ? P('b', ...pr.b) : null);
       if (end) { const a = P('b', ...pr.a), m = P('b', 0, pr.ym, pr.zm); prop = ai;
         tube(a, along(a, m, 0.06), 0.045, C.shaft, { n: 4, spin: 'prop' }); tube(along(a, m, 0.06), m, 0.033, C.shaft, { spin: 'prop' }); tube(along(m, end, -0.03), along(m, end, 0.03), 0.05, C.bush, { n: 8, cap: true });
@@ -12965,7 +13271,8 @@ const MechParts = {
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.4, 0), 3.4);
     const mat = this.mat || (this.mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })), mesh = new THREE.Mesh(g, mat); mesh.name = 'RunningGear'; mesh.castShadow = false; mesh.receiveShadow = true;
-    const M = { mesh, P: parts, nv, prop, fd: S.final, ver: -1, B: new THREE.Matrix4(), W: [0, 1, 2, 3].map(() => new THREE.Matrix4()), Sp: [0, 1, 2, 3].map(() => new THREE.Matrix4()), r: new THREE.Matrix4(), v: new THREE.Vector3(), cam: new THREE.Vector3() };
+    const M = { mesh, P: parts, nv, prop, fd: S.final, ver: -1, B: new THREE.Matrix4(), W: [0, 1, 2, 3].map(() => new THREE.Matrix4()), Sp: [0, 1, 2, 3].map(() => new THREE.Matrix4()), r: new THREE.Matrix4(), v: new THREE.Vector3(), cam: new THREE.Vector3(),
+      Rk: new THREE.Matrix4(), rack: { arm: rack.arm, x0: [0, 1].map(i => rig.wheels[i].piv.position.x) }, A: [0, 1, 2, 3].map(() => new THREE.Matrix4()), G: [0, 1, 2, 3].map(() => new THREE.Matrix4()), H: [0, 1, 2, 3].map(() => new THREE.Matrix4()) };
     mesh.onBeforeRender = (renderer, scene, camera) => this.sync(rig, M, camera);
     rig.root.add(mesh); this.sync(rig, M, null); return M;
   },
@@ -12985,13 +13292,24 @@ const MechParts = {
     if (camera) { rig.root.getWorldPosition(M.v); if (M.v.distanceToSquared(camera.getWorldPosition(M.cam)) > MECH.near * MECH.near && M.ver >= 0) return; const fr = typeof renderer !== 'undefined' && renderer.info ? renderer.info.render.frame : -1; if (fr >= 0 && fr === M.fr) return; M.fr = fr; }
     const V = ++M.ver; rig.tilt.updateMatrix(); rig.body.updateMatrix(); M.B.multiplyMatrices(rig.tilt.matrix, rig.body.matrix);
     for (let i = 0; i < 4; i++) { const pv = rig.wheels[i].piv; pv.updateMatrix(); M.W[i].copy(pv.matrix); M.Sp[i].multiplyMatrices(pv.matrix, M.r.makeRotationX(rig.wheels[i].w.rotation.x)); }
+    // (the rack slides across as far as the steering arms' ends have gone across, on the mean of the two wheels)
+    { let dx = 0, n = 0; for (let i = 0; i < 2; i++) { const a = M.rack.arm[i]; if (!a) continue; const m = M.W[i].elements; dx += m[0] * a[0] + m[4] * a[1] + m[8] * a[2] + m[12] - M.rack.x0[i] - a[0]; n++; }
+      M.Rk.copy(M.B); if (n) M.Rk.multiply(M.r.makeTranslation(dx / n, 0, 0)); }
+    // (a beam axle's own frame: its wheel's, less the turn on the kingpin; a bogie's front and rear wheels, on its beam)
+    for (let i = 0; i < 4; i++) { const W0 = rig.wheels[i], pv = W0.piv, d = W0.kpd;
+      M.A[i].makeRotationZ(pv.rotation.z); M.A[i].setPosition(pv.position.x - (d ? d[0] : 0), pv.position.y - (d ? d[1] : 0), pv.position.z - (d ? d[2] : 0));
+      if (W0.beam) { W0.beam.updateMatrix(); M.G[i].multiplyMatrices(pv.matrix, W0.beam.matrix).multiply(M.r.makeTranslation(0, 0, W0.td)); M.H[i].multiplyMatrices(pv.matrix, W0.beam.matrix).multiply(M.r.makeTranslation(0, 0, -W0.td)); } }
     // (the propshaft's turn: its axle's wheels' at the final drive's ratio)
     const pa = M.prop == null ? 0 : (rig.wheels[2 * M.prop].w.rotation.x + rig.wheels[2 * M.prop + 1].w.rotation.x) / 2 * M.fd;
-    const g = M.mesh.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, fm = f => f === 'b' ? M.B : f[0] === 's' ? M.Sp[+f[1]] : M.W[+f[1]];
+    const g = M.mesh.geometry, pos = g.attributes.position.array, nor = g.attributes.normal.array, fm = f => f === 'b' ? M.B : f === 'r' ? M.Rk : f[0] === 's' ? M.Sp[+f[1]] : f[0] === 'a' ? M.A[+f[1]] : f[0] === 'g' ? M.G[+f[1]] : f[0] === 'h' ? M.H[+f[1]] : M.W[+f[1]];
     // (a point, worked out once a frame however many parts share it)
     const pt = e => { if (e._v === V) return e.v; const o = e.v || (e.v = [0, 0, 0]); e._v = V;
       if (e.f) { const m = fm(e.f).elements, x = e.p[0], y = e.p[1], z = e.p[2]; o[0] = m[0] * x + m[4] * y + m[8] * z + m[12]; o[1] = m[1] * x + m[5] * y + m[9] * z + m[13]; o[2] = m[2] * x + m[6] * y + m[10] * z + m[14]; }
       else if (e.m) { const a = pt(e.m[0]), b = pt(e.m[1]); for (let k = 0; k < 3; k++) o[k] = a[k] + (b[k] - a[k]) * e.t; }
+      else if (e.dl) { // (an anti-roll bar lever's end: turned about the bar until its drop link to the arm is its own length)
+        const [pv, L, s, am, Ld] = e.dl, p = pt(pv), a = pt(am), dy = a[1] - p[1], dz = a[2] - p[2], dx = a[0] - p[0], r = Math.hypot(dy, dz) || 1e-6, c = (L * L + dx * dx + dy * dy + dz * dz - Ld * Ld) / (2 * L);
+        const th = Math.atan2(dy, s * dz), ac = Math.acos(clamp(c / r, -1, 1)), f1 = th - ac, f2 = th + ac, ph = Math.abs(f1) < Math.abs(f2) ? f1 : f2;
+        o[0] = p[0]; o[1] = p[1] + L * Math.sin(ph); o[2] = p[2] + s * L * Math.cos(ph); }
       else { const a = pt(e.l[0]), b = pt(e.l[1]), dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz) || 1; o[0] = a[0] + dx / L * e.d; o[1] = a[1] + dy / L * e.d; o[2] = a[2] + dz / L * e.d; }
       return o; };
     let o = 0;
@@ -13279,7 +13597,11 @@ class RallyCarKit {
     const sqCh = 0.13 * Ra / 0.39;
     // (wheelArch.cyR: the rear openings' centre height, where they sit lower or higher than the front ones: every height of a
     // rear opening moves by the difference, its feet staying on the sill)
-    const dY = ai => ai === 1 && AR && AR.cyR != null ? AR.cyR - cyA : 0;
+    // (and every opening raised as far as its tyre needs at the suspension's solid stop - the wheel up by its travel to the
+    // bump stop and through the stop's rubber - with 15 mm over it: a gravel car's tall arches)
+    const KA = carSetup(S), archLift = [0, 1].map(ai => { const G = KA.W[ai * 2], fl = Array.isArray(D.flare) ? D.flare[ai] : D.flare, c0 = ai === 1 && AR && AR.cyR != null ? AR.cyR - cyA : 0;
+      const top = c0 + (fl === 'box' || fl === 'squared' ? boxTop : cyA + Ra), need = 2 * R + (G ? G.travel : 0.13) + STOP_RUBBER + 0.015; return Math.max(0, need - top); });
+    const dY = ai => (ai === 1 && AR && AR.cyR != null ? AR.cyR - cyA : 0) + archLift[ai];
     // (flare: one shape for all four openings, or [front, rear])
     const flareOf = ai => Array.isArray(D.flare) ? D.flare[ai] : D.flare;
     const archAt = z => { for (let ai = 0; ai < 2; ai++) { const z0 = axles[ai][0], dz = Math.abs(z - z0), fl = flareOf(ai), d = dY(ai); if (dz <= Ra + 1e-9) { if (fl === 'box') return d + (dz <= Ra - boxCh ? boxTop : ckLerp(boxTop, boxLeg, (dz - (Ra - boxCh)) / boxCh));
@@ -13522,6 +13844,19 @@ class RallyCarKit {
     // half-width (just inside the liners), its floor and the raised floor outboard of it at each station; where the floor
     // does not rise, its walls have no height
     const tunX = (z, P) => Math.min((z > (axles[0][0] + axles[1][0]) / 2 ? axles[0][1] : axles[1][1]) / 2 - 0.172, P[1][0] - 0.03);
+    // each front wheel's well: how far in from the wheel's middle its tyre sweeps as it turns to full lock about its
+    // kingpin (a strut's 10 to 13 cm in at the hub, a wishbone's 6 to 9, a beam axle's 20: see MechParts) - the inner wheel's lock swinging its
+    // tyre's back in, the outer wheel's its front - at the height of its middle, with 15 mm over that. The liners, the
+    // floor's channel walls and the inner wings stand no further out along the well, and nothing in the bay reaches past
+    // them (wellX(z): the half-width left at z, 9 clear of the wells; wellOn: whether z0 to z1 crosses a front well)
+    const wellX = (() => { const z0 = axles[0][0], tr = axles[0][1], h = D.tyreHalf ? D.tyreHalf[0] : (S.tyres ? S.tyres[0] / 2000 : 0.1), ft = (S.suspT || ['strut'])[0];
+      const et = MechParts.hubET(D, S, true), o = ft === 'strut' ? 0.145 - et + Math.max(0, h - 0.11) * 1.5 : /^(beam|live|leaf)$/.test(ft) ? 0.2 : 0.1 - et, K = carSetup(S), t = Math.tan(S.lock || 0.5), hT = K.twF * (K.sp.ack != null ? K.sp.ack : 0.6);
+      const di = Math.atan(S.wb * t / Math.max(0.2, S.wb - hT * t)), dO = Math.atan(S.wb * t / (S.wb + hT * t)), M = Math.ceil((R + h + o) / 0.01) + 2, N = 2 * M + 1, env = new Float64Array(N);
+      const put = (u, z) => { const k = Math.round(z / 0.01) + M; if (k >= 0 && k < N && u > env[k]) env[k] = u; };
+      for (let a = 0; a <= 48; a++) { const th = -dO + (di + dO) * a / 48, c = Math.cos(th), s = Math.sin(th);
+        for (let e = 0; e <= 60; e++) { const f = e / 60; for (const [u, z] of [[h, R * (2 * f - 1)], [h * (2 * f - 1), -R], [h * (2 * f - 1), R]]) put(o + (u - o) * c - z * s, (u - o) * s + z * c); } }
+      return z => { const k = Math.round((z - z0) / 0.01) + M; if (k < 1 || k > N - 2) return 9; const u = Math.max(env[k - 1], env[k], env[k + 1]); return u > 0 ? tr / 2 - u - 0.015 : 9; }; })();
+    const wellL = R + 0.32, wellOn = (za, zb) => za > axles[0][0] - wellL && zb < axles[0][0] + wellL, wellZs = []; for (let k = -Math.ceil(wellL / 0.03); k * 0.03 <= wellL; k++) wellZs.push(axles[0][0] + k * 0.03);
     const tun = st.map((z, i) => { const P = prof[i]; return { x: tunX(z, P), lo: Math.min(lowAt(z).f, P[1][1]), up: P[1][1] }; });
     // over a solid rear axle the channel's floor is raised, as a real car's is: a recess from 0.3 ahead of the axle to
     // 0.3 behind it, its roof 0.16 over the wheels' centres (the axle rises with its wheels) and well under the belt;
@@ -13599,10 +13934,15 @@ class RallyCarKit {
         sq(sink, pA(c, 1), pB(c, 1), pB(c + 1, 1), pA(c + 1, 1), kk); sq(sink, pA(c, -1), pA(c + 1, -1), pB(c + 1, -1), pB(c, -1), kk);
       }
       { const fl = (T, P, z) => [[-P[1][0], T.up], [-T.x, T.up], [-T.x, T.lo], [T.x, T.lo], [T.x, T.up], [P[1][0], T.up]].map(q => [q[0], q[1], z]); // the floor across, and its channel
+        if (wellOn(zA, zB) && !kick.some(q => zA > q.z1 && zB < q.z0)) { // (by a front well: in steps, the channel's walls in to clear the tyre at full lock)
+          const n = Math.max(1, Math.ceil((zA - zB) / 0.03)), Tq = t => { const z = zA + (zB - zA) * t, T0 = tun[i], T1 = tun[i + 1];
+            return fl({ x: Math.min(ckLerp(T0.x, T1.x, t), wellX(z)), lo: ckLerp(T0.lo, T1.lo, t), up: ckLerp(T0.up, T1.up, t) }, [null, [ckLerp(PA[1][0], PB[1][0], t)]], z); };
+          for (let q = 0; q < n; q++) { const FA = Tq(q / n), FB = Tq((q + 1) / n); for (let j = 0; j < 5; j++) body.quad(FA[j], FB[j], FB[j + 1], FA[j + 1], C.dark); }
+        } else {
         const FA = fl(tun[i], PA, zA), FB = fl(tun[i + 1], PB, zB); for (let j = 0; j < 5; j++) if (j !== 2) body.quad(FA[j], FB[j], FB[j + 1], FA[j + 1], C.dark);
         // (the channel's floor, less where it is raised over an axle)
         const cut = [zA, ...kick.flatMap(q => [q.z0, q.z1]).filter(z => z < zA && z > zB), zB].sort((x, y) => y - x), on = (Q, Q2, z) => { const t = (zA - z) / ((zA - zB) || 1); return [Q[0] + (Q2[0] - Q[0]) * t, Q[1] + (Q2[1] - Q[1]) * t, z]; };
-        for (let j = 0; j < cut.length - 1; j++) { const za = cut[j], zb = cut[j + 1]; if (inKick((za + zb) / 2)) continue; body.quad(on(FA[2], FB[2], za), on(FA[2], FB[2], zb), on(FA[3], FB[3], zb), on(FA[3], FB[3], za), C.dark); } }
+        for (let j = 0; j < cut.length - 1; j++) { const za = cut[j], zb = cut[j + 1]; if (inKick((za + zb) / 2)) continue; body.quad(on(FA[2], FB[2], za), on(FA[2], FB[2], zb), on(FA[3], FB[3], zb), on(FA[3], FB[3], za), C.dark); } } }
       const topSink = k === 'ws' || k === 'rw' ? glass : body; // centre stripe or glass, straight across
       if (!openRoof(k, zA, zB)) topSink.quad(pA(10, 1), pB(10, 1), pB(10, -1), pA(10, -1), topSink === glass ? K0 : k === 'roof' ? C.roof : C.hood);
     }
@@ -13644,7 +13984,11 @@ class RallyCarKit {
       mir(sd => {
         ckFlare(body, path, D.flareD || 0.1, xIn, xOut, sd, C.base);
         trim.begin('liner', [0, 0.5, z0], false); const ctr = [sd * xl, yL, z0]; const pts = [[z0 + Ra, yL]].concat(path, [[z0 - Ra, yL]]);
-        for (let k = 0; k < pts.length - 1; k++) trim.tri(ctr, [sd * xl, pts[k][1], pts[k][0]], [sd * xl, pts[k + 1][1], pts[k + 1][0]], K0); trim.end();
+        if (ai === 0) { const xq = z => sd * Math.min(xl, wellX(z) + 0.012); // (a front wheel's: in upright strips, each as far in as the tyre needs at full lock)
+          for (let k = 0; k < pts.length - 1; k++) { const [za, ya] = pts[k], [zb, yb] = pts[k + 1], n = Math.max(1, Math.ceil(Math.abs(za - zb) / 0.03));
+            for (let q = 0; q < n; q++) { const a = ckLerp(za, zb, q / n), b = ckLerp(za, zb, (q + 1) / n), ay = ckLerp(ya, yb, q / n), by = ckLerp(ya, yb, (q + 1) / n);
+              trim.quad([xq(a), yL, a], [xq(a), ay, a], [xq(b), by, b], [xq(b), yL, b], K0); } } }
+        else for (let k = 0; k < pts.length - 1; k++) trim.tri(ctr, [sd * xl, pts[k][1], pts[k][0]], [sd * xl, pts[k + 1][1], pts[k + 1][0]], K0); trim.end();
         if (D.mudflaps && typeof D.mudflaps === 'object') { // a design's own flaps: { w, y0, y1, gap behind the opening, color (a livery colour, drawn on the body) }
           const M = D.mudflaps, fs = M.color ? body : trim, fx = Math.min(tr / 2, M.xMax != null ? M.xMax - M.w / 2 : 9); // (xMax: its outer edge kept inside the body)
           fs.tag = 'flap'; ckBox(fs, [sd * fx, (M.y0 + M.y1) / 2, z0 - Ra - (M.gap != null ? M.gap : 0.06)], [M.w, M.y1 - M.y0, 0.012], M.color ? C[M.color] : K0); fs.tag = ''; }
@@ -14333,7 +14677,8 @@ class RallyCarKit {
         const bayFloor = (hx, z0, z1) => { let m = -9; for (const z of zIn(z0, z1)) { const P = lowerAt(z).P; m = Math.max(m, hx < tunX(z, P) ? lowAt(z).f : P[1][1]); } return m; };
         // (the floor under something stowed in a bay: raised where it crosses the recess over an axle)
         const stowFloor = (hx, z0, z1) => { let m = bayFloor(hx, z0, z1); for (const q of kick) if (z0 > q.z1 && z1 < q.z0) m = Math.max(m, q.y); return m; };
-        const reach = (z0, z1) => { let m = 9; for (const z of zIn(z0, z1)) { const P = lowerAt(z).P; m = Math.min(m, archAt(z) != null ? tunX(z, P) - 0.03 : Math.min(P[2][0], P[6][0]) - 0.06); } return m; };
+        const reach = (z0, z1) => { let m = 9; for (const z of zIn(z0, z1)) { const P = lowerAt(z).P; m = Math.min(m, archAt(z) != null ? tunX(z, P) - 0.03 : Math.min(P[2][0], P[6][0]) - 0.06); }
+          if (wellOn(z0, z1)) for (let z = z1; z <= z0 + 1e-9; z += 0.02) m = Math.min(m, wellX(z) - 0.03); return m; };
         const bx = (x0, x1, y0, y1, z0, z1, k, rot) => { if (x1 - x0 > 0.01 && y1 - y0 > 0.01 && z0 - z1 > 0.01) ckBox(body, [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], [x1 - x0, y1 - y0, z0 - z1], k, rot); };
         // the engine's size: along its crank (L), its block's width (W), and how far its intake (vI) and exhaust (vE) sides reach
         const L = eKind === 'flat' ? 0.05 * nCyl + 0.24 : eKind === 'vee' ? 0.045 * nCyl + 0.28 : 0.1 * nCyl + 0.14, W = eKind === 'flat' ? 0.68 : eKind === 'vee' ? 0.52 : 0.26;
@@ -14380,14 +14725,14 @@ class RallyCarKit {
         };
         // the inner wings from zA back to zB: just inside the liners (and the body's sides), from the floor up to a flange
         // out under the wing tops, just past the edge of the panel over the bay
-        const xaOf = z => { const P = lowerAt(z).P; return Math.min(tunX(z, P) - 0.025, Math.min(P[2][0], P[6][0]) - 0.05); };
-        const apron = (zA, zB) => { const zs = [zA, ...st.filter(z => z < zA - 0.01 && z > zB + 0.01), zB];
+        const xaOf = z => { const P = lowerAt(z).P; return Math.min(tunX(z, P) - 0.025, Math.min(P[2][0], P[6][0]) - 0.05, wellX(z) - 0.025); };
+        const apron = (zA, zB) => { const zs = [zA, ...st.concat(wellZs).filter(z => z < zA - 0.01 && z > zB + 0.01).sort((a, b) => b - a), zB];
           const sec = z => { const P = profileAt(z), xa = xaOf(z), xo = Math.max(xa + 0.01, P[9][0] + 0.02), yT = topAtX(z, xo) - 0.02, yM = Math.max(lowAt(z).f + 0.1, yT - 0.05 - 0.5 * (xo - xa)); return [[xa, lowAt(z).f + 0.012], [xa, yM], [xo, yT]]; };
           mir(sd => { body.begin('panel', null, false, true); for (let i = 0; i < zs.length - 1; i++) { const a = sec(zs[i]), b = sec(zs[i + 1]);
             for (let j = 0; j < 2; j++) body.quad([sd * a[j][0], a[j][1], zs[i]], [sd * b[j][0], b[j][1], zs[i + 1]], [sd * b[j + 1][0], b[j + 1][1], zs[i + 1]], [sd * a[j + 1][0], a[j + 1][1], zs[i]], BC.wall); } body.end(); }); };
         // an axle's struts (see MechParts): each one's top, just inside the inner wing and under the panels there, and the
         // seat of its spring - low enough on a short strut that the spring keeps some length when the wheel rises
-        const strutAt = ai => { const z0 = axles[ai][0], T0 = archAt(z0); if (T0 == null) return null; const xt = xaOf(z0) - 0.03, yT = Math.min(topAtX(z0, xt + 0.075) - 0.06, T0 + 0.22);
+        const strutAt = ai => { const z0 = axles[ai][0], T0 = archAt(z0); if (T0 == null) return null; const xt = Math.min(xaOf(z0) - 0.03, axles[ai][1] / 2 - (D.tyreHalf ? D.tyreHalf[ai] : (S.tyres ? S.tyres[ai] / 2000 : 0.1)) - 0.1), yT = Math.min(topAtX(z0, xt + 0.075) - 0.06, T0 + 0.22);
           const seat = Math.max(0.2, Math.min(0.32, yT - 0.05 - R - 0.17)); return { z0, xt, yT, seat, yB: Math.min(T0 - 0.1, R + seat - 0.03) }; };
         // the strut towers over an axle, standing through the inner wings (most of each in the bay, the rest in the wheel
         // well, as a real one is the top of its well) from below the spring's seat, so the spring is inside one all the
@@ -14403,7 +14748,7 @@ class RallyCarKit {
           return { P: prof[i].map((p, k) => [ckLerp(p[0], prof[i + 1][k][0], t), ckLerp(p[1], prof[i + 1][k][1], t)]), tx: ckLerp(A.x, B.x, t), lo: ckLerp(A.lo, B.lo, t), up: ckLerp(A.up, B.up, t) }; };
         // a bulkhead across the body at z: its whole section, 2.5 cm in from the shell all round (and down into the channel),
         // or only up to yCap (a boot's, up to its shelf)
-        const bulkhead = (z, yCap) => { const { P, tx, lo, up } = secAt(z), half = P.slice(1, 12);
+        const bulkhead = (z, yCap) => { const { P, lo, up } = secAt(z), tx = Math.min(secAt(z).tx, wellX(z)), half = P.slice(1, 12);
           // (each corner moved in square to both its sides, so every edge stands 2.5 cm in from the shell's - but across the
           // top, from the shoulders over, only half a centimetre under the panels, so no gap over it shows from the cabin)
           const poly = half.map((p, i) => [p[0], p[1], i >= 5 ? 0.005 : 0.025]).concat(half.slice(0, 10).reverse().map((p, j) => [-p[0], p[1], 9 - j >= 5 ? 0.005 : 0.025]), [[-tx, up, 0.025], [-tx, lo, 0.025], [tx, lo, 0.025], [tx, up, 0.025]]);
@@ -14744,6 +15089,7 @@ class RallyCarKit {
       }
     };
     if (!ghost) rig.mech = MechParts.build(rig, S, D); // (the running gear between the body and the wheels: see MechParts)
+    rig.archLift = archLift; // (how far each axle's openings were raised for the wheels' travel)
     root.userData.carId = id; root.rig = rig;
     return rig;
   }
@@ -18189,9 +18535,7 @@ CK_PARTS.spTruck = (c, o) => {
   // the frame's rails, nose to tail, and its cross members
   mir(sd => ckBox(trim, [sd * 0.47, 0.93, A(3.14)], [0.09, 0.26, 8.22], K0));
   for (const d of [-0.45, 1.0, 2.1, 3.2, 4.3, 5.5, 6.6, 7.2]) ckBox(trim, [0, 0.92, A(d)], [0.86, 0.16, 0.08], K0);
-  // the leaf springs: the front axle's, and the bogie's over its trunnions
-  mir(sd => { ckBox(trim, [sd * 0.47, 0.72, A(0)], [0.08, 0.09, 1.3], K0); for (const dd of [-0.6, 0.6]) ckBox(trim, [sd * 0.47, 0.785, A(dd)], [0.06, 0.05, 0.05], K0); // (the front spring on its hangers under the rail)
-    ckBox(trim, [sd * 0.47, 0.86, A(4.83)], [0.1, 0.12, 1.2], K0); ckCyl(trim, [sd * 0.38, 0.8, A(4.83)], [sd * 0.62, 0.8, A(4.83)], 0.08, K0, 8, true); });
+  // (the leaf springs, axles, steering and shafts are the running gear's: see MechParts)
   // the bumper: a deep steel beam across the nose at the height of the tyres' tops, a lifting shackle hanging on its top
   // front edge each side, a step hanging under its right end
   body.tag = trim.tag = body.unit = trim.unit = 'bumperF';
@@ -18356,7 +18700,9 @@ CK_PARTS.spTactical = (c, o) => {
   ckBox(trim, [0, 0.5, Z(2.17)], [1.1, 0.04, 0.8], K0);
   // the chassis under the box: its frame, the differentials and the arms out to the wheels
   ckBox(trim, [0, 0.53, Z(-0.33)], [1.0, 0.18, 5.5], K0);
-  for (const z of [1.9625, -1.9625]) { ckBox(trim, [0, 0.46, Z(z)], [0.36, 0.22, 0.32], K0); mir(sd => { ckCyl(trim, [sd * 0.2, 0.47, Z(z + 0.12)], [sd * 0.78, 0.47, Z(z + 0.05)], 0.035, K0, 5, false); ckCyl(trim, [sd * 0.2, 0.6, Z(z - 0.1)], [sd * 0.75, 0.62, Z(z - 0.04)], 0.03, K0, 5, false); }); }
+  for (const z of [1.9625, -1.9625]) ckBox(trim, [0, 0.46, Z(z)], [0.36, 0.22, 0.32], K0); // (the differentials, on the frame; the wishbones out to the wheels are the running gear's)
+  // (the transfer case behind the gearbox, and the propshafts from it to the differentials' noses)
+  ckBox(trim, [0.08, 0.5, Z(0.55)], [0.34, 0.26, 0.3], K0); for (const [z0, z1] of [[0.7, 1.78], [0.4, -1.78]]) ckCyl(trim, [0.06, 0.47, Z(z0)], [0.02, 0.47, Z(z1)], 0.035, K0, 6, false);
   // the mirrors on arms from the doors, the steps under the doors; a vent high on the right side at the back; the red
   // markers low at the back of each side
   mir(sd => { const z = Z(1.135); body.tag = trim.tag = sd > 0 ? 'mirrorL' : 'mirrorR';
@@ -18738,7 +19084,7 @@ const SP_CARS = {
     shut: [1.16, 0.05, -0.22, -1.16], handles: [0.17, -0.36], numZ: 0.62, frame: 'black', winEdge: 'full', cockpit: { cage: 'none', screen: 'dials', road: true, parts: 'spTacCab', seatZ: 0.22, hbAt: [[-0.05, 0.38, 0.2], [-0.05, 0.47, 0.0]], speedo: 120, inner: { dash: '#36383c', shell: '#5b6645', floor: '#2b2c2e' },
       leverAt: [[0.05, 0.38, 0.33], [0.05, 0.55, 0.28]], gauges: [{ x: 0.078, y: -0.07, z: 0.012, r: 0.042, bone: 2, dial: 1 }, { x: 0, y: -0.066, z: 0.012, r: 0.05, bone: 3, dial: 7 }, { x: -0.078, y: -0.07, z: 0.012, r: 0.04, dial: 3, at: -0.4 }] }, wipers: { at: 'top', x: [-0.44, 0.01, 0.445], len: 0.37, park: -0.27, t: 0.9, mir: true },
     hullBox: { zf: 2.7, zr: -3.42, hw: 1.1, floor: 0.6, belt: 1.5, roof: 2.62, rw: 1.0, rzf: 0.8, rzr: -3.28 },
-    aero: [['spTactical', {}]]
+    aero: [['spTactical', {}]], mech: true
   },
   // the ambulance: a van with gear on its own roof. Its body from the van's published drawings: 5.125 m long on a
   // 3.2 m wheelbase (0.86 m ahead of the front axle, 1.06 m behind the rear), 1.92 m wide, its roof 1.87 m up; a short
@@ -18750,7 +19096,7 @@ const SP_CARS = {
     name: 'Palanquin 25D', layout: 'Van ambulance, front engine, rear-wheel drive', track: [1.685, 1.66], flare: 'round', archSeg: 8, flareOut: 0, flareMin: 0.01, rim: ['spokes', 6, '#c6cacf'], rimR: 0.2032, tyreHalf: [0.1075, 0.1075],
     livery: { base: '#f3f3f0', band: '#f3f3f0', pin: '#f3f3f0', roof: '#f3f3f0', hood: '#f3f3f0' }, crewLivery: { base: '#1f3e6a', band: '#c4161c', pin: '#f2f2ee' },
     faces: 'custom', lamps: { front: null, rear: null }, noSkid: true, noAntenna: true, noFiller: true, rearLid: 'tailgate', rearDoor: { x: 0.79, y0: 0.63 }, slideDoor: { travel: 1.0, pop: 0.065 }, mudflaps: false, covers: true,
-    wheelArch: { r: 0.41, cy: 0.354, open: 0.3 }, glIn: 0.07, exhaust: { x: 0.55, y: 0.27 }, mirrorZ: 1.24, mirrorOut: 0.2, mirrorHead: [0.17, 0.28, 0.07], mirrorUp: 0.16, // (a van's tall mirrors on the sails ahead of the door glass)
+    wheelArch: { r: 0.46, cy: 0.354, open: 0.3 }, glIn: 0.07, exhaust: { x: 0.55, y: 0.27 }, mirrorZ: 1.24, mirrorOut: 0.2, mirrorHead: [0.17, 0.28, 0.07], mirrorUp: 0.16, // (a van's tall mirrors on the sails ahead of the door glass)
     ribs: [
       { z: 2.46, f: 0.3, s: 0.34, ws: 1.22, b: 0.6, wb: 1.16 }, // the bumper's middle: its corners sweep back round the nose
       { z: 2.445, f: 0.29, s: 0.33, ws: 1.58, b: 0.63, wb: 1.52, dc: 0.01 },
@@ -23513,7 +23859,7 @@ function updateRun(dt) {
   // the centre at rest); each wheel where its strut holds it against the body, steered and leaning by its camber
   { const hc = carSetup(S).sp.hcg, Q = c.Q, off = qRot(Q, [0, hc - rideY, 0]);
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0);
-    for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
+    for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); kpShift(w, wh.delta); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
     ckBogies(m, c); fixPose(m, Fix.pose(), KW); }
   m.sync(); CarDmg.update(m, c, S, dt); Damage.tick(dt); Debris.update(dt); Stones.update();
   // the banner for a car that cannot go on as it is: upturned (help is at hand) or broken (retire)
@@ -23840,8 +24186,8 @@ function savedSetup(S, surf) { const su = SETUPS[setupKey(S, surf)]; return su &
 // a saved setup made whole against the car as built (fields it lacks come from the recommendation), its tyres checked
 // against the surface
 function fixSetup(S, su, env) {
-  const rec = setupRec(S, env), out = Object.assign({}, rec, JSON.parse(JSON.stringify(su))); out.diff = Object.assign({}, rec.diff);
-  for (const a in rec.diff) if (su.diff && su.diff[a]) out.diff[a] = Object.assign({}, rec.diff[a], su.diff[a]);
+  const rec = setupRec(S, env), out = Object.assign({}, rec, JSON.parse(JSON.stringify(su))); out.diff = Object.assign({}, rec.diff); out.dv = 2;
+  for (const a in rec.diff) if (su.dv === 2 && su.diff && su.diff[a] && su.diff[a].k === rec.diff[a].k) out.diff[a] = Object.assign({}, rec.diff[a], su.diff[a]);
   if (!TYRE_FOR[env.surface].includes(out.c)) { out.c = rec.c; out.pF = rec.pF; out.pR = rec.pR; }
   if (!finalDrives(S).includes(out.fd)) out.fd = rec.fd;
   return out;
@@ -23902,7 +24248,7 @@ const SetupUI = {
     const barHi = v => Math.max(v * 4, v + 30);
     su.aF = clamp(st(R.aF * (1 + 0.15 * Q.bal) * (1 + 0.08 * Q.ride), 0.5), 0, barHi(b.aF)); su.aR = clamp(st(R.aR * (1 - 0.15 * Q.bal) * (1 + 0.08 * Q.ride), 0.5), 0, barHi(b.aR));
     su.toeF = clamp(st(R.toeF + 0.05 * Q.bal, 0.05), -0.8, 0.8); su.toeR = clamp(st(R.toeR + 0.05 * Q.bal, 0.05), -0.8, 0.8); su.bias = clamp(R.bias + Q.bal, 50, 80);
-    for (const a in su.diff) { const r = R.diff[a]; if (!r) continue; su.diff[a].pow = clamp(r.pow + 5 * Q.bal, 0, 100); su.diff[a].coa = clamp(r.coa + 5 * Q.bal, 0, 100); }
+    for (const a in su.diff) { const r = R.diff[a]; if (!r || r.pow == null) continue; su.diff[a].pow = clamp(r.pow + 5 * Q.bal, 0, r.k === 'plate' ? 95 : 100); su.diff[a].coa = clamp(r.coa + 5 * Q.bal, 0, r.k === 'plate' ? 95 : 100); }
     for (const [k, base] of [['kF', b.kF], ['kR', b.kR]]) su[k] = clamp(Math.round(R[k] * (1 + 0.12 * Q.ride)), Math.max(10, Math.round(base * 0.5)), Math.round(base * 2.4));
     for (const k of ['bF', 'bR', 'fbF', 'fbR', 'rF', 'rR']) su[k] = clamp(R[k] + Q.ride, 1, 20);
     su.rhF = clamp(R.rhF - 5 * Q.ride, -30, 45); su.rhR = clamp(R.rhR - 5 * Q.ride, -30, 45);
@@ -23967,12 +24313,25 @@ const SetupUI = {
     const DN = { f: 'Front differential', c: 'Centre differential', r: 'Rear differential' }, dt = S.diffType || {};
     for (const a of ['f', 'c', 'r']) { if (!b.diff[a]) continue; const q = su.diff[a], qb = b.diff[a], qr = R.diff[a];
       head(DN[a] + (dt[a] ? ': ' + dt[a].toLowerCase() : a === 'c' ? `: ${Math.round(S.fs * 100)}:${Math.round((1 - S.fs) * 100)} split` : ''), false);
-      const big = qb.pre >= 1000, pstep = big ? 100 : 10;
-      one('Base lock (preload)', 'How locked it is with no power going through it: steadier, but it resists the car turning in.', () => q.pre, v => { q.pre = v; }, pstep, 0, big ? 3000 : Math.max(400, Math.round(qb.pre * 1.5 / 10) * 10), v => Math.round(v) + ' N·m', qr.pre);
-      one('Lock on power', 'Traction out of corners; more makes the car run wide on the throttle.', () => q.pow, v => { q.pow = v; }, 5, 0, 100, v => Math.round(v) + '%', qr.pow);
-      one('Lock off throttle', 'Steadiness on the brakes and when lifting off; less helps the car turn in.', () => q.coa, v => { q.coa = v; }, 5, 0, 100, v => Math.round(v) + '%', qr.coa);
-      const act = /active/i.test(dt[a] || '');
-      if (qb.vis > 0) one(act ? 'Lock on slip' : 'Viscous coupling', act ? 'How hard the computer locks it as one wheel or axle starts to spin faster than the other.' : 'Locks more the faster one wheel or axle spins against the other.', () => q.vis, v => { q.vis = v; }, 5, 0, Math.max(100, qb.vis * 2), v => Math.round(v * 10.47 / 10) * 10 + ' N·m/100 rpm', qr.vis);
+      const k = qb.k, pct = v => Math.round(v) + '%', bias = v => ((100 + v) / Math.max(1, 100 - v)).toFixed(1);
+      if (k === 'plate') {
+        one('Base lock (preload)', 'How locked it is with no power going through it: steadier, but it resists the car turning in.', () => q.pre, v => { q.pre = v; }, 10, 0, Math.max(200, Math.round(qb.pre * 2.5 / 10) * 10), v => Math.round(v) + ' N·m', qr.pre);
+        one('Lock on power', 'How much of the torque through it can go to the wheel with grip: at 40% that wheel gets up to 2.3 times the other’s. More: traction out of corners, but the car runs wide on the throttle.', () => q.pow, v => { q.pow = v; }, 5, 0, 95, v => pct(v) + ' (' + bias(v) + ':1)', qr.pow);
+        one('Lock off throttle', 'The same lifting off and braking: more is steadier, less helps the car turn in.', () => q.coa, v => { q.coa = v; }, 5, 0, 95, v => pct(v) + ' (' + bias(v) + ':1)', qr.coa);
+      } else if (k === 'torsen') {
+        one('Torque bias', 'How many times the torque at the spinning wheel its gears can send to the wheel with grip, whichever way the torque goes. It needs torque through it to work: a wheel in the air gets it nothing.', () => q.tbr, v => { q.tbr = v; }, 0.1, 1.5, 5, v => v.toFixed(1) + ':1', qr.tbr);
+      } else if (k === 'viscous') {
+        one('Viscous coupling', 'How hard its plates in thick fluid hold its outputs together as they turn apart (torque at 100 rpm between them). It acts only once they slip, and worked hard for long it heats up and locks solid for a while.', () => q.vis, v => { q.vis = v; }, qb.vis >= 1000 ? 100 : 10, 0, Math.max(300, Math.round(qb.vis * 2 / 10) * 10), v => Math.round(v) + ' N·m/100 rpm', qr.vis);
+      } else if (k === 'active') {
+        one('Base lock', 'How hard the computer clamps it with no power going through it.', () => q.pre, v => { q.pre = v; }, 10, 0, Math.max(300, Math.round(qb.pre * 2 / 10) * 10), v => Math.round(v) + ' N·m', qr.pre);
+        one('Lock on power', 'How much of the torque through it the computer clamps it to, accelerating: traction out of corners.', () => q.pow, v => { q.pow = v; }, 5, 0, 100, pct, qr.pow);
+        one('Lock off throttle', 'The same lifting off: steadier into corners, less help to turn in.', () => q.coa, v => { q.coa = v; }, 5, 0, 100, pct, qr.coa);
+        one('Lock on slip', 'How much harder the computer clamps it as one wheel or axle starts to spin faster than the other.', () => q.vis, v => { q.vis = v; }, 5, 0, Math.max(100, qb.vis * 2), v => Math.round(v) + ' N·m per rad/s', qr.vis);
+        one('Free on the brakes', 'How far it opens as you brake, so the wheels are each braked on their own grip.', () => q.brk, v => { q.brk = v; }, 5, 0, 100, pct, qr.brk);
+        one('Free on turn-in', 'How far it opens as you turn the wheel at speed, to help the car into the corner.', () => q.str, v => { q.str = v; }, 5, 0, 100, pct, qr.str);
+      } else if (k === 'lockable') {
+        one('Lock', 'Locked, its wheels turn together: the most traction on slippery ground, but the vehicle pushes on straight in corners.', () => q.lock, v => { q.lock = v; }, 1, 0, 1, v => v ? 'Locked' : 'Free', qr.lock);
+      } else body.append(el('p', { class: 'small', text: k === 'locker' ? 'It locks by itself while it drives a spinning wheel and frees a wheel the road turns faster; there is nothing to set.' : k === 'locked' ? 'Solid: its outputs always turn together; there is nothing to set.' : 'Open: it shares the torque evenly and lets the wheels turn at any speed; there is nothing to set.' }));
     }
     head('Brakes', false);
     one('Brake balance, front', 'The front brakes’ share. More front: steadier under braking; more rear: the car turns more on the brakes.', () => su.bias, v => { su.bias = v; }, 1, 50, 80, v => Math.round(v) + '%', R.bias);
@@ -24043,7 +24402,10 @@ const GUIDE = [
     ['Camber', 'How much the wheels tilt in at the top. A little helps grip in corners on tarmac.'],
     ['Toe', 'Whether the wheels point slightly in or out. Front wheels pointing out turn in sharper; rear wheels pointing in feel steadier.'],
     ['Differential', 'Lets the wheels on one axle turn at different speeds in a corner. Locking it more gives traction but makes the car harder to turn.'],
-    ['Preload, lock on power, lock off throttle', 'How locked a differential is: with no power through it, when accelerating, and when lifting off or braking.'],
+    ['Preload, lock on power, lock off throttle', 'How locked a differential is: with no power through it, when accelerating, and when lifting off or braking. 40% lock lets the wheel with grip take up to 2.3 times the other’s torque.'],
+    ['Torque-sensing differential', 'Worm or helical gears that send the wheel with grip a set multiple of the other’s torque (its bias, such as 3:1). It needs torque through it: a wheel in the air gets it nothing.'],
+    ['Viscous coupling', 'Plates in thick fluid that couple two shafts once they turn at different speeds. Slow to act; worked hard for long, it heats up and locks solid for a while.'],
+    ['Active differential', 'A clutch pack clamped by a computer: harder on the throttle and as the wheels slip, freed on the brakes and as you turn in.'],
     ['Brake balance', 'How much of the braking is done by the front brakes. More front: steadier; more rear: the car turns more on the brakes.'],
     ['Final drive', 'The overall gearing. Shorter (a higher number): quicker acceleration; longer: a higher top speed.']]],
   ['Engine and workshop', [
@@ -27112,7 +27474,7 @@ const CREW_DRIVE = {
 const crewEra = S => (S && S.crewEra) || CREW_ERA[S && S.cls] || CREW_ERA.B;
 // what the car shifts with: 'H' (a gate), 'seq' (a sequential lever), 'paddle' (paddles behind the wheel)
 // ('auto': an automatic's selector, set in drive and left there: the hand never goes to it)
-const crewLever = (S, CP) => { const L = (CP && CP.lever) || (S.lever === 'auto' || S.lever === 'cvt' ? 'auto' : S.lever === 'paddle' ? 'paddle' : S.lever === 'H' ? 'H' : S.lever === 'sequential' || ['A', 'F2', 'WRC', 'R2'].includes(S.cls) ? 'sequential' : 'H'); return L === 'sequential' ? 'seq' : L; };
+const crewLever = (S, CP) => { const L = (S.tc && !S.cvt ? 'auto' : null) || (CP && CP.lever) || (S.lever === 'auto' || S.lever === 'cvt' ? 'auto' : S.lever === 'paddle' ? 'paddle' : S.lever === 'H' ? 'H' : S.lever === 'sequential' || ['A', 'F2', 'WRC', 'R2'].includes(S.cls) ? 'sequential' : 'H'); return L === 'sequential' ? 'seq' : L; };
 
 // ---- small vector helpers (arrays [x, y, z]) ----
 const cv3 = {
@@ -29649,7 +30011,7 @@ const MP = {
       const fw = qRot(Q, [0, 0, 1]), om = (s.V[0] * fw[0] + s.V[1] * fw[1] + s.V[2] * fw[2]) / wheelOf(r.S).R;
       // (each wheel as its page has it: steered, leaning (a bent corner's toe and camber with it), and turning at its own
       // pace - spinning up or locked)
-      for (let i = 0; i < 4; i++) { const w = m.wheels[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - s.L[i], w.z0 + KW[i].lz); w.piv.rotation.set(0, s.dw ? s.dw[i] : i < 2 ? s.steer : 0, -(s.lb ? s.lb[i] : 0)); w.a = (w.a || 0) + (s.om ? s.om[i] : om) * dt; w.w.rotation.x = w.a; }
+      for (let i = 0; i < 4; i++) { const w = m.wheels[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - s.L[i], w.z0 + KW[i].lz); w.piv.rotation.set(0, s.dw ? s.dw[i] : i < 2 ? s.steer : 0, -(s.lb ? s.lb[i] : 0)); kpShift(w, w.piv.rotation.y); w.a = (w.a || 0) + (s.om ? s.om[i] : om) * dt; w.w.rotation.x = w.a; }
       ckBogies(m, null); fixPose(m, r.rp, KW); // (its crew at work on a corner)
       // (a panel swinging loose, at the angle its page has it)
       if (s.pn && s.pn.length && m.dv && m.dv.panels) for (const [j, th] of s.pn) { const P = m.dv.panels[j]; if (P && P.g && P.st === 'loose') { P.th = th; CarDmg.panelPose(P); } }
@@ -30462,7 +30824,7 @@ const Replay = {
     const K = carSetup(this.S), rideY = K.dcg || 0, KW = K.W, hc = K.sp.hcg, Q = c.Q, off = qRot(Q, [0, hc - rideY, 0]);
     for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (w.x0 == null) { w.x0 = w.piv.position.x - KW[i].lx; w.z0 = w.piv.position.z - KW[i].lz; } }
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0); m.root.visible = true;
-    for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
+    for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); kpShift(w, wh.delta); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
     ckBogies(m, c);
   },
   // ---- moving through it ----
@@ -34871,7 +35233,7 @@ const RX = {
     const dc = camera.position.distanceTo(_rxV.set(c.x, c.yb, c.z)); if (scene.fog && dc > scene.fog.far + 10) { m.root.visible = false; if (e.voice) MP.voice(e.voice, { rpm: 900, thr: 0 }, false); return; }
     m.root.visible = true; for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (w.x0 == null) { w.x0 = w.piv.position.x - KW[i].lx; w.z0 = w.piv.position.z - KW[i].lz; } }
     const off = qRot(Q, [0, hc - rideY, 0]); m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0);
-    for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - (wh.L || 0), w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta || 0, -(wh.lb || 0)); w.a = (w.a || 0) + (wh.omega || 0) * dt; w.w.rotation.x = w.a; }
+    for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - (wh.L || 0), w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta || 0, -(wh.lb || 0)); kpShift(w, wh.delta || 0); w.a = (w.a || 0) + (wh.omega || 0) * dt; w.w.rotation.x = w.a; }
     ckBogies(m, rp ? null : c); m.sync();
     if (!rp && c.dmg && c.dmg.mode !== 'off' && m.dv) rxDamage(m, c, S, dt);
     CarLights.remote(m, ((c.lastBrk || 0) > 0.05 ? 1 : 0) | (Atmos.dark > 0.25 ? 6 : 0) | (c.gear === -1 ? 32 : 0));
