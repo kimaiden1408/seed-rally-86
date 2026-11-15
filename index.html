@@ -9134,7 +9134,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '463A';
+const SR86_BUILD = '2A35';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -13030,13 +13030,17 @@ function ckFitDesign(D, S) {
 const MECH = { near: 70, col: { hub: '#55595e', disc: '#9a9fa4', groove: '#6f7479', vane: '#3a3d40', hat: '#7c8186', cal: '#b3261e', up: '#7f858b', damp: '#6f7378',
   rod: '#c9ccd0', spring: '#d8b23a', arm: '#5a5e63', shaft: '#4a4d51', boot: '#121213', bar: '#2c2f33', axle: '#3f4246', diff: '#55585c', leaf: '#2f3236', drum: '#4d5156', bush: '#1a1b1c' } };
 // A steered wheel turns about its kingpin, not its own middle: the axis through its lower ball joint and its strut's top
-// (or upper ball joint), KP_X inboard of the wheel's middle at hub height. The wheel's middle so swings round it - out
+// (or upper ball joint), KP_X inboard of the wheel's middle at hub height (and, every wheel, held under its wing: see
+// yTop). The wheel's middle so swings round it - out
 // and forward of the kingpin on one lock, back on the other - and the knuckle and what hangs on the axis stay put
 // (w.kp, set where its running gear is built: the axis through the wheel's middle's height, o from the wheel's middle,
 // its direction k, and the camber its lean gives the wheel as it turns, which the physics' camber already has (kpi, rad);
 // without it, an upright axis KP_X inboard)
 const KP_X = 0.12, _kq = new THREE.Quaternion(), _kq2 = new THREE.Quaternion(), _kv = new THREE.Vector3(), _ke = new THREE.Euler(), _ka = new THREE.Vector3();
 function kpShift(w, delta) {
+  // (first, as every wheel is posed: no higher than its tyre fits under the panel over it - see yTop where the body is
+  // built; the physics may take it higher at its solid stop)
+  if (w.yTop != null && w.piv.position.y > w.yTop) w.piv.position.y = w.yTop;
   if (!w.front) return; const K = w.kp; w.dSteer = delta || 0;
   if (!K) { if (!delta) return; const a = -(Math.sign(w.piv.position.x) || 1) * KP_X; w.piv.position.x += a * (1 - Math.cos(delta)); w.piv.position.z += a * Math.sin(delta); return; }
   const lb = -w.piv.rotation.z - (Math.sign(w.piv.position.x) || 1) * K.kpi * (1 - Math.cos(delta || 0)) - (K.cas || 0) * Math.sin(delta || 0);
@@ -13657,11 +13661,9 @@ class RallyCarKit {
     const sqCh = 0.13 * Ra / 0.39;
     // (wheelArch.cyR: the rear openings' centre height, where they sit lower or higher than the front ones: every height of a
     // rear opening moves by the difference, its feet staying on the sill)
-    // (and every opening raised as far as its tyre needs at the suspension's solid stop - the wheel up by its travel to the
-    // bump stop and through the stop's rubber - with 15 mm over it: a gravel car's tall arches)
-    const KA = carSetup(S), archLift = [0, 1].map(ai => { const G = KA.W[ai * 2], fl = Array.isArray(D.flare) ? D.flare[ai] : D.flare, c0 = ai === 1 && AR && AR.cyR != null ? AR.cyR - cyA : 0;
-      const top = c0 + (fl === 'box' || fl === 'squared' ? boxTop : cyA + Ra), need = 2 * R + (G ? G.travel : 0.13) + STOP_RUBBER + 0.015; return Math.max(0, need - top); });
-    const dY = ai => (ai === 1 && AR && AR.cyR != null ? AR.cyR - cyA : 0) + archLift[ai];
+    // (every opening where its design puts it: a body keeps the shape it was drawn with. A tyre that would rise past the
+    // panel over it at the suspension's solid stop is drawn no higher than fits - see the wheels' yTop below)
+    const dY = ai => ai === 1 && AR && AR.cyR != null ? AR.cyR - cyA : 0;
     // (flare: one shape for all four openings, or [front, rear])
     const flareOf = ai => Array.isArray(D.flare) ? D.flare[ai] : D.flare;
     const archAt = z => { for (let ai = 0; ai < 2; ai++) { const z0 = axles[ai][0], dz = Math.abs(z - z0), fl = flareOf(ai), d = dY(ai); if (dz <= Ra + 1e-9) { if (fl === 'box') return d + (dz <= Ra - boxCh ? boxTop : ckLerp(boxTop, boxLeg, (dz - (Ra - boxCh)) / boxCh));
@@ -14802,7 +14804,10 @@ class RallyCarKit {
           const footAt = sd => { let y = A.yB; const x0 = sd * xt - 0.075, x1 = sd * xt + 0.075; for (const b of E ? [E, E.gb] : []) if (b && x0 < b.x1 + 0.01 && x1 > b.x0 - 0.01 && z0 - 0.075 < b.z0 + 0.01 && z0 + 0.075 > b.z1 - 0.01) y = Math.max(y, b.top + 0.01); return y; };
           if (yT - Math.max(footAt(1), footAt(-1)) < 0.1) return;
           mir(sd => { ckCyl(body, [sd * xt, footAt(sd), z0], [sd * xt, yT, z0], 0.075, BC.wall, 8, true); ckCyl(body, [sd * xt, yT, z0], [sd * xt, yT + 0.015, z0], 0.04, BC.black, 6, true); }); rec.push('towers');
-          if (!bare && (!E || z0 > E.z0 + 0.02 || z0 < E.z1 - 0.02 || E.top < yT + 0.005)) { ckCyl(body, [xt, yT + 0.03, z0], [-xt, yT + 0.03, z0], 0.014, BC.alu, 4, false); rec.push('brace'); } };
+          // (the brace 3 cm under the panel over it all the way across - lowered as far as the towers' tops if it must be,
+          // left off where even that would cut through)
+          let yBr = yT + 0.03; for (let k = 0; k <= 8; k++) yBr = Math.min(yBr, topAtX(z0, xt * k / 8) - 0.03 - 0.014);
+          if (!bare && yBr >= yT - 0.02 && (!E || z0 > E.z0 + 0.02 || z0 < E.z1 - 0.02 || E.top < yBr - 0.025)) { ckCyl(body, [xt, yBr, z0], [-xt, yBr, z0], 0.014, BC.alu, 4, false); rec.push('brace'); } };
         // the body's section at z as the shell has it (between its stations it runs straight from one to the next)
         const secAt = z => { let i = 0; while (i < st.length - 2 && st[i + 1] > z) i++; const t = Math.max(0, Math.min(1, (st[i] - z) / (st[i] - st[i + 1]))), A = tun[i], B = tun[i + 1];
           return { P: prof[i].map((p, k) => [ckLerp(p[0], prof[i + 1][k][0], t), ckLerp(p[1], prof[i + 1][k][1], t)]), tx: ckLerp(A.x, B.x, t), lo: ckLerp(A.lo, B.lo, t), up: ckLerp(A.up, B.up, t) }; };
@@ -15051,6 +15056,14 @@ class RallyCarKit {
         const w = new THREE.Bone(); w.name = names[i] + '_Spin'; w.position.set(0, 0, TDd); beam.add(w); const w2 = new THREE.Bone(); w2.name = names[i] + '2_Spin'; w2.position.set(0, 0, -TDd); beam.add(w2);
         wheels.push({ piv, w, front: false, beam, w2, td: TDd }); return; }
       piv.position.set(x, R, z); const w = new THREE.Bone(); w.name = names[i] + '_Spin'; piv.add(w); wheels.push({ piv, w, front: !!frontW }); });
+    // (each wheel's highest drawn place in the rig's frame, yTop: its tyre's top 2 cm under the panel over it, across its
+    // tread - out to the body's side - and some way ahead of and behind its top, a front wheel's a little wider for its
+    // swing at lock. The physics may take a wheel higher, to its solid stop, than its tyre fits under the wing; drawn, it
+    // stops there (see kpShift). None for a bogie's wheels, or where no panel stands over a wheel within half a metre)
+    wheels.forEach((W, i) => { if (W.beam) return; const ai = i < 2 ? 0 : 1, x0 = Math.abs(W.piv.position.x), z0 = W.piv.position.z, hw = (D.tyreHalf ? D.tyreHalf[ai] : (S.tyres ? S.tyres[ai] / 2000 : 0.1)) + (W.front ? 0.03 : 0);
+      let y = Infinity; for (let a = -3; a <= 3; a++) { const dz = a / 3 * 0.8 * R, h = Math.sqrt(R * R - dz * dz), xs = profileAt(z0 + dz)[6][0];
+        for (let b = -2; b <= 2; b++) { const x = x0 + b / 2 * hw; if (x <= xs) y = Math.min(y, topAtX(z0 + dz, x) - 0.02 - h); } }
+      if (y > R + 0.04 && y < R + 0.5) W.yTop = y; });
     const wipers = wiperAt.map((P, k) => { const bn = new THREE.Bone(); bn.name = 'Wiper' + (k + 1); bn.position.set(P.pos[0], P.pos[1], P.pos[2]); bn.rotation.set(P.rot[0], P.rot[1], P.rot[2]); bodyG.add(bn);
       bn.userData.p0 = P.pos.slice(); bn.userData.top = P.top; bn.userData.park = P.park; bn.userData.len = P.len; bn.userData.mir = P.mir; const lift = ckWiperLift(P, glass.p, carShape(S)); if (lift) Object.assign(bn.userData, lift); return bn; });
     while (wipers.length < 2) { const bn = new THREE.Bone(); bn.name = 'Wiper' + (wipers.length + 1); bodyG.add(bn); wipers.push(bn); }
@@ -15149,7 +15162,6 @@ class RallyCarKit {
       }
     };
     if (!ghost) rig.mech = MechParts.build(rig, S, D); // (the running gear between the body and the wheels: see MechParts)
-    rig.archLift = archLift; // (how far each axle's openings were raised for the wheels' travel)
     root.userData.carId = id; root.rig = rig;
     return rig;
   }
