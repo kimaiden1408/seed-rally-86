@@ -4980,64 +4980,73 @@ function engineFree(c, S, thr, dt) {
 // wet gravel turns greasy; on snow, fresh snow falling on the packed road keeps the studs off the hard base under it
 // (T.wet: 0 dry to 1 soaked; in a snowfall, how much has settled)
 const WET_GRIP = { tarmac: 0.72, stone: 0.66, gravel: 0.9, snow: 0.7, grass: 0.78, snowbank: 1, ice: 0.85, snowlayer: 1, slush: 1, dirt: 0.72, loose: 0.93, hard: 0.88, paint: 0.45, steel: 0.42, powder: 0.9, concrete: 0.55, moss: 0.5 }; // (fresh snow on ice hides it and slides on it; wet dirt is mud)
-// Each surface as the tyre made for it meets it:
-//   mu: the grip at the peak (at an everyday sliding speed, about 3 m/s); kx, ka: the slips where that peak comes
-//     (longitudinal slip ratio, and the tangent of the slip angle): later on loose surfaces, early on tarmac;
-//   r, vd: what the friction does once the rubber slides. It falls the faster the rubber slides (towards r times its
-//     grip when stuck, over a sliding speed of about vd, m/s), so the force peaks and falls away behind the peak: on
-//     tarmac sharply, on gravel gently (the tread blocks keep biting as the stones roll), and on packed snow and ice
-//     sharply too - studs grip or they don't. Only in deep or soft stuff (fresh snow over the road, a snowbank, deep dust)
-//     does it rise (r over 1): the tyre ploughs it aside and the heap in front of it holds it;
-//   rl: the same for a locked wheel, where it differs: a wheel that stops turning on gravel or loose snow pushes a wedge of
-//     it ahead of its patch and stops about as short as one held at its peak, or shorter (as anti-lock brakes find on
-//     loose gravel);
+// Each surface as tyres meet it. A tyre's force comes from up to four things at once, in the shares each surface has:
+//   rubber on a hard surface (tarmac, stone, ice, the packed base of a gravel road): the brush model below, the tread
+//     stuck to the surface at the front of the patch and sliding at the back; mr is the rubber's friction against it (as
+//     each kind of tyre's own compound meets it: FAMK), and r, vd what that friction does once the rubber slides - it
+//     falls the faster it slides (towards r times its grip when stuck, over a sliding speed of about vd, m/s), the
+//     rubber's surface heating and, on ice, melting;
+//   the ground sheared under the tread (ls: the share of the patch that stands on loose material - stones, snow, dust,
+//     soil): such ground holds the tread by shearing, more the further it is sheared, until it slides on itself, and it
+//     never lets go the way rubber on a road does. What it holds is the rubber's friction against its grains on the
+//     tread's face and the grains' own friction against each other in the tread's grooves (phi, packed in there they
+//     shear the ground like a spade), building over about K of shear (m);
+//   ploughing: what the tyre sinks into (z, m, for a rally tyre at its working pressure: deeper for a narrow or hard
+//     tyre) its sidewall shoves aside as it slides across, and its tread's front as it slides along (locked or spinning);
+//     the material resists being packed aside (sig, Pa: little for stones, much for fresh snow) and being thrown aside
+//     (pk: the share of its density set moving, kg/m3), so the faster the tyre slides the harder it pushes. The heap
+//     building at the sidewall is what holds a sliding car on a loose road;
+//   studs (a studded tyre's): each stud cuts into the surface and holds by what it cuts (st: newtons a stud per
+//     millimetre it stands out); on clear ice they skate once the tyre slides fast (to rs times their grip, over about
+//     sv, m/s), in snow they keep ploughing.
+// The tyre's own give, its tread and its carcass, lies in series with all of them (see tyreStiff).
+//   mu: the grip at the peak of the tyre made for the surface (home), as tyreCalib sets it: the most it holds up to 25
+//     degrees of slip angle at 20 m/s, at its nominal load; TYRE_FAM gives any other kind's against it;
 //   cam: how much camber thrust the surface takes (loose material gives under a leaning tyre);
 //   crr: rolling resistance; pav: a sealed or packed surface (on it a wet road's grip falls further once the tyre slides);
-//   wk: how much grip a fully worn tread loses there (most on loose ground and on studs, least on a dry road).
-// Gravel: a gravel tyre grips a little over half as well as a tarmac tyre on tarmac (telemetry of a World Rally Car put
-// it at 50 to 60%), its grip building to a peak near 12 degrees of slip angle, later than on tarmac, and fading gently
-// past it, so the 20-35 degree slides rally drivers use cost a little grip for the turn they give. Snow, the packed winter
-// road on long studs: drivers rate the grip as good as gravel tyres on gravel or a little better, and the cars accelerate
-// harder on it, but it switches off once the studs break away. On thick clear ice the long studs bite as well again.
+//   wk: how much grip a fully worn tread loses there beyond what its shallower grooves and shorter studs cost.
+// Gravel: the loose stones lie on a hard-packed base; a gravel tyre's blocks push through to it in places and its grooves
+// fill with stones, so its grip builds slowly - later than on tarmac - and holds on as the slip grows (towards 0.8 at a
+// World Rally Car's tyre loads), the stones heaping against the sidewall of a tyre sliding across. Packed snow on long
+// studs: about as good, built sooner and held; fresh snow lying on the road is ploughed and packed aside, so its grip
+// keeps rising with the slip, the more the deeper it lies. Clear ice: the studs bite hard and skate once it slides.
 const TYRE = {
-  gravel:   { mu: 0.79, kx: 0.17, ka: 0.19, r: 0.66, rl: 0.9, vd: 4, cam: 0.6, crr: 0.03, pav: 0, wk: 0.2 },
-  tarmac:   { mu: 1.42, kx: 0.10, ka: 0.125, r: 0.66, vd: 5, cam: 1, crr: 0.014, pav: 1, wk: 0.07 },
-  stone:    { mu: 1.2, kx: 0.11, ka: 0.135, r: 0.64, vd: 4, cam: 1, crr: 0.02, pav: 1, wk: 0.07 },
-  snow:     { mu: 0.9, kx: 0.12, ka: 0.15, r: 0.62, rl: 0.7, vd: 2.5, cam: 0.5, crr: 0.04, pav: 1, wk: 0.25 },
-  grass:    { mu: 0.58, kx: 0.2, ka: 0.24, r: 0.9, vd: 3, cam: 0.6, crr: 0.07, pav: 1, wk: 0.15 },
-  snowbank: { mu: 0.42, kx: 0.2, ka: 0.24, r: 1.3, vd: 2, cam: 0.4, crr: 0.085, pav: 0, wk: 0.15 },
-  // clear ice (a frozen stream; black ice on a road): long studs bite as well as on packed snow, peaking at a smaller
-  // slip; it falls away once the tyre slides (the studs skate and a film of meltwater forms), and it rolls easily
-  ice:      { mu: 0.88, kx: 0.10, ka: 0.12, r: 0.62, rl: 0.7, vd: 2.5, cam: 0.6, crr: 0.015, pav: 1, wk: 0.3 },
-  // the layers on a road (see makeLayers), each against the tyre made for it: loose snow lying on a hard base (the tyre
-  // packs it as it slides, so the grip holds up, and it drags: the deeper the more), slush (it squeezes out from under
-  // the tread and drags), dirt on tarmac (a film of dust and mud: a gravel tyre's grip, falling as it slides), loose
-  // stones (marbles: rolling under the tread, little grip until it ploughs, and drag) and a gravel road's swept line
-  // (the hard-packed base: more grip, sooner)
-  snowlayer: { mu: 0.62, kx: 0.18, ka: 0.27, r: 1.15, rl: 1.25, vd: 2.5, cam: 0.4, crr: 0.065, pav: 0, wk: 0.2 },
-  slush:     { mu: 0.5, kx: 0.15, ka: 0.2, r: 0.95, vd: 2, cam: 0.4, crr: 0.075, pav: 1, wk: 0.2 },
-  dirt:      { mu: 0.8, kx: 0.14, ka: 0.16, r: 0.8, rl: 0.95, vd: 3, cam: 0.6, crr: 0.02, pav: 1, wk: 0.15 },
-  loose:     { mu: 0.64, kx: 0.2, ka: 0.26, r: 0.74, rl: 1.0, vd: 4, cam: 0.5, crr: 0.045, pav: 0, wk: 0.2 },
-  hard:      { mu: 0.87, kx: 0.15, ka: 0.17, r: 0.64, rl: 0.82, vd: 4, cam: 0.65, crr: 0.025, pav: 0, wk: 0.2 },
+  gravel:   { mu: 0.8, home: 'gravel', mr: 0.8, r: 0.85, vd: 4, ls: 0.75, phi: 0.95, K: 0.0022, z: 0.008, pk: 350, sig: 500, st: 4, rs: 1, sv: 0, cam: 0.6, crr: 0.03, pav: 0, wk: 0.1 },
+  tarmac:   { mu: 1.5, home: 'tarmac', mr: 1.45, r: 0.78, vd: 7, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 1, rs: 0.6, sv: 4, cam: 1, crr: 0.014, pav: 1, wk: 0.07 },
+  stone:    { mu: 1.27, home: 'tarmac', mr: 1.25, r: 0.76, vd: 5, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 1.5, rs: 0.6, sv: 4, cam: 1, crr: 0.02, pav: 1, wk: 0.07 },
+  snow:     { mu: 0.95, home: 'snow', mr: 0.3, r: 0.85, vd: 2.5, ls: 0.45, phi: 0.7, K: 0.003, z: 0.003, pk: 150, sig: 4000, st: 14, rs: 1, sv: 0, cam: 0.5, crr: 0.04, pav: 1, wk: 0.1 },
+  grass:    { mu: 0.62, home: 'gravel', mr: 0.6, r: 0.72, vd: 3, ls: 0.5, phi: 0.65, K: 0.006, z: 0.008, pk: 500, sig: 2000, st: 3, rs: 1, sv: 0, cam: 0.6, crr: 0.07, pav: 1, wk: 0.15 },
+  snowbank: { mu: 0.45, home: 'snow', mr: 0.25, r: 0.9, vd: 2, ls: 0.9, phi: 0.45, K: 0.01, z: 0.06, pk: 100, sig: 6000, st: 3, rs: 1, sv: 0, cam: 0.4, crr: 0.085, pav: 0, wk: 0.15 },
+  ice:      { mu: 0.9, home: 'snow', mr: 0.12, r: 0.7, vd: 2.5, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 26, rs: 0.6, sv: 5, cam: 0.6, crr: 0.015, pav: 1, wk: 0.1 },
+  // the layers on a road (see makeLayers), each against the tyre made for it: loose snow lying on a hard base (packed
+  // under the tread and ploughed aside, and it drags: the deeper the more), slush (it squeezes out from under the tread
+  // and drags), dirt on tarmac (a film of dust and mud: a gravel tyre's grip, falling as it slides), loose stones
+  // (marbles: rolling under the tread, little grip until it ploughs, and drag) and a gravel road's swept line (the
+  // hard-packed base: more grip, sooner)
+  snowlayer: { mu: 0.68, home: 'snow', mr: 0.28, r: 0.85, vd: 2.5, ls: 0.7, phi: 0.5, K: 0.006, z: 0.04, pk: 100, sig: 9000, st: 6, rs: 1, sv: 0, cam: 0.4, crr: 0.065, pav: 0, wk: 0.1 },
+  slush:     { mu: 0.53, home: 'snow', mr: 0.35, r: 0.6, vd: 2, ls: 0.4, phi: 0.35, K: 0.005, z: 0.025, pk: 600, sig: 800, st: 3, rs: 0.8, sv: 3, cam: 0.4, crr: 0.075, pav: 1, wk: 0.2 },
+  dirt:      { mu: 0.85, home: 'gravel', mr: 0.85, r: 0.72, vd: 3, ls: 0.25, phi: 0.7, K: 0.003, z: 0.002, pk: 300, sig: 500, st: 3, rs: 1, sv: 0, cam: 0.6, crr: 0.02, pav: 1, wk: 0.15 },
+  loose:     { mu: 0.66, home: 'gravel', mr: 0.65, r: 0.85, vd: 4, ls: 0.9, phi: 0.8, K: 0.004, z: 0.018, pk: 180, sig: 500, st: 3, rs: 1, sv: 0, cam: 0.5, crr: 0.045, pav: 0, wk: 0.1 },
+  hard:      { mu: 0.88, home: 'gravel', mr: 0.9, r: 0.85, vd: 4, ls: 0.35, phi: 0.95, K: 0.002, z: 0.004, pk: 450, sig: 500, st: 4, rs: 1, sv: 0, cam: 0.65, crr: 0.025, pav: 0, wk: 0.1 },
   // fesh-fesh: talc-fine dust lying deep on a dry road. The tyre sinks into it and ploughs it: little grip, found late
-  // (the dust flows from under the tread), holding up as it slides (it packs in front of the tyre), and a heavy drag, as
+  // (the dust flows from under the tread), rising as it slides (it packs in front of the tyre), and a heavy drag, as
   // deep soft sand (rolling resistance five or six times a gravel road's)
-  powder:    { mu: 0.6, kx: 0.26, ka: 0.44, r: 1.12, rl: 1.2, vd: 3, cam: 0.4, crr: 0.17, pav: 0, wk: 0.15 },
+  powder:    { mu: 0.66, home: 'gravel', mr: 0.6, r: 0.85, vd: 3, ls: 0.95, phi: 0.7, K: 0.008, z: 0.05, pk: 110, sig: 1500, st: 2, rs: 1, sv: 0, cam: 0.4, crr: 0.17, pav: 0, wk: 0.15 },
   // a village street's painted lines and its ironwork (manhole covers, drain gratings): a little less grip than the tarmac
   // round them when dry, and very little when wet (WET_GRIP)
-  paint:     { mu: 1.2, kx: 0.1, ka: 0.125, r: 0.66, vd: 5, cam: 1, crr: 0.014, pav: 1, wk: 0.07 },
+  paint:     { mu: 1.27, home: 'tarmac', mr: 1.25, r: 0.76, vd: 5, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 1, rs: 0.6, sv: 4, cam: 1, crr: 0.014, pav: 1, wk: 0.07 },
   // an army range's concrete road: slabs laid for tanks and worn smooth by their tracks, a little less grip than tarmac
   // when dry and much less when wet (polished, with the dust on it turning to a film: WET_GRIP)
-  concrete:  { mu: 1.3, kx: 0.1, ka: 0.13, r: 0.66, vd: 5, cam: 1, crr: 0.013, pav: 1, wk: 0.07 },
+  concrete:  { mu: 1.38, home: 'tarmac', mr: 1.35, r: 0.78, vd: 6, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 1, rs: 0.6, sv: 4, cam: 1, crr: 0.013, pav: 1, wk: 0.07 },
   // moss on a quiet shaded lane (down the middle between the wheel tracks and along the edges): a soft green film, about
   // half a tarmac tyre's grip when dry, a quarter when wet (WET_GRIP), lost early once it slides
-  moss:      { mu: 0.78, kx: 0.12, ka: 0.15, r: 0.78, vd: 3.5, cam: 0.9, crr: 0.018, pav: 1, wk: 0.1 },
-  steel:     { mu: 0.85, kx: 0.1, ka: 0.12, r: 0.7, vd: 4, cam: 1, crr: 0.012, pav: 1, wk: 0.07 }
+  moss:      { mu: 0.82, home: 'tarmac', mr: 0.82, r: 0.7, vd: 3.5, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 1.5, rs: 0.6, sv: 4, cam: 0.9, crr: 0.018, pav: 1, wk: 0.1 },
+  steel:     { mu: 0.9, home: 'tarmac', mr: 0.9, r: 0.72, vd: 4, ls: 0, phi: 0, K: 0.004, z: 0, pk: 0, sig: 0, st: 0.5, rs: 0.5, sv: 3, cam: 1, crr: 0.012, pav: 1, wk: 0.07 }
 };
 // Ice grips worst near its melting point, where a film of water forms under the tread: studs still cut into it (they
 // lose about a fifth of their grip at 0 °C against -8 °C or colder), rubber alone loses about half
 const iceGrip = (Ta, studs) => studs ? 0.8 + 0.2 * smooth(0, -8, Ta) : 0.55 + 0.45 * smooth(0, -8, Ta);
-// ---- the tyre: a brush model ----
+// ---- the tyre: rubber on a hard surface, a brush model ----
 // The tread is taken as bristles across the contact patch, with the load spread along the patch in a parabola. A
 // bristle enters at the front, is carried along stuck to the surface and bent by the slip (along the wheel and across
 // it); where the friction at its place can no longer hold it, it slides. At small slip the whole patch grips and the
@@ -5063,17 +5072,27 @@ function brushTyre(sx, sy, Fz, mu0, mu1, cx, ca, a, out) {
   else { M = 0; out.fx = mu1 * Fz * vx; out.fy = -mu1 * Fz * vy; }
   out.mz = -M * uy; out.lam = lam; return out;
 }
-// Each surface's brush figures (per newton of load), set so that the force peaks where and how high it did with the
-// surface's own figures, at an everyday sliding speed: the friction stuck (mu0), the stiffnesses along and across, and
-// how far towards full sliding the patch is at that peak (lamP; loose surfaces saturate there rather than peak)
-const VS_REF = 20; // (m/s: the road speed the peak is set at; the sliding speed is the slip times it)
-for (const k in TYRE) { const s = TYRE[k], sp = (s.kx + s.ka) / 2, rr = s.r + (1 - s.r) * Math.exp(-sp * VS_REF / s.vd);
-  const lamP = s.r < 1 ? 1 / (3 - 2 * rr) : 0.95, f = 3 * lamP * (1 - lamP) * (1 - lamP) + rr * lamP * lamP * (3 - 2 * lamP);
-  s.mu0 = s.mu / f; s.cx = 3 * s.mu0 * lamP / s.kx; s.ca = 3 * s.mu0 * lamP / s.ka; s.lamP = lamP; }
+// ---- the tyre: loose ground sheared under the tread ----
+// Ground made of grains (stones, snow, dust, soil) holds the tread by shearing: the further a grain under the patch has
+// been carried sideways since the tread met it, the more the ground holds it, building over a shear of about K and
+// levelling off at what it can hold (Fm, the whole patch's), never falling away. A grain at the front has just met the
+// tread, one at the back has been sheared the patch's length times the slip, so across a patch 2a long at a slip s_g:
+//   F = Fm (1 - (1 - e^-q) / q), q = 2a s_g / K
+// - building as fast at small slip as a stiff tyre does on a soft ground, then only slowly towards Fm: past 20 degrees
+// it is still climbing. The tyre's own give (C, per unit of slip) lies in series with it: of the slip s the ground takes
+// s_g and the tyre bends s - s_g = F / C. Its centre lies behind the patch's middle, a third of the half-length at small
+// slip, moving forward as the ground saturates from the back (the aligning torque fading). MOB: { f, t (the trail), q }
+const MOB = { f: 0, t: 0, q: 0 };
+function mobilise(s, Fm, K, a2, C, out) {
+  if (!(s > 1e-9) || !(Fm > 0)) { out.f = 0; out.t = a2 / 6; out.q = 0; return out; }
+  const kq = a2 / K; let sg = s * C / (C + Fm * kq / 2), q, E, m; // (from where both are still linear)
+  for (let it = 0; it < 2; it++) { q = kq * sg; E = Math.exp(-q);
+    m = q > 1e-4 ? 1 - (1 - E) / q : q / 2; const dm = q > 1e-4 ? (1 - E * (1 + q)) / (q * q) : 0.5 - q / 3;
+    sg = clamp(sg - (sg + Fm * m / C - s) / (1 + Fm * dm * kq / C), 0, s); }
+  q = kq * sg; E = Math.exp(-q); m = q > 1e-4 ? 1 - (1 - E) / q : q / 2;
+  out.f = Fm * m; out.q = q; out.t = q > 1e-3 ? a2 * ((1 - E) / (2 * q) - (1 - E * (1 + q)) / (q * q)) / Math.max(m, 1e-9) : a2 / 6; return out;
+}
 const CARCASS_Y = 150000, STEER_K = 40000; // the carcass's sideways stiffness (N/m); the steering's stiffness at each front wheel (N·m/rad)
-// a tyre's cornering stiffness at lr times its nominal load, against its stiffness at that load: rising with the load and
-// levelling off past about twice it (CA_LOAD), as measured tyres' does
-const CA_LOAD = 2.5, caLoad = lr => Math.sin(2 * Math.atan(lr / CA_LOAD)) / Math.sin(2 * Math.atan(1 / CA_LOAD));
 const SURF = TYRE;
 const WHEEL = { R: 0.31, I: 1.25, mu: 36, kt: 230000, ct: 450, sx: 0.2, sy: 0.32 };
 // A vehicle's own wheels where they are not a rally car's (S.wheel: any of WHEEL's figures, for a truck's or a van's):
@@ -5401,25 +5420,27 @@ function carSetup(S) {
 // pinches the tyre on stones more often).
 //  mu: grip at its best against the surface's reference tyre; wet: how much of the wet road's loss it suffers (a grooved
 //  wet tyre clears water); Topt, win: the tread temperature it works at and how wide its window is (°C); wear: how fast it
-//  wears; cut: how readily stones cut it; aqua: how much standing water costs it
+//  wears; cut: how readily stones cut it; aqua: how much standing water costs it; G: its rubber's stiffness (MPa, at its
+//  best temperature: a soft compound's tread gives more, see tyreStiff); void, tread: a tread cut otherwise than its
+//  kind's (see TYRE_BUILD)
 const TYRE_C = {
-  gS: { name: 'Gravel soft', fam: 'gravel', mu: 1, wet: 0.82, Topt: 46, win: 24, wear: 1.35, cut: 1.2, aqua: 0.9, note: 'Cool, wet or muddy roads, soft loose gravel' },
-  gH: { name: 'Gravel hard', fam: 'gravel', mu: 0.98, wet: 1.15, Topt: 64, win: 28, wear: 0.65, cut: 0.75, aqua: 1, note: 'Hot days, rocky and abrasive roads' },
-  tSS: { name: 'Tarmac super soft', fam: 'tarmac', mu: 1.03, wet: 1, Topt: 46, win: 26, wear: 1.7, cut: 1, aqua: 1, note: 'Cold or damp roads, short stages' },
-  tS: { name: 'Tarmac soft', fam: 'tarmac', mu: 1, wet: 1.08, Topt: 58, win: 26, wear: 1.1, cut: 1, aqua: 1, note: 'Mild, dry roads' },
-  tH: { name: 'Tarmac hard', fam: 'tarmac', mu: 0.97, wet: 1.2, Topt: 70, win: 26, wear: 0.7, cut: 1, aqua: 1, note: 'Hot, dry roads and long stages' },
-  tW: { name: 'Tarmac wet', fam: 'tarmac', mu: 0.9, wet: 0.5, Topt: 35, win: 20, wear: 2, cut: 1, aqua: 0.45, note: 'Grooved for rain and standing water' },
-  sn: { name: 'Snow studded', fam: 'snow', mu: 1, wet: 1, Topt: 10, win: 40, wear: 0.5, cut: 1, aqua: 1, note: 'Long studs for packed snow and ice' },
+  gS: { name: 'Gravel soft', fam: 'gravel', G: 1.8, mu: 1, wet: 0.82, Topt: 46, win: 24, wear: 1.35, cut: 1.2, aqua: 0.9, note: 'Cool, wet or muddy roads, soft loose gravel' },
+  gH: { name: 'Gravel hard', fam: 'gravel', G: 2.4, mu: 0.98, wet: 1.15, Topt: 64, win: 28, wear: 0.65, cut: 0.75, aqua: 1, note: 'Hot days, rocky and abrasive roads' },
+  tSS: { name: 'Tarmac super soft', fam: 'tarmac', G: 1.4, mu: 1.03, wet: 1, Topt: 46, win: 26, wear: 1.7, cut: 1, aqua: 1, note: 'Cold or damp roads, short stages' },
+  tS: { name: 'Tarmac soft', fam: 'tarmac', G: 1.7, mu: 1, wet: 1.08, Topt: 58, win: 26, wear: 1.1, cut: 1, aqua: 1, note: 'Mild, dry roads' },
+  tH: { name: 'Tarmac hard', fam: 'tarmac', G: 2.1, mu: 0.97, wet: 1.2, Topt: 70, win: 26, wear: 0.7, cut: 1, aqua: 1, note: 'Hot, dry roads and long stages' },
+  tW: { name: 'Tarmac wet', fam: 'tarmac', G: 1.6, void: 0.3, tread: 0.008, mu: 0.9, wet: 0.5, Topt: 35, win: 20, wear: 2, cut: 1, aqua: 0.45, note: 'Grooved for rain and standing water' },
+  sn: { name: 'Snow studded', fam: 'snow', G: 1.9, mu: 1, wet: 1, Topt: 10, win: 40, wear: 0.5, cut: 1, aqua: 1, note: 'Long studs for packed snow and ice' },
   // for tarmac in winter: a soft, finely cut winter tread (no studs), and the same with short studs for the ice
-  tWi: { name: 'Winter', fam: 'winter', mu: 1, wet: 0.75, Topt: 22, win: 34, wear: 1.25, cut: 1, aqua: 0.6, note: 'Soft cut tread for snow, slush and cold wet roads' },
-  tSt: { name: 'Winter studded', fam: 'stud', mu: 1, wet: 0.85, Topt: 24, win: 34, wear: 1.1, cut: 1, aqua: 0.7, note: 'Short studs for ice and packed snow on tarmac' },
+  tWi: { name: 'Winter', fam: 'winter', G: 1.4, mu: 1, wet: 0.75, Topt: 22, win: 34, wear: 1.25, cut: 1, aqua: 0.6, note: 'Soft cut tread for snow, slush and cold wet roads' },
+  tSt: { name: 'Winter studded', fam: 'stud', G: 1.45, mu: 1, wet: 0.85, Topt: 24, win: 34, wear: 1.1, cut: 1, aqua: 0.7, note: 'Short studs for ice and packed snow on tarmac' },
   // the special vehicles' own tyres (S.tyreSet), made only in their sizes: a military truck's deep-lugged cross-country
   // tread on a hard, cut-resistant compound; a light tactical vehicle's run-flat mud-terrain tyres; a van's all-season
   // road tyres, and its winter tyres for snow and ice. Big and heavy, they barely heat up and hardly wear in a stage
-  xc: { name: 'Cross-country', fam: 'xc', mu: 1, wet: 0.8, Topt: 40, win: 45, wear: 0.3, cut: 0.4, aqua: 0.8, plim: [2.5, 5.5], note: 'Deep lugged military tread: mud, sand and snow' },
-  mt: { name: 'Mud-terrain run-flat', fam: 'mt', mu: 1, wet: 0.8, Topt: 40, win: 42, wear: 0.4, cut: 0.35, aqua: 0.85, plim: [1.5, 3.8], note: 'Lugged run-flat tyres for rocks and mud' },
-  rd: { name: 'All-season road', fam: 'road', mu: 1, wet: 0.6, Topt: 35, win: 40, wear: 0.45, cut: 1.1, aqua: 0.75, plim: [2.5, 5], note: 'Everyday road tyres, grooved for rain' },
-  rdW: { name: 'Winter road', fam: 'winter', mu: 0.93, wet: 0.75, Topt: 20, win: 35, wear: 0.6, cut: 1.1, aqua: 0.6, popt: 4.0, plim: [2.5, 5], note: 'Road winter tyres for snow, slush and ice' }
+  xc: { name: 'Cross-country', fam: 'xc', G: 2.6, mu: 1, wet: 0.8, Topt: 40, win: 45, wear: 0.3, cut: 0.4, aqua: 0.8, plim: [2.5, 5.5], note: 'Deep lugged military tread: mud, sand and snow' },
+  mt: { name: 'Mud-terrain run-flat', fam: 'mt', G: 2.3, mu: 1, wet: 0.8, Topt: 40, win: 42, wear: 0.4, cut: 0.35, aqua: 0.85, plim: [1.5, 3.8], note: 'Lugged run-flat tyres for rocks and mud' },
+  rd: { name: 'All-season road', fam: 'road', G: 2.0, mu: 1, wet: 0.6, Topt: 35, win: 40, wear: 0.45, cut: 1.1, aqua: 0.75, plim: [2.5, 5], note: 'Everyday road tyres, grooved for rain' },
+  rdW: { name: 'Winter road', fam: 'winter', G: 1.45, mu: 0.93, wet: 0.75, Topt: 20, win: 35, wear: 0.6, cut: 1.1, aqua: 0.6, popt: 4.0, plim: [2.5, 5], note: 'Road winter tyres for snow, slush and ice' }
 };
 const TYRE_FOR = { gravel: ['gS', 'gH'], tarmac: ['tSS', 'tS', 'tH', 'tW', 'tWi', 'tSt'], snow: ['sn', 'tSt', 'tWi'], mixed: ['gS', 'gH', 'tSS', 'tS', 'tW'] };
 // How each kind of tyre takes camber, its lean against the road: [the lean into the turn at which it grips best across
@@ -5429,20 +5450,21 @@ const TYRE_FOR = { gravel: ['gS', 'gH'], tarmac: ['tSS', 'tS', 'tH', 'tW', 'tWi'
 // the wheel - braking and driving - it grips best upright. A rally tyre's tall sidewall wants less lean than a slick's
 const TYRE_CAM = { tarmac: [3, 0.03, 10], gravel: [2, 0.02, 5], snow: [1.5, 0.015, 6], winter: [2, 0.02, 8], stud: [2, 0.02, 8], xc: [1, 0.01, 4], mt: [1.5, 0.015, 5], road: [2, 0.02, 9] }, CAM_DEF = [2, 0.02, 7];
 // each kind of tyre's grip on each surface against the tyre made for it (a slick on a gravel verge, studs on stone).
-// Peak grip (at an everyday slide) these give, about: on dry tarmac a slick 1.4, a winter tyre 1.1, short studs 1.0,
-// long studs 0.85, a gravel tyre 1.2; on packed snow long studs 0.9, short studs 0.72, a winter tyre 0.45, a gravel
-// tyre 0.42, a slick 0.29; on clear or black ice long studs 0.88, short studs 0.55, a winter tyre 0.15, a gravel tyre
-// 0.12, a slick 0.08; loose snow over a hard road studs 0.6, winter 0.5, gravel 0.45, slick 0.28; slush about 0.5 on
-// anything made for winter, 0.35 on a slick; dirt on tarmac 0.8 for a gravel tyre, 0.65 for a slick; marbles 0.64 for
-// a gravel tyre, 0.45 for a slick; on gravel a gravel tyre 0.79, a slick 0.63
+// Peak grip these give (as FAMK sets it: at the nominal load, the most held up to 25 degrees of slip angle at 20 m/s),
+// about: on dry tarmac a slick 1.5, a winter tyre 1.16, short studs 1.05, long studs 0.9, a gravel tyre 1.26; on packed
+// snow long studs 0.95, short studs 0.62, a winter tyre 0.47, a gravel tyre 0.45, a slick 0.31; on clear or black ice
+// long studs 0.9, short studs 0.45, a winter tyre 0.15, a gravel tyre 0.12, a slick 0.08; loose snow over a hard road
+// studs 0.68, winter 0.55, gravel 0.5, slick 0.31; slush about 0.53 on anything made for winter, 0.37 on a slick; dirt
+// on tarmac 0.85 for a gravel tyre, 0.7 for a slick; marbles 0.66 for a gravel tyre, 0.46 for a slick; on gravel a
+// gravel tyre 0.8, a slick 0.64
 const TYRE_FAM = { gravel: { gravel: 1, tarmac: 0.84, stone: 0.86, snow: 0.469, grass: 1, snowbank: 0.9, ice: 0.135, snowlayer: 0.73, slush: 0.9, dirt: 1, loose: 1, hard: 1, paint: 0.84, steel: 0.84, powder: 1, concrete: 0.84, moss: 1 },
   tarmac: { gravel: 0.8, tarmac: 1, stone: 1, snow: 0.323, grass: 0.82, snowbank: 0.7, ice: 0.091, snowlayer: 0.45, slush: 0.7, dirt: 0.82, loose: 0.69, hard: 0.78, paint: 1, steel: 1, powder: 0.7, concrete: 1, moss: 1 },
   snow: { gravel: 0.92, tarmac: 0.6, stone: 0.62, snow: 1, grass: 0.95, snowbank: 1, ice: 1, snowlayer: 1, slush: 1, dirt: 0.8, loose: 0.85, hard: 0.9, paint: 0.6, steel: 0.6, powder: 0.9, concrete: 0.6, moss: 0.85 },
   winter: { gravel: 0.74, tarmac: 0.77, stone: 0.77, snow: 0.499, grass: 0.9, snowbank: 0.9, ice: 0.167, snowlayer: 0.81, slush: 1, dirt: 0.88, loose: 0.78, hard: 0.74, paint: 0.77, steel: 0.77, powder: 0.85, concrete: 0.77, moss: 0.95 },
-  stud: { gravel: 0.76, tarmac: 0.7, stone: 0.7, snow: 0.802, grass: 0.92, snowbank: 0.95, ice: 0.628, snowlayer: 0.97, slush: 1, dirt: 0.84, loose: 0.8, hard: 0.76, paint: 0.7, steel: 0.55, powder: 0.85, concrete: 0.7, moss: 0.95 },
-  // the special vehicles' tyres. Peak grip, about: a truck's cross-country tyre 0.8 on dry tarmac, 0.6 on gravel, 0.35
+  stud: { gravel: 0.76, tarmac: 0.7, stone: 0.7, snow: 0.65, grass: 0.92, snowbank: 0.95, ice: 0.5, snowlayer: 0.97, slush: 1, dirt: 0.84, loose: 0.8, hard: 0.76, paint: 0.7, steel: 0.55, powder: 0.85, concrete: 0.7, moss: 0.95 },
+  // the special vehicles' tyres. Peak grip, about: a truck's cross-country tyre 0.84 on dry tarmac, 0.63 on gravel, 0.37
   // on packed snow, and better than any rally tyre in deep snow, mud and fine dust, where its lugs and its size carry it;
-  // the tactical vehicle's mud-terrain tyres a little better on a hard road; a van's road tyre 1.0 on dry tarmac and 0.6 on gravel
+  // the tactical vehicle's mud-terrain tyres a little better on a hard road; a van's road tyre 1.08 on dry tarmac and 0.6 on gravel
   xc: { gravel: 0.79, tarmac: 0.56, stone: 0.6, snow: 0.391, grass: 1.0, snowbank: 1.0, ice: 0.111, snowlayer: 0.72, slush: 0.95, dirt: 0.9, loose: 0.95, hard: 0.78, paint: 0.56, steel: 0.5, powder: 1.1, concrete: 0.57, moss: 0.85 },
   mt: { gravel: 0.84, tarmac: 0.62, stone: 0.65, snow: 0.42, grass: 1.0, snowbank: 1.0, ice: 0.111, snowlayer: 0.74, slush: 0.95, dirt: 0.92, loose: 0.95, hard: 0.83, paint: 0.62, steel: 0.55, powder: 1.05, concrete: 0.63, moss: 0.9 },
   road: { gravel: 0.74, tarmac: 0.72, stone: 0.75, snow: 0.332, grass: 0.8, snowbank: 0.7, ice: 0.111, snowlayer: 0.55, slush: 0.8, dirt: 0.8, loose: 0.7, hard: 0.75, paint: 0.75, steel: 0.7, powder: 0.75, concrete: 0.73, moss: 0.8 } };
@@ -5457,6 +5479,174 @@ const TYRE_CAP = 11000, TYRE_LIFE = 2.2e7; // the tyre's heat capacity (J/K); th
 // (a bigger tyre than a rally car's, wheelOf(S).tk: [its heat capacity and its tread's life against a rally tyre's, its
 // skin's cooling against one's]; a bogie's corner holds two)
 const P_ATM = 1.013, hotP = (pc, T, Tset) => (pc + P_ATM) * (T + 273.15) / (Tset + 273.15) - P_ATM;
+// ---- the tyre: how it is built ----
+// Each kind of tyre's construction (its size is the car's: S.tyres, its section width, and its wheel's radius):
+//   asp: its sidewall's height against its section width (a gravel or snow tyre's tall sidewall, a tarmac tyre's low
+//     one); tw: its tread's width against the section width; tread: the tread's depth new (m); void: the share of the
+//     tread's face that is grooves (a compound's own where it is cut otherwise: a rain tyre's); blk: how stiff its blocks
+//     are against solid rubber of their height (sipes and tall, narrow blocks squirm); ps: what its carcass carries on
+//     its own besides the air in it (as pressure, bar: a rally tyre's reinforced sidewalls); studs: how many studs it
+//     carries, sh how far they stand out of the tread (m); cal: a special vehicle's own tyre's wheel radius, vertical
+//     stiffness and nominal load (for tyreCalib)
+const TYRE_BUILD = {
+  gravel: { asp: 0.65, tw: 0.88, tread: 0.013, void: 0.4, blk: 0.85, ps: 0.5 },
+  tarmac: { asp: 0.4, tw: 0.94, tread: 0.007, void: 0.12, blk: 1, ps: 0.4 },
+  snow: { asp: 0.65, tw: 0.86, tread: 0.014, void: 0.45, blk: 0.6, ps: 0.4, studs: 380, sh: 0.0065 },
+  winter: { asp: 0.45, tw: 0.86, tread: 0.009, void: 0.35, blk: 0.6, ps: 0.3 },
+  stud: { asp: 0.45, tw: 0.86, tread: 0.009, void: 0.35, blk: 0.6, ps: 0.3, studs: 360, sh: 0.002 },
+  xc: { asp: 0.85, tw: 0.85, tread: 0.018, void: 0.5, blk: 0.6, ps: 0.9, cal: [0.51, 900000, 9500] },
+  mt: { asp: 0.75, tw: 0.85, tread: 0.015, void: 0.45, blk: 0.65, ps: 0.8, cal: [0.47, 600000, 10800] },
+  road: { asp: 0.6, tw: 0.86, tread: 0.0085, void: 0.3, blk: 0.8, ps: 0.25, cal: [0.354, 300000, 7000] } };
+// one tyre as built (C: its compound, B: its section width, m; WH: its wheel): its carcass's stiffness at a reference
+// pressure (Cc0: twisting and bending under the patch, the wider and the shorter its sidewall the stiffer; Ky0: pushed
+// sideways under the wheel, rising steeply as the sidewall shortens) and its nominal load (Fz0: the wheel's, for its width)
+function tyreBuildOf(C, B, WH) {
+  const fam = C ? C.fam : 'gravel', F = TYRE_BUILD[fam] || TYRE_BUILD.gravel, H = F.asp * B;
+  return { fam, B, bt: F.tw * B, H, h0: (C && C.tread) || F.tread, void: C && C.void != null ? C.void : F.void, blk: F.blk, ps: F.ps,
+    studs: F.studs || 0, sh: F.sh || 0, G: (C && C.G) || 2, Topt: C ? C.Topt : 40, Fz0: (WH.Fz0 || 2600) * B / 0.225,
+    Cc0: 120000 * Math.pow(B / 0.205, 1.5) * Math.sqrt(0.13 / H), Ky0: 115000 * Math.pow(B / 0.205, 0.6) * Math.pow(0.13 / H, 1.6), kyK: 1, kxK: 1 };
+}
+// a vehicle's tyres as fitted, front and rear (kept until its compound changes). A special vehicle's own wheels give
+// their relaxation lengths (WH.sx, sy: at its nominal load on tarmac), and its carcass's stiffness is set to give them
+function tyreBuild(S) {
+  if (S._tb && S._tbC === S.tyreC) return S._tb;
+  const WH = wheelOf(S), C = S.tyreC; S._tbC = C;
+  return (S._tb = [0, 1].map(j => { const T = tyreBuildOf(C, S.tyres[j] / 1000, WH);
+    if (WH !== WHEEL) { const P = tyreStiff(T, T.Fz0, tyrePoptOf(C), tyrePoptOf(C), WH.R, WH.kt, T.Topt, 0, {});
+      T.kyK = P.Cy * (WH.ca || 1) / P.kcy / WH.sy; T.kxK = P.Cx / (4 * P.kcy) / WH.sx; }
+    return T; }));
+}
+const tyrePoptOf = C => C ? tyrePopt(C) : 2;
+// the tyre's patch and stiffness at a load Fz (N), running at a pressure p (bar; pD: the pressure it is built to run at)
+// on a wheel of radius R whose tyre's vertical stiffness is kt (N/m), its tread at Tt (°C, its compound's best Topt), worn
+// w (0-1), into P:
+//   the patch: its half-length a from how far the tyre is squashed (about 6 cm at a rally tyre's load: shorter than the
+//     chord of a squashed wheel, as tyres' contact patches are measured), its width b and its mean pressure pc;
+//   the tread's stiffness: its rubber (stiffer cold) over the height of its blocks, less its grooves; across the patch
+//     2 c b a^2 (the brush), so it grows with the load, and stiffens as the tread wears down;
+//   the carcass's: its twisting and bending under the patch, set by its air and its own build over its sidewall's height,
+//     in series with the tread's - so the cornering stiffness (Cy, and Cx along the wheel, where the belts are much
+//     stiffer) grows with the load and levels off where the carcass takes over, and the peak's slip angle grows with it;
+//   kcy: the carcass's sideways stiffness under the wheel, which with the cornering stiffness sets how far the tyre rolls
+//     before its force builds (the relaxation length, see stepCar);
+//   lr: the load against the tyre's nominal load at its pressure (a tyre carries more pumped harder)
+function tyreStiff(TB, Fz, p, pD, R, kt, Tt, w, P) {
+  const F = Math.max(Fz, 50), d = F / kt, a = clamp(R * (0.67 * Math.sqrt(d / R) + 0.73 * d / R), 0.015, 0.25), lp = Math.log((p + TB.ps) / 2.5);
+  const lr = F / (TB.Fz0 * Math.exp(0.7 * Math.log((p + TB.ps) / (pD + TB.ps)))), b = TB.bt * clamp(0.86 + 0.14 * Math.sqrt(lr), 0.75, 1.06);
+  const ct = TB.G * 1e6 * clamp(1 + 0.012 * (TB.Topt - Tt), 0.75, 1.6) * (1 - TB.void) * (TB.blk + (1 - TB.blk) * 0.6 * w) / (TB.h0 * (1 - 0.75 * w) + 0.003);
+  const Ct = 2 * ct * b * a * a, Cc = TB.Cc0 * Math.exp(0.8 * lp);
+  P.a = a; P.b = b; P.pc = F / (2 * a * b); P.lr = lr;
+  P.Cy = Ct * Cc / (Ct + Cc); P.Cx = 1.15 * Ct * 3 * Cc / (1.15 * Ct + 3 * Cc); P.kcy = TB.Ky0 * Math.exp(0.7 * lp) * TB.kyK; return P;
+}
+// what the surfaces under a tyre give it (MX: their kinds and shares; TB: the tyre; fam: its kind, null for the tyre made
+// for each), into P: the shares of the patch on a hard surface (hw) and on loose ground (lw); the rubber's friction on
+// each (rub, lrub: as this kind of tyre meets them, wet as the compound minds it (wetC), on ice by its temperature (iceR),
+// in slush by how far it floats (slF), worn w (Wk: what its wear costs beyond its grooves and studs)); what the grains in
+// its grooves hold (lphi: less as the grooves wear shallow); the rubber's sliding (r, vd) and the ground's shear length
+// (K); what it sinks into (z, pk, sig); its studs' bite (st, rs, sv: studs on ice by its temperature, iceS); and the rest
+// (cam, crr, heat, abr, pav)
+function tyreSurf(P, TB, fam, MX, wetC, iceR, iceS, slF, w, Wk) {
+  const wetW = MX.wet, vE = TB.void * Math.sqrt(1 - 0.75 * w);
+  let hw = 0, rub = 0, lw = 0, lrub = 0, lphi = 0, Kw = 0, zA = 0, pkA = 0, sgA = 0, stA = 0, rsA = 0, svA = 0, rB = 0, vdB = 0, camB = 0, crrB = 0, htB = 0, abB = 0, pvB = 0;
+  for (let j = 0; j < MX.n; j++) { const k = MX.k[j], wj = MX.w[j], Tk = TYRE[k] || TYRE.gravel, fk = FAMK[fam || Tk.home][k] || 1, ls = Tk.ls;
+    const wl = wetW ? wetW * (1 - (WET_GRIP[k] || 1)) : 0, wr = 1 - (Tk.wk + 0.15 * wetW * Tk.pav) * Wk;
+    const mrk = Tk.mr * fk * (1 - wl * wetC) * (k === 'ice' ? iceR : k === 'slush' ? slF : 1) * wr;
+    hw += wj * (1 - ls); rub += wj * (1 - ls) * mrk; rB += wj * (1 - ls) * Tk.r; vdB += wj * (1 - ls) * Tk.vd;
+    if (ls > 0) { lw += wj * ls; lrub += wj * ls * (1 - vE) * mrk; lphi += wj * ls * vE * Tk.phi * (1 - wl) * wr; Kw += wj * ls * Tk.K; }
+    if (Tk.z > 0) { zA += wj * Tk.z; pkA += wj * Tk.z * Tk.pk; sgA += wj * Tk.z * Tk.sig; }
+    if (TB.studs) { const sk = wj * Tk.st * (1 - wl) * (k === 'ice' ? iceS : 1); stA += sk; rsA += sk * Tk.rs; svA += sk * Tk.sv; }
+    camB += wj * Tk.cam; crrB += wj * Tk.crr; htB += wj * (TYRE_HEAT[k] || 0.2); abB += wj * (TYRE_ABR[k] || 0.5); pvB += wj * Tk.pav; }
+  P.hw = hw; P.rub = hw > 0 ? rub / hw : 0; P.r = hw > 0 ? rB / hw - 0.15 * wetW * wetC * pvB : 1; P.vd = hw > 0 ? vdB / hw * (1 - 0.4 * wetW * wetC * pvB) : 1;
+  P.lw = lw; P.lrub = lw > 0 ? lrub / lw : 0; P.lphi = lw > 0 ? lphi / lw : 0; P.K = lw > 0 ? Kw / lw * (1 + 0.8 * (1 - Math.sqrt(1 - 0.75 * w))) : 0.005;
+  P.z0 = zA; P.pk = zA > 0 ? pkA / zA : 0; P.sig = zA > 0 ? sgA / zA : 0;
+  P.st = stA; P.rs = stA > 0 ? rsA / stA : 1; P.sv = stA > 0 ? svA / stA : 0;
+  P.cam = camB; P.crr = crrB; P.heat = htB; P.abr = abB; P.pav = pvB; return P;
+}
+// the patch's forces (P: tyreSurf's and tyreStiff's figures, and the load (Fz), the slips (sx, sy: theoretical, per
+// unit of rolling speed), the contact's speed along and across the wheel (vx, vy), its slip speed along it (slipV), the
+// wheel's radius (R), the friction levels set for this load (mu0: rubber stuck on the hard part, muL: the loose ground's,
+// Fst: the studs' whole bite, N) and the depth it sinks to (z)):
+//   fx, fy, mz: the contact's grip (the brush on the hard part, the ground sheared under the loose part, the studs);
+//   px, py: the plough's push (outside the grip); muMax: the most the grip can give, per newton; rho: how far towards
+//   its peak the tyre is (1 about there); muPk, tanPk: the grip at its peak (or where the loose ground's levels off) and
+//   the tangent of the slip angle it comes at (for the grip steering and the drivers)
+const TP = { Fz: 0, sx: 0, sy: 0, vx: 0, vy: 0, slipV: 0, R: 0.31, a: 0.06, b: 0.18, pc: 0, lr: 1, Cx: 1, Cy: 1, kcy: 1, hw: 1, rub: 0, r: 1, vd: 1, lw: 0, lrub: 0, lphi: 0, K: 0.005,
+  z0: 0, pk: 0, sig: 0, st: 0, rs: 1, sv: 0, cam: 1, crr: 0, heat: 0, abr: 0, pav: 0, w: 0, mu0: 0, muL: 0, Fst: 0, z: 0,
+  fx: 0, fy: 0, mz: 0, px: 0, py: 0, muMax: 0, rho: 0, muPk: 0, tanPk: 0.15 };
+const STUD_K = 0.002; // (m: how far a stud is carried before it bites fully: it leans in the rubber)
+// (the trail: a real patch's pressure peaks behind its middle as it rolls and its carcass twists, so the force's centre
+// lies about half the half-length behind the middle at small slip, not the third an even parabola puts it at)
+const TRAIL_K = 1.5;
+function tyreForce(P) {
+  const Fz = P.Fz, sx = P.sx, sy = P.sy, ss = Math.hypot(sx, sy), a = P.a, a2 = 2 * a, vs = Math.hypot(P.slipV, P.vy);
+  let fx = 0, fy = 0, mz = 0, wH = 0, wL = 0, wS = 0, rH = 0, rL = 0, rS = 0, tH = 0, tL = 0, tS = 0, mu1 = 0;
+  // rubber on the hard part: the brush
+  if (P.hw > 0 && P.mu0 > 0) { const rr = clamp(P.r, 0.2, 0.99), lamP = 1 / (3 - 2 * rr); mu1 = P.mu0 * (rr + (1 - rr) * Math.exp(-vs / P.vd));
+    const B = brushTyre(sx, sy, Fz * P.hw, P.mu0, mu1, P.Cx * P.hw, P.Cy * P.hw, a * TRAIL_K, BRUSH); fx = B.fx; fy = B.fy; mz = B.mz;
+    const rP = rr + (1 - rr) * Math.exp(-0.12 * Math.abs(P.vx) / P.vd); // (its sliding at about the peak's slip)
+    wH = P.hw * P.mu0 * (3 * lamP * (1 - lamP) * (1 - lamP) + rP * lamP * lamP * (3 - 2 * lamP)); rH = B.lam / lamP; tH = lamP * 3 * P.mu0 * Fz / P.Cy; }
+  // the loose ground sheared under the tread, and the studs, against the slip (the tyre's own give in series)
+  let Fs = 0;
+  if (ss > 1e-9) { const ex = sx / ss, ey = sy / ss, Ct = 1 / Math.hypot(ex / P.Cx, ey / P.Cy);
+    if (P.lw > 0 && P.muL > 0) { const M = mobilise(ss, P.muL * Fz, P.K, a2, Ct, MOB), F = M.f * P.lw; fx += F * ex; fy -= F * ey; mz += F * ey * M.t * TRAIL_K; rL = M.q / 10; }
+    if (P.Fst > 0) { Fs = P.Fst * (P.sv > 0 ? P.rs + (1 - P.rs) * Math.exp(-vs / P.sv) : 1); const M = mobilise(ss, Fs, STUD_K, a2, Ct, MOB); fx += M.f * ex; fy -= M.f * ey; mz += M.f * ey * M.t * TRAIL_K; rS = M.q / 10; } }
+  if (P.lw > 0) { wL = 0.9 * P.lw * P.muL; tL = 10 * P.K / a2 + 0.9 * P.muL * Fz / P.Cy; }
+  if (P.Fst > 0) { const Fp = P.Fst * (P.sv > 0 ? P.rs + (1 - P.rs) * Math.exp(-0.15 * Math.abs(P.vx) / P.sv) : 1); wS = 0.85 * Fp / Fz; tS = 10 * STUD_K / a2 + 0.85 * Fp / P.Cy; } // (studs on ice skating at the peak's sliding)
+  const wT = wH + wL + wS || 1;
+  P.fx = fx; P.fy = fy; P.mz = mz; P.muMax = P.hw * Math.max(P.mu0, mu1) + P.lw * P.muL + Math.max(Fs, P.Fst) / Fz;
+  P.rho = (wH * rH + wL * rL + wS * rS) / wT; P.muPk = wH + wL + wS; P.tanPk = (wH * tH + wL * tL + wS * tS) / wT;
+  // ploughing: the sidewall shoving aside what the tyre has sunk into as it slides across it, packing it (sig: as a drag
+  // along the tyre's way through it, over the width it sweeps beyond its own track) and throwing it (pk, as the square of
+  // the speed across: the sidewall always meets fresh material), and the tread's front as it slides along it, locked or
+  // spinning (it meets only what it rolls onto: a wheel spinning on the spot digs in, it does not push)
+  P.px = 0; P.py = 0;
+  if (P.z > 0) { const z = P.z, l = Math.max(a2, 2 * Math.sqrt(2 * P.R * z)), Vm = Math.sqrt(P.vx * P.vx + P.vy * P.vy + 0.09), sa = P.vy / Vm, ca = P.vx / Vm, as = Math.abs(sa);
+    const D = Math.max(0, P.sig * z * (l * as - P.b * (1 - Math.abs(ca))));
+    let px = -D * ca + 0.5 * P.pk * z * P.b * P.slipV * Math.min(Math.abs(P.slipV), Math.abs(P.vx) + 1), py = -(D * sa + P.pk * z * l * P.vy * Math.abs(P.vy));
+    const f = Math.hypot(px, py), cap = 0.5 * Fz; if (f > 1e-6) { const k = 1 / Math.sqrt(1 + (f / cap) * (f / cap)); px *= k; py *= k; }
+    P.px = px; P.py = py; }
+  return P;
+}
+// each kind of tyre's rubber against each surface (FAMK[fam][kind], a factor on TYRE's mr), found once: the grip at the
+// peak of a kind's reference tyre (its reference compound, TYRE_REFC, 225 mm wide on its own wheel, at its nominal load
+// and the pressure it is built for, new and at its best temperature, dry, on cold ice) - the most it holds up to 25
+// degrees of slip angle at 20 m/s - set to TYRE's mu for the tyre made for the surface, times TYRE_FAM's for any other
+const TYRE_REFC = { gravel: 'gS', tarmac: 'tS', snow: 'sn', winter: 'tWi', stud: 'tSt', xc: 'xc', mt: 'mt', road: 'rd' };
+// (written here by tyreCalib for the figures above, so nothing is spent finding them as the game loads: run tyreCalib()
+// again after changing TYRE, TYRE_BUILD, TYRE_FAM or a compound's stiffness, and write what it gives in its place)
+const FAMK = {"gravel":{"gravel":1.0162,"tarmac":0.9669,"stone":0.9974,"snow":1.5151,"grass":1.3249,"snowbank":1.7428,"ice":1.0923,"snowlayer":1.98,"slush":1.6974,"dirt":1.2844,"loose":1.0318,"hard":1.0912,"powder":1.3287,"paint":0.9723,"concrete":0.9608,"moss":1.186,"steel":0.9662},"tarmac":{"gravel":0.8157,"tarmac":1.1092,"stone":1.1077,"snow":1.075,"grass":1.0314,"snowbank":1.2474,"ice":0.7103,"snowlayer":1.0717,"slush":1.1594,"dirt":1.0168,"loose":0.6908,"hard":0.8346,"powder":0.8103,"paint":1.1077,"concrete":1.1021,"moss":1.1071,"steel":1.0967},"snow":{"gravel":0.5071,"tarmac":0.6659,"stone":0.674,"snow":0.9392,"grass":0.8787,"snowbank":0.9776,"ice":1.1085,"snowlayer":1.4816,"slush":1.4282,"dirt":0.8177,"loose":0.3432,"hard":0.6962,"powder":0.7836,"paint":0.6643,"concrete":0.6592,"moss":0.9515,"steel":0.6719},"winter":{"gravel":0.6403,"tarmac":0.8901,"stone":0.8955,"snow":1.6678,"grass":1.1572,"snowbank":1.7442,"ice":1.3496,"snowlayer":2.2752,"slush":1.9282,"dirt":1.1176,"loose":0.6792,"hard":0.7643,"powder":1.0083,"paint":0.8955,"concrete":0.8845,"moss":1.1397,"steel":0.8909},"stud":{"gravel":0.5732,"tarmac":0.7951,"stone":0.793,"snow":1.4938,"grass":1.0874,"snowbank":1.6185,"ice":2.1545,"snowlayer":2.4465,"slush":1.7742,"dirt":1.0058,"loose":0.6137,"hard":0.715,"powder":0.9254,"paint":0.7974,"concrete":0.7892,"moss":1.1127,"steel":0.613},"xc":{"gravel":0.6424,"tarmac":0.6899,"stone":0.7457,"snow":1.1069,"grass":1.3421,"snowbank":2.245,"ice":0.9489,"snowlayer":2.0052,"slush":1.9425,"dirt":1.1715,"loose":0.9333,"hard":0.8022,"powder":1.7781,"paint":0.6931,"concrete":0.6948,"moss":1.1133,"steel":0.6175},"mt":{"gravel":0.7346,"tarmac":0.7459,"stone":0.7935,"snow":1.249,"grass":1.3125,"snowbank":2.0707,"ice":0.9256,"snowlayer":2.0192,"slush":1.9797,"dirt":1.18,"loose":0.8963,"hard":0.8671,"powder":1.4072,"paint":0.7542,"concrete":0.7547,"moss":1.1553,"steel":0.6633},"road":{"gravel":0.6554,"tarmac":0.8154,"stone":0.8551,"snow":0.9684,"grass":0.969,"snowbank":1.1098,"ice":0.8668,"snowlayer":1.3057,"slush":1.5303,"dirt":0.9705,"loose":0.564,"hard":0.7746,"powder":0.7717,"paint":0.8551,"concrete":0.8219,"moss":0.9206,"steel":0.7873}};
+const TYRE_REFB = {}, TYRE_MX1 = { n: 1, k: ['gravel'], w: [1], wet: 0, pool: 0 };
+for (const fam in TYRE_FAM) { const cal = TYRE_BUILD[fam].cal || [WHEEL.R, WHEEL.kt, 2600]; TYRE_REFB[fam] = Object.assign(tyreBuildOf(TYRE_C[TYRE_REFC[fam]], 0.225, { Fz0: cal[2] }), { cal }); }
+// a reference tyre's steady force (fam: its kind; k: the surface; alpha: slip angle; kap: slip ratio; V: speed, m/s;
+// Fz: its load, or its nominal load): into TP
+function tyreRef(fam, k, alpha, kap, V, Fz) {
+  const TB = TYRE_REFB[fam], cal = TB.cal, pD = tyrePopt(TYRE_C[TYRE_REFC[fam]]), P = TP; TYRE_MX1.k[0] = k;
+  tyreSurf(P, TB, fam, TYRE_MX1, 1, 1, 1, 1, 0, 0); P.Fz = Fz || TB.Fz0; P.w = 0; tyreStiff(TB, P.Fz, pD, pD, cal[0], cal[1], TB.Topt, 0, P); tyreLevels(P, TB, 1, 1, cal[0]);
+  const ca = Math.cos(alpha), sa = Math.sin(alpha); P.vx = V * ca; P.vy = V * sa; P.slipV = kap * P.vx; P.R = cal[0];
+  P.sx = kap / (1 + kap); P.sy = sa / ca / (1 + kap); return tyreForce(P);
+}
+// (its peak: the most it holds across up to 25 degrees at 20 m/s)
+const tyreRefPeak = (fam, k) => { let best = 0; for (let d = 1; d <= 25; d++) { const P = tyreRef(fam, k, d * Math.PI / 180, 0, 20); best = Math.max(best, -(P.fy + P.py) / P.Fz); } return best; };
+function tyreCalib() {
+  for (const fam in TYRE_FAM) { FAMK[fam] = FAMK[fam] || {}; for (const k in TYRE) {
+    const want = TYRE[k].mu * (TYRE_FAM[fam][k] != null ? TYRE_FAM[fam][k] : 1), F = FAMK[fam];
+    let f0 = 0.6, f1 = 1.2; F[k] = f0; let g0 = tyreRefPeak(fam, k) - want; F[k] = f1; let g1 = tyreRefPeak(fam, k) - want;
+    for (let it = 0; it < 10 && Math.abs(g1) > 1e-4; it++) { const f2 = clamp(f1 - g1 * (f1 - f0) / ((g1 - g0) || 1e-9), 0.02, 6); f0 = f1; g0 = g1; f1 = f2; F[k] = f1; g1 = tyreRefPeak(fam, k) - want; }
+    F[k] = Math.round(f1 * 1e4) / 1e4; } }
+  return FAMK;
+}
+// the friction levels for this load (into P, after tyreSurf and tyreStiff): rubber grips less the harder it is pressed
+// (against the tyre's nominal load: the patch's pressure rising with it, most at its edges), the grains' hold follows
+// the load as it is; gk: the compound's state (its temperature, its pressure, its grip), km: what the contact loses
+// beyond (standing water, damage, a tyre on its sidewall, a car's preparation); the studs' bite (each stud's, by how far
+// it stands out, worn, times the studs in the patch); and the depth it sinks to, deeper for a narrow tyre or a hard one
+// (its patch's pressure)
+function tyreLevels(P, TB, gk, km, R) {
+  const lrr = Math.exp(-0.15 * Math.log(P.lr));
+  P.mu0 = P.rub * gk * lrr * km; P.muL = (P.lrub * gk * lrr + P.lphi) * km;
+  P.Fst = TB.studs ? P.st * TB.studs * TB.sh * 1000 * (1 - 0.5 * P.w) * P.a / (Math.PI * R) * km : 0;
+  P.z = P.z0 > 0 ? P.z0 * clamp(Math.sqrt(P.pc / 170000) * Math.sqrt(Math.sqrt(0.225 / TB.B)), 0.5, 1.6) : 0;
+}
 // the tyres fitted for a stage: warm from the road section to the start, worn as far as they have been driven
 function initTyres(c, T, S, wear) {
   const a = T.air != null ? T.air : 15, t0 = a + (T.surface === 'snow' || (T.lay && T.lay.sum.snow + T.lay.sum.ice > 0.1) ? 4 : 12), pc = S && S.pCold;
@@ -5910,9 +6100,11 @@ function stepCar(c, S, inp, dt, T, opts) {
   if ((W[0].surf === 'ice') + (W[1].surf === 'ice') + (W[2].surf === 'ice') + (W[3].surf === 'ice') >= 2) c.surfName = 'ice';
   // (what the car is on, for its sounds and spray: the most of under its wheels)
   else if (on && T.lay) { const cnt = {}; let best = c.surfName, bn = 0; for (const wh of W) { const k = wh.surf; cnt[k] = (cnt[k] || 0) + 1; if (cnt[k] > bn) { bn = cnt[k]; best = k; } } c.surfName = best; }
-  // tyre forces: transient slip with relaxation lengths, combined slip on the brush model (with aligning torque), from
-  // the contact's own motion over the ground (the body's there, and the wheel's along its strut)
-  let maxRho = 0; const Fzn = m * g / 4, iceK = iceGrip(T.air != null ? T.air : 15, !TC || TC.fam === 'snow' || TC.fam === 'stud'), CF = (TC && TYRE_CAM[TC.fam]) || CAM_DEF;
+  // tyre forces: each patch's slip following its contact's own motion over the ground (the body's there, and the wheel's
+  // along its strut) a relaxation length behind; the tyre's stiffness from how it is built (tyreStiff) and its grip from
+  // the surfaces under it (tyreSurf): rubber on a hard surface, the ground sheared under a loose one, studs biting, and
+  // the plough's push through what it sinks into (tyreForce)
+  let maxRho = 0; const Fzn = m * g / 4, airT = T.air != null ? T.air : 15, iceR = iceGrip(airT, false), iceS = iceGrip(airT, true), CF = (TC && TYRE_CAM[TC.fam]) || CAM_DEF, TBS = tyreBuild(S), fam = TC ? TC.fam : null;
   for (let i = 0; i < 4; i++) {
     const G = K.W[i], wh = W[i], q = wh.q, tl = wh.tl, tt = wh.tt;
     const rx = q[0] - c.x, ry = q[1] - c.yb, rz = q[2] - c.z;
@@ -5924,44 +6116,40 @@ function stepCar(c, S, inp, dt, T, opts) {
     const bog = TD && !G.front, dvy = bog ? TD.d * (Wv[0] * wh.n[0] + Wv[1] * wh.n[1] + Wv[2] * wh.n[2]) : 0;
     wh.slipL = slipV; wh.slipT = vy;
     if (wh.Fz <= 0) { wh.Fx = 0; wh.Fy = 0; wh.Mz = 0; wh.Mk = 0; wh.rho = 0; wh.fF = 0; wh.fL = 0; wh.ux *= 0.8; wh.uy *= 0.8; if (bog) { wh.ux2 = (wh.ux2 || 0) * 0.8; wh.uy2 = (wh.uy2 || 0) * 0.8; } continue; }
-    const Fzc = Math.min(wh.Fz, Fzn * 4), Dw = DR ? DR.w[i] : null;
-    const wd = (G.front ? S.tyres[0] : S.tyres[1]) / 225, kLS = 0.13 / wd, FzN = (WH.Fz0 || 2600) * wd;
+    const Fzc = Math.min(wh.Fz, Fzn * 4), Dw = DR ? DR.w[i] : null, TB = TBS[G.front ? 0 : 1];
     // the fitted tyre: in its temperature window or not, worn, at its pressure
-    // (gripK: a car prepared better or worse than it was built, a rival's: see tunedSpec)
-    let gk = S.gripK || 1, ks = 1, wetC = 1, aq = 1, wear = 0, kq = 1;
+    let gk = 1, wetC = 1, aq = 1, wear = 0, kq = 1, pR = S.pOpt || 2, tT = TB.Topt, tw0 = 0;
     if (ty) { const tw = ty[i], dT = (tw.T - TC.Topt) / TC.win, dp = (tw.p - S.pOpt) / 0.35;
-      gk = (S.gripK || 1) * TC.mu * Math.max(0.86, dT < 0 ? 1 - 0.12 * Math.pow(Math.max(0, -dT - 0.35), 2) : 1 - 0.15 * Math.pow(Math.max(0, dT - 0.25), 2)) * Math.max(0.9, 1 - (dp < 0 ? 0.025 : 0.05) * dp * dp);
-      ks = Math.pow(clamp(tw.p / S.pOpt, 0.5, 1.6), 0.35); wetC = TC.wet; aq = TC.aqua; wear = Math.pow(tw.w, 1.3);
+      gk = TC.mu * Math.max(0.86, dT < 0 ? 1 - 0.12 * Math.pow(Math.max(0, -dT - 0.35), 2) : 1 - 0.15 * Math.pow(Math.max(0, dT - 0.25), 2)) * Math.max(0.9, 1 - (dp < 0 ? 0.025 : 0.05) * dp * dp);
+      wetC = TC.wet; aq = TC.aqua; wear = Math.pow(tw.w, 1.3); pR = tw.p; tT = tw.T; tw0 = tw.w;
       // (standing water lifts a tyre off the road at a lower speed the softer it runs and the less tread it has left)
       kq = Math.sqrt(clamp(tw.p / S.pOpt, 0.5, 1.5)) * (1 - 0.35 * tw.w); }
-    // what it meets: each surface under the patch for its share, with the fitted tyre's grip on it (made for it or not),
-    // the grip a wet road leaves (a slick loses more than a grooved tyre), ice by its temperature, slush squeezing out
-    // less from under the tread the faster it goes, and what the tread's wear costs there; standing water lifts the tread
-    // off the road the faster it goes (a grooved wet tyre clears more of it) and drags at the wheel
-    const MX = wh.mix, wetW = MX.wet, TY = wh.ty || (wh.ty = { mu0: 0, cx: 0, ca: 0, r: 0, rl: 0, vd: 0, cam: 0, crr: 0, lamP: 0, heat: 0, abr: 0, pav: 0 }), plan = smooth(12 * kq, 32 * kq, au);
-    let mB = 0, cxB = 0, caB = 0, rB = 0, rlB = 0, vdB = 0, camB = 0, crrB = 0, lpB = 0, htB = 0, abB = 0, pkB = 0, pvB = 0;
-    for (let j = 0; j < MX.n; j++) { const k = MX.k[j], wj = MX.w[j], Tk = TYRE[k] || TYRE.gravel, fk = ty ? TYRE_FAM[TC.fam][k] : 1;
-      mB += wj * Tk.mu0 * (fk != null ? fk : 1) * (wetW ? 1 - wetW * (1 - (WET_GRIP[k] || 1)) * wetC : 1) * (k === 'ice' ? iceK : k === 'slush' ? 1 - 0.3 * plan * aq : 1) * (1 - (Tk.wk + 0.15 * wetW * Tk.pav) * wear);
-      pkB += wj * Tk.mu / Tk.mu0; // (the surface's peak as a share of its sticking friction: for the grip steering)
-      cxB += wj * Tk.cx; caB += wj * Tk.ca; rB += wj * Tk.r; rlB += wj * (Tk.rl != null ? Tk.rl : Tk.r); vdB += wj * Tk.vd; camB += wj * Tk.cam; crrB += wj * Tk.crr; lpB += wj * Tk.lamP; htB += wj * (TYRE_HEAT[k] || 0.2); abB += wj * (TYRE_ABR[k] || 0.5); pvB += wj * Tk.pav; }
+    // what it meets: each surface under the patch for its share, as this tyre meets it (made for it or not; see
+    // tyreSurf), the grip a wet road leaves (a slick loses more than a grooved tyre), ice by its temperature, slush
+    // squeezing out less from under the tread the faster it goes, and what the tread's wear costs; standing water lifts
+    // the tread off the road the faster it goes (a grooved wet tyre clears more of it) and drags at the wheel
+    const MX = wh.mix, wetW = MX.wet, plan = smooth(12 * kq, 32 * kq, au), TY = wh.ty || (wh.ty = { r: 0, vd: 0, cam: 0, crr: 0, heat: 0, abr: 0, pav: 0 });
+    tyreSurf(TP, TB, fam, MX, wetC, iceR, iceS, 1 - 0.3 * plan * aq, tw0, wear);
     const pool = Math.max(water, MX.pool * (0.15 + 0.85 * plan));
     // (rolling resistance grows with speed, as the tyre flexes faster: about a seventh more at 100 km/h)
-    TY.mu0 = mB; TY.cx = cxB; TY.ca = caB; TY.r = rB; TY.rl = rlB; TY.vd = vdB; TY.cam = camB; TY.crr = crrB * (1 + 0.15 * (au / 27.8) * (au / 27.8)) + Math.min(0.15, MX.pool * (0.02 + 0.0005 * au * au)) + (wh.bankH ? 0.3 * Math.min(1.4, wh.bankH / 0.45) : 0); TY.lamP = lpB; TY.heat = htB; TY.abr = abB; TY.pav = pvB; // (water's drag held under the grip it leaves)
-    // the grip there, less under a heavier load, in standing water, on a punctured or lost tyre, and on its sidewall (a
-    // wheel far over)
+    TY.r = TP.r; TY.vd = TP.vd; TY.cam = TP.cam; TY.crr = TP.crr * (1 + 0.15 * (au / 27.8) * (au / 27.8)) + Math.min(0.15, MX.pool * (0.02 + 0.0005 * au * au)) + (wh.bankH ? 0.3 * Math.min(1.4, wh.bankH / 0.45) : 0); TY.heat = TP.heat; TY.abr = TP.abr; TY.pav = TP.pav; // (water's drag held under the grip it leaves)
+    // the grip there, less in standing water, on a punctured or lost tyre, and on its sidewall (a wheel far over); a car
+    // prepared better or worse than it was built (gripK: a rival's, see tunedSpec)
+    const km = (S.gripK || 1) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (Dw ? (Dw.off ? 0.4 : Dw.flat ? 0.5 : 1) : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
     // each of the corner's patches (a bogie's two tyres, each with its share of the load: see beamGround), its own slip and
     // its own load; their forces summed, and their lateral forces' turn about the pivot added to the aligning torque.
     // A patch of twin tyres (nd): each of the pair works with half its load, the pair giving twice one's force
     const nP = bog ? 2 : 1, sA = bog ? wh.bS : 1, caK = WH.ca || 1, nd = bog && TD.dual ? 2 : 1; let fx = 0, fy = 0, mz = 0, lam = 0, Pw = 0;
     for (let k = 0; k < nP; k++) {
       const Fp0 = nP === 1 ? Fzc : Fzc * (k ? 1 - sA : sA); if (!(Fp0 > 0)) continue; const Fp = Fp0 / nd, vyp = k ? vy - dvy : vy + dvy;
-      // the tyre's stiffnesses now, per newton of load: along it as the load's 0.85th power; across it rising with the
-      // load and levelling off past about twice its nominal load, as a tyre's cornering stiffness does (so its peak comes
-      // at a larger slip angle under more load), more for a wider tyre; both from the running pressure. Its relaxation
-      // lengths follow its stiffnesses (its carcass bends as far for the same force, so a stiffer tyre - more load, a
-      // grippier surface - takes longer to build its force; WH.sx, WH.sy: its lengths on tarmac at its nominal load)
-      const lr = Math.max(Fp, 200) / FzN, kxN = TY.cx * Math.sqrt(ks) * Math.pow(lr, -0.15), kyN = TY.ca * Math.sqrt(wd) * ks * caK * caLoad(lr) / lr;
-      const sgx = WH.sx * clamp(TY.cx / TYRE.tarmac.cx * Math.sqrt(ks) * Math.pow(lr, 0.85), 0.35, 1.6), sgy = WH.sy * clamp(TY.ca / TYRE.tarmac.ca * ks * caLoad(lr), 0.35, 1.6);
+      // the patch and the tyre's stiffness now (its load, its pressure, its tread's temperature and wear: see tyreStiff),
+      // and the grip it has at this load
+      tyreStiff(TB, Fp, pR, S.pOpt || pR, R0, WH.kt * wh.ktK, tT, tw0, TP); TP.Cy *= caK; TP.w = tw0; tyreLevels(TP, TB, gk, km, R0);
+      // its relaxation lengths: the carcass bends, sideways and along, until the patch's force balances it, so a stiffer
+      // tyre (more load, a grippier surface) rolls further before its force builds; on loose ground the ground gives too
+      // and it builds sooner (TB.kyK, kxK: a special vehicle's own)
+      const CgL = TP.lw > 0 ? TP.muL * Fp * TP.a / TP.K : 0, CyE = TP.hw * TP.Cy + TP.lw * TP.Cy * CgL / (TP.Cy + CgL || 1), CxE = TP.hw * TP.Cx + TP.lw * TP.Cx * CgL / (TP.Cx + CgL || 1);
+      const sgy = clamp(CyE / TP.kcy, 0.04, 1.6), sgx = clamp(CxE / (4 * TP.kcy * TB.kxK / TB.kyK), 0.03, 0.8);
       // the patch's bend along and across it, following the slip a relaxation length behind (the transient slip)
       let ux = k ? wh.ux2 || 0 : wh.ux, uy = k ? wh.uy2 || 0 : wh.uy;
       ux = clamp((ux + dt * slipV) / (1 + dt * avx / sgx), -sgx * 6, sgx * 6); uy = clamp((uy + dt * vyp) / (1 + dt * avx / sgy), -sgy * 4, sgy * 4);
@@ -5970,34 +6158,29 @@ function stepCar(c, S, inp, dt, T, opts) {
       // far and no further)
       if (WH.ulim && avx < 3) { const ul = WH.ulim + (sgx * 6 - WH.ulim) * avx / 3; ux = clamp(ux, -ul, ul); }
       if (k) { wh.ux2 = ux; wh.uy2 = uy; } else { wh.ux = ux; wh.uy = uy; }
-      const kmu = gk * clamp(1 - kLS * (Fp / FzN - 1), 0.7, 1.15) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (Dw ? (Dw.off ? 0.4 : Dw.flat ? 0.5 : 1) : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
-      // the slips (theoretical: per unit of rolling speed); how near to locked the wheel is (the wedge it pushes on loose
-      // ground); sliding friction from the sliding speed (on a wet sealed road it falls further and sooner)
-      const kap = Math.max(ux / sgx, -0.95), tna = uy / sgy, sx = kap / (1 + kap), sy = tna / (1 + kap), lockF = smooth(-0.5, -0.9, kap);
-      const vs = Math.hypot(slipV, vyp), rr = TY.r + (TY.rl - TY.r) * lockF - 0.15 * wetW * wetC * TY.pav, vdd = TY.vd * (1 - 0.4 * wetW * wetC * TY.pav);
-      const mu0 = TY.mu0 * kmu, mu1 = mu0 * (rr + (1 - rr) * Math.exp(-vs / vdd)); if (!k) wh.muPk = mu0 * pkB;
-      // (the patch's half-length from how far the tyre is squashed)
-      const half = clamp(Math.sqrt(2 * R0 * Fp / (WH.kt * wh.ktK)), 0.04, 0.16);
-      const BO = brushTyre(sx, sy, Fp, mu0, mu1, kxN * Fp, kyN * Fp, half, BRUSH);
-      // (the tangent of the slip angle where this tyre grips best across, as it is now: for the grip steering)
-      if (!k) { wh.tanPk = TY.lamP * 3 * mu0 / kyN; wh.loose = TY.r > 1; } // (a loose surface's grip still climbs past it)
+      // the slips (theoretical: per unit of rolling speed), and the patch's forces
+      const kap = Math.max(ux / sgx, -0.95), tna = uy / sgy;
+      TP.Fz = Fp; TP.sx = kap / (1 + kap); TP.sy = tna / (1 + kap); TP.vx = vx; TP.vy = vyp; TP.slipV = slipV; TP.R = R0;
+      tyreForce(TP); const sy = TP.sy;
+      if (!k) { wh.muPk = TP.muPk; wh.tanPk = TP.tanPk; wh.loose = TP.lw > 0.5; } // (a loose surface's grip still climbs past it)
       // camber: leaning towards the side it pushes to (gs > 0), a loaded tyre spreads its load evenly across its tread and
       // grips a little better across, best at CF[0] degrees (see TYRE_CAM); leaned further it runs on its inner shoulder,
       // and leaned away it loses grip fast. Along the wheel - braking and driving - it grips best upright. Loose ground
       // minds less. Its camber thrust (a leaning tyre pushes towards its lean) fades as the patch slides: at the limit
       // camber changes the force little
       const gs = sy > 0 ? -wh.lean : wh.lean, cu = gs * 180 / Math.PI / CF[0], camKy = clamp(1 + CF[1] * TY.cam * (2 * cu - cu * cu), 0.7, 1.05), camKx = clamp(1 - CF[2] * (0.5 + 0.5 * TY.cam) * wh.lean * wh.lean, 0.7, 1);
-      let px = 1.05 * BO.fx * camKx, py = BO.fy * camKy, pz = BO.mz * camKy; const lp = BO.lam;
-      py += 0.8 * Fp * clamp(wh.lean, -0.35, 0.35) * TY.cam * (lp < 1 ? (1 - lp) * (1 - lp) : 0);
+      let px = 1.05 * TP.fx * camKx, py = TP.fy * camKy, pz = TP.mz * camKy; const lp = Math.min(1, TP.rho);
+      py += 0.8 * Fp * clamp(wh.lean, -0.35, 0.35) * TY.cam * (1 - lp) * (1 - lp);
       // the slow-speed damping that stops a crawling car from creeping: only while the patch is all but still on the road
       // (rolling, sliding or both: a tyre sliding sideways at speed is not crawling); and the longitudinal force carried on
       // the patch pushed sideways by the lateral force
-      const lbd = clamp(1 - Math.max(avx, vs) / 2.5, 0, 1); if (lbd > 0) { const cdmp = lbd * 2.2 * Fp; px += cdmp * slipV * 0.5; py -= cdmp * vyp * 0.5; }
-      const lim = 1.12 * Math.max(mu0, mu1) * Fp, mag = Math.hypot(px, py); if (mag > lim) { px *= lim / mag; py *= lim / mag; pz *= lim / mag; }
-      pz -= px * py / CARCASS_Y; if (nd > 1) { px *= nd; py *= nd; pz *= nd; }
-      fx += px; fy += py; mz += pz + (bog ? (k ? -TD.d : TD.d) * py : 0); if (lp > lam) lam = lp; Pw += Math.abs(px * slipV) + Math.abs(py * vyp);
+      const lbd = clamp(1 - Math.max(avx, Math.hypot(slipV, vyp)) / 2.5, 0, 1); if (lbd > 0) { const cdmp = lbd * 2.2 * Fp; px += cdmp * slipV * 0.5; py -= cdmp * vyp * 0.5; }
+      const lim = 1.12 * TP.muMax * Fp, mag = Math.hypot(px, py); if (mag > lim) { px *= lim / mag; py *= lim / mag; pz *= lim / mag; }
+      pz -= px * py / CARCASS_Y; Pw += nd * (Math.abs(px * slipV) + Math.abs(py * vyp)); // (the work of sliding, before the plough's: that goes into the ground)
+      px += TP.px; py += TP.py; if (nd > 1) { px *= nd; py *= nd; pz *= nd; }
+      fx += px; fy += py; mz += pz + (bog ? (k ? -TD.d : TD.d) * py : 0); if (TP.rho > lam) lam = TP.rho;
     }
-    const rho = lam / TY.lamP; // (1 near the peak, for the sounds and the slides)
+    const rho = lam; // (1 near the peak, for the sounds and the slides)
     wh.Fx = fx; wh.Fy = fy; wh.Mz = mz; wh.rho = rho; if (rho > maxRho) maxRho = rho;
     // what turns a front wheel about its kingpin: the aligning torque and the lateral force behind the kingpin (caster)
     // and the force along it: at the patch, the scrub radius out from the axis's foot, and the drive torque's share about
@@ -7627,8 +7810,10 @@ function racingLine(T) {
 // steady corner; aerodynamic drag and downforce, rolling resistance and the road's grade all count. Water splashes and
 // hay-bale chicanes are taken at the speeds crews take them. No one drives a stage this perfectly: it is the yardstick
 // the crews' times are measured against.
-// (measured on the simulation: a whole car holds about 0.81 of its tyres' grip on gravel and on snow, 0.76 on dry
-// tarmac, losing more the harder it corners as the load shifts onto the outside tyres; it brakes on about all of it)
+// (the share of its tyres' grip a whole car is driven to: about 0.81 on gravel and on snow, 0.76 on dry tarmac, losing
+// more the harder it corners as the load shifts onto the outside tyres; it brakes on about all of it. On tarmac that is
+// what a whole car holds at the limit; on gravel and snow a car holds more, about 0.9 and 0.85, leaning on tyres whose
+// grip holds on past its peak in a big slide - crews driven to that spun more and were slower)
 const paceGrip = mu => clamp(0.878 - 0.084 * mu, 0.7, 0.92);
 function driveForce(S, v) {
   const R0 = wheelOf(S).R, eta = 0.88; let best = 0;
@@ -8598,11 +8783,13 @@ function driveHelp(c, S, I, H, dt, A, T) {
   H.thr += (cap - H.thr) * Math.min(1, dt * (cap < H.thr ? 30 : 5) * kT);
   H.clu += (clu - H.clu) * Math.min(1, dt * (clu < H.clu ? 30 : 4) * kT);
   // (ABS: the pedal's pressure eased while a front wheel slips past what is allowed, and the rear circuit's on its own
-  // while a rear wheel does - a rear wheel locked under braking leaves the tail nothing to hold it with)
+  // while a rear wheel does - a rear wheel locked under braking leaves the tail nothing to hold it with - and more while
+  // the tail swings out under braking)
   let want = 1, wantR = 1;
   if (A.abs > 0 && c.w && au > 3 && c.gear !== -1 && I.throttle < 0.3) {
     let k = 0, kR = 0, loose = false; for (let i = 0; i < 4; i++) { const w = c.w[i]; if (w.Fz > 0) { if (i < 2) k = Math.min(k, w.slipL / au); else kR = Math.min(kR, w.slipL / au); if (!SEALED_KINDS.has(w.surf) && w.surf !== 'ice' && w.surf !== 'snow') loose = true; } }
     const tgt = (loose ? -0.2 : -0.12) * (1 + 2 * (1 - A.abs)); if (k < tgt) want = clamp(1 - (tgt - k) * 3, 0.35, 1); if (kR < tgt) wantR = clamp(1 - (tgt - kR) * 3, 0.2, 1); // (weaker: the wheels let nearer locking)
+    if (beta * c.r < 0 && ab > 0.05) wantR *= clamp(1 - 4 * A.abs * (ab - 0.05), 0.25, 1); // (and further while the tail swings out: a braked rear tyre has less to hold it with)
   }
   H.brk += (want - H.brk) * Math.min(1, dt * (want < H.brk ? 40 : 5) * (1.5 - A.absM));
   H.brkR = H.brkR == null ? 1 : H.brkR + (wantR - H.brkR) * Math.min(1, dt * (wantR < H.brkR ? 40 : 5) * (1.5 - A.absM));
@@ -9134,7 +9321,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '2A35';
+const SR86_BUILD = '5F2E';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -22365,7 +22552,9 @@ function drawMap(cv, live) {
 // version 6: the countries (more stage types, each laid out in its own land) and their weather
 // version 8: the tyres re-measured (gravel grips about a fifth less, and every tyre's grip fades past its peak), so
 // boards start again
-const STAGE_VER = 8, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
+// version 9: the tyres rebuilt from how they are made (more grip everywhere; on gravel and snow it holds on past the
+// peak as the tyre digs in), so boards start again
+const STAGE_VER = 9, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
 // a stage's times are kept under the stage's own key; each time keeps the assists preset it was driven on (lv)
 const runKey = seed => recKey(seed);
 // (a stage laid out in a country other than its seed's own is a stage of its own, with a board of its own)
