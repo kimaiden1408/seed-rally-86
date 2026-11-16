@@ -2931,10 +2931,54 @@ function layStage(seedStr, force) {
     // a village street: kerbs 12 cm high, a pavement behind them (its width: the shoulder, flat), no ditch
     if (p.set === 'village' && surface !== 'snow' && !p.nb && p.tag !== 'ford' && p.tag !== 'grid') { p.kerb = 0.12; p.sh = (SSK === 'street' ? 2.5 : 1.3) + 0.9 * vnoise(s / 70, 4.4, nseed + 63); /* (a town's wider, with room behind its super special's blocks) */ p.shS = 0; p.dd = 0; p.bh = 0; }
   }
-  // banked bends (inside lower), strongest on sealed roads
   const bank = new Float32Array(N), kap = new Float32Array(N);
   for (let i = 0; i < N; i++) { const a = Math.max(0, i - 1), b = Math.min(N - 1, i + 1); kap[i] = wrapAngle(pts[b].h - pts[a].h) / ((b - a) * STEP); }
-  for (let i = 0; i < N; i++) { let sm = 0, n = 0; for (let j = Math.max(0, i - 6); j <= Math.min(N - 1, i + 6); j++) { sm += kap[j]; n++; } const p = pts[i]; bank[i] = (p.tag === 'ring' || p.tag === 'rbt' || p.wall || p.tag === 'ford' || p.tag === 'jump') ? 0 : clamp(3.5 * sm / n, -0.05, 0.05) * XS.bank; }
+  const kav = new Float32Array(N); for (let i = 0; i < N; i++) { let sm = 0, n = 0; for (let j = Math.max(0, i - 6); j <= Math.min(N - 1, i + 6); j++) { sm += kap[j]; n++; } kav[i] = sm / n; }
+  // (how far each point is from anything set: a tagged point - a bend built as a hairpin, a bridge, a chicane, a junction,
+  // a gate - or one with a width of its own)
+  const setD = new Float32Array(N).fill(1e9); for (let i = 0; i < N; i++) if (pts[i].tag || pts[i].ow || pts[i].wall || pts[i].nb) setD[i] = 0;
+  for (let i = 1; i < N; i++) setD[i] = Math.min(setD[i], setD[i - 1] + 1); for (let i = N - 2; i >= 0; i--) setD[i] = Math.min(setD[i], setD[i + 1] + 1);
+  // The road's width as it is used, where nothing is set: wider through the tighter bends (a car's track cuts the inside
+  // and its tail swings out: about 6/R metres, no more than a metre), and on a road no wider than WD.narrow a pinch now
+  // and then (a culvert, an outcrop, a tree: 20 to 50 m some 0.4 to 0.9 m narrower, never under WD.min; the co-driver
+  // calls the worst) and, on the narrowest, a passing place (15 to 25 m, 1.5 to 2.5 m wider)
+  if (!LOOP && !SSK && !(WIDE > 1)) { const WD = { narrow: 6.4, min: 3.4, pinch: 1 / 700, pass: 1 / 1500 }, RW = mulberry32(strHash('width:' + seedStr)), dw = new Float32Array(N);
+    for (let i = 0; i < N; i++) { if (setD[i] < 4) continue; const R = 1 / Math.max(1e-4, Math.abs(kav[i])); if (R < 120) dw[i] = Math.min(1, 6 / R) * smooth(3, 8, setD[i]); }
+    const pinch = [];
+    for (let i = startIdx; i < finishIdx - 30; i++) { if (setD[i] < 10 || pts[i].w > WD.narrow) continue; const r = RW();
+      if (r < WD.pinch * STEP * 2) { const L = Math.round((20 + 30 * RW()) / STEP), d = 0.4 + 0.5 * RW(); let ok = true; for (let k = i; k < i + L + 10 && ok; k++) if (k >= N || setD[k] < 8 || dw[k] > 0.2) ok = false;
+        if (ok) { for (let k = 0; k < L; k++) dw[i + 5 + k] -= d * smooth(0, 5, k) * smooth(L, L - 5, k); pinch.push([i + 5, i + 5 + L, d]); i += L + 30; } }
+      else if (r < (WD.pinch + WD.pass) * STEP * 2 && pts[i].w < 4.8) { const L = Math.round((15 + 10 * RW()) / STEP), d = 1.5 + RW(); let ok = true; for (let k = i; k < i + L + 10 && ok; k++) if (k >= N || setD[k] < 8 || Math.abs(kav[k]) > 1 / 150) ok = false;
+        if (ok) { for (let k = 0; k < L; k++) dw[i + 5 + k] += d * smooth(0, 4, k) * smooth(L, L - 4, k); i += L + 40; } } }
+    for (let i = 0; i < N; i++) if (dw[i]) pts[i].w = Math.max(WD.min, pts[i].w + dw[i]);
+    // (the worst pinches called: a note slotted in among the others in the order of the road)
+    for (const [a, b, d] of pinch) if (d > 0.65 && pts[a].w < 5.2) { let k = 0; while (k < notes.length && notes[k].i < a) k++; if (!(notes[k - 1] && notes[k - 1].e >= a - 10) && !(notes[k] && notes[k].i <= b + 10)) notes.splice(k, 0, { i: Math.max(0, a - 3), e: b, text: 'narrows', c: 0, s: 0 }); } }
+  // The road's crossfall (bank: the fall per metre to the left, the left side lower when it is positive): banked into its
+  // bends as built (XF.k of the curvature, no more than XF.max: a sealed road most, a gravel road little); leaning with
+  // the land it crosses, as an old road follows a hillside (XF.land of the land's own fall across it, its larger shape)
+  // - where a bend turns away downhill, it lies off camber; now and then a bend laid off camber outright (XF.adv of the
+  // bends, its outside 2 to 5% lower: a road widened on the outside, a bend over a crest); and a slow wander of a per
+  // cent or so as an old road settles (XF.wand). No more than 10% either way, eased in and out over some 30 m; level
+  // through a roundabout, a gate, a ford, a jump, a grid, a junction's square; a village street's kerbed carriageway
+  // leans and twists less (three tenths)
+  const XF = surface === 'tarmac' ? { k: 4.5, max: 0.07, land: 0.35, adv: 0.2, wand: 0.008 } : surface === 'snow' ? { k: 2, max: 0.045, land: 0.5, adv: 0.26, wand: 0.01 } : { k: 1.3, max: 0.035, land: 0.6, adv: 0.3, wand: 0.012 };
+  { const LND = { land, nseed }, RX = mulberry32(strHash('camber:' + seedStr)), raw = new Float32Array(N), adv = new Float32Array(N);
+    for (let i = 0; i < N; ) { if (Math.abs(kav[i]) < 1 / 70) { i++; continue; } let j = i; while (j < N && Math.abs(kav[j]) >= 1 / 90 && Math.sign(kav[j]) === Math.sign(kav[i])) j++;
+      if (RX() < XF.adv) { const a = 0.02 + 0.03 * RX(), sg = -Math.sign(kav[i]); for (let k = Math.max(0, i - 6); k < Math.min(N, j + 6); k++) adv[k] = sg * a; } i = j + 1; }
+    for (let i = 0; i < N; i++) { const p = pts[i], lx = Math.cos(p.h), lz = -Math.sin(p.h), d = p.w / 2 + 6;
+      const fall = (natMacro(LND, p.x + lx * d, p.z + lz * d) - natMacro(LND, p.x - lx * d, p.z - lz * d)) / (2 * d); // (the land higher on the left: positive)
+      raw[i] = clamp(XF.k * kav[i], -XF.max, XF.max) - XF.land * (p.kerb ? 0.3 : 1) * clamp(fall, -0.15, 0.15) + (p.kerb ? 0.3 : 1) * adv[i] + XF.wand * 2 * (vnoise(i * STEP / 90, 3.7, nseed + 211) - 0.5); }
+    const flat = p => p.tag === 'ring' || p.tag === 'rbt' || p.wall || p.tag === 'ford' || p.tag === 'jump' || p.tag === 'grid' || p.tag === 'square';
+    for (let i = 0; i < N; i++) { let sm = 0, wt = 0; for (let j = Math.max(0, i - 12); j <= Math.min(N - 1, i + 12); j++) { const q = 13 - Math.abs(j - i); sm += raw[j] * q; wt += q; } bank[i] = flat(pts[i]) ? 0 : clamp(sm / wt, -0.1, 0.1); }
+    // (and eased to level where a level piece begins)
+    const fd = new Float32Array(N).fill(1e9); for (let i = 0; i < N; i++) if (flat(pts[i])) fd[i] = 0; for (let i = 1; i < N; i++) fd[i] = Math.min(fd[i], fd[i - 1] + 1); for (let i = N - 2; i >= 0; i--) fd[i] = Math.min(fd[i], fd[i + 1] + 1);
+    for (let i = 0; i < N; i++) bank[i] *= smooth(0, 8, fd[i]) * (XS.bank ? 1 : 0); } // (an arena's circuit is laid level: XS.bank 0)
+  // The crown the rain runs off: a sealed road's roof, a fall of about 2.4% from its middle to either edge; a gravel road's
+  // camber, a curve falling 5% at its edges; a snow road's flatter. Worn more here than there; taken out where the road
+  // is banked past it (a sealed road's crown rolled into the bank, a gravel road's mostly)
+  const crown = new Float32Array(N), crownR = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { const p = pts[i], sealed = p.surf === 'tarmac' || p.surf === 'stone' || p.surf === 'concrete', hw = p.w / 2, wear = 0.65 + 0.6 * vnoise(i * STEP / 150, 8.3, nseed + 213);
+    crown[i] = p.surf === 'ice' ? 0 : (sealed ? 0.024 : p.surf === 'snow' ? 0.012 : 0.025) * hw * wear * (sealed ? clamp(1 - Math.abs(bank[i]) / 0.035, 0, 1) : clamp(1 - Math.abs(bank[i]) / 0.06, 0.35, 1)); crownR[i] = sealed ? 1 : 0; }
   // junctions: the stage turns off a road that carries on, blocked with bales and tape
   const spurs = [];
   for (const f of feats) if (f.type === 'square') {
@@ -3149,7 +3193,7 @@ function layStage(seedStr, force) {
       else { if (RB() < 0.7) put(i, side * (pts[i].w / 2 + 1.0)); side = -side; i += 10 + Math.floor(RB() * 8); }
     } }
   for (const c of colliders) { if (c.x === undefined) { const p = pts[c.i]; c.x = p.x + Math.cos(p.h) * c.lat; c.z = p.z - Math.sin(p.h) * c.lat; } c.y = pts[c.i].y; }
-  for (const c of colliders) if (c.kind === 'rock') stoneInit(c); // (each rock's weight, and whether a car can shift it)
+  for (const c of colliders) propInit(c, pts); // (each prop's weight, shape and material, and whether a car can shift it)
   const colAt = new Array(N); for (let i = 0; i < N; i++) colAt[i] = null;
   colliders.forEach(c => { (colAt[c.i] || (colAt[c.i] = [])).push(c); });
 
@@ -3230,7 +3274,7 @@ function layStage(seedStr, force) {
     const lane = pts.map(p => { const d = (p.x - ox) * rx + (p.z - oz) * rz; return { x: p.x - 2 * d * rx, z: p.z - 2 * d * rz, h: wrapAngle(2 * H0 - p.h), w: p.w, y: p.y, surf: p.surf, tag: p.tag, sh: p.sh, shS: p.shS, dd: p.dd, dw: p.dw, kc: p.kc, kf: p.kf, bh: 0, nb: 0, i: -1, spur: true, lane: 1 }; });
     Object.assign(sss, { lane, u0, ox, oz, rx, rz, H0 }); }
   const feshA = TY.fesh ? Float32Array.from(pts, p => p.fesh || 0) : null, slab = pts.some(p => p.surf === 'concrete') ? Uint8Array.from(pts, p => p.surf === 'concrete' ? 1 : 0) : null;
-  return { seed: seedStr, surface, type: { id: TY.id, name: TY.name }, bio: TY, natural, forced: !!(force && force.type && force.type !== natural), wide: WIDE > 1 ? WIDE : 0, W: Wbase, pts, notes, feats, colliders, colAt, boxes, boxAt, props, startIdx, finishIdx, stopIdx, amp, rut, terrain: null, side: null, length: (finishIdx - startIdx) * STEP, nseed, counts, grid, land, xs: XS, bank, spurs, radio, pass: runPass, iceN: feats.filter(f => f.ice).length, zones, zplan: ZP.plan, marks, feshA, slab, sss, loop: RXC };
+  return { seed: seedStr, surface, type: { id: TY.id, name: TY.name }, bio: TY, natural, forced: !!(force && force.type && force.type !== natural), wide: WIDE > 1 ? WIDE : 0, W: Wbase, pts, notes, feats, colliders, colAt, boxes, boxAt, props, startIdx, finishIdx, stopIdx, amp, rut, crown, crownR, terrain: null, side: null, length: (finishIdx - startIdx) * STEP, nseed, counts, grid, land, xs: XS, bank, spurs, radio, pass: runPass, iceN: feats.filter(f => f.ice).length, zones, zplan: ZP.plan, marks, feshA, slab, sss, loop: RXC };
 }
 
 // ---- shared surface model: physics, road mesh, verges and props all use these ----
@@ -3239,20 +3283,88 @@ function roadYAt(T, s) {
   const y0 = P[i].y, y1 = P[i + 1].y; const m0 = (y1 - P[Math.max(0, i - 1)].y) / (i > 0 ? 2 : 1), m1 = (P[Math.min(N - 1, i + 2)].y - y0) / (i + 2 < N ? 2 : 1);
   const t2 = t * t, t3 = t2 * t; return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * m0 + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * m1;
 }
-function roadBump(T, s, lat, w) {
+// ---- the road's own unevenness ----
+// What a laser profiler finds in a road: unevenness at every wavelength, from swells tens of metres long down to the
+// bumps a tyre's patch rides over, its size falling with the wavelength as ISO 8608 classes roads (the displacement's
+// power spectral density falling as the square of the wave number, Gd(n) = Gd(n0) (n/n0)^-2 with n0 = 0.1 cycles/m;
+// class A, a very good road, Gd(n0) = 16e-6 m3, each class after it four times the last: a good sealed road A to B, a
+// country lane B to C, a graded gravel road C to D, a rough one D to E, a rocky track E and worse). Here three lines
+// along the road (the middle and either wheel track, ROADUN.x of the half width out), each a random walk that forgets
+// itself over ROADUN.nc's wavelength (an Ornstein-Uhlenbeck process: flat below it, falling as the square of the wave
+// number above it, as ISO's classes do), sampled every ROADUN.ds metres, ROADUN.share of it shared by the three lines; the
+// road's roughness (T.amp, 1 a typical gravel road: class D, ROADUN.sig of it; varied by a quarter along the stage;
+// packed snow fills the hollows of the road under it, so a snow road's unevenness is ROADUN.snow of it, a class smoother)
+// scales it, with the longer swells (ROADUN.long) laid over it. The road is drawn through a smoothed copy (over ROADUN.lp
+// metres): what is shorter than that is felt, not seen. And what no spectrum gives: potholes - the gravel worn through,
+// the tarmac broken - and the washboard ripples braking and accelerating cars shake into a dry gravel road before and
+// after its bends (ROADUN.corr: how many bends have them). (A rallycross circuit, kept as circuits are, has neither.)
+const ROADUN = { ds: 0.15, nc: 1 / 8, sig: 0.0113, x: 0.55, share: 0.6, lp: 2.4, long: 0.6, holes: { gravel: 7, snow: 2.5, tarmac: 16, stone: 8, concrete: 0, ice: 0 }, corr: 0.42, snow: 0.6 };
+function roadProfile(T) {
+  if (T.prof) return T.prof;
+  const N = T.pts.length, n = Math.ceil((N - 1) * STEP / ROADUN.ds) + 4, R = mulberry32(strHash('rough:' + T.seed)), rho = Math.exp(-2 * Math.PI * ROADUN.nc * ROADUN.ds), q = Math.sqrt(1 - rho * rho);
+  const gs = () => (R() + R() + R() + R() - 2) * 1.7320508; // (about normal, of unit variance)
+  const C = new Float32Array(n), L = [0, 1, 2].map(() => new Float32Array(n)), sh = ROADUN.share, sh2 = Math.sqrt(1 - sh * sh);
+  let c = 0; const e = [0, 0, 0]; for (let k = 0; k < n; k++) { c = rho * c + q * gs(); for (let j = 0; j < 3; j++) { e[j] = rho * e[j] + q * gs(); L[j][k] = sh * c + sh2 * e[j]; } }
+  // (the smoothed copy, every fourth sample: each the mean over ROADUN.lp)
+  const m = Math.round(ROADUN.lp / ROADUN.ds), nl = Math.ceil(n / 4), LP = L.map(A => { const S = new Float64Array(n + 1); for (let k = 0; k < n; k++) S[k + 1] = S[k] + A[k]; const o = new Float32Array(nl);
+    for (let k = 0; k < nl; k++) { const a = Math.max(0, k * 4 - m / 2), b = Math.min(n, k * 4 + m / 2); o[k] = (S[b] - S[a]) / Math.max(1, b - a); } return o; });
+  // potholes, by the road's roughness and surface (per km, ROADUN.holes times its roughness squared): each 0.2 to 0.6 m
+  // across its radius, 3 to 12 cm deep (a dish on a loose surface, sharp-edged in a sealed one), in the wheel tracks more
+  // often than not; kept by road point
+  const P = T.pts, holes = new Map(), list = [], A = T.amp || [], a0 = Math.max(0, (T.startIdx || 0) - 20), a1 = Math.min(N - 2, (T.stopIdx || N) + 5);
+  for (let i = a0; i < a1 && !T.loop; i++) { const p = P[i]; if (p.tag === 'bridge' || p.tag === 'deck' || p.tag === 'ford' || p.tag === 'jump' || p.tag === 'grid' || p.nb || p.kerb) continue;
+    const amp = A[i] || 0, rate = (ROADUN.holes[p.surf] || 0) * amp * amp * STEP / 1000; if (R() >= rate) continue;
+    const sealed = p.surf === 'tarmac' || p.surf === 'stone' || p.surf === 'concrete', r = 0.2 + 0.4 * R() * R(), d = (0.03 + 0.09 * R() * R()) * (sealed ? 0.8 : 1);
+    const lat = (R() < 0.6 ? (R() < 0.5 ? -1 : 1) * 0.48 : (R() - 0.5) * 1.6) * (p.w / 2 - r), h = { s: i * STEP + R() * STEP, lat, r, d, sharp: sealed };
+    list.push(h); for (let k = i - 1; k <= i + 1; k++) { let a = holes.get(k); if (!a) holes.set(k, a = []); a.push(h); } }
+  // washboard on gravel: before a bend (where cars brake: 25 to 70 m, ending 5 m before it) on ROADUN.corr of them, and
+  // after one (where they accelerate away: 15 to 40 m, gentler) on half as many; ripples 0.65 to 0.95 m apart, 0.8 to
+  // 2.5 cm deep at a typical gravel road's roughness, deeper in the wheel tracks; kept by road point
+  const corr = new Map(), K = new Float32Array(N); for (let i = 1; i < N - 1; i++) K[i] = wrapAngle(P[i + 1].h - P[i - 1].h) / (2 * STEP);
+  const KA = new Float32Array(N); for (let i = 0; i < N; i++) { let s2 = 0, nn = 0; for (let j = Math.max(0, i - 5); j <= Math.min(N - 1, i + 5); j++) { s2 += K[j]; nn++; } KA[i] = Math.abs(s2 / nn); }
+  const addZ = (s0, s1, amp) => { if (s1 - s0 < 8) return; const z = { s0, s1, a: amp, l: 0.65 + 0.3 * R(), ph: R() * 6.283 }; for (let k = Math.floor(s0 / STEP) - 1; k <= Math.ceil(s1 / STEP) + 1; k++) { let a = corr.get(k); if (!a) corr.set(k, a = []); a.push(z); } };
+  for (let i = a0 + 20; i < a1 - 5 && !T.loop; i++) { if (!(KA[i] > 1 / 90 && KA[i - 1] <= 1 / 90)) continue; let j = i; while (j < a1 && KA[j] > 1 / 110) j++;
+    const pg = k => P[k] && P[k].surf === 'gravel' && !P[k].tag && !P[k].nb, amp = (A[i] || 0) * (0.008 + 0.017 * R());
+    if (pg(i - 5) && pg(i - 20) && R() < ROADUN.corr) { const s1 = (i - 2.5) * STEP, s0 = s1 - (25 + 45 * R()); if (pg(Math.max(0, Math.floor(s0 / STEP)))) addZ(s0, s1, amp); }
+    if (pg(j + 5) && pg(j + 15) && R() < ROADUN.corr / 2) { const s0 = (j + 2.5) * STEP; addZ(s0, s0 + 15 + 25 * R(), amp * 0.6); } i = j; }
+  return T.prof = { L, LP, n, holes, list, corr };
+}
+// the profiled unevenness (unit: ROADUN.sig's) at a point (x across, -1 to 1); sm: the smoothed copy the road is drawn by
+function profileAt(T, s, x, sm) {
+  const P = T.prof || roadProfile(T), D = sm ? P.LP : P.L, ds = sm ? ROADUN.ds * 4 : ROADUN.ds, f = clamp(s / ds, 0, D[0].length - 1.001), i = Math.floor(f), t = f - i;
+  const v = j => D[j][i] + (D[j][i + 1] - D[j][i]) * t, u = clamp(x / ROADUN.x, -1, 1);
+  return u < 0 ? v(1) + (v(0) - v(1)) * -u : v(1) + (v(2) - v(1)) * u;
+}
+// a pothole under a point (its depth there, negative)
+function holeAt(T, s, lat) {
+  const P = T.prof || roadProfile(T), L = P.holes.get(Math.floor(s / STEP)); if (!L) return 0; let y = 0;
+  for (const h of L) { const ds = s - h.s, dl = lat - h.lat, d2 = ds * ds + dl * dl, r2 = h.r * h.r; if (d2 >= r2) continue; const d = Math.sqrt(d2);
+    y = Math.min(y, h.sharp ? -h.d * smooth(h.r, h.r - 0.05, d) * (1 - 0.25 * d / h.r) : -h.d * (1 - d2 / r2) * (1 - d2 / r2)); }
+  return y;
+}
+// the washboard under a point (x across, -1 to 1)
+function corrAt(T, s, x) {
+  const P = T.prof || roadProfile(T), L = P.corr.get(Math.floor(s / STEP)); if (!L) return 0; let y = 0;
+  for (const z of L) { if (s < z.s0 || s > z.s1) continue; const ax = Math.abs(x), lw = 0.55 + 0.45 * Math.exp(-((ax - 0.48) * (ax - 0.48)) / 0.05);
+    y += z.a * smooth(z.s0, z.s0 + 6, s) * (1 - smooth(z.s1 - 6, z.s1, s)) * lw * Math.sin(2 * Math.PI * (s - z.s0) / z.l + z.ph + 0.5 * x); }
+  return y;
+}
+// The road's surface about its laid line (s along, lat across, w its width): its crown (a sealed road's roof, a loose
+// road's curve: see crown), its ruts, the profiled unevenness, potholes and washboard. sm: as the road is drawn - the
+// unevenness smoothed over ROADUN.lp and no washboard (felt through the wheels, too fine to draw)
+function roadBump(T, s, lat, w, sm) {
   const A = T.amp; if (!A) return 0; const f = clamp(s / STEP, 0, A.length - 1.0001); const i = Math.floor(f); const amp = A[i] + (A[i + 1] - A[i]) * (f - i);
-  if (amp <= 0.002) return 0;
-  const ns = T.nseed, x = clamp(lat / (w / 2), -1, 1), ax = Math.abs(x);
-  const crown = (1 - x * x) * 0.05 * Math.min(1, amp * 1.6);
+  const ns = T.nseed, x = clamp(lat / (w / 2), -1, 1), ax = Math.abs(x), CR = T.crown;
+  const crown = CR ? (CR[i] + (CR[i + 1] - CR[i]) * (f - i)) * (T.crownR[i] ? 1 - Math.pow(ax, 1.25) : 1 - x * x) : (1 - x * x) * 0.05 * Math.min(1, amp * 1.6);
+  if (amp <= 0.002) return CR ? crown : 0;
   const rut = -Math.exp(-((ax - 0.48) * (ax - 0.48)) / 0.018) * 0.065 * T.rut * amp * (T.surface === 'mixed' ? amp : 1); // (a mixed stage's tarmac is not rutted)
-  const along = (vnoise(s / 23, 4.5, ns + 2) - 0.5) * 0.16 + (vnoise(s / 7, 0.5, ns) - 0.5) * 0.09 + (vnoise(s / 2.6, 2.5, ns + 1) - 0.5) * 0.032;
-  const holes = (vnoise(s / 3.1, lat / 1.4 + 7.3, ns + 3) - 0.5) * 0.065;
+  const ak = amp * (0.75 + 0.5 * vnoise(s / 350, 1.7, ns + 9)), along = ((vnoise(s / 23, 4.5, ns + 2) - 0.5) * 0.16 + (vnoise(s / 7, 0.5, ns) - 0.5) * 0.09) * ROADUN.long;
   // (concrete slabs 4.67 m long, three to the road's texture tile: a shallow dip at each joint the wheels thump over)
   let joint = 0; if (T.slab && T.slab[i]) { const ph = s / (14 / 3), d = Math.abs(ph - Math.round(ph)) * (14 / 3); if (d < 0.18) joint = -0.008 * (1 - d / 0.18); }
-  return amp * (along + holes) + crown + rut + joint;
+  return amp * along + ak * ROADUN.sig * (T.pts[i].surf === 'snow' ? ROADUN.snow : 1) * profileAt(T, s, x, sm) + crown + rut + joint + holeAt(T, s, lat) + (sm ? 0 : corrAt(T, s, x));
 }
 function bankAt(T, s) { const B = T.bank; if (!B) return 0; const f = clamp(s / STEP, 0, B.length - 1.0001), i = Math.floor(f); return B[i] + (B[i + 1] - B[i]) * (f - i); }
-function roadSurfY(T, s, lat, w) { return roadYAt(T, s) - bankAt(T, s) * lat + roadBump(T, s, lat, w); }
+function roadSurfY(T, s, lat, w, sm) { return roadYAt(T, s) - bankAt(T, s) * lat + roadBump(T, s, lat, w, sm); }
 // fesh-fesh hides holes: dips in the road under the dust, now and then, up to 15 cm deep, that only the wheels find (the
 // dust lies level over them, so the road is drawn without them: a wheel in one sinks into the dust)
 function feshHole(T, s, lat) { const F = T.feshA; if (!F) return 0; const f = clamp(s / STEP, 0, F.length - 1.001), i = Math.floor(f), v = F[i] + (F[i + 1] - F[i]) * (f - i); if (v <= 0.02) return 0;
@@ -3739,7 +3851,7 @@ function buildGround(T) {
   const P = T.pts, N = P.length, X = T.xs, spurs = T.spurs || [];
   const all = P.slice(); for (const sp of spurs) for (const q of sp.pts) all.push(q); if (T.sss && T.sss.lane) for (const q of T.sss.lane) { q.eL = q.eR = q.y; all.push(q); }
   if (T.sss) for (const J of [T.sss.rx, T.sss.sl]) if (J && J.pts) for (const q of J.pts) { q.eL = q.eR = q.y; all.push(q); } // (a rallycross circuit's joker lane and start lane: the ground laid level to them, as to a side road)
-  for (let i = 0; i < N; i++) { const p = P[i]; p.eL = roadSurfY(T, i * STEP, p.w / 2, p.w); p.eR = roadSurfY(T, i * STEP, -p.w / 2, p.w); }
+  for (let i = 0; i < N; i++) { const p = P[i]; p.eL = roadSurfY(T, i * STEP, p.w / 2, p.w, true); p.eR = roadSurfY(T, i * STEP, -p.w / 2, p.w, true); }
   for (const sp of spurs) for (const q of sp.pts) q.eL = q.eR = q.y;
   const dense = new SHash(12);
   let bx0 = 1e9, bx1 = -1e9, bz0 = 1e9, bz1 = -1e9;
@@ -4057,7 +4169,7 @@ function buildGround(T) {
   for (let k = 0; k <= 4 * (N - 1); k++) {
     const i0 = Math.min(Math.floor(k / 4), N - 2), t = k / 4 - i0, A = P[i0], B = P[i0 + 1]; if (A.nb && B.nb) continue; /* a bridge deck is far above its gorge; a walled gate is not */
     const h = t > 0 && t < 1 ? Math.atan2(B.x - A.x, B.z - A.z) : (t === 0 ? A.h : B.h), lx = Math.cos(h), lz = -Math.sin(h), w = lerp(A.w, B.w, t), cx = lerp(A.x, B.x, t), cz = lerp(A.z, B.z, t), sv = k * STEP / 4;
-    for (const f of [-1.1, -1, -0.6, -0.25, 0, 0.25, 0.6, 1, 1.1]) { const lat = f * w / 2; push(cx + lx * lat, cz + lz * lat, roadSurfY(T, sv, clamp(lat, -w / 2, w / 2), w) - (A.wall ? 0.16 : 0.08), 3); }
+    for (const f of [-1.1, -1, -0.6, -0.25, 0, 0.25, 0.6, 1, 1.1]) { const lat = f * w / 2; push(cx + lx * lat, cz + lz * lat, roadSurfY(T, sv, clamp(lat, -w / 2, w / 2), w, true) - (A.wall ? 0.16 : 0.08), 3); }
   }
   // (a junction's side road: under its surface as the wheels find it, every metre along and across it out past its edges)
   const spurPush = (cap) => { for (const sp of spurs) { const q0 = sp.pts[0], a = P[sp.a], hx = Math.sin(q0.h), hz = Math.cos(q0.h), hw = q0.w / 2, dEnd = sp.pts.length * STEP + 1;
@@ -5847,6 +5959,9 @@ function landBeyondY(T, x, z) { return natAt(T, x, z) + (T.landShift ? T.landShi
 function rockBaseY(T, col) { if (col.gy == null) col.gy = surfaceY(T, locate(T, col.x, col.z, col.i), col.x, col.z); return col.gy; }
 function solidsOf(T, col) {
   if (col._sol) return col._sol;
+  // (a prop a car has moved, as it lies now: rounds along the length of its footprint - one for a drum on its end - up
+  // to its top)
+  if (col.shp && col.rq) { const top = rockBaseY(T, col) + 2 * propLow(col, col.rq); return col._sol = propFoot(col, col.rq, col.x, col.z).map(o => Object.assign(o, { top, col })); }
   if (col.kind === 'rock') {
     const g = rockBaseY(T, col), a = col.a, b = col.b, n = clamp(Math.ceil(2 * a / b) - 1, 1, 5), ux = Math.cos(col.th), uz = -Math.sin(col.th), L = [];
     for (let k = 0; k < n; k++) { const t = n === 1 ? 0 : (-1 + 2 * k / (n - 1)) * (a - b); L.push({ x: col.x + ux * t, z: col.z + uz * t, R: n === 1 ? (a + b) / 2 : b, g, H: col.H * Math.sqrt(Math.max(0.25, 1 - (t / a) * (t / a))), col }); }
@@ -7160,39 +7275,50 @@ function bodySolids(c, S, T, M, out) {
   const sh = shellOf(S), BX = sh.boxes, Px = c.x, Py = c.yb, Pz = c.z, i0 = c.hint, R0 = wheelOf(S).R;
   const toBody = (x, y, z) => [M[0] * x + M[1] * y + M[2] * z, M[3] * x + M[4] * y + M[5] * z, M[6] * x + M[7] * y + M[8] * z];
   const LP = T.loop ? T.pts.length - 1 : 0;
+  // (one solid o of the object col: a round of its footprint, between its foot - or, off the ground, its lowest point,
+  // o.bot - and its top; how it bounces and grips is its material's, PROP_MAT)
+  const one = (col, o) => {
+    const top = o.H != null ? o.g + o.H : o.top, ya = Math.max(o.bot != null ? o.bot : o.H != null ? o.g : -Infinity, Py - 2.2), yb = Math.min(top, Py + 2.2); if (yb < ya) return;
+    const MT = col.mat ? PROP_MAT[col.mat] : null, e = MT ? MT.e : 0.15, mu = MT ? MT.mu : 0.5, mob = col.mob ? col : null;
+    let best = null;
+    for (let y = ya; y <= yb + 1e-6; y += 0.15) {
+      const l = toBody(o.x - Px, y - Py, o.z - Pz);
+      for (const b of BX) {
+        const cl = [clamp(l[0], b[0], b[3]), clamp(l[1], b[1], b[4]), clamp(l[2], b[2], b[5])], r = [M[0] * cl[0] + M[3] * cl[1] + M[6] * cl[2], M[1] * cl[0] + M[4] * cl[1] + M[7] * cl[2], M[2] * cl[0] + M[5] * cl[1] + M[8] * cl[2]], wy = Py + r[1];
+        const dx = Px + r[0] - o.x, dz = Pz + r[2] - o.z, dh = Math.hypot(dx, dz), reach = solReach(o, wy); if (dh >= reach) continue;
+        const pen = reach - dh; if (best && pen <= best.pen) continue; let n;
+        if (o.H != null) { const gx = dx / (o.R * o.R), gy = Math.max(0, wy - o.g) / (o.H * o.H), gz = dz / (o.R * o.R), gl = Math.hypot(gx, gy, gz) || 1; n = [gx / gl, gy / gl, gz / gl]; }
+        else if (o.top !== Infinity && o.top - (Py + M[1] * cl[0] + M[4] * b[1] + M[7] * cl[2]) < Math.min(pen, 0.25)) n = [0, 1, 0]; // (out over its top only when the body's underside there is no deeper below it than the body is into its side: come down onto it)
+        else if (dh > 1e-4) n = [dx / dh, 0, dz / dh];
+        else { const ex = Px - o.x, ez = Pz - o.z, el = Math.hypot(ex, ez) || 1; n = [ex / el, 0, ez / el]; }
+        best = { r, n, pen, kind: col.kind || 'hit', e, mu, pb: cl, solid: true, box: b, mob, col, oR: o.R, air: !!o.air };
+      }
+    }
+    // (an upright object - a tree, a post, a bale - meets the face of the body all up the height they share, though a
+    // body pitched a little touches it first along one edge: the blow lands halfway up that height)
+    if (best) { if (o.H == null) { const b = best.box, lo = Math.max(b[1], ya - Py), hi = Math.min(b[4], yb - Py);
+        if (hi > lo) { const cl = [best.pb[0], (lo + hi) / 2, best.pb[2]]; best.pb = cl; best.r = [M[0] * cl[0] + M[3] * cl[1] + M[6] * cl[2], M[1] * cl[0] + M[4] * cl[1] + M[7] * cl[2], M[2] * cl[0] + M[5] * cl[1] + M[8] * cl[2]]; } }
+      out.push(best); }
+    // the wheels (a prop that gives takes the wheel's blow as it takes the body's)
+    for (const wh of c.w) { const C = wh.C; if (!C) continue; const dx = C[0] - o.x, dz = C[2] - o.z, dh = Math.hypot(dx, dz), Rh = R0 * 0.9; if (dh >= o.R + Rh || dh < 1e-4) continue;
+      const ybot = C[1] - R0; if (solTop(o, Math.max(0, dh - Rh)) <= ybot + WTOL || climbable(o, ybot) || (o.bot != null && o.bot > C[1] + R0)) continue;
+      const reach = solReach(o, C[1]), pen = reach + Rh - dh; if (pen <= 0) continue;
+      const n = [dx / dh, 0, dz / dh], r = [C[0] - Rh * n[0] - Px, C[1] - Py, C[2] - Rh * n[2] - Pz]; out.push({ r, n, pen, kind: col.kind || 'hit', e, mu, pb: toBody(r[0], r[1], r[2]), solid: true, wheel: true, mob, col, oR: o.R, air: !!o.air }); }
+  };
   for (let i1 = LP ? i0 - 25 : Math.max(0, i0 - 25); i1 < (LP ? i0 + 25 : Math.min(T.pts.length, i0 + 25)); i1++) {
     const i = LP ? ((i1 % LP) + LP) % LP : i1, L = T.colAt[i]; if (!L) continue;
     for (const col of L) {
       if (Math.abs(col.x - Px) > (col.r || 1) + 4 || Math.abs(col.z - Pz) > (col.r || 1) + 4) continue;
-      for (const o of solidsOf(T, col)) {
-        const top = o.H != null ? o.g + o.H : o.top, ya = Math.max(o.H != null ? o.g : -Infinity, Py - 2.2), yb = Math.min(top, Py + 2.2); if (yb < ya) continue;
-        let best = null;
-        for (let y = ya; y <= yb + 1e-6; y += 0.15) {
-          const l = toBody(o.x - Px, y - Py, o.z - Pz);
-          for (const b of BX) {
-            const cl = [clamp(l[0], b[0], b[3]), clamp(l[1], b[1], b[4]), clamp(l[2], b[2], b[5])], r = [M[0] * cl[0] + M[3] * cl[1] + M[6] * cl[2], M[1] * cl[0] + M[4] * cl[1] + M[7] * cl[2], M[2] * cl[0] + M[5] * cl[1] + M[8] * cl[2]], wy = Py + r[1];
-            const dx = Px + r[0] - o.x, dz = Pz + r[2] - o.z, dh = Math.hypot(dx, dz), reach = solReach(o, wy); if (dh >= reach) continue;
-            const pen = reach - dh; if (best && pen <= best.pen) continue; let n;
-            if (o.H != null) { const gx = dx / (o.R * o.R), gy = Math.max(0, wy - o.g) / (o.H * o.H), gz = dz / (o.R * o.R), gl = Math.hypot(gx, gy, gz) || 1; n = [gx / gl, gy / gl, gz / gl]; }
-            else if (o.top !== Infinity && wy > o.top - 0.25) n = [0, 1, 0];
-            else if (dh > 1e-4) n = [dx / dh, 0, dz / dh];
-            else { const ex = Px - o.x, ez = Pz - o.z, el = Math.hypot(ex, ez) || 1; n = [ex / el, 0, ez / el]; }
-            best = { r, n, pen, kind: col.kind || 'hit', e: 0.15, mu: 0.5, pb: cl, solid: true, box: b, mob: col.mob ? col : null };
-          }
-        }
-        // (an upright object - a tree, a post, a bale - meets the face of the body all up the height they share, though a
-        // body pitched a little touches it first along one edge: the blow lands halfway up that height)
-        if (best) { if (o.H == null) { const b = best.box, lo = Math.max(b[1], ya - Py), hi = Math.min(b[4], yb - Py);
-            if (hi > lo) { const cl = [best.pb[0], (lo + hi) / 2, best.pb[2]]; best.pb = cl; best.r = [M[0] * cl[0] + M[3] * cl[1] + M[6] * cl[2], M[1] * cl[0] + M[4] * cl[1] + M[7] * cl[2], M[2] * cl[0] + M[5] * cl[1] + M[8] * cl[2]]; } }
-          out.push(best); }
-        // the wheels
-        for (const wh of c.w) { const C = wh.C; if (!C) continue; const dx = C[0] - o.x, dz = C[2] - o.z, dh = Math.hypot(dx, dz), Rh = R0 * 0.9; if (dh >= o.R + Rh || dh < 1e-4) continue;
-          const ybot = C[1] - R0; if (solTop(o, Math.max(0, dh - Rh)) <= ybot + WTOL || climbable(o, ybot)) continue;
-          const reach = solReach(o, C[1]), pen = reach + Rh - dh; if (pen <= 0) continue;
-          const n = [dx / dh, 0, dz / dh], r = [C[0] - Rh * n[0] - Px, C[1] - Py, C[2] - Rh * n[2] - Pz]; out.push({ r, n, pen, kind: col.kind || 'hit', e: 0.15, mu: 0.5, pb: toBody(r[0], r[1], r[2]), solid: true, wheel: true }); }
-      }
+      for (const o of solidsOf(T, col)) one(col, o);
     }
   }
+  // the props in flight or sliding (see stonesStep): where each is now, round its middle out to its reach in plan,
+  // between its lowest point and its highest; a blow is shared with one as with a prop at rest - while it is on the
+  // ground; off it (air), it is a free body every way. A pebble a tyre flicks away (lighter than STONE_FLICK) is left
+  // to fly: what it could do to the car is the tyre's blow, already taken (see stoneFromTyre)
+  const LV = T.stonesLive; if (LV) for (const s of LV) { const f = s.fly; if (!f || s.gone || (!s.shp && s.m < STONE_FLICK) || Math.abs(f.x - Px) > 6 || Math.abs(f.z - Pz) > 6 || Math.abs(f.y - Py) > 4) continue;
+    const lo = propLow(s, f.q), top = f.y + lo, bot = f.y - lo, air = !f.rest && (f.v[1] > 0.3 || bot > (f.gy != null ? f.gy : -Infinity) + 0.04);
+    if (s.shp) { for (const o of propFoot(s, f.q, f.x, f.z)) one(s, Object.assign(o, { top, bot, col: s, air })); } else one(s, { x: f.x, z: f.z, R: propReach(s, f.q), top, bot, col: s, air }); }
   return out;
 }
 // Every point where the body meets something this step, and the blows: the motion into each stopped where it lands
@@ -7241,7 +7367,16 @@ function bodyContacts(c, S, T, info, M, D, dt) {
   // (one motion for each stone, however many of its domes the body meets)
   // (another car: its motion at each point where it is struck, plus one change of its speed that all its blows share,
   // so that each blow meets it as the others have left it)
-  const blows = []; for (const h of hits) if (h.mob) h.sv = h.mob._svs || (h.mob._svs = [0, 0, 0]); else if (h.rival) { h.sv0 = h.sv; h.rival._dv = [0, 0, 0]; }
+  // (a prop in flight is met moving as it moves. Against a soft one - straw, a stack of tyres, a post that gives - a blow
+  // is no more than the force it holds while it gives way, over the step, as long as the car has not crushed it as far
+  // as it goes (PROP_MAT: crush): its contacts share that)
+  // (one that gives way under it - a free prop - until the car is well into it; a steel post that yields until it has
+  // bent all it can, F times its travel; a tyre wall that stands is met as it stands, see below - it springs back, so
+  // what it took is given back as time goes, T.kN counting the steps)
+  for (const h of hits) { const col = h.col, MT = col && col.mat ? PROP_MAT[col.mat] : null; if (!MT || !MT.crush || col.gone) continue;
+    if (MT.spring && col.uT != null) { col.used = (col.used || 0) * Math.exp(-((T.kN || 0) - col.uT) * dt / MT.spring); col.uT = T.kN || 0; }
+    if (col.mob ? h.pen < Math.min(MT.crush[1], 0.85 * (h.oR || 1)) : MT.yield && (col.used || 0) < MT.crush[0] * MT.crush[1]) { col._cap = MT.crush[0] * dt; h.cap = col; } }
+  const blows = []; for (const h of hits) if (h.mob) h.sv = h.mob._svs || (h.mob._svs = h.mob.fly ? h.mob.fly.v.slice() : [0, 0, 0]); else if (h.rival) { h.sv0 = h.sv; h.rival._dv = [0, 0, 0]; }
   for (let it = 0; it < 4; it++) for (const h of hits) {
     if (h.edge) continue;
     if (h.rival) { const D = h.rival._dv, b = h.sv0; h.sv = [b[0] + D[0], b[1] + D[1], b[2] + D[2]]; }
@@ -7249,14 +7384,15 @@ function bodyContacts(c, S, T, info, M, D, dt) {
     const vpx = V[0] + Wv[1] * r[2] - Wv[2] * r[1] - (sv ? sv[0] : 0), vpy = V[1] + Wv[2] * r[0] - Wv[0] * r[2] - (sv ? sv[1] : 0), vpz = V[2] + Wv[0] * r[1] - Wv[1] * r[0] - (sv ? sv[2] : 0), vn = vpx * n[0] + vpy * n[1] + vpz * n[2];
     if (it === 0) { h.vn0 = vn; h.J = 0; h.eU = -vn > 2 ? h.e : 0; const tv = Math.hypot(vpx - vn * n[0], vpy - vn * n[1], vpz - vn * n[2]); if (tv > c.scrape && h.pen > 0 && !h.mob) { c.scrape = tv * (h.ground ? 0.7 : 1); c.scrapeKind = h.edge ? 'bank' : h.ground ? 'roll' : h.kind; } h.tv = tv; }
     if (vn >= 0) continue;
-    // (the ground holds a stone up: pushed down, it moves only along the ground)
-    const imn = n[1] > 0 ? im * (1 - n[1] * n[1]) : im;
-    const e = -vn > 2 ? h.e : 0, jn = -(1 + e) * vn / (inv(n[0], n[1], n[2], r[0], r[1], r[2]) + imn); apply(jn, n[0], n[1], n[2], r[0], r[1], r[2]); h.J += jn;
-    if (sv) { sv[0] -= jn * n[0] * im; sv[2] -= jn * n[2] * im; if (n[1] < 0) sv[1] -= jn * n[1] * im; }
+    // (the ground holds a prop up: pushed down, it moves only along the ground - while it is on the ground. One in the
+    // air is a free body of its weight every way: under the car, it is thrown down and away, and holds nothing up)
+    const gnd = !h.air, imn = n[1] > 0 && gnd ? im * (1 - n[1] * n[1]) : im;
+    const e = -vn > 2 ? h.e : 0; let jn = -(1 + e) * vn / (inv(n[0], n[1], n[2], r[0], r[1], r[2]) + imn); if (h.cap) { jn = Math.min(jn, Math.max(0, h.cap._cap)); h.cap._cap -= jn; } apply(jn, n[0], n[1], n[2], r[0], r[1], r[2]); h.J += jn;
+    if (sv) { sv[0] -= jn * n[0] * im; sv[2] -= jn * n[2] * im; if (n[1] < 0 || !gnd) sv[1] -= jn * n[1] * im; }
     const wpx = V[0] + Wv[1] * r[2] - Wv[2] * r[1] - (sv ? sv[0] : 0), wpy = V[1] + Wv[2] * r[0] - Wv[0] * r[2] - (sv ? sv[1] : 0), wpz = V[2] + Wv[0] * r[1] - Wv[1] * r[0] - (sv ? sv[2] : 0), wn = wpx * n[0] + wpy * n[1] + wpz * n[2];
     let tx = wpx - wn * n[0], ty = wpy - wn * n[1], tz = wpz - wn * n[2]; const ts = Math.hypot(tx, ty, tz);
-    if (ts > 1e-4) { tx /= ts; ty /= ts; tz /= ts; const imt = ty < 0 ? im * (1 - ty * ty) : im, jt = Math.min(h.mu * jn, ts / (inv(tx, ty, tz, r[0], r[1], r[2]) + imt)); apply(-jt, tx, ty, tz, r[0], r[1], r[2]);
-      if (sv) { sv[0] += jt * tx * im; sv[2] += jt * tz * im; if (ty > 0) sv[1] += jt * ty * im; } }
+    if (ts > 1e-4) { tx /= ts; ty /= ts; tz /= ts; const imt = ty < 0 && !h.air ? im * (1 - ty * ty) : im, jt = Math.min(h.mu * jn, ts / (inv(tx, ty, tz, r[0], r[1], r[2]) + imt)); apply(-jt, tx, ty, tz, r[0], r[1], r[2]);
+      if (sv) { sv[0] += jt * tx * im; sv[2] += jt * tz * im; if (ty > 0 || h.air) sv[1] += jt * ty * im; } }
     if (h.rival) { const D = h.rival._dv, b = h.sv0; D[0] = sv[0] - b[0]; D[1] = sv[1] - b[1]; D[2] = sv[2] - b[2]; }
   }
   // the stones struck thrown off with what the blows gave them (each stone once, all its blows together; pressed into
@@ -7271,11 +7407,16 @@ function bodyContacts(c, S, T, info, M, D, dt) {
   if (c.blows) c.blowN = (c.blowN || 0) + 1;
   for (const h of hits) if (h.rival && h.rival._dv) { const R = h.rival, D = R._dv; R._dv = null; if (R.kv && D[0] * D[0] + D[1] * D[1] + D[2] * D[2] > 1e-10) { R.kv[0] += D[0]; R.kv[1] += D[1]; R.kv[2] += D[2]; R.kT = 1; } }
   for (const h of hits) if (h.mob && h.pen > 0.02) h.mob._kn = h.n;
+  // (a prop already in flight goes on with its new motion, spun by the blow; one set into the ground - a concrete block -
+  // stays unless the blow tears it out, setting it moving at more than 0.6 m/s)
   for (const h of hits) if (h.mob && h.mob._svs) {
-    const s = h.mob, k = s._svs, nn = s._kn; s._svs = null; s._kn = null; let sp = Math.hypot(k[0], k[2]);
-    if (sp < 0.4 && nn && Math.abs(nn[1]) < 0.95) { const l = Math.hypot(nn[0], nn[2]); k[0] -= nn[0] / l * 0.6; k[2] -= nn[2] / l * 0.6; sp = Math.hypot(k[0], k[2]); }
-    if (sp > 0.05) { const wr = sp / Math.max(0.04, s.H) * 0.4, sw = () => (Math.random() - 0.5) * wr; k[1] = Math.max(k[1], 0) + 0.15 * sp * Math.random();
-      stoneKick(T, s, k, [sw(), sw(), sw()]); if (sp > 1) c.ev.push('stone:' + Math.min(14, sp * Math.sqrt(clamp(s.m / 12, 0.05, 1))).toFixed(1) + ':-1'); }
+    const s = h.mob, k = s._svs, nn = s._kn; s._svs = null; s._kn = null;
+    if (s.fly) { const f = s.fly, dv = Math.hypot(k[0] - f.v[0], k[1] - f.v[1], k[2] - f.v[2]); f.v[0] = k[0]; f.v[1] = k[1]; f.v[2] = k[2];
+      if (dv > 0.3) { f.rest = 0; const wr = dv / Math.max(0.1, propReach(s, f.q)) * 0.3; for (let j = 0; j < 3; j++) f.w[j] += (Math.random() - 0.5) * wr; } continue; }
+    let sp = Math.hypot(k[0], k[2]);
+    if (sp < 0.4 && nn && Math.abs(nn[1]) < 0.95 && !s.bed) { const l = Math.hypot(nn[0], nn[2]); k[0] -= nn[0] / l * 0.6; k[2] -= nn[2] / l * 0.6; sp = Math.hypot(k[0], k[2]); }
+    if (sp > (s.bed ? 0.6 : 0.05)) { const wr = sp / Math.max(0.04, s.shp ? s.hh : s.H) * (s.shp ? 0.25 : 0.4), sw = () => (Math.random() - 0.5) * wr; k[1] = Math.max(k[1], 0) + 0.15 * sp * Math.random();
+      stoneKick(T, s, k, [sw(), sw(), sw()]); if (sp > 1 && !s.shp) c.ev.push('stone:' + Math.min(14, sp * Math.sqrt(clamp(s.m / 12, 0.05, 1))).toFixed(1) + ':-1'); }
   }
   for (const h of hits) if (h.mob && h.mob.fly) h.pen = 0;
   // the blows dent the body where they land (pushed in the way the blow pushes the car, seen from the car), each by the energy it took
@@ -7285,9 +7426,23 @@ function bodyContacts(c, S, T, info, M, D, dt) {
   // wall with all of it, a heavy one. A body sliding along on its side or roof is scuffed as it goes; the floor is
   // dented only a little even by a hard landing on it (from below it is the sump, gearbox and shafts that suffer)
   const hc = sh.hc, toB = (x, y, z) => [M[0] * x + M[1] * y + M[2] * z, M[3] * x + M[4] * y + M[5] * z, M[6] * x + M[7] * y + M[8] * z];
+  // What a prop takes of the blow itself: a soft one - straw, a stack of tyres, a plastic post, a steel post bending - gives
+  // way before the car's panels do, and while it gives the blow's work is its own (PROP_MAT: crush); crushed as far as
+  // it goes, or a hard one - stone, concrete, a tree - it gives nothing, and the car takes it all. What a prop has taken
+  // may break it (propBreak).
+  // Each prop is heard once a blow, at the speed the two closed at, by its weight (snd)
+  const heard = [];
   for (const h of hits) {
     if (h.edge) continue;
-    const dv = -(h.vn0 || 0), E = 0.5 * (h.J || 0) * Math.max(0, dv) * (1 - (h.eU || 0)), dvE = Math.sqrt(2 * E / m), nb = toB(h.n[0], h.n[1], h.n[2]), pb = h.pb || toB(h.r[0], h.r[1], h.r[2]);
+    const dv = -(h.vn0 || 0); let E = 0.5 * (h.J || 0) * Math.max(0, dv) * (1 - (h.eU || 0)); const col = h.col, MT = col && col.mat ? PROP_MAT[col.mat] : null;
+    // (giving way, it took the step's work itself: its force over the way the car came on into it)
+    if (h.cap && !col.gone) { col.used = (col.used || 0) + (h.J || 0) * Math.max(0, dv); col.uT = T.kN || 0; E = 0;
+      // (bursting, a bale's straw still slams into the car's nose: a share of what their closing would cost)
+      if (col.used >= MT.brk) { propBreak(T, col, c, h.n); if (col.mob) E = 0.12 * col.m * m / (col.m + m) * dv * dv; } }
+    // (a soft prop that stands - a tyre wall - takes what it can of the blow, the car bouncing off it; the rest is the car's)
+    else if (MT && MT.crush && !col.mob && !MT.yield && E > 0) { const take = Math.min(E, Math.max(0, MT.crush[0] * MT.crush[1] - (col.used || 0))); col.used = (col.used || 0) + take; col.uT = T.kN || 0; E -= take; }
+    if (MT && dv > 1.5 && !heard.includes(col) && !(col.mob && !col.shp)) { heard.push(col); c.ev.push(MT.snd + ':' + Math.min(14, dv * Math.sqrt(clamp((col.mob ? col.m : 400) / 150, 0.05, 1))).toFixed(1)); }
+    const dvE = Math.sqrt(2 * E / m), nb = toB(h.n[0], h.n[1], h.n[2]), pb = h.pb || toB(h.r[0], h.r[1], h.r[2]);
     if (h.ground) {
       if (h.floor) { if (D && dvE > 2) dmgHit(c, 'belly', pb[0], pb[1] + hc, pb[2], nb[0], nb[1], nb[2], dvE, -1, true, E); if (dvE > 2.5) c.ev.push('hit:' + dvE.toFixed(1)); continue; }
       if (D && dvE > 1.2) dmgHit(c, 'roll', pb[0], pb[1] + hc, pb[2], nb[0], nb[1], nb[2], dvE, -1, false, E); if (dvE > 2.5) c.ev.push('hit:' + dvE.toFixed(1));
@@ -7295,7 +7450,7 @@ function bodyContacts(c, S, T, info, M, D, dt) {
       continue;
     }
     if (D && dvE > 1.2) dmgHit(c, h.kind, clamp(pb[0], -sh.hw, sh.hw), pb[1] + hc, pb[2], nb[0], nb[1], nb[2], dvE, -1, nb[1] > 0.7, E); // (from below: the floor takes it)
-    if (dvE > 2.5 && !h.mob) c.ev.push(h.kind + ':' + dvE.toFixed(1)); // (a stone that gives is heard as it is thrown off)
+    if (dvE > 2.5 && !h.mob && !MT) c.ev.push(h.kind + ':' + dvE.toFixed(1)); // (a stone that gives is heard as it is thrown off; a prop by its material, above)
   }
   return hits;
 }
@@ -7643,14 +7798,61 @@ function stoneInit(c) {
 }
 // how much of its height a stone keeps under a tyre coming onto it (1: all of it, a rock that does not give)
 const stoneGive = col => col.mob ? col.me / (col.me + STONE_MW) : 1;
+// ---- what the props by the road are made of ----
+// A prop a car can move - a straw bale, a round bale, a stack of old tyres, a concrete block, a stone, a marker post - is
+// a rigid body of its own weight once struck (see stoneKick), and its material decides the rest (PROP_MAT): how much it
+// bounces off a car (e) and grips one sliding along it (mu); how it slides on the ground (gmu) and rolls (rr: a round one
+// on its side); how it gives under a blow - the force it holds while it crushes and how far it can (crush: N, m): while
+// it gives, the blow is no more than that force and the energy goes into the prop, not the car's panels, so straw and
+// rubber take the sting out of a blow; crushed as far as it goes, or a stone, concrete or timber (null), it gives no
+// more and the car takes the rest - and the energy past which it breaks (brk, J: a straw bale's twine snaps and
+// it bursts, a steel post bends flat); whether, standing, it yields - the car carries on into it, held back by that
+// force until it has bent flat (yield: a steel post) - or stands and takes what it can of the blow, the car bouncing
+// off it, and springs back (spring: a tyre wall gives back what it took over that many seconds); and how it sounds (snd). A rallycross circuit's tyre walls are tyres tied together in a wall a few deep (tyrewall): they
+// take a good deal more before what is behind them is felt. Measured: straw bales 100 to 145 kg/m3 (a square bale of
+// 1.2 x 0.8 x 0.85 m about 100 kg, a round one of 1.24 m by 1.2 m about 190 kg), compressing at 30 to 60 kPa; a car
+// tyre about 9 kg (a stack of five bolted together, 46 kg); concrete 2350 kg/m3; a plastic verge post 1.2 to 1.5 kg; a
+// steel sign post's tube bends over at about 9 kN at a bumper's height
+const PROP_MAT = {
+  straw: { e: 0.05, mu: 0.5, gmu: 0.6, rr: 0.2, crush: [32e3, 0.45], brk: 8e3, snd: 'bale' },
+  roundbale: { e: 0.05, mu: 0.5, gmu: 0.6, rr: 0.15, crush: [40e3, 0.6], brk: 15e3, snd: 'bale' },
+  rubber: { e: 0.45, mu: 0.95, gmu: 0.8, rr: 0.06, crush: [22e3, 0.32], brk: Infinity, snd: 'tyre' },
+  tyrewall: { e: 0.35, mu: 0.9, gmu: 0.8, rr: 0.06, crush: [60e3, 1.0], brk: Infinity, snd: 'tyre', spring: 0.8 },
+  concrete: { e: 0.08, mu: 0.6, gmu: 0.95, rr: 0.5, crush: null, brk: Infinity, snd: 'block' },
+  stone: { e: 0.12, mu: 0.55, gmu: 0.5, rr: 0.5, crush: null, brk: Infinity, snd: 'rock' },
+  plastic: { e: 0.3, mu: 0.35, gmu: 0.45, rr: 0.1, crush: [2.5e3, 0.3], brk: Infinity, snd: 'post' },
+  steel: { e: 0.15, mu: 0.3, gmu: 0.45, rr: 0.3, crush: [9e3, 0.6], brk: 5e3, snd: 'post', yield: true },
+  wood: { e: 0.15, mu: 0.5, gmu: 0.6, rr: 0.4, crush: null, brk: Infinity, snd: 'pole' }
+};
+// A prop's material, shape (shp: box, its half sizes hx across, hh up, hz along; cyl, a drum stood on end, its radius R
+// and half height hh), weight (m; me as a blow feels it: one set into the ground takes the ground with it) and heading
+// (th) as built, and whether a car can move it (mob): a chicane's straw bales and stacks of tyres, a closed junction's
+// round bales, an army range's concrete blocks (each set 15 cm into the ground: bd, and only a blow that tears it out
+// moves it) - and the stones (stoneInit). A rallycross circuit's tyre walls are tied together and to what is behind them:
+// they give, but stay
+function propInit(c, pts) {
+  if (c.kind === 'rock') { stoneInit(c); c.mat = 'stone'; return; }
+  if (c.kind === 'bale') {
+    if (c.tyres) Object.assign(c, { mat: 'rubber', shp: 'cyl', R: 0.34, hh: 0.5, m: 46, th: (c.x * 3.1) % 6.28 });
+    else if (c.spur) Object.assign(c, { mat: 'roundbale', shp: 'cyl', R: 0.62, hh: 0.6, m: 190, th: (c.rot || 0) + (c.x * 7.3 % 1.6) });
+    else Object.assign(c, { mat: 'straw', shp: 'box', hx: 0.6, hh: 0.4, hz: 0.425, m: 100, th: pts[c.i].h });
+    c.bed = 0; c.me = c.m; c.mob = !(c.jk || c.sl); if (!c.mob) c.mat = 'tyrewall';
+  } else if (c.kind === 'block') {
+    const hh = (c.H + 0.15) / 2; Object.assign(c, { mat: 'concrete', shp: 'box', hx: 0.3, hh, hz: 0.3, bd: 0.15, m: Math.round(2350 * 0.353 * 2 * hh), th: pts[c.i].h + (c.rot || 0), bed: 1, mob: true }); c.me = c.m * 2;
+  } else return;
+  if (c.mob) c.home = { x: c.x, z: c.z, i: c.i, lat: c.lat, th: c.th, H: c.H, bed: c.bed, me: c.me };
+}
 // A stone thrown off by a blow (v: its velocity, m/s; w: its spin, rad/s, both in the world): taken out of the solids by
 // the road and set flying. One torn out of the verge comes out with what was below the ground, and nothing holds it now.
 function stoneKick(T, s, v, w) {
-  if (!s.mob || s.fly) return;
+  if (!s.mob || s.fly || s.gone) return;
   const L = T.colAt[s.i], k = L ? L.indexOf(s) : -1; if (k >= 0) L.splice(k, 1);
-  const g = rockBaseY(T, s), H = s.bed ? s.H * 1.5 : s.H, y = g - (s.bed ? 0.5 * s.H : 0) + H / 2;
+  const g = rockBaseY(T, s); let y;
+  // (a prop: its middle, as it lies - one set into the ground comes out with what was below it; a stone as before)
+  if (s.shp) y = s.rq ? g + propLow(s, s.rq) : g + s.hh - (s.bed ? s.bd || 0 : 0);
+  else { const H = s.bed ? s.H * 1.5 : s.H; y = g - (s.bed ? 0.5 * s.H : 0) + H / 2; s.H = H; }
   s.fly = { x: s.x, y, z: s.z, v: v.slice(), w: w.slice(), q: s.rq ? s.rq.slice() : [0, Math.sin(s.th / 2), 0, Math.cos(s.th / 2)], i: s.i, g, rest: 0, t: 0 };
-  s.H = H; s.bed = 0; s.me = s.m; s._sol = null; s.gy = null; s.rq = null;
+  s.bed = 0; s.me = s.m; s._sol = null; s.gy = null; s.rq = null;
   (T.stonesLive || (T.stonesLive = [])).push(s);
   const mv = T.stoneMoved || (T.stoneMoved = []); if (!mv.includes(s)) mv.push(s);
   T.stoneVer = (T.stoneVer || 0) + 1;
@@ -7700,34 +7902,125 @@ function stoneFlat(q) {
   const x = q[0], y = q[1], z = q[2], w = q[3], ax = 1 - 2 * (y * y + z * z), az = 2 * (x * z - y * w), up = 1 - 2 * (x * x + z * z), th = Math.atan2(-az, ax), c = Math.cos(th / 2), s = Math.sin(th / 2);
   return up >= 0 ? [0, s, 0, c] : [c, 0, -s, 0]; // (the second: the heading's turn after half a turn about the stone's length)
 }
-// The stones in flight or sliding, each step: under gravity, bouncing off the ground (a little: rock on gravel or tarmac
-// gives little back), sliding to a stop against friction of about half its weight, tumbling as it goes. Once it stops
-// it settles onto its flattest face and, when the car is clear of it, lies there as a rock again.
+// a turn's local axes as they point in the world: [x, y, z], each a unit vector
+function qAxes(q) { const x = q[0], y = q[1], z = q[2], w = q[3];
+  return [[1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w)], [2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w)], [2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)]]; }
+// how far a prop reaches below its middle, turned as it is: a stone (see stoneLow), a box by its half sizes along its
+// axes, a drum by its half length and its radius
+function propLow(s, q) {
+  if (!s.shp) return stoneLow(s, q);
+  const A = qAxes(q); if (s.shp === 'cyl') { const ay = A[1][1]; return s.hh * Math.abs(ay) + s.R * Math.sqrt(Math.max(0, 1 - ay * ay)); }
+  return s.hx * Math.abs(A[0][1]) + s.hh * Math.abs(A[1][1]) + s.hz * Math.abs(A[2][1]);
+}
+// how far it reaches out over the ground round its middle (a round about its footprint)
+function propReach(s, q) {
+  if (!s.shp) return Math.max(s.a, s.b);
+  const A = qAxes(q), h = j => Math.hypot(A[j][0], A[j][2]);
+  if (s.shp === 'cyl') { const ay = Math.abs(A[1][1]); return ay > 0.7 ? s.R : Math.max(s.R, s.hh * h(1)); }
+  return 0.85 * Math.hypot(s.hx * h(0), s.hh * h(1), s.hz * h(2));
+}
+// the least further turn of q that takes the world direction a (one of its axes, a unit vector) onto t
+function qAlign(q, a, t) {
+  let rx = a[1] * t[2] - a[2] * t[1], ry = a[2] * t[0] - a[0] * t[2], rz = a[0] * t[1] - a[1] * t[0], rw = 1 + a[0] * t[0] + a[1] * t[1] + a[2] * t[2];
+  const l = Math.hypot(rx, ry, rz, rw); if (l < 1e-6) return q.slice(); rx /= l; ry /= l; rz /= l; rw /= l;
+  const o = [rw * q[0] + rx * q[3] + ry * q[2] - rz * q[1], rw * q[1] - rx * q[2] + ry * q[3] + rz * q[0], rw * q[2] + rx * q[1] - ry * q[0] + rz * q[3], rw * q[3] - rx * q[0] - ry * q[1] - rz * q[2]];
+  const m = Math.hypot(o[0], o[1], o[2], o[3]); return [o[0] / m, o[1] / m, o[2] / m, o[3] / m];
+}
+// a prop's footprint as it lies or flies (turned q, its middle over x, z): rounds along the length of what lies along the
+// ground - one for a drum on its end - each as wide as it is
+function propFoot(s, q, x, z) {
+  const A = qAxes(q); if (s.shp === 'cyl' && Math.abs(A[1][1]) > 0.6) return [{ x, z, R: s.R }];
+  let ux, uz, half, wid;
+  if (s.shp === 'cyl') { const l = Math.hypot(A[1][0], A[1][2]) || 1; ux = A[1][0] / l; uz = A[1][2] / l; half = s.hh; wid = s.R; }
+  else { const ext = [s.hx, s.hh, s.hz]; let v = 0; for (let j = 1; j < 3; j++) if (Math.abs(A[j][1]) > Math.abs(A[v][1])) v = j;
+    const o = [0, 1, 2].filter(j => j !== v), p = ext[o[0]] >= ext[o[1]] ? o[0] : o[1], r = p === o[0] ? o[1] : o[0], l = Math.hypot(A[p][0], A[p][2]) || 1; ux = A[p][0] / l; uz = A[p][2] / l; half = ext[p]; wid = ext[r]; }
+  const n = clamp(Math.ceil(half / wid), 1, 3), L = []; for (let k = 0; k < n; k++) { const t = n === 1 ? 0 : (-1 + 2 * k / (n - 1)) * (half - wid); L.push({ x: x + ux * t, z: z + uz * t, R: wid }); }
+  return L;
+}
+// a prop's turn as it comes to lie: a stone (stoneFlat); a box on whichever face is nearest down; a drum on its end or on
+// its side, whichever is nearer
+function propFlat(s, q) {
+  if (!s.shp) return stoneFlat(q);
+  const A = qAxes(q);
+  if (s.shp === 'cyl') { const a = A[1]; if (Math.abs(a[1]) > 0.6) return qAlign(q, a, [0, Math.sign(a[1]), 0]); const l = Math.hypot(a[0], a[2]) || 1; return qAlign(q, a, [a[0] / l, 0, a[2] / l]); }
+  let k = 0; for (let j = 1; j < 3; j++) if (Math.abs(A[j][1]) > Math.abs(A[k][1])) k = j; return qAlign(q, A[k], [0, Math.sign(A[k][1]) || 1, 0]);
+}
+// A prop in flight or sliding running into another by the road: one that gives is struck as a free body (the blow shared
+// by their weights along the line between their middles) and thrown on; one that does not (a tree, a post, a heavy rock,
+// a block the blow cannot tear out) is bounced off. (Kicked once all are looked at: the lists change as a prop goes.)
+function propHits(T, s, f) {
+  const r1 = propReach(s, f.q), lo = propLow(s, f.q), N = T.pts.length, LP = T.loop ? N - 1 : 0, M1 = PROP_MAT[s.mat] || PROP_MAT.stone, kick = [];
+  for (let i1 = f.i - 3; i1 <= f.i + 3; i1++) {
+    const i = LP ? ((i1 % LP) + LP) % LP : i1; if (i < 0 || i >= N) continue; const L = T.colAt[i]; if (!L) continue;
+    for (const col of L) { if (col === s || col.end || col.gone || Math.abs(col.x - f.x) > 4 || Math.abs(col.z - f.z) > 4) continue;
+      for (const o of solidsOf(T, col)) {
+        const dx = f.x - o.x, dz = f.z - o.z, d = Math.hypot(dx, dz), pen = r1 + o.R - d; if (pen <= 0 || d < 1e-4) continue;
+        const top = o.H != null ? o.g + o.H : o.top; if (f.y - lo > top) continue; // (passing over it)
+        const nx = dx / d, nz = dz / d, vn = f.v[0] * nx + f.v[2] * nz; f.x += nx * pen; f.z += nz * pen; if (vn >= 0) continue;
+        const M2 = col.mat ? PROP_MAT[col.mat] : M1, e = Math.min(M1.e, M2.e);
+        if (col.mob) { const m2 = col.me, j = -(1 + e) * vn / (1 / s.m + 1 / m2), v2 = j / m2; f.v[0] += j * nx / s.m; f.v[2] += j * nz / s.m;
+          if (v2 > (col.bed ? 0.6 : 0.1) && !kick.some(q => q[0] === col)) kick.push([col, [-nx * v2, 0.1 * v2, -nz * v2], v2]); }
+        else { f.v[0] -= (1 + e) * vn * nx; f.v[2] -= (1 + e) * vn * nz; }
+      }
+    }
+  }
+  for (const [col, v, sp] of kick) { const wr = sp / Math.max(0.1, col.shp ? col.hh : col.H) * 0.3, sw = () => (Math.random() - 0.5) * wr; stoneKick(T, col, v, [sw(), sw(), sw()]); }
+}
+// A prop broken by what it has taken (PROP_MAT: brk): a straw bale bursts - its twine gone, the straw thrown about (the
+// page scatters it: a burst: event) and nothing left standing; a steel post is bent flat the way it was pushed (it lies
+// there, no longer in the way). Kept with the props moved, so a new run of the stage puts it back
+function propBreak(T, s, c, n) {
+  const f = s.fly, x = f ? f.x : s.x, y = f ? f.y : rockBaseY(T, s) + (s.hh || 0.5), z = f ? f.z : s.z;
+  s.gone = true; s.fly = null; s._sol = null;
+  const A = T.colAt[s.i], k = A ? A.indexOf(s) : -1; if (k >= 0) A.splice(k, 1);
+  const L = T.stonesLive, j = L ? L.indexOf(s) : -1; if (j >= 0) L.splice(j, 1);
+  const mv = T.stoneMoved || (T.stoneMoved = []); if (!mv.includes(s)) mv.push(s);
+  if (n && s.mat === 'steel') { const l = Math.hypot(n[0], n[2]) || 1; s.bend = { dx: -n[0] / l, dz: -n[2] / l }; }
+  T.stoneVer = (T.stoneVer || 0) + 1;
+  if (c) c.ev.push('burst:' + s.mat + ':' + x.toFixed(2) + ':' + y.toFixed(2) + ':' + z.toFixed(2));
+}
+// The props in flight or sliding, each step: under gravity, bouncing off the ground (as much as their material gives
+// back: a straw bale hardly at all, a stack of tyres well), sliding to a stop against their material's grip on the
+// ground; a stone tumbles as it goes, a box slides and tips, a drum on its side rolls (across its length, against little
+// more than its rolling's drag; along it, it slides); and what they run into they strike (propHits). Once one stops it
+// settles onto its flattest face and, when the car is clear of it, lies there as a prop by the road again.
 const STONE_E = 0.3, STONE_MU = 0.5;
 function stonesStep(T, dt, c) {
+  T.kN = (T.kN || 0) + 1;
   const L = T.stonesLive; if (!L || !L.length) return;
   for (let k = L.length - 1; k >= 0; k--) {
-    const s = L[k], f = s.fly, q = f.q;
+    const s = L[k], f = s.fly; if (!f || s.gone) { L.splice(k, 1); continue; } const q = f.q, MT = s.mat ? PROP_MAT[s.mat] : null;
     if (f.rest) {
-      const t = stoneFlat(q), sg = q[0] * t[0] + q[1] * t[1] + q[2] * t[2] + q[3] * t[3] < 0 ? -1 : 1, a = Math.min(1, dt * 9);
+      const t = propFlat(s, q), sg = q[0] * t[0] + q[1] * t[1] + q[2] * t[2] + q[3] * t[3] < 0 ? -1 : 1, a = Math.min(1, dt * 9);
       for (let j = 0; j < 4; j++) q[j] += (sg * t[j] - q[j]) * a; const l = Math.hypot(q[0], q[1], q[2], q[3]); for (let j = 0; j < 4; j++) q[j] /= l;
-      f.y = f.g + stoneLow(s, q);
-      if (Math.abs(q[0] * t[0] + q[1] * t[1] + q[2] * t[2] + q[3] * t[3]) > 0.99995 && (!c || Math.hypot(c.x - f.x, c.z - f.z) > 3.2 + Math.max(s.a, s.b))) { stoneLand(T, s); L.splice(k, 1); }
+      f.y = f.g + propLow(s, q);
+      if (Math.abs(q[0] * t[0] + q[1] * t[1] + q[2] * t[2] + q[3] * t[3]) > 0.99995 && (!c || Math.hypot(c.x - f.x, c.z - f.z) > 3.2 + propReach(s, q))) { stoneLand(T, s); L.splice(k, 1); }
       continue;
     }
     f.t += dt; f.v[1] -= 9.81 * dt; f.x += f.v[0] * dt; f.y += f.v[1] * dt; f.z += f.v[2] * dt; quatSpin(q, f.w, dt);
-    const info = locate(T, f.x, f.z, f.i); f.i = info.i; const g = surfaceY(T, info, f.x, f.z, f.y), lo = stoneLow(s, q);
+    const info = locate(T, f.x, f.z, f.i); f.i = info.i; const g = surfaceY(T, info, f.x, f.z, f.y), lo = propLow(s, q); f.gy = g;
+    const E0 = MT ? MT.e : STONE_E, MU = MT && s.shp ? MT.gmu : STONE_MU;
     if (f.y - lo <= g) {
       f.y = g + lo; const vn = f.v[1];
-      if (vn < 0) { const e = vn < -1.5 ? STONE_E : 0, hs = Math.hypot(f.v[0], f.v[2]), dj = STONE_MU * (1 + e) * -vn; f.v[1] = -vn * e;
-        if (hs > 1e-6) { const kk = Math.max(0, 1 - dj / hs); f.v[0] *= kk; f.v[2] *= kk; } for (let j = 0; j < 3; j++) f.w[j] *= 0.65; }
-      const hs = Math.hypot(f.v[0], f.v[2]), dec = STONE_MU * 9.81 * dt;
-      if (hs > dec) { f.v[0] *= 1 - dec / hs; f.v[2] *= 1 - dec / hs; } else { f.v[0] = 0; f.v[2] = 0; }
-      // (on the ground it tumbles over along its slide, and stops turning with it)
-      if (hs > 0.2) { const r = Math.max(0.03, lo), tx = f.v[2] / r, tz = -f.v[0] / r; f.w[0] += (tx - f.w[0]) * Math.min(1, dt * 12); f.w[2] += (tz - f.w[2]) * Math.min(1, dt * 12); f.w[1] *= Math.max(0, 1 - dt * 8); }
-      else for (let j = 0; j < 3; j++) f.w[j] *= Math.max(0, 1 - dt * 12);
-      if (hs < 0.3 && Math.abs(f.v[1]) < 0.6) { f.rest = 1; f.g = g; f.v[0] = f.v[1] = f.v[2] = 0; f.w[0] = f.w[1] = f.w[2] = 0; }
+      if (vn < 0) { const e = vn < -1.5 ? E0 : 0, hs = Math.hypot(f.v[0], f.v[2]), dj = MU * (1 + e) * -vn; f.v[1] = -vn * e;
+        if (hs > 1e-6) { const kk = Math.max(0, 1 - dj / hs); f.v[0] *= kk; f.v[2] *= kk; } for (let j = 0; j < 3; j++) f.w[j] *= E0 > 0.3 ? 0.85 : 0.65; }
+      const hs = Math.hypot(f.v[0], f.v[2]), ax = s.shp === 'cyl' ? qAxes(q)[1] : null;
+      if (ax && Math.abs(ax[1]) < 0.35) {
+        // a drum on its side: across its length it rolls, along it it slides
+        const l = Math.hypot(ax[0], ax[2]) || 1, ux = ax[0] / l, uz = ax[2] / l, va = f.v[0] * ux + f.v[2] * uz, rx = f.v[0] - va * ux, rz = f.v[2] - va * uz, vr = Math.hypot(rx, rz);
+        const da = MU * 9.81 * dt, dr = (MT ? MT.rr : 0.3) * 9.81 * dt, ka = Math.abs(va) > da ? 1 - da / Math.abs(va) : 0, kr = vr > dr ? 1 - dr / vr : 0;
+        f.v[0] = va * ka * ux + rx * kr; f.v[2] = va * ka * uz + rz * kr;
+        const tw = [rz * kr / s.R, 0, -rx * kr / s.R], b = Math.min(1, dt * 20); for (let j = 0; j < 3; j++) f.w[j] += (tw[j] - f.w[j]) * b;
+      } else {
+        const dec = MU * 9.81 * dt; if (hs > dec) { f.v[0] *= 1 - dec / hs; f.v[2] *= 1 - dec / hs; } else { f.v[0] = 0; f.v[2] = 0; }
+        // (a stone tumbles over along its slide; a box or a drum on its end slides, its spin dying; each stops turning as it stops)
+        if (hs > 0.2 && !s.shp) { const r = Math.max(0.03, lo), tx = f.v[2] / r, tz = -f.v[0] / r; f.w[0] += (tx - f.w[0]) * Math.min(1, dt * 12); f.w[2] += (tz - f.w[2]) * Math.min(1, dt * 12); f.w[1] *= Math.max(0, 1 - dt * 8); }
+        else for (let j = 0; j < 3; j++) f.w[j] *= Math.max(0, 1 - dt * (s.shp ? 6 : 12));
+      }
+      const h2 = Math.hypot(f.v[0], f.v[2]);
+      if (h2 < (ax && Math.abs(ax[1]) < 0.35 ? 0.12 : 0.3) && Math.abs(f.v[1]) < 0.6) { f.rest = 1; f.g = g; f.v[0] = f.v[1] = f.v[2] = 0; f.w[0] = f.w[1] = f.w[2] = 0; }
     }
+    if (s.shp && Math.hypot(f.v[0], f.v[2]) > 0.8) propHits(T, s, f);
     if (f.t > 15 && !f.rest) { f.rest = 1; f.g = g; } // (never for ever in the air or rolling)
   }
 }
@@ -7743,7 +8036,8 @@ function resetStones(T) {
   if (!L || !L.length) return;
   for (const s of L) {
     const A = T.colAt[s.i], k = A ? A.indexOf(s) : -1; if (k >= 0) A.splice(k, 1);
-    const h = s.home; s.x = h.x; s.z = h.z; s.i = h.i; s.lat = h.lat; s.th = h.th; s.H = h.H; s.bed = h.bed; s.me = h.me; s.fly = null; s.rq = null; s.gy = null; s._sol = null;
+    const h = s.home || s; // (one that stands where it stood - a steel post bent over - has no home but itself)
+    s.x = h.x; s.z = h.z; s.i = h.i; s.lat = h.lat; s.th = h.th; s.H = h.H; s.bed = h.bed; s.me = h.me; s.fly = null; s.rq = null; s.gy = null; s._sol = null; s.gone = false; s.used = 0; s.bend = null;
     (T.colAt[s.i] || (T.colAt[s.i] = [])).push(s);
   }
   T.stoneMoved = []; T.stoneVer = (T.stoneVer || 0) + 1;
@@ -7753,14 +8047,15 @@ function resetStones(T) {
 // those moved since back where the stage began with them
 function stonesSave(T) {
   const L = T.stoneMoved; if (!L || !L.length) return null; const live = new Set(T.stonesLive || []);
-  return L.map(s => ({ s, x: s.x, z: s.z, i: s.i, lat: s.lat, th: s.th, H: s.H, bed: s.bed, me: s.me, fly: s.fly ? JSON.parse(JSON.stringify(s.fly)) : null, rq: s.rq ? s.rq.slice() : null, gy: s.gy, live: live.has(s), col: !!(T.colAt[s.i] && T.colAt[s.i].includes(s)) }));
+  return L.map(s => ({ s, x: s.x, z: s.z, i: s.i, lat: s.lat, th: s.th, H: s.H, bed: s.bed, me: s.me, fly: s.fly ? JSON.parse(JSON.stringify(s.fly)) : null, rq: s.rq ? s.rq.slice() : null, gy: s.gy, live: live.has(s), col: !!(T.colAt[s.i] && T.colAt[s.i].includes(s)), gone: !!s.gone, used: s.used || 0, bend: s.bend ? Object.assign({}, s.bend) : null }));
 }
 function stonesLoad(T, saved) {
   const L = T.stoneMoved || [], by = new Map((saved || []).map(e => [e.s, e]));
   for (const s of L) {
     const A = T.colAt[s.i], k = A ? A.indexOf(s) : -1; if (k >= 0) A.splice(k, 1);
-    const e = by.get(s), h = e || s.home;
+    const e = by.get(s), h = e || s.home || s;
     s.x = h.x; s.z = h.z; s.i = h.i; s.lat = h.lat; s.th = h.th; s.H = h.H; s.bed = h.bed; s.me = h.me; s.fly = e && e.fly ? JSON.parse(JSON.stringify(e.fly)) : null; s.rq = e && e.rq ? e.rq.slice() : null; s.gy = e ? e.gy : null; s._sol = null;
+    s.gone = !!(e && e.gone); s.used = e ? e.used : 0; s.bend = e && e.bend ? Object.assign({}, e.bend) : null;
     if (!e || e.col) (T.colAt[s.i] || (T.colAt[s.i] = [])).push(s);
   }
   T.stoneMoved = (saved || []).map(e => e.s); T.stonesLive = (saved || []).filter(e => e.live).map(e => e.s); T.stoneVer = (T.stoneVer || 0) + 1;
@@ -8800,13 +9095,13 @@ function driveHelp(c, S, I, H, dt, A, T) {
   }
   H.brk += (want - H.brk) * Math.min(1, dt * (want < H.brk ? 40 : 5) * (1.5 - A.absM));
   H.brkR = H.brkR == null ? 1 : H.brkR + (wantR - H.brkR) * Math.min(1, dt * (wantR < H.brkR ? 40 : 5) * (1.5 - A.absM));
-  // steering: less lock as speed rises (not for grip steering, which already picks the angle the tyres can use); the old
-  // countersteer put on by itself (the front wheels following the slide a little); Countersteer Help
-  const k = 1 / (1 + A.lock * au / (26 * (0.5 + A.lockM)));
-  const k2 = A.lock > 0 && !I.grip ? k : 1; let cs = A.cs > 0 && au > 4 ? A.cs * beta * (0.5 + 0.4 * fast) / S.lock : 0;
+  // steering: Steering Assist (see steerAssist; not for grip steering, which already picks the angle the tyres can use
+  // and has the assist's self-steer of its own, nor for a wheel); the old countersteer put on by itself (the front wheels
+  // following the slide a little)
+  let cs = A.cs > 0 && au > 4 ? A.cs * beta * (0.5 + 0.4 * fast) / S.lock : 0;
   if (A.csM > 0.5) { H.cs += (cs - H.cs) * Math.min(1, dt / ((A.csM - 0.5) * 0.5)); cs = H.cs; } else H.cs = cs;
-  let steer = clamp(I.steer * k2 + cs, -1, 1);
-  if (A.csh > 0 && c.w) steer = counterHelp(c, S, steer, A.csh, beta);
+  let steer = clamp(I.steer + cs, -1, 1);
+  if ((A.csh > 0 || A.lock > 0) && c.w && !I.whl) { if (!I.grip) steer = steerAssist(c, S, steer, H, dt); else { steer = clamp(steer + yawDamp(c, H, dt) / S.lock, -1, 1); H.saD = null; } } else { H.saC = 0; H.saD = null; H.saR = null; }
   if (A.da > 0 && c.w) steer = driftSteer(c, S, steer, H, A, dt, beta);
   // Rotation Help
   // (traction control trims the torque, not the pedal: at low revs a little throttle gives most of the torque, see throttleShare)
@@ -8849,19 +9144,64 @@ function escHelp(c, S, I, H, A, dt, bm, beta, sp, fast) {
     bw[i] += (t - bw[i]) * Math.min(1, dt * (t > bw[i] ? 25 : 8)); if (bw[i] < 0.004) bw[i] = 0; else any = true; }
   H.bwOn = any; return cap;
 }
-// Countersteer Help: the driver's steer (share of lock) against a slide - the car rotating one way and sliding out the
-// other, the wheels turned against its rotation - taken toward the angle that catches it: the front axle's path across
-// the car and a little past it, the front tyres' grip at about half its peak turning the nose back. Given at least half
-// of that, the driver gets all of it; given more, it is trimmed back toward it; as the slide dies the angle that catches
-// it shrinks with it, and so does the steer
-function counterHelp(c, S, steer, k, beta) {
-  const u = c.u, sp = Math.hypot(c.u, c.v); if (u < 4 || sp < 5) return steer;
-  const d = steer * S.lock, r = c.r; if (!(Math.abs(r) > 0.12 && Math.abs(beta) > 0.06 && beta * r < 0 && d * r < 0)) return steer;
-  const K = carSetup(S), bf = Math.atan2(c.v + K.a * r, u); if (bf * d <= 0) return steer;
-  let tp = 0, n = 0; for (let i = 0; i < 2; i++) { const w = c.w[i]; if (w.Fz > 0 && w.tanPk > 0) { tp += w.tanPk; n++; } } const aPk = Math.atan(n ? tp / n : 0.15);
-  const need = Math.min(S.lock, Math.abs(bf) + 0.5 * aPk), have = Math.abs(d);
-  const out = have < need ? have + (need - have) * k * smooth(0, 0.5 * need, have) : need + (have - need) * (1 - 0.8 * k);
-  return clamp(Math.sign(d) * out / S.lock, -1, 1);
+// Steering Assist (csh, lock), for a stick, as driving games and sims commonly give one to a pad: the stick steers the
+// front wheels within a window rather than over a fixed share of lock, and the wheels find their own way toward the
+// car's path as a real car's castor turns them through a driver's loose hands - the self-steer a wheel's force feedback
+// carries to the driver's hands, and a stick cannot:
+//   - toward the bend the stick goes no further than the angle at which the front tyres grip best: their best slip
+//     angle (SA.inK of it) off the front axle's path as the car turns, and at least the curve the most grip holds at
+//     this speed (the wheelbase times that grip over the speed squared) with that slip angle on top; at a crawl, full
+//     lock;
+//   - toward the slide (countersteer) as far as the slide's own angle and a little more (SA.cs), however fast;
+//   - left at rest, the wheels turn toward where the car is going (selfSteer): a share (SA.self) of the way the rear
+//     axle is going across the car, no more than SA.max, smoothed (SA.tau) and no quicker than SA.rate. From the rear
+//     axle's path, never the front's: the front axle's path swings with the car's own turning, and wheels that followed
+//     it would leave the front tyres nothing to hold the swing with - a caught slide would swing straight back the
+//     other way, a fishtail; from the rear axle's, the car's turning itself steers the wheels against the swing. It
+//     gives way to the driver's own steering (gone by SA.auth of the stick), so it never piles more countersteer onto
+//     the driver's own;
+//   - toward the slide (countersteer) the stick goes as far as the front tyres' best grip pointed against it: the front
+//     axle's path (as it goes at a turning the grip holds, see GRIP_REF) and SA.cs of their best slip angle past it -
+//     more only feeds the swing back;
+//   - and all the while a yaw damper (yawDamp): the wheels turned a little against any change in the car's turning
+//     (SA.yd seconds of it, no more than SA.ydMax; a steady turn is left alone, its turning followed over SA.ydTau), as a
+//     steering wheel loose in the hands kicks against a swing. It takes the sting out of a driver's late, large
+//     corrections, which otherwise build a slide up into a fishtail.
+// The stick is followed no quicker than hands turn a wheel (SA.speed at a crawl, SA.speedHi at speed: rad/s at the
+// front wheels). With keys and touch, grip steering points the wheels itself (see steerFor), with the same self-steer and
+// yaw damper; a wheel is never steered for
+const SA = { self: { sealed: 0.8, loose: 0.6, snow: 0.65, ice: 0.7 }, max: { sealed: 0.35, loose: 0.28, snow: 0.3, ice: 0.32 }, tau: 0.08, rate: 3, auth: 0.35, cs: 0.6, inK: 1.05, yd: 0.08, ydTau: 0.6, ydMax: 0.07, speed: 7, speedHi: 2.2 };
+// the wheels' own way toward the car's path (rad, left positive), kept from step to step in H.saC; w: how much of it
+// the driver leaves (0-1)
+function selfSteer(c, S, H, dt, w) {
+  const K = carSetup(S), u = c.u; let kS = 0, mx = 0, q = 0;
+  for (const wh of c.w) { if (!(wh.Fz > 0)) continue; const k = SEALED_KINDS.has(wh.surf) ? 'sealed' : wh.surf === 'ice' ? 'ice' : SNOW_KINDS.has(wh.surf) ? 'snow' : 'loose'; kS += SA.self[k]; mx += SA.max[k]; q++; }
+  const want = q && u > 2 ? clamp(kS / q * Math.atan2(c.v - K.b * c.r, u), -mx / q, mx / q) * smooth(2, 6, u) * w : 0;
+  const C = H.saC || 0; return H.saC = C + clamp((want - C) * Math.min(1, dt / SA.tau), -SA.rate * dt, SA.rate * dt);
+}
+// the yaw damper's steer (rad, left positive), its record of the steady turning in H.saR
+function yawDamp(c, H, dt) {
+  H.saR = H.saR == null ? c.r : H.saR + (c.r - H.saR) * Math.min(1, dt / SA.ydTau);
+  return c.u > 5 ? clamp(-SA.yd * (c.r - H.saR), -SA.ydMax, SA.ydMax) * smooth(5, 12, c.u) : 0;
+}
+// the front axle's path across the car as a steering aid points the wheels from (rad): see GRIP_REF; rl: the turning
+// the grip holds at this speed (rad/s), rf: the turning smoothed (kept by the caller)
+const gripPath = (c, K, rl, rf) => Math.atan2(c.v - K.b * c.r + (K.a + K.b) * clamp(rf, -GRIP_REF.lim * rl, GRIP_REF.lim * rl), Math.max(0.5, c.u));
+// the stick (x: share of lock, left positive) as the front wheels' angle, a share of lock
+function steerAssist(c, S, x, H, dt) {
+  const K = carSetup(S), u = c.u, lock = S.lock;
+  if (!(u > 1)) { H.saC = 0; H.saD = x * lock; H.saR = c.r; H.saRf = c.r; return x; } // (at a crawl and backing: as asked)
+  let tp = 0, mu = 0, n = 0; for (let i = 0; i < 2; i++) { const w = c.w[i]; if (w.Fz > 0 && w.tanPk > 0) { tp += w.tanPk; mu += w.muPk || 0.9; n++; } }
+  mu = n ? mu / n : 0.9; const aPk = Math.atan(n ? tp / n : 0.15), ideal = Math.min(lock, (K.a + K.b) * mu * 9.81 / (u * u) + aPk);
+  H.saRf = H.saRf == null ? c.r : H.saRf + (c.r - H.saRf) * Math.min(1, dt / GRIP_REF.tau); const bf = gripPath(c, K, mu * 9.81 / Math.max(u, 4), H.saRf);
+  // (into the bend - the way the car is turning - the front tyres to their best slip angle off the front axle's path,
+  // SA.inK of it; against the turning, SA.cs of it)
+  const kL = H.saRf > 0.05 ? SA.inK : SA.cs, kR = H.saRf < -0.05 ? SA.inK : SA.cs;
+  const hi = Math.min(lock, Math.max(ideal, bf + kL * aPk)), lo = -Math.min(lock, Math.max(ideal, -bf + kR * aPk));
+  const C = clamp(selfSteer(c, S, H, dt, clamp(1 - Math.abs(x) / SA.auth, 0, 1)), lo, hi);
+  let d = (x >= 0 ? C + x * (hi - C) : C + x * (C - lo)) + yawDamp(c, H, dt);
+  const r = lerp(SA.speed, SA.speedHi, smooth(5, 30, u)), d0 = H.saD != null ? H.saD : d; d = clamp(d0 + clamp(d - d0, -r * dt, r * dt), -lock, lock); H.saD = d;
+  return d / lock;
 }
 // Drift Assist (da): in a slide - the car turning one way, its tail out the other - the front wheels turned for the
 // driver, smoothly, to hold the slide where the driver wants it, as drift games hold it. Steering into the bend sets a
@@ -8900,12 +9240,20 @@ function driftState(c, S, I, H, A, dt, beta, sp) {
 // (the steering: the front tyres' slip from the way the front axle is going - toward the slide wanted, looking a
 // moment ahead so a caught slide does not swing back the other way, and against any turning faster than the drift asks
 // - and the driver's own steering taken toward it as far as the assist has come in, no quicker than hands turn a wheel)
+// The front axle's path a steering aid points the wheels from (grip steering, Drift Assist): the rear axle's path and the
+// wheelbase's share of the car's turning, smoothed over tau and held to lim times the turning the grip holds at this
+// speed. In a steady bend that is the front axle's own path; a car turning faster than its grip holds - spinning, or
+// swinging back from a caught slide - is not followed, so the front tyres hold the swing (pointed along the front axle's
+// own path they would hold nothing against it, and a caught slide would swing straight back the other way)
+const GRIP_REF = { tau: 0.12, lim: 1.1, ant: 0.35 };
 function driftSteer(c, S, steer, H, A, dt, beta) {
   const w = (H.daW || 0) * A.da, side = H.daSide || 0;
   if (w < 0.01 || !side) { H.daO = steer; H.daF = null; return steer; }
   const K = carSetup(S), abS = H.daAb || 0, bt = H.daT || 0, bm = H.daBm || SLIDE_MAX.loose, rL = H.daRL || 1, into = H.daIn || 0;
   let tp = 0, n = 0; for (let i = 0; i < 2; i++) { const q = c.w[i]; if (q.Fz > 0 && q.tanPk > 0) { tp += q.tanPk; n++; } }
-  const aPk = Math.atan(n ? tp / n : 0.15), bf = Math.atan2(c.v + K.a * c.r, Math.max(0.5, c.u)), sc = 0.25 * bm + 0.05;
+  // (the front axle's path as it goes at a turning no faster than the grip holds, smoothed: see GRIP_REF)
+  H.daRf = H.daRf == null ? c.r : H.daRf + (c.r - H.daRf) * Math.min(1, dt / GRIP_REF.tau);
+  const aPk = Math.atan(n ? tp / n : 0.15), bf = gripPath(c, K, rL, H.daRf), sc = 0.25 * bm + 0.05;
   const rWant = bt > 0.02 ? side * rL * 0.9 * Math.max(0, into) : 0;
   const pull = side * ((bt > 0.02 ? DRIFT.base : 0) + DRIFT.kp * (bt - (abS + DRIFT.ahead * (H.daDb || 0))) / sc) - DRIFT.kr * (c.r - rWant) / rL;
   const tgt = clamp((bf + clamp(pull, -1, 1) * aPk) / S.lock, -1, 1);
@@ -9328,7 +9676,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'A943';
+const SR86_BUILD = 'B067';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -9686,6 +10034,14 @@ function ironTex(kind) {
 }
 // a concrete block's faces: pale grey concrete, rain streaks down it, the lower part dirtied by what the wheels throw
 // up, the top a shade lighter
+// a pothole as it is seen from above: a ragged dark hollow, its floor damp and loose, a lighter broken rim round it
+function holeTex() {
+  if (TEX.hole) return TEX.hole; const [c, g] = cnv(64, 64), rnd = mulberry32(911); g.clearRect(0, 0, 64, 64);
+  for (let k = 0; k < 9; k++) { const a = rnd() * 6.283, d = rnd() * 6, x = 32 + Math.cos(a) * d, y = 32 + Math.sin(a) * d, r = 20 + rnd() * 9, gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(30,26,22,0.8)'); gr.addColorStop(0.55, 'rgba(42,36,30,0.62)'); gr.addColorStop(0.8, 'rgba(70,62,52,0.35)'); gr.addColorStop(0.9, 'rgba(175,165,150,0.3)'); gr.addColorStop(1, 'rgba(175,165,150,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.fill(); }
+  speckle(g, 64, 64, 160, ['rgba(20,18,15,0.5)', 'rgba(120,112,100,0.35)'], 1.1);
+  const t = new THREE.CanvasTexture(c); TEX.hole = t; return t;
+}
 function blockTex() {
   if (TEX.block) return TEX.block; const [c, g] = cnv(64, 64), rnd = mulberry32(733); g.fillStyle = '#c9c7c0'; g.fillRect(0, 0, 64, 64);
   speckle(g, 64, 64, 500, ['#b4b2ab', '#d6d4ce', '#a9a7a0'], 1.2);
@@ -11311,7 +11667,7 @@ const _sq = new THREE.Quaternion(), _sp = new THREE.Vector3(), _ss = new THREE.V
 const Stones = {
   T: null, ver: -1, M: [], slot: new Map(), baked: null,
   build(G, T, E, baked) {
-    this.T = T; this.ver = -1; this.slot = new Map(); this.M = []; this.baked = baked;
+    this.T = T; this.ver = -1; this.slot = new Map(); this.M = []; this.baked = baked; Props.T = null; // (Props are built with the stage's last props: see buildStage)
     const cnt = new Array(9).fill(0); for (const c of T.colliders) if (c.mob && c._bk) cnt[c.fam * 3 + c.v]++;
     if (!baked || !cnt.some(n => n)) return;
     const free = rockShapes(E, T.seed, true), mat = new THREE.MeshLambertMaterial({ vertexColors: true });
@@ -11327,20 +11683,77 @@ const Stones = {
     for (let k = 0; k < sh.pos.length; k += 3) { _sv3.set(sh.pos[k], sh.pos[k + 1], sh.pos[k + 2]).applyMatrix4(_sm); P[bk.o + k] = _sv3.x; P[bk.o + k + 1] = _sv3.y; P[bk.o + k + 2] = _sv3.z; } A.needsUpdate = true; },
   // the stones the physics has shifted, against those drawn on their own
   sync() {
-    const T = this.T; if (!T || !this.M.length || T.stoneVer === this.ver) return; this.ver = T.stoneVer; const moved = T.stoneMoved || [];
+    Props.sync(); const T = this.T; if (!T || !this.M.length || T.stoneVer === this.ver) return; this.ver = T.stoneVer; const moved = T.stoneMoved || [];
     for (const s of this.slot.keys()) if (!moved.includes(s)) { for (const s2 of this.slot.keys()) if (!moved.includes(s2)) this.unfold(s2); this.slot.clear(); for (const m of this.M) if (m) m.count = 1; break; }
     for (const s of moved) if (!this.slot.has(s)) { const m = this.M[s.fam * 3 + s.v], bk = s._bk; if (!m || !bk || m.count >= m.instanceMatrix.count) continue;
       this.fold(s); const j = m.count++; this.slot.set(s, { m, j, done: false });
       m.setColorAt(j, _sc3.setRGB(bk.tone * (1 + bk.warm), bk.tone, bk.tone * (1 - bk.warm))); m.instanceColor.needsUpdate = true; }
   },
   // each frame: the shifted stones where they are now (a stone at rest is set once)
-  update() {
-    this.sync(); if (!this.slot.size) return; const T = this.T;
+  update(dt) {
+    Props.update(dt); this.sync(); if (!this.slot.size) return; const T = this.T;
     for (const [s, q] of this.slot) { const f = s.fly; if (q.done && !f) continue;
       if (f) { _sp.set(f.x, f.y, f.z); _sq.set(f.q[0], f.q[1], f.q[2], f.q[3]); } else { _sp.set(s.x, rockBaseY(T, s) + s.H / 2, s.z); if (s.rq) _sq.set(s.rq[0], s.rq[1], s.rq[2], s.rq[3]); else _sq.setFromAxisAngle(_UP, s.th); }
       _sm.compose(_sp, _sq, _ss.set(s.a, s.H / 2, s.b)); q.m.setMatrixAt(q.j, _sm); q.m.instanceMatrix.needsUpdate = true; q.done = !f; }
   }
 };
+// an instanced prop drawn where it was built (see inst: track) folded away to nothing - a car has moved it, and it is
+// drawn on its own now - or put back
+function instShow(it, show) { if (!it || !it._ik) return;
+  for (const r of it._ik) { if (r.P) { const P = r.P; if (show) P.M.set(r.M0, r.g * 16); else P.M.fill(0, r.g * 16, r.g * 16 + 16); for (const S of [P.hi, P.lo]) if (S && S.pos[r.g] >= 0) S.dirty.push(S.pos[r.g]); }
+    else { const R = r.R; if (show) R.M.set(r.M0, r.j * 16); else R.M.fill(0, r.j * 16, r.j * 16 + 16); R.fresh = true; R.nh = 0; R.nl = 0; } } }
+// ---------- props the cars move ----------
+// A prop a car has struck (see stoneKick) is drawn on its own from then on - as it flies, bounces, slides or rolls, and
+// where it comes to lie - by the stage's free props: an instanced mesh for each kind, built with the stage (a square
+// straw bale, a wrapped round bale, a stack of tyres, a concrete block, a marker post: propK), its copy where it was
+// built folded away (instShow). One that has burst is drawn nowhere (its straw scattered: see propBurst); a steel post
+// bent flat is turned over at its foot. A new run of the stage, or a flashback, puts them all back. (The stones are the
+// Stones'.) Each mesh keeps one prop too small to see, so its shader is ready before the first flies.
+const Props = {
+  T: null, ver: -1, K: {}, slot: new Map(), folded: new Set(), bent: new Set(),
+  kindOf(s) { return s.kind === 'block' ? 'block' : s.kind === 'bale' ? (s.tyres ? 'tyre' : s.spur ? 'wrap' : 'bale') : s.kind === 'post' && s.mat === 'plastic' ? 'mark' : null; },
+  build(G, T, kinds) {
+    this.T = T; this.ver = -1; this.slot = new Map(); this.folded = new Set(); this.bent = new Set(); this.K = {};
+    const cnt = {}; for (const L of T.colAt) if (L) for (const c of L) { const k = c.mob && this.kindOf(c); if (k) cnt[k] = (cnt[k] || 0) + 1; }
+    for (const k of Object.keys(kinds)) { if (!cnt[k]) continue; const [geo, mat, sc] = kinds[k];
+      const m = new THREE.InstancedMesh(geo, mat, cnt[k] + 1); if (k === 'block') m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array((cnt[k] + 1) * 3).fill(1), 3);
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.setMatrixAt(0, _sm.makeScale(1e-4, 1e-4, 1e-4)); m.count = 1; m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; G.add(m); this.K[k] = { m, sc }; }
+  },
+  show(s, on) { instShow(s, on); if (s.vis) for (const it of s.vis) instShow(it, on); },
+  unbend(s) { const g = s.g; if (g && g.userData.q0) { g.quaternion.copy(g.userData.q0); g.userData.ba = 0; } },
+  // the props the physics has moved against those drawn on their own
+  sync() {
+    const T = this.T; if (!T || T.stoneVer === this.ver) return; this.ver = T.stoneVer;
+    const moved = (T.stoneMoved || []).filter(s => s.shp || s.kind === 'post'), want = new Set(moved);
+    let again = false; for (const s of this.folded) if (!want.has(s) || (!s.gone && this.slot.get(s) && this.slot.get(s).gone)) { again = true; break; } for (const s of this.bent) if (!want.has(s) || !s.bend) again = true;
+    if (again) { for (const s of this.folded) this.show(s, true); for (const s of this.bent) this.unbend(s); this.folded.clear(); this.bent.clear(); this.slot.clear(); for (const K of Object.values(this.K)) K.m.count = 1; }
+    for (const s of moved) {
+      if (s.bend && s.g) { if (!this.bent.has(s)) { this.bent.add(s); if (!s.g.userData.q0) s.g.userData.q0 = s.g.quaternion.clone(); } continue; }
+      if (!this.folded.has(s)) { this.show(s, false); this.folded.add(s); }
+      let q = this.slot.get(s); if (!q && !s.gone) { const K = this.K[this.kindOf(s)]; if (!K || K.m.count >= K.m.instanceMatrix.count) continue; const j = K.m.count++; q = { K, j, done: false, gone: false }; this.slot.set(s, q);
+        if (s.c && K.m.instanceColor) { K.m.setColorAt(j, s.c); K.m.instanceColor.needsUpdate = true; } }
+      if (q) { q.done = false; q.gone = !!s.gone; }
+    }
+  },
+  // each frame: the moved props where they are now (one at rest is set once), the bent posts going over
+  update(dt) {
+    this.sync(); const T = this.T; if (!T) return;
+    for (const [s, q] of this.slot) { const f = s.fly; if (q.done && !f) continue;
+      if (q.gone) _sm.makeScale(0, 0, 0);
+      else { if (f) { _sp.set(f.x, f.y, f.z); _sq.set(f.q[0], f.q[1], f.q[2], f.q[3]); } else { const rq = s.rq || [0, Math.sin(s.th / 2), 0, Math.cos(s.th / 2)]; _sp.set(s.x, rockBaseY(T, s) + propLow(s, rq), s.z); _sq.set(rq[0], rq[1], rq[2], rq[3]); }
+        const sc = q.K.sc(s); _sm.compose(_sp, _sq, _ss.set(sc[0], sc[1], sc[2])); }
+      q.K.m.setMatrixAt(q.j, _sm); q.K.m.instanceMatrix.needsUpdate = true; q.done = !f; }
+    for (const s of this.bent) { const g = s.g, b = s.bend, u = g && g.userData; if (!u || !b || u.ba >= 1.3) continue; u.ba = Math.min(1.3, (u.ba || 0) + (dt || 1 / 60) * 7);
+      _sv3.set(b.dz, 0, -b.dx).normalize(); _sq.setFromAxisAngle(_sv3, u.ba); g.quaternion.copy(_sq).multiply(u.q0); }
+  }
+};
+// A straw bale bursting: its straw thrown up and out with the blow, the dust of it hanging a moment (see propBreak)
+function propBurst(mat, x, y, z, c) {
+  if (mat !== 'straw') return; const vx = c ? c.V[0] * 0.5 : 0, vz = c ? c.V[2] * 0.5 : 0, R = Math.random, C1 = new THREE.Color('#d9bf6a'), C2 = new THREE.Color('#bfa24e'), Cd = new THREE.Color('#e3d6a6');
+  for (let k = 0; k < 70; k++) { const a = R() * 6.283, s = 1 + R() * 4; Particles.spawn(x + (R() - 0.5) * 1.1, y + (R() - 0.3) * 0.7, z + (R() - 0.5) * 1.1, vx + Math.cos(a) * s, 1.5 + R() * 4, vz + Math.sin(a) * s, R() < 0.5 ? C1 : C2, 0.05 + R() * 0.07, 1 + R() * 1.6, 1, 0.95); }
+  for (let k = 0; k < 18; k++) Particles.spawn(x + (R() - 0.5) * 1.4, y + R() * 0.8, z + (R() - 0.5) * 1.4, vx * 0.4 + (R() - 0.5) * 2, 0.4 + R(), vz * 0.4 + (R() - 0.5) * 2, Cd, 0.5 + R() * 0.6, 1.2 + R(), 0, 0.35);
+  Snd.impact('bale', 9, G.camMode === 2, false, c);
+}
 function wrapTex() {
   if (TEX.wrap) return TEX.wrap; const [c, g] = cnv(128, 64); g.fillStyle = '#f3f2ee'; g.fillRect(0, 0, 128, 64); g.fillStyle = '#cf2027';
   for (let x = -64; x < 160; x += 32) { g.beginPath(); g.moveTo(x, 64); g.lineTo(x + 16, 64); g.lineTo(x + 48, 0); g.lineTo(x + 32, 0); g.fill(); }
@@ -11478,10 +11891,11 @@ function buildStage(T) {
     if (T.land.sea) { const sea = new THREE.Mesh(new THREE.CircleGeometry(9000, 72).rotateX(-Math.PI / 2), new THREE.MeshPhongMaterial({ color: new THREE.Color(E.sea || '#2e6a86'), specular: 0x5a6a78, shininess: 70, transparent: true, opacity: 0.9, depthWrite: true }));
       sea.position.set((g.x0 + gx1) / 2, T.land.sea.y, (g.z0 + gz1) / 2); sea.renderOrder = 2; sea.receiveShadow = true; G.add(sea); stageChunks.push({ m: sea, s: new THREE.Sphere(sea.position.clone(), 9000) }); }
   }
-  // road: 1 m rows, 11 columns, carrying the same crown, ruts and bumps the physics drives on
+  // road: 1 m rows, 11 columns, carrying the same crown, crossfall, ruts and bumps the physics drives on (its unevenness
+  // smoothed over ROADUN.lp, without the washboard: see roadBump)
   {
     const pos = new Float32Array(rows.length * NC * 3), uv = new Float32Array(rows.length * NC * 2);
-    rows.forEach((r, k) => { for (let c = 0; c < NC; c++) { const lip = c === 0 || c === NC - 1, lat = LATF[c] * r.w / 2 + (lip ? Math.sign(LATF[c]) * 0.14 : 0); const o = (k * NC + c); pos[o * 3] = r.x + r.lx * lat; pos[o * 3 + 1] = lip ? roadSurfY(T, r.s, LATF[c] * r.w / 2, r.w) - 0.2 : roadSurfY(T, r.s, lat, r.w) + 0.012; pos[o * 3 + 2] = r.z + r.lz * lat; uv[o * 2] = (1 - LATF[c]) / 2; uv[o * 2 + 1] = r.s / 14; } });
+    rows.forEach((r, k) => { for (let c = 0; c < NC; c++) { const lip = c === 0 || c === NC - 1, lat = LATF[c] * r.w / 2 + (lip ? Math.sign(LATF[c]) * 0.14 : 0); const o = (k * NC + c); pos[o * 3] = r.x + r.lx * lat; pos[o * 3 + 1] = lip ? roadSurfY(T, r.s, LATF[c] * r.w / 2, r.w, true) - 0.2 : roadSurfY(T, r.s, lat, r.w, true) + 0.012; pos[o * 3 + 2] = r.z + r.lz * lat; uv[o * 2] = (1 - LATF[c]) / 2; uv[o * 2 + 1] = r.s / 14; } });
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     // the day's layers on the road (snow, ice, slush, dirt; loose stones, wet, standing water, the base showing through),
     // off the line and in its wheel tracks, and each point's place across the road and the line's (filled by paintLayers)
@@ -11528,6 +11942,17 @@ function buildStage(T) {
       const mt = k === 'zebra' ? new THREE.MeshPhongMaterial({ color: 0xeceae4, specular: 0x000000, shininess: 8, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }) : k === 'gridbars' ? new THREE.MeshPhongMaterial({ map: gridTex(), specular: 0x333333, shininess: 40, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }) : new THREE.MeshPhongMaterial({ map: ironTex(k), transparent: k === 'disc', alphaTest: 0.5, specular: 0x222222, shininess: 30, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
       mt.onBeforeCompile = roadLampShader; const m = new THREE.Mesh(g, mt); m.receiveShadow = true; G.add(m); }
   }
+  // potholes (see roadProfile): each a dark, ragged hollow a little wider than the hole the wheels find, laid on the road as
+  // it is drawn (lit by the headlamps as the road is); a sealed road's darker, a loose road's the colour of its ground
+  { const PR = roadProfile(T), H = PR.list.filter(h => h.r >= 0.18); if (H.length) {
+      const atS = (s, lat, lift) => { const f = clamp(s / STEP, 0, N - 1.001), i = Math.floor(f), t = f - i, A = P[i], B = P[i + 1], h = A.h + wrapAngle(B.h - A.h) * t, w = A.w + (B.w - A.w) * t, l = clamp(lat, -w / 2, w / 2);
+        return [A.x + (B.x - A.x) * t + Math.cos(h) * l, roadSurfY(T, s, l, w, true) + lift, A.z + (B.z - A.z) * t - Math.sin(h) * l]; };
+      for (const sealed of [false, true]) { const p = [], u = [], ix = [];
+        for (const hl of H) { if (hl.sharp !== sealed) continue; const o = p.length / 3, r = hl.r * 1.3, a0 = hl.s * 7.1; p.push(...atS(hl.s, hl.lat, 0.022)); u.push(0.5, 0.5);
+          for (let k = 0; k <= 10; k++) { const a = k / 10 * 6.283, ca = Math.cos(a + a0), sa = Math.sin(a + a0); p.push(...atS(hl.s + Math.cos(a) * r, hl.lat + Math.sin(a) * r, 0.02)); u.push(0.5 + 0.5 * ca, 0.5 + 0.5 * sa); if (k) ix.push(o, o + k + 1, o + k); } }
+        if (!ix.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(u, 2)); g.setAttribute('normal', new THREE.Float32BufferAttribute(p.map((v, j) => j % 3 === 1 ? 1 : 0), 3)); g.setIndex(ix);
+        const mt = new THREE.MeshLambertMaterial({ map: holeTex(), color: sealed ? 0x8a8a8a : new THREE.Color(E.loose || '#9a8c76').multiplyScalar(1.15), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+        mt.onBeforeCompile = roadLampShader; const m = new THREE.Mesh(g, mt); m.receiveShadow = true; G.add(m); } } }
   // roadside strip: shoulder, ditch, then the cut or fill slope out to the land; the same triangles the wheels drive on
   // (along a walled gate too, and under a bridge, where it is the gorge's ground from the middle of the road out)
   {
@@ -11576,7 +12001,9 @@ function buildStage(T) {
     if (!geo.boundingSphere) geo.computeBoundingSphere(); const gr0 = geo.boundingSphere.radius + geo.boundingSphere.center.length(), gr = gr0 * sc;
     const cells = new Map(); for (let k = 0; k < n; k++) { const key = Math.floor(X[k * 3] / 200) + ',' + Math.floor(X[k * 3 + 2] / 200); let a = cells.get(key); if (!a) cells.set(key, a = []); a.push(k); }
     // (a kind that casts no shadow, in one material: one set for the whole stage, see InstPool)
-    if (!(opts && opts.cast) && !Array.isArray(mat)) { stagePools.push(InstPool.make(G, geo, mat, list, M, X, SS, gr0, gr, cells, lo)); return { set castShadow(v) { } }; }
+    if (!(opts && opts.cast) && !Array.isArray(mat)) { const IP = InstPool.make(G, geo, mat, list, M, X, SS, gr0, gr, cells, lo); stagePools.push(IP);
+      if (opts && opts.track) list.forEach((it, k) => (it._ik || (it._ik = [])).push({ P: IP, g: k, M0: IP.M.slice(k * 16, k * 16 + 16) })); // (see instShow)
+      return { set castShadow(v) { } }; }
     const meshes = [];
     for (const ks of cells.values()) {
       const m = new THREE.InstancedMesh(geo, mat, ks.length); let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
@@ -11585,6 +12012,7 @@ function buildStage(T) {
       // (each instance's own record: its matrix and colour as built, where it stands and how far it reaches)
       const nk = ks.length, src = { n: nk, M: m.instanceMatrix.array.slice(), C: m.instanceColor ? m.instanceColor.array.slice() : null, X: new Float32Array(nk * 4), hi: new Int32Array(nk), lo: new Int32Array(nk), nh: nk, nl: 0 };
       ks.forEach((k, j) => { src.X[j * 4] = X[k * 3]; src.X[j * 4 + 1] = X[k * 3 + 1]; src.X[j * 4 + 2] = X[k * 3 + 2]; src.X[j * 4 + 3] = gr0 * SS[k]; src.hi[j] = j; });
+      if (opts && opts.track) ks.forEach((k, j) => (list[k]._ik || (list[k]._ik = [])).push({ R: src, j, M0: src.M.slice(j * 16, j * 16 + 16) })); // (see instShow)
       let mLo = null; if (lo && !Array.isArray(mat)) { mLo = new THREE.InstancedMesh(lo, mat, nk); mLo.count = 0; mLo.visible = false; if (src.C) mLo.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(nk * 3), 3); mLo.frustumCulled = false; G.add(mLo); meshes.push(mLo); }
       stageChunks.push({ m, mLo, src, s: new THREE.Sphere(new THREE.Vector3((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), Math.hypot(x1 - x0, y1 - y0, z1 - z0) / 2 + gr) });
     }
@@ -12149,16 +12577,21 @@ function buildStage(T) {
   for (const W of T.wcs || []) wcDraw(W);
   // bales: straw bales across chicanes; closed junctions get round bales stood on end in red and white wrap
   const bales = T.colliders.filter(c => c.kind === 'bale' && !c.spur && !c.tyres), tyreStacks = T.colliders.filter(c => c.kind === 'bale' && c.tyres), wrapped = T.colliders.filter(c => c.kind === 'bale' && c.spur), rocks = T.colliders.filter(c => c.kind === 'rock');
-  const bm = inst(new THREE.BoxGeometry(1.2, 0.8, 0.85), new THREE.MeshLambertMaterial({ map: strawTex() }), bales, (d, c) => { d.position.set(c.x, roadSurfY(T, c.i * STEP, c.lat, P[c.i].w) + 0.38, c.z); d.rotation.set(0, P[c.i].h, 0); d.scale.set(1, 1, 1); c.top = d.position.y + 0.4; }, null, { cast: true }); if (bm) bm.castShadow = true;
-  const wm = inst(new THREE.CylinderGeometry(0.62, 0.62, 1.2, 14), [new THREE.MeshLambertMaterial({ map: wrapTex() }), stdMat(0xf1f1ec), stdMat(0xf1f1ec)], wrapped, (d, c) => { d.position.set(c.x, c.sy + 0.58, c.z); d.rotation.set(0, c.rot + (c.x * 7.3 % 1.6), 0); d.scale.set(1, 1, 1); c.top = d.position.y + 0.6; }, null, { cast: true }); if (wm) wm.castShadow = true;
+  const propK = {}; // (the props a car can move, by kind: their shape about its middle and their material, for Props)
+  propK.bale = [new THREE.BoxGeometry(1.2, 0.8, 0.85), new THREE.MeshLambertMaterial({ map: strawTex() }), () => [1, 1, 1]];
+  const bm = inst(propK.bale[0], propK.bale[1], bales, (d, c) => { d.position.set(c.x, roadSurfY(T, c.i * STEP, c.lat, P[c.i].w) + 0.38, c.z); d.rotation.set(0, P[c.i].h, 0); d.scale.set(1, 1, 1); c.top = d.position.y + 0.4; }, null, { cast: true, track: true }); if (bm) bm.castShadow = true;
+  propK.wrap = [new THREE.CylinderGeometry(0.62, 0.62, 1.2, 14), [new THREE.MeshLambertMaterial({ map: wrapTex() }), stdMat(0xf1f1ec), stdMat(0xf1f1ec)], () => [1, 1, 1]];
+  const wm = inst(propK.wrap[0], propK.wrap[1], wrapped, (d, c) => { d.position.set(c.x, c.sy + 0.58, c.z); d.rotation.set(0, c.rot + (c.x * 7.3 % 1.6), 0); d.scale.set(1, 1, 1); c.top = d.position.y + 0.6; }, null, { cast: true, track: true }); if (wm) wm.castShadow = true;
   // (tyre chicanes: stacks of five old tyres bolted together, a metre high)
-  const tm = inst(new THREE.CylinderGeometry(0.34, 0.34, 1.0, 14), new THREE.MeshLambertMaterial({ map: tyreStackTex() }), tyreStacks, (d, c) => { d.position.set(c.x, (c.jk || c.sl ? gY(c.x, c.z) : roadSurfY(T, c.i * STEP, c.lat, P[c.i].w)) + 0.5, c.z); d.rotation.set(0, c.x * 3.1 % 6.28, 0); d.scale.set(1, 1, 1); c.top = d.position.y + 0.5; }, null, { cast: true }); if (tm) tm.castShadow = true;
+  propK.tyre = [new THREE.CylinderGeometry(0.34, 0.34, 1.0, 14), new THREE.MeshLambertMaterial({ map: tyreStackTex() }), () => [1, 1, 1]];
+  const tm = inst(propK.tyre[0], propK.tyre[1], tyreStacks, (d, c) => { d.position.set(c.x, (c.jk || c.sl ? gY(c.x, c.z) : roadSurfY(T, c.i * STEP, c.lat, P[c.i].w)) + 0.5, c.z); d.rotation.set(0, c.x * 3.1 % 6.28, 0); d.scale.set(1, 1, 1); c.top = d.position.y + 0.5; }, null, { cast: true, track: true }); if (tm) tm.castShadow = true;
   // (an army range's concrete blocks: square, tapering a little to the top, set into the ground, weathered; each its own
   // shade and turned a touch from square to the road)
   const blocks = T.colliders.filter(c => c.kind === 'block');
   if (blocks.length) { const bg = new THREE.CylinderGeometry(0.335, 0.5, 1, 4, 1).toNonIndexed(); bg.rotateY(Math.PI / 4); bg.translate(0, 0.5, 0); bg.computeVertexNormals();
     const shade = mulberry32(strHash('blockC:' + T.seed)); for (const c of blocks) { const v = 0.82 + 0.3 * shade(); c.c = new THREE.Color(v, v * 0.985, v * 0.95); }
-    const km = inst(bg, new THREE.MeshLambertMaterial({ map: blockTex() }), blocks, (d, c) => { const y = gY(c.x, c.z); d.position.set(c.x, y - 0.15, c.z); d.rotation.set(0, P[c.i].h + (c.rot || 0), 0); d.scale.set(1, c.H + 0.15, 1); }, null, { cast: true }); if (km) km.castShadow = true; }
+    propK.block = [bg.clone().translate(0, -0.5, 0), new THREE.MeshLambertMaterial({ map: blockTex() }), s => [1, 2 * s.hh, 1]];
+    const km = inst(bg, propK.block[1], blocks, (d, c) => { const y = gY(c.x, c.z); d.position.set(c.x, y - 0.15, c.z); d.rotation.set(0, P[c.i].h + (c.rot || 0), 0); d.scale.set(1, c.H + 0.15, 1); }, null, { cast: true, track: true }); if (km) km.castShadow = true; }
   Stones.build(G, T, E, rocks.length ? buildRocks(G, T, E, rocks, gAt) : null);
   // loose stones: gravel roads throw them to the edges and leave some on the crown between the wheel tracks; a few
   // get dragged onto sealed roads where cars cut the corners
@@ -12231,6 +12664,14 @@ function buildStage(T) {
     inst(new THREE.BoxGeometry(0.1, 1, 0.14).translate(0, 0.5, 0), stdMat(E.railPost || 0x6d7175), posts, (d, t) => { d.position.set(t.x, t.y - 0.25, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, t.top - (t.y - 0.25), 1); });
     if (widx.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(wpos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(wcol, 3)); geo.setIndex(widx); geo.computeVertexNormals(); const m = new THREE.Mesh(geo, masonryMat({ vertexColors: true, side: THREE.DoubleSide })); m.castShadow = true; m.receiveShadow = true; G.add(m); }
   }
+  // The marker posts are solid: plastic (a snow pole, fibreglass), a kilo or so, set in a socket in the ground - struck,
+  // one is knocked flying (see Props). Each a collider of its own (parts: its pieces about its middle, [x, y, z sizes, x
+  // and y offsets, colour], for the one drawn flying; hx, hh: its half width and half height; m, its weight)
+  const markPosts = (marks, refl, parts, hx, hh, m) => { if (!marks.length) return;
+    const L = parts.map(([sx, sy, sz, ox, oy, col]) => { const g = new THREE.BoxGeometry(sx, sy, sz).translate(ox, oy, 0), n = g.attributes.position.count, cc = new THREE.Color(col), C = new Float32Array(n * 3); for (let k = 0; k < n; k++) cc.toArray(C, k * 3); g.setAttribute('color', new THREE.BufferAttribute(C, 3)); return g; });
+    propK.mark = [joinGeos(L), new THREE.MeshLambertMaterial({ vertexColors: true }), () => [1, 1, 1]];
+    marks.forEach((t, k) => { const c = { i: t.i, lat: t.lat, x: t.x, z: t.z, r: hx, kind: 'post', mat: 'plastic', shp: 'box', hx, hh, hz: hx, m, me: m, bed: 0, mob: true, th: t.h, top: t.y - 0.1 + 2 * hh, vis: refl ? [t, refl[k]] : [t] };
+      c.home = { x: c.x, z: c.z, i: c.i, lat: c.lat, th: c.th, bed: 0, me: m }; (T.colAt[t.i] || (T.colAt[t.i] = [])).push(c); }); };
   // edge markers: white posts with a black band and reflector on sealed roads (round reflectors on slim posts where the
   // country has those; none on the narrow lanes between hedges), tall orange poles on snow roads
   {
@@ -12240,21 +12681,24 @@ function buildStage(T) {
       for (let i = T.startIdx + 8; i < N - 8; i++) {
         if (i < next) continue; const p = P[i]; if (p.wall || p.kerb || skip.has(p.tag) || p.surf === 'gravel' || Math.abs(i - T.finishIdx) < 12 || Math.abs(i - T.stopIdx) < 8) continue; // (a mixed stage: on its tarmac only)
         const kp = Math.abs(wrapAngle(P[Math.min(N - 1, i + 3)].h - P[Math.max(0, i - 3)].h)) / (6 * STEP); next = i + Math.round((kp > 0.025 ? 12 : kp > 0.01 ? 24 : 50) / STEP);
-        for (const sd of [1, -1]) { if (sd > 0 ? p.rl : p.rr) continue; const L = p.w / 2 + p.sh + 0.15, x = p.x + Math.cos(p.h) * sd * L, z = p.z - Math.sin(p.h) * sd * L; marks.push({ x, z, y: gY(x, z), h: p.h, sd }); }
+        for (const sd of [1, -1]) { if (sd > 0 ? p.rl : p.rr) continue; const L = p.w / 2 + p.sh + 0.15, x = p.x + Math.cos(p.h) * sd * L, z = p.z - Math.sin(p.h) * sd * L; marks.push({ x, z, y: gY(x, z), h: p.h, sd, i, lat: sd * L }); }
       }
     }
     if (T.surface === 'snow') {
-      inst(new THREE.CylinderGeometry(0.025, 0.03, 1, 5).translate(0, 0.5, 0), stdMat(0xe8641a), marks, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 2.3, 1); });
-      inst(new THREE.CylinderGeometry(0.027, 0.027, 1, 5).translate(0, 0.5, 0), stdMat(0x1a1a1a), marks, (d, t) => { d.position.set(t.x, t.y + 1.9, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 0.3, 1); });
+      inst(new THREE.CylinderGeometry(0.025, 0.03, 1, 5).translate(0, 0.5, 0), stdMat(0xe8641a), marks, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 2.3, 1); }, null, { track: true });
+      inst(new THREE.CylinderGeometry(0.027, 0.027, 1, 5).translate(0, 0.5, 0), stdMat(0x1a1a1a), marks, (d, t) => { d.position.set(t.x, t.y + 1.9, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 0.3, 1); }, null, { track: true });
+      markPosts(marks, null, [[0.03, 2.3, 0.03, 0, 0, 0xe8641a], [0.06, 0.3, 0.06, 0, 1.0, 0x1a1a1a]], 0.03, 1.15, 1.1);
     } else if (marks.length && MK === 'round') {
-      inst(new THREE.BoxGeometry(0.06, 1, 0.06).translate(0, 0.5, 0), stdMat(0xd8d8d4), marks, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1.05, 1); });
+      inst(new THREE.BoxGeometry(0.06, 1, 0.06).translate(0, 0.5, 0), stdMat(0xd8d8d4), marks, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1.05, 1); }, null, { track: true });
       const refl = marks.map(t => Object.assign({}, t, { c: new THREE.Color(t.sd > 0 ? '#f4f4f0' : '#ff8a1a') }));
-      inst(new THREE.CylinderGeometry(0.05, 0.05, 0.025, 10).rotateX(Math.PI / 2), gameState().reflMat = new THREE.MeshBasicMaterial({ color: 0xffffff }), refl, (d, t) => { const f = -t.sd * 0.04; d.position.set(t.x + Math.cos(t.h) * f, t.y + 0.98, t.z - Math.sin(t.h) * f); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); });
+      inst(new THREE.CylinderGeometry(0.05, 0.05, 0.025, 10).rotateX(Math.PI / 2), gameState().reflMat = new THREE.MeshBasicMaterial({ color: 0xffffff }), refl, (d, t) => { const f = -t.sd * 0.04; d.position.set(t.x + Math.cos(t.h) * f, t.y + 0.98, t.z - Math.sin(t.h) * f); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); }, null, { track: true });
+      markPosts(marks, refl, [[0.06, 1.05, 0.06, 0, 0, 0xd8d8d4], [0.1, 0.1, 0.03, 0, 0.53, 0xff8a1a]], 0.03, 0.53, 1.0);
     } else if (marks.length) {
-      inst(new THREE.BoxGeometry(0.1, 1, 0.12).translate(0, 0.5, 0), stdMat(0xf2f2ee), marks, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1.1, 1); });
-      inst(new THREE.BoxGeometry(0.104, 0.24, 0.124), stdMat(0x1c1c1c), marks, (d, t) => { d.position.set(t.x, t.y + 0.78, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); });
+      inst(new THREE.BoxGeometry(0.1, 1, 0.12).translate(0, 0.5, 0), stdMat(0xf2f2ee), marks, (d, t) => { d.position.set(t.x, t.y - 0.1, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1.1, 1); }, null, { track: true });
+      inst(new THREE.BoxGeometry(0.104, 0.24, 0.124), stdMat(0x1c1c1c), marks, (d, t) => { d.position.set(t.x, t.y + 0.78, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); }, null, { track: true });
       const refl = marks.map(t => Object.assign({}, t, { c: new THREE.Color(t.sd > 0 ? '#f4f4f0' : '#ff8a1a') }));
-      inst(new THREE.BoxGeometry(0.03, 0.12, 0.07), gameState().reflMat = new THREE.MeshBasicMaterial({ color: 0xffffff }), refl, (d, t) => { const f = -t.sd * 0.055; d.position.set(t.x + Math.cos(t.h) * f, t.y + 0.86, t.z - Math.sin(t.h) * f); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); });
+      inst(new THREE.BoxGeometry(0.03, 0.12, 0.07), gameState().reflMat = new THREE.MeshBasicMaterial({ color: 0xffffff }), refl, (d, t) => { const f = -t.sd * 0.055; d.position.set(t.x + Math.cos(t.h) * f, t.y + 0.86, t.z - Math.sin(t.h) * f); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); }, null, { track: true });
+      markPosts(marks, refl, [[0.1, 1.1, 0.12, 0, 0, 0xf2f2ee], [0.104, 0.24, 0.124, 0, 0.33, 0x1c1c1c], [0.07, 0.12, 0.03, 0, 0.41, 0xff8a1a]], 0.05, 0.55, 1.4);
     }
   }
   // telegraph poles and their wires: a line that follows the lie of the road at a distance, now and then crossing it
@@ -12334,7 +12778,7 @@ function buildStage(T) {
     // the name boards
     const bm = new THREE.MeshLambertMaterial({ map: villageTex() }), pm = stdMat(0x6a6a6a);
     for (const b of boards) { const g = new THREE.Group(), post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.5, 0.08), pm), bd = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.62, 0.04), [pm, pm, pm, pm, bm, pm]); post.position.y = 0.95; bd.position.y = 1.85; g.add(post, bd); g.position.set(b.x, b.y, b.z); g.rotation.y = b.h; G.add(g);
-      const r = T.fieldAt(b.x, b.z); if (r.np && r.np.i >= 0) (T.colAt[r.np.i] || (T.colAt[r.np.i] = [])).push({ i: r.np.i, x: b.x, z: b.z, r: 0.06, kind: 'post' }); }
+      const r = T.fieldAt(b.x, b.z); if (r.np && r.np.i >= 0) (T.colAt[r.np.i] || (T.colAt[r.np.i] = [])).push({ i: r.np.i, x: b.x, z: b.z, r: 0.06, kind: 'post', mat: 'steel', g, top: b.y + 2.5 }); }
   }
   if (T.sss) buildArena();
   // timing boards and controls
@@ -12345,10 +12789,12 @@ function buildStage(T) {
   // the road has a longer post, so it shows over the edge as one on level ground does)
   const signPost = (x, z, y, h, kind, yr) => { const top = Math.max(y, yr != null ? yr : y) + 1.76, g = new THREE.Group(), post = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1, 0.07), postMat); post.scale.y = top - y + 0.5; post.position.y = (top - y - 0.5) / 2;
     const disc = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), signMat(kind, '')), back = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), signMat(kind, 'b')); disc.position.set(0, top - y + 0.19, 0.04); back.position.set(0, top - y + 0.19, 0.035); back.rotation.y = Math.PI; disc.castShadow = true;
-    g.add(post, disc, back); g.position.set(x, y, z); g.rotation.y = h; G.add(g); };
+    g.add(post, disc, back); g.position.set(x, y, z); g.rotation.y = h; G.add(g); return g; };
+  // (a sign's post is a steel tube: struck hard it bends flat, see Props; struck lightly it stands)
+  const steelPost = (i, x, z, g, y) => (T.colAt[i] || (T.colAt[i] = [])).push({ i, x, z, r: 0.06, kind: 'post', mat: 'steel', g, top: y + 2.3 });
   // (on the road's shoulder; behind the guard rail or wall where there is one)
   const board = (i, side, kind) => { i = clamp(i, 0, N - 1); const p = P[i], key = side > 0 ? 'rl' : 'rr', L = p[key] ? railLat(T, p) + (parapetAt(T, i, side) ? 0.7 : 0.45) : p.w / 2 + Math.max(0.5, p.sh * 0.8), q = posAt(i, side * L);
-    signPost(q.x, q.z, gAt(q.x, q.z), p.h + Math.PI, kind, roadSurfY(T, i * STEP, side * p.w / 2, p.w)); (T.colAt[i] || (T.colAt[i] = [])).push({ i, x: q.x, z: q.z, r: 0.06, kind: 'post' }); };
+    const gy = gAt(q.x, q.z); steelPost(i, q.x, q.z, signPost(q.x, q.z, gy, p.h + Math.PI, kind, roadSurfY(T, i * STEP, side * p.w / 2, p.w)), gy); };
   // time control in the run-up (warning board, then the control 25 m on), the start line, the flying finish with
   // its warning 100 m before, the stop control 200 m after it and the end of the control zone beyond that
   if (!T.sss) { board(T.startIdx - 33, -1, 'yclock'); board(T.startIdx - 20, -1, 'rclock'); board(T.startIdx, -1, 'rstart'); board(T.startIdx, 1, 'rstart');
@@ -12356,7 +12802,8 @@ function buildStage(T) {
   board(T.stopIdx - 50, -1, 'ystop'); board(T.stopIdx, -1, 'rstop'); board(T.stopIdx, 1, 'rstop'); board(T.stopIdx + 13, -1, 'eend'); } // (an arena's start and finish have their gantries and lights)
   // radio points: a warning board, then the point itself with its marshal
   for (const i of T.radio || []) { board(i - 50, -1, 'yradio'); board(i, -1, 'bradio'); }
-  for (const sp of T.spurs || []) if (sp.sign) { signPost(sp.sign.x, sp.sign.z, sp.sign.y, sp.sign.h + Math.PI, 'rbar'); const r = T.fieldAt(sp.sign.x, sp.sign.z); if (r.np && r.np.i >= 0) (T.colAt[r.np.i] || (T.colAt[r.np.i] = [])).push({ i: r.np.i, x: sp.sign.x, z: sp.sign.z, r: 0.06, kind: 'post' }); }
+  for (const sp of T.spurs || []) if (sp.sign) { const g = signPost(sp.sign.x, sp.sign.z, sp.sign.y, sp.sign.h + Math.PI, 'rbar'); const r = T.fieldAt(sp.sign.x, sp.sign.z); if (r.np && r.np.i >= 0) steelPost(r.np.i, sp.sign.x, sp.sign.z, g, sp.sign.y); }
+  Props.build(G, T, propK); // (the props a car can move, drawn on their own once it has)
   const tent = (i, side, col) => { const p = P[i]; const q = posAt(i, side * (p.w / 2 + Math.max(9.5, p.sh + p.dw + 6))); const th = gAt(q.x, q.z); const g = new THREE.Group(); for (const [x, z] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]]) { const wx = q.x + Math.cos(p.h) * x + Math.sin(p.h) * z, wz = q.z - Math.sin(p.h) * x + Math.cos(p.h) * z, ly = gAt(wx, wz) - th - 0.1, leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.2 - ly, 0.06), stdMat(0xdddddd)); leg.position.set(x, (2.2 + ly) / 2, z); g.add(leg); } /* (each leg down to the ground under it) */ const roof = new THREE.Mesh(new THREE.ConeGeometry(2.1, 0.9, 4), stdMat(col)); roof.position.y = 2.6; roof.rotation.y = Math.PI / 4; const table = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.7), stdMat(0xe9e6df)); table.position.set(0, 0.8, 0.4); const tl = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.75, 0.6), stdMat(0x5a5a5a)); tl.position.set(0, 0.38, 0.4); const clockBox = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.25), stdMat(0x1a1a1a)); clockBox.position.set(0.4, 1.0, 0.4); g.add(roof, table, tl, clockBox); g.position.set(q.x, th, q.z); g.rotation.y = p.h; { const at = (x, z) => [q.x + Math.cos(p.h) * x + Math.sin(p.h) * z, q.z - Math.sin(p.h) * x + Math.cos(p.h) * z], r = T.fieldAt(q.x, q.z); if (r.np && r.np.i >= 0) { for (const [x, z] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]]) { const [wx, wz] = at(x, z); (T.colAt[r.np.i] || (T.colAt[r.np.i] = [])).push({ i: r.np.i, x: wx, z: wz, r: 0.05, kind: 'post' }); } const [a0x, a0z] = at(-0.9, 0.4), [a1x, a1z] = at(0.9, 0.4); solidBox(T, segQuad(a0x, a0z, a1x, a1z, 0.7), th + 0.84, th - 1, 'table'); } } G.add(g); };
   if (!T.sss) { tent(T.startIdx + 2, -1, 0xc4202f); tent(T.finishIdx + 4, -1, 0xc4202f); tent(T.stopIdx + 3, -1, 0xf2c014); }
   // the country's houses, field bounds and what stands in the fields, its hedges and walls by the road (buildProps); then
@@ -19503,7 +19950,7 @@ const Particles = {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3)); g.setAttribute('pcolor', new THREE.BufferAttribute(this.col, 3)); g.setAttribute('alpha', new THREE.BufferAttribute(this.alpha, 1)); g.setAttribute('psize', new THREE.BufferAttribute(this.size, 1));
     // dust, spray and stones take the light around them (dark at night, bright in the headlamps) and fade into the fog
     this.mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: Object.assign({ uScale: { value: 400 }, uAmb: { value: new THREE.Color(1, 1, 1) }, uFogC: { value: new THREE.Color() }, uFogN: { value: 200 }, uFogF: { value: 520 } }, beamUniforms()),
-      vertexShader: BEAM_GLSL + ' uniform vec3 uAmb; uniform float uFogN, uFogF; attribute float alpha; attribute float psize; attribute vec3 pcolor; varying float vA; varying vec3 vC; uniform float uScale; void main(){ if (alpha <= 0.0) { vA = 0.0; vC = vec3(0.0); gl_PointSize = 0.0; gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; } vec4 mv=modelViewMatrix*vec4(position,1.0); vA=alpha*(1.0-smoothstep(uFogN,uFogF,-mv.z)); vC=pcolor*min(vec3(1.25), uAmb+vec3(1.0,0.95,0.85)*beams(position)*1.3); gl_PointSize=psize*uScale/max(0.5,-mv.z); gl_Position=projectionMatrix*mv; }',
+      vertexShader: BEAM_GLSL + ' uniform vec3 uAmb; uniform float uFogN, uFogF; attribute float alpha; attribute float psize; attribute vec3 pcolor; varying float vA; varying vec3 vC; uniform float uScale; void main(){ if (alpha <= 0.0) { vA = 0.0; vC = vec3(0.0); gl_PointSize = 0.0; gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; } vec4 mv=modelViewMatrix*vec4(position,1.0); vA=alpha*(1.0-smoothstep(uFogN,uFogF,-mv.z))*smoothstep(0.7,2.2,-mv.z); vC=pcolor*min(vec3(1.25), uAmb+vec3(1.0,0.95,0.85)*beams(position)*1.3); gl_PointSize=psize*uScale/max(0.5,-mv.z); gl_Position=projectionMatrix*mv; }',
       fragmentShader: 'varying float vA; varying vec3 vC; void main(){ vec2 c=gl_PointCoord-0.5; float d=length(c); if(d>0.5) discard; gl_FragColor=vec4(vC, vA*(1.0-d*2.0)); }' });
     this.geo = g; this.points = new THREE.Points(g, this.mat); this.points.frustumCulled = false; scene.add(this.points);
   },
@@ -21926,6 +22373,7 @@ const Snd = {
       return;
     }
     if (kind === 'bale') { this.boom(72, 0.45 * k * In, 0.22); this.burst(0.35, 500, 0.7, 0.3 * k, 'lowpass'); this.burst(0.45, 4500, 0.5, 0.1 * k, 'highpass'); return; }
+    if (kind === 'tyre') { this.boom(58, 0.55 * k * In, 0.26); this.burst(0.22, 420, 0.8, 0.35 * k, 'lowpass'); this.burst(0.1, 1600, 0.7, 0.1 * k, 'bandpass'); return; } // (rubber: a dull, springy thump)
     if (kind === 'bank') { this.boom(55, 0.7 * k * In, 0.34); this.burst(0.3, 360, 0.8, 0.5 * k, 'lowpass'); this.burst(0.8, 1700, 0.5, 0.26 * k, 'bandpass'); this.stones(4 + (k * 12 | 0), 0.6, interior, 1.3); if (k > 0.4) this.metal(140 + Math.random() * 60, 0.14 * k, 0.5); return; }
     if (kind === 'car') { this.boom(60, (0.5 + 0.4 * k) * In, 0.3); this.metal(150 + Math.random() * 70, 0.24 * k, 0.5 + 0.4 * k); this.burst(0.2 + 0.2 * k, 1500, 0.9, 0.4 * k, 'bandpass', true); return; } // (another car, with no audio worker)
     if (kind === 'post' || kind === 'chev') { this.boom(95, 0.4 * k * In, 0.14); this.burst(0.05, 2600, 0.6, 0.55 * k, 'highpass', true); this.burst(0.22, 760, 1.4, 0.3 * k, 'bandpass'); this.metal(230 + Math.random() * 80, 0.14 * k, 0.32); return; }
@@ -22343,7 +22791,7 @@ function pollInput(dt) {
   // One part of it is an assist: easing a held steer key as a slide nears the most that can be caught goes with Slide
   // Control
   const ST = P.steer, run = G.run && G.state !== 'menu' ? G.run : null, A = run ? run.as : assistFor(Ctl.assist());
-  inp.sp = { grip: ST.mode === 'grip', analog: useA, more, hb, tgt: ST.tgt, speed: ST.speed, ret: ST.ret, sens: ST.sens, range: useA ? 1 : ST.range, lim: A.lim, slide: A.slide };
+  inp.sp = { grip: ST.mode === 'grip', analog: useA, more, hb, tgt: ST.tgt, speed: ST.speed, ret: ST.ret, sens: ST.sens, range: useA ? 1 : ST.range, lim: A.lim, slide: A.slide, sa: A.csh };
   inp.grip = inp.sp.grip && !useA && !more;
   // the horn, held (a race against friends: heard by the others)
   if (MP.game) MP.hornHeld(kb('horn') || !!touch.horn || padHorn);
@@ -22561,7 +23009,9 @@ function drawMap(cv, live) {
 // boards start again
 // version 9: the tyres rebuilt from how they are made (more grip everywhere; on gravel and snow it holds on past the
 // peak as the tyre digs in), so boards start again
-const STAGE_VER = 9, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
+// version 10: the roads re-laid as real ones are (narrowing and widening, banked and off-camber bends, crowned, as rough
+// as measured roads of their kind, with potholes and washboard), so the same seed is another road and boards start again
+const STAGE_VER = 10, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
 // a stage's times are kept under the stage's own key; each time keeps the assists preset it was driven on (lv)
 const runKey = seed => recKey(seed);
 // (a stage laid out in a country other than its seed's own is a stage of its own, with a board of its own)
@@ -23034,7 +23484,8 @@ function processEvents(c) {
     else if (n === 'stone') { const wi = parseInt(e.split(':')[2], 10); Snd.stoneHit(isNaN(wi) ? -1 : wi, val); G.shake = Math.min(1, G.shake + val * 0.008); }
     else if (n === 'esys') engineEvent(c, e.split(':'));
     else if (n === 'air') Snd.air(e.split(':'), c);
-    else if (['wall', 'bank', 'hit', 'bale', 'rock', 'post', 'chev', 'island', 'crowd', 'rail', 'tree', 'pole', 'car', 'block'].includes(n)) { if (n === 'block') n = 'wall'; Snd.impact(n, val, G.camMode === 2, looseUnder(c), c); G.shake = Math.min(1, G.shake + val * 0.05); if (n === 'bale') burstDust(10, 1); ScreenFx.impact(n, val, c.surfName, looseUnder(c), G.T.wet || 0); }
+    else if (n === 'burst') { const p = e.split(':'); propBurst(p[1], +p[2], +p[3], +p[4], c); }
+    else if (['wall', 'bank', 'hit', 'bale', 'tyre', 'rock', 'post', 'chev', 'island', 'crowd', 'rail', 'tree', 'pole', 'car', 'block'].includes(n)) { if (n === 'block') n = 'wall'; Snd.impact(n, val, G.camMode === 2, looseUnder(c), c); G.shake = Math.min(1, G.shake + val * 0.05); if (n === 'bale') burstDust(10, 1); ScreenFx.impact(n, val, c.surfName, looseUnder(c), G.T.wet || 0); }
   }
   c.ev.length = 0;
 }
@@ -23547,7 +23998,9 @@ function updateFlyoverOld(dt) {
 //     be caught on that surface (sooner while it grows fast), so holding it lets the car drift but does not spin it; to
 //     go past that on purpose, hold the More lock key (Shift) with it. (The rallycross crews' own stability, P.lim
 //     alone, eases it whenever the car turns faster than its grip holds or the rear is at its limit.) Let go, the
-//     wheels come back straight. At a crawl it is direct
+//     wheels come back straight (with Steering Assist, P.sa, toward the car's path: its self-steer, see selfSteer). The
+//     front axle's path is taken as it goes at a turning the grip holds (GRIP_REF), so a key held against a swing
+//     steers against it rather than chasing it. At a crawl it is direct
 //     steering (a hairpin's full lock). It is the keys' filtering of what they ask, as rally games have always filtered
 //     a pad's steering for control; More lock takes it off.
 // With keys and touch buttons the rack is then moved as a driver's hands move a wheel (steerHands): never at a fixed
@@ -23575,20 +24028,28 @@ function steerFor(c, S, req, P, st, dt) {
   else {
     // the front tyres' best slip angle now, and the way the front axle is going across the car
     let tp = 0, n = 0; for (let i = 0; i < 2; i++) { const w = c.w[i]; if (w.Fz > 0 && w.tanPk > 0) { tp += w.tanPk * (w.loose ? GRIP.loose : 1); n++; } } tp = n ? tp / n : 0.15;
-    const aPk = Math.atan(tp), bf = u > 0.5 ? Math.atan2(c.v + K.a * c.r, u) : 0;
+    const aPk = Math.atan(tp); let rl = 1;
     // (a key held into the turn asks less of the front while the car turns faster than its grip can hold - its yaw
     // rate, a moment ahead, past what the tyres' grip gives at this speed - or with the rear at its limit, until the car
     // settles; so holding a key takes the car to its limit and keeps it there instead of throwing it into a spin)
     { const dr = (c.r - (st.rp != null ? st.rp : c.r)) / dt; st.rp = c.r; st.dr = (st.dr || 0) + (dr - (st.dr || 0)) * Math.min(1, dt / 0.05); }
     { let rr = 0, m = 0, mu = 0, q = 0; for (let i = 0; i < 4; i++) { const w = c.w[i]; if (w.Fz > 0) { mu += w.muPk || 0; q++; if (i >= 2) { rr += w.rho || 0; m++; } } } rr = m ? rr / m : 0; mu = q ? mu / q : 0.9;
-      const into = dir !== 0 && Math.abs(c.r) > 0.05 && dir === Math.sign(c.r), rl = GRIP.yaw * 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 4), rp = Math.abs(c.r + GRIP.ahead * st.dr);
+      const into = dir !== 0 && Math.abs(c.r) > 0.05 && dir === Math.sign(c.r), rp = Math.abs(c.r + GRIP.ahead * st.dr); rl = GRIP.yaw * 9.81 * clamp(mu, 0.2, 1.6) / Math.max(sp, 4);
       st.hbAgo = P.hb ? 0 : (st.hbAgo != null ? st.hbAgo : 9) + dt; // (not while the handbrake turns it, nor just after)
       const lim = P.lim != null ? P.lim : 1, ab = Math.abs(u) > 2 ? Math.abs(Math.atan2(c.v, Math.abs(u))) : 0;
       const over = !(lim > 0 && into && st.hbAgo > 0.8) ? 0 : P.slide ? lim * GRIP.slideK * Math.max(0, (ab + GRIP.slideAhead * Math.max(0, HELP.db || 0)) / (HELP.bm || SLIDE_MAX.loose) - GRIP.slideAt)
         : lim * (GRIP.limK * Math.max(0, rr - GRIP.lim) + GRIP.yawK * Math.max(0, rp / rl - 1));
       st.k = over > 0 ? Math.max(1 - (1 - GRIP.kMin) * lim, st.k - dt * over) : Math.min(1, st.k + dt * GRIP.rel); }
+    // (the way the front axle is going across the car, at a turning no faster than the grip holds: see GRIP_REF)
+    st.rf = st.rf == null ? c.r : st.rf + (c.r - st.rf) * Math.min(1, dt / GRIP_REF.tau); st.rs = st.rs == null ? c.r : st.rs + (c.r - st.rs) * Math.min(1, dt / SA.ydTau);
+    // (with Steering Assist, a moment ahead: a car swinging back from a slide is pointed where it is swinging to, so a key
+    // held against the slide is eased off as the car comes back rather than feeding the swing - GRIP_REF.ant seconds of
+    // the change in its turning, a steady turn left alone)
+    const bf = u > 0.5 ? gripPath(c, K, rl, st.rf) - (P.sa ? GRIP_REF.ant * (c.r - st.rs) : 0) : 0;
+    // (with Steering Assist, no key held: the wheels' own self-steer toward the car's path, see selfSteer)
+    const cs = P.sa ? selfSteer(c, S, HELP, dt, req === 0 ? 1 : 0) : 0;
     const tap = Math.min(1, GRIP.tap0 + (1 - GRIP.tap0) * st.hold / GRIP.tap), ar = Math.abs(req);
-    const dg = bf * ar + req * aPk * P.tgt * st.k * tap * (P.hb ? GRIP.hb : 1); // (with the handbrake: more, for a hairpin)
+    const dg = (req === 0 ? cs : bf * ar) + req * aPk * P.tgt * st.k * tap * (P.hb ? GRIP.hb : 1); // (with the handbrake: more, for a hairpin)
     tgt = lerp(req * P.range, dg / lock, smooth(3, 7, u) * (P.hb ? smooth(12, 20, sp) : 1)); // (at a crawl, and on the handbrake in a hairpin: the share of lock)
   }
   tgt = clamp(tgt, -1, 1);
@@ -23641,7 +24102,7 @@ const ASSISTS = [
   ['abs', 'ABS', 'Stops the brakes locking when you brake hard, so the car still steers. On gravel and snow it lets the wheels slip a little more, so they dig in.'],
   ['tc', 'Traction Control', 'Stops the driven wheels spinning their grip away, but lets them spin enough to slide the car and throw gravel. Pulling away, it holds the clutch to what the tyres take.'],
   ['sc', 'Stability Control', 'Lets the car slide as far as you can still catch it on the surface under it, and stops it spinning: past that, the power is eased and a front wheel braked.'],
-  ['steer', 'Steering Assist', 'Keeps the steering to what the front tyres can use at speed, and makes your countersteer exact when you catch a slide. It never steers for you.'],
+  ['steer', 'Steering Assist', 'Keeps the steering to what the front tyres can use at speed, and lets the front wheels find the car\u2019s path in a slide, as a car\u2019s castor turns them: let go and they ease toward where the car is going, against its swing, so a caught slide settles instead of snapping back the other way. Steer into the bend to hold a slide.'],
   ['drift', 'Drift Assist', 'Once the car slides, holds the slide where you put it, as drift games do: steer into the bend and it drifts round, let go and it straightens, steer out and it is caught. The power is eased if the slide grows too far. In ordinary driving it does nothing.'],
   ['line', 'Racing Line', 'Shows the racing line on the road: green to accelerate, amber to lift, red to brake. It only shows the way; it never drives.']];
 const PRESETS = {
@@ -33316,7 +33777,7 @@ function ChassisDSPDef() {
   // level, how bright its crush]
   const KINDS = { rock: [0.0006, 0.05, 0.06, 1, 1.3], island: [0.0012, 0.05, 0.06, 1, 1.2], wall: [0.001, 0.05, 0.07, 1, 1.2], rail: [0.0012, 0.08, 0.1, 1, 1.4],
     tree: [0.0028, 0.07, 0.09, 1, 1], pole: [0.0022, 0.06, 0.08, 1, 1.05], post: [0.0016, 0.03, 0.04, 0.6, 1.1], chev: [0.002, 0.03, 0.04, 0.6, 1.1], hit: [0.002, 0.05, 0.06, 1, 1],
-    crowd: [0.006, 0.06, 0.05, 0.7, 0.8], roll: [0.003, 0.05, 0.06, 0.9, 1], bank: [0.008, 0.1, 0.12, 0.85, 0.6], bale: [0.02, 0.1, 0.1, 0.45, 0.5],
+    crowd: [0.006, 0.06, 0.05, 0.7, 0.8], roll: [0.003, 0.05, 0.06, 0.9, 1], bank: [0.008, 0.1, 0.12, 0.85, 0.6], bale: [0.02, 0.1, 0.1, 0.45, 0.5], tyre: [0.012, 0.08, 0.08, 0.6, 0.55],
     car: [0.0016, 0.07, 0.1, 1, 1.2] }; // (another car: two shells crumpling together, a longer crush and brighter)
   class BQ {
     constructor() { this.b0 = 0; this.b1 = 0; this.b2 = 0; this.a1 = 0; this.a2 = 0; this.z1 = 0; this.z2 = 0; this.f = -1; this.q = -1; this.ty = ''; }
@@ -33607,12 +34068,12 @@ function ChassisDSPDef() {
       const r = () => this.rnd(), k = clamp(v / 12, 0.05, 1.8), k1 = Math.min(1, k), k2 = Math.min(1.3, k), kc = Math.min(1.6, k);
       // by kind: the contact's rise (s), the crush's time (base, and more the harder the blow), the shell's level, how
       // bright the crush is (what is hard rings the panels higher; earth and straw give)
-      const M = KINDS[kind] || KINDS.hit, hard = M[0], T = M[1] + M[2] * kc, A = 0.32 * Math.pow(k, 1.15) * M[3], br = M[4], soft = kind === 'bale' || kind === 'bank';
+      const M = KINDS[kind] || KINDS.hit, hard = M[0], T = M[1] + M[2] * kc, A = 0.32 * Math.pow(k, 1.15) * M[3], br = M[4], soft = kind === 'bale' || kind === 'bank' || kind === 'tyre';
       this.thump(soft ? 70 : 95, soft ? 38 : 48, hard * 2 + 0.003, 0.05 + 0.03 * Math.min(1.4, k), 1.15 * A, pan, 0.45, 1.4);
       this.burst('lp', 140 + 50 * r(), 0.7, hard, 0.035, 0.7 * A, pan, 0.7, 1.3);
       this.burst('bp', 420 + 240 * r(), 1.1, Math.min(hard, 0.003), 0.03, 0.22 * A, pan, 0.8, 1.2);
       if (!soft) this.burst('bp', 1100 + 600 * r(), 1, 0.0005, 0.014, 0.1 * A, pan, 1, 0.6);
-      if (v > 2) this.crush(T, A, br, pan, Math.round(2 + 45 * T * k2), v > 3.5 && kind !== 'bale' ? clamp((v - 3.5) / 10, 0, 1.5) : 0);
+      if (v > 2) this.crush(T, A, br, pan, Math.round(2 + 45 * T * k2), v > 3.5 && kind !== 'bale' && kind !== 'tyre' ? clamp((v - 3.5) / 10, 0, 1.5) : 0);
       // spectators close by cry out at a crash
       if (this.e.crowd > 0.25 && v > 5) this.react = Math.max(this.react, clamp(v / 15, 0.3, 1) * Math.min(1, this.e.crowd * 1.3));
       if (kind === 'tree' || kind === 'pole') { // wood: a hollow thock, the bark splitting, the trunk shaking its leaves and twigs coming down (a pole snaps if hit hard)
