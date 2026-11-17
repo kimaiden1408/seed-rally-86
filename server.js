@@ -39,7 +39,7 @@ function checkTimes(x) {
   if (!x || typeof x !== 'object' || Array.isArray(x) || !x.runs || typeof x.runs !== 'object' || Array.isArray(x.runs)) return null;
   const list = []; let k = 0;
   for (const [key, r] of Object.entries(x.runs)) {
-    if (++k > 2000 || !/^[0-9A-Za-z_.~@-]{1,64}$/.test(key) || key === '__proto__' || !r || typeof r !== 'object') return null;
+    if (++k > 2000 || !/^[0-9A-Za-z_.~@!^-]{1,64}$/.test(key) || key === '__proto__' || !r || typeof r !== 'object') return null;
     const t = r.t, car = r.car, at = r.at;
     if (typeof t !== 'number' || !(t >= 5 && t < 1e5) || typeof car !== 'string' || !/^[a-z0-9_]{1,24}$/.test(car) || typeof at !== 'number' || !(at >= 0 && at < 1e14)) return null;
     // (the difficulty level the time was driven on, when the game says: kept as it is if it is a plain word)
