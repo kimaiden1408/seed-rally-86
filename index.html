@@ -1599,6 +1599,43 @@ const STAGE_TYPES = {
 //   surf: what its road is made of, where that differs from the stage's (a village's street is sealed, mostly; an army
 //     range's roads are concrete, laid in slabs for tanks);
 // and what stands beside it (trees, fields, houses, walls, the crowd: see buildProps and plantStage).
+// The roadside as each country's roads are built (forestry and rural road manuals, road authorities' standard sections):
+// dt, the drain's shape - 0 a V ditch, its floor 55 % of the way across; 1 a concrete U-gutter (300 by 300 mm, vertical
+// walls), now and then under concrete lids; 2 a paved V gutter (a concrete or asphalt apron, 0.5 to 1 m wide, 0.1 to
+// 0.2 m deep); 3 a flat-floored table drain (its floor at least 0.5 m below the road, gentle sides); 4 an earth bank where
+// a ditch would be (dd its height, its foot as wide as it is high and its top half that: a hedge bank) - sh the shoulder
+// or verge, dd and dw the drain's depth and width. base: the type's own, over every setting but a village; z: by setting.
+// The northern forest roads: ditches both sides kept deep and wide for the snow (0.6 to 1 m); a wet upland forest's: a
+// side drain under a 1 in 1.5 cut; the savanna's V side drains 0.5 to 0.6 m deep; the red gum forest's gravel shoulder
+// and table drain; a mountain pass's paved gutter at the foot of the rock; the cedar mountains' concrete U-gutter right at
+// the road's edge; the hedgerow lanes' earth banks
+const XSR = {
+  fast: { base: { sh: 0.6, dd: 0.62, dw: 2.2 }, z: { farm: { dd: 0.8, dw: 2.6 } } },
+  twisty: { base: { sh: 0.5, dd: 0.5, dw: 1.5 }, z: { forest: { dd: 0.55, dw: 1.6 }, open: { dd: 0.4, dw: 1.6 } } },
+  farm: { base: { sh: 0.6, dd: 0.35, dw: 1.6 } },
+  maquis: { base: { sh: 0.4, dd: 0.22, dw: 1.0 } },
+  rocky: { base: { sh: 0.4, dd: 0.22, dw: 1.0 } },
+  savanna: { base: { sh: 0.8, dd: 0.55, dw: 2.0 } },
+  desert: { base: { sh: 1.0, dd: 0.35, dw: 2.2 } },
+  redearth: { base: { sh: 1.2, dd: 0.55, dw: 3.0, dt: 3, kf: 0.25 } },
+  pampas: { base: { sh: 0.8, dd: 0.35, dw: 1.8 } },
+  pastures: { base: { sh: 0.8, dd: 0.5, dw: 2.0 } },
+  volcanic: { base: { sh: 0.4, dd: 0.2, dw: 0.9 } },
+  mountain: { base: { sh: 0.35, dd: 0.13, dw: 0.75, dt: 2 } },
+  lanes: { base: { sh: 0.5, dd: 0.2, dw: 1.0 }, z: { vineyard: { sh: 0.3, dd: 0.12, dw: 0.6, dt: 2 } } },
+  sweep: { base: { sh: 0.6, dd: 0.2, dw: 1.0, dt: 2 } },
+  coast: { base: { sh: 0.3, dd: 0.14, dw: 0.7, dt: 2 } },
+  cedar: { base: { sh: 0.25, dd: 0.32, dw: 0.34, dt: 1 } },
+  hedges: { base: { sh: 0.45, dd: 1.15, dw: 1.15, dt: 4 } },
+  mixed: { base: { sh: 0.6, dd: 0.3, dw: 1.2 } },
+  forest: { base: { sh: 0.55, dd: 0.6, dw: 2.2 } },
+  alpine: { base: { sh: 0.35, dd: 0.13, dw: 0.75, dt: 2 } },
+  arctic: { base: { sh: 0.6, dd: 0.7, dw: 2.4 } }
+};
+// the share of the sharper bends (under 60 m, over 35 degrees) a country marks with chevrons beyond the tightest, which
+// always are: many on the passes, the island roads and the cedar mountains, few in the northern forests
+const CHEV_P = { fast: 0.12, twisty: 0.35, farm: 0.55, maquis: 0.4, rocky: 0.45, savanna: 0.2, desert: 0.3, redearth: 0.25, pampas: 0.3, pastures: 0.35, volcanic: 0.45,
+  mountain: 0.7, lanes: 0.45, sweep: 0.6, coast: 0.65, cedar: 0.6, hedges: 0.35, range: 0.3, mixed: 0.5, forest: 0.12, alpine: 0.65, arctic: 0.1 };
 const SETTINGS = {
   forest:   { name: 'Forest', len: [1400, 3600], mix: { crest: 1.3, jump: 1.4, kink: 1.2, square: 0.5, narrows: 0, roundabout: 0, chicane: 0.4 }, str: 1, w: 1, xs: { dd: 0.38, dw: 1.9 } },
   farm:     { name: 'Farmland', len: [900, 2600], mix: { straight: 1.8, square: 2, crest: 1.3, jump: 0.8, switchback: 0.2, esses: 0.7, ford: 1.2, bridge: 0.35, chicane: 1.2, narrows: 0.6 }, add: { squares: 0.7, grid: 0.12, hump: 0.4 }, str: 1.5, w: 0.95, xs: { dd: 0.7, dw: 2.9, sh: 0.6 } },
@@ -2365,7 +2402,8 @@ function layStage(seedStr, force) {
     if (lOk) return 1; if (rOk) return -1; return lD < rD ? 1 : -1;
   }
   const feat = (type, s0, s1, extra) => { const f = Object.assign({ type, s0, s1 }, extra || {}); feats.push(f); return f; };
-  const chevron = (sp, outSide) => props.push({ kind: 'chev', i: Math.round((sp[0] + sp[1]) / 2), i0: sp[0], side: outSide });
+  const chevron = (sp, outSide, r) => props.push({ kind: 'chev', i: Math.round((sp[0] + sp[1]) / 2), i0: sp[0], i1: sp[1], side: outSide, r: r || 20 });
+  const chevP = CHEV_P[TY.id] != null ? CHEV_P[TY.id] : 0.3, chevOn = (sp, r, ang) => (r < 30 && ang > 0.9) || (r < 60 && ang > 0.6 && hash2(sp[0], 7, nseed + 331) < chevP);
   const crowd = (i, side, n, back) => props.push({ kind: 'crowd', i, side, n, back: back || 0 });
   const pickR = () => { let x = R.f() * crSum; for (const [r, wt] of CR.r) { x -= wt; if (x <= 0) return r * R.range(0.92, 1.08); } return CR.r[CR.r.length - 1][0]; };
 
@@ -2373,9 +2411,9 @@ function layStage(seedStr, force) {
     straight: () => ({ ops: [{ t: 'L', len: R.range(zstr[0], zstr[1]) }] }),
     // a slight bend taken flat: called so the driver knows which way the road goes over the next rise
     kink: () => { const r = R.range(160, 420), ang = R.range(0.1, 0.32), s = pickSign(ang); return { ops: [{ t: 'L', len: R.range(20, 60) }, { t: 'A', a: s * ang, r, note: curveNote(s, r, ang, W) }] }; },
-    curve: () => { const r = pickR(); const ang = R.range(CR.a[0], CR.a[1]); const s = pickSign(ang); return { ops: [{ t: 'L', len: R.range(8, 40) }, { t: 'A', a: s * ang, r, note: curveNote(s, r, ang, W) }], onCommit(sp) { if (r < 30 && ang > 0.9) chevron(sp(1), -s); } }; },
-    tightens: () => { const r1 = R.range(58, 88), r2 = R.range(20, 30), a1 = R.range(0.35, 0.6), a2 = R.range(0.6, 1.1); const s = pickSign(a1 + a2); return { ops: [{ t: 'L', len: 15 }, { t: 'A', a: s * a1, r: r1, note: `${dirName(s)} ${sevOf(r1)} tightens ${sevOf(r2)}`, span: 2 }, { t: 'A', a: s * a2, r: r2 }], onCommit(sp) { feat('tightens', sp(1)[0], sp(2)[1]); chevron(sp(2), -s); } }; },
-    opens: () => { const r1 = R.range(22, 32), r2 = R.range(70, 110), a1 = R.range(0.6, 1.0), a2 = R.range(0.35, 0.6); const s = pickSign(a1 + a2); return { ops: [{ t: 'L', len: 15 }, { t: 'A', a: s * a1, r: r1, note: `${dirName(s)} ${sevOf(r1)} opens ${sevOf(r2)}`, span: 2 }, { t: 'A', a: s * a2, r: r2 }], onCommit(sp) { feat('opens', sp(1)[0], sp(2)[1]); } }; },
+    curve: () => { const r = pickR(); const ang = R.range(CR.a[0], CR.a[1]); const s = pickSign(ang); return { ops: [{ t: 'L', len: R.range(8, 40) }, { t: 'A', a: s * ang, r, note: curveNote(s, r, ang, W) }], onCommit(sp) { if (chevOn(sp(1), r, ang)) chevron(sp(1), -s, r); } }; },
+    tightens: () => { const r1 = R.range(58, 88), r2 = R.range(20, 30), a1 = R.range(0.35, 0.6), a2 = R.range(0.6, 1.1); const s = pickSign(a1 + a2); return { ops: [{ t: 'L', len: 15 }, { t: 'A', a: s * a1, r: r1, note: `${dirName(s)} ${sevOf(r1)} tightens ${sevOf(r2)}`, span: 2 }, { t: 'A', a: s * a2, r: r2 }], onCommit(sp) { feat('tightens', sp(1)[0], sp(2)[1]); chevron(sp(2), -s, r2); } }; },
+    opens: () => { const r1 = R.range(22, 32), r2 = R.range(70, 110), a1 = R.range(0.6, 1.0), a2 = R.range(0.35, 0.6); const s = pickSign(a1 + a2); return { ops: [{ t: 'L', len: 15 }, { t: 'A', a: s * a1, r: r1, note: `${dirName(s)} ${sevOf(r1)} opens ${sevOf(r2)}`, span: 2 }, { t: 'A', a: s * a2, r: r2 }], onCommit(sp) { feat('opens', sp(1)[0], sp(2)[1]); if (chevOn(sp(1), r1, a1)) chevron(sp(1), -s, r1); } }; },
     // a junction: the stage turns off a road that carries on (closed off with bales, see below)
     square: () => { const s = pickSign(Math.PI / 2); return { noEase: true, ops: [{ t: 'L', len: 22 }, { t: 'A', a: s * Math.PI / 2, r: R.range(10, 12.5), note: `square ${dirName(s)}`, tag: 'square' }, { t: 'L', len: 20 }], onCommit(sp) { feat('square', sp(1)[0], sp(1)[1], { s }); crowd(sp(1)[1], -s, 10, 2); } }; },
     // a pair of hairpins climbing a hillside, each widened through its apex (in steep country, stacked up the slope the
@@ -2384,7 +2422,7 @@ function layStage(seedStr, force) {
     switchback: () => {
       const gT = LAND_AWARE ? zones[zk].gT : 0, s = gT ? (gT > 0 ? upSide() : -upSide()) : R.chance(0.5) ? 1 : -1, r = R.range(9.5, 12), a = R.range(Math.PI, Math.PI + 0.14), gap = R.range(TY.hp[0], TY.hp[1]);
       return { loose: 2, ops: [{ t: 'L', len: 18 }, { t: 'A', a: s * a, r, note: `hairpin ${dirName(s)}`, tag: 'hairpin', widen: 1.2 }, { t: 'L', len: gap }, { t: 'A', a: -s * a, r, note: `hairpin ${dirName(-s)}`, tag: 'hairpin', widen: 1.2 }, { t: 'L', len: 16 }],
-        onCommit(sp) { feat('hairpins', sp(1)[0], sp(3)[1]); chevron(sp(1), -s); chevron(sp(3), s); const m1 = sp(1), m3 = sp(3); crowd(Math.round((m1[0] + m1[1]) / 2), -s, 16, 3); crowd(Math.round((m3[0] + m3[1]) / 2), s, 14, 3); } };
+        onCommit(sp) { feat('hairpins', sp(1)[0], sp(3)[1]); chevron(sp(1), -s, r); chevron(sp(3), s, r); const m1 = sp(1), m3 = sp(3); crowd(Math.round((m1[0] + m1[1]) / 2), -s, 16, 3); crowd(Math.round((m3[0] + m3[1]) / 2), s, 14, 3); } };
     },
     // linked bends of alternating hand, each called on its own and linked by "into"; linked bends cannot be
     // straightened as much as a lone one, so they are graded on less of the road's width
@@ -2914,18 +2952,21 @@ function layStage(seedStr, force) {
     : surface === 'snow' ? { sh: 0.55, shS: 0.04, dd: 0.22, dw: 2.0, kc: 0.6, kcm: 1.33, kf: 0.33, fv: 0.4, kf2: 0.5, kfm: 0.67, ext: 14, railU: 0.45, bank: 0.8, bu: 1.4, bw: 0.95 }
     : { sh: 0.8, shS: 0.06, dd: 0.42, dw: 2.6, kc: 0.67, kcm: 1.33, kf: 0.33, fv: 0.4, kf2: 0.5, kfm: 0.67, ext: 14, railU: 0.5, bank: 0.35 };
   if (TY.xs) Object.assign(XS, TY.xs); // (the country's own roadside)
+  const XR = !LOOP && XSR[TY.id] || null; if (XR) Object.assign(XS, XR.base); // (and as its roads are built: see XSR)
   if (LOOP) Object.assign(XS, { sh: 1.0, shS: 0.02, dd: 0, dw: 0.6, kc: 0.4, kf: 0.4, kf2: 0.4, bank: 0 }); // (an arena: a level shoulder to the barriers)
   // and each zone's own over it (a farm road's deep ditches; a mountain road's cut above it, about 50 degrees into the rock
   // of a tarmac pass and 45 into the earth and stones of a gravel road, its rock fill below at 1 in 1.5; a village
   // street's kerbs), blended over 30 m where one zone gives way to the next: each point's own sh, shS, dd, dw, kc, kf
-  const XZ = zones.map(z => { const o = Object.assign({}, XS, LOOP ? {} : SETTINGS[z.set].xs || {}); if (o.kcS && o.kcS[surface] != null) o.kc = o.kcS[surface]; o.kf2 = Math.max(o.kf2 == null ? o.kf : o.kf2, o.kf); o.kfm = Math.max(o.kfm || o.kf2, o.kf2); o.kcm = Math.max(o.kcm || 1.33, o.kc); return o; }), XV = {};
+  const XZ = zones.map(z => { const o = Object.assign({}, XS, LOOP ? {} : SETTINGS[z.set].xs || {}); if (XR) { if (z.set !== 'village') Object.assign(o, XR.base); if (XR.z && XR.z[z.set]) Object.assign(o, XR.z[z.set]); } else o.dt = 0; if (z.set === 'village') o.dt = 0; if (o.kcS && o.kcS[surface] != null) o.kc = o.kcS[surface]; o.kf2 = Math.max(o.kf2 == null ? o.kf : o.kf2, o.kf); o.kfm = Math.max(o.kfm || o.kf2, o.kf2); o.kcm = Math.max(o.kcm || 1.33, o.kc); return o; }), XV = {};
   for (const key of ['sh', 'shS', 'dd', 'dw', 'kc', 'kf', 'kf2', 'fv', 'kfm', 'kcm']) { const raw = new Float64Array(N + 1), o = new Float64Array(N); for (let i = 0; i < N; i++) raw[i + 1] = raw[i] + XZ[pts[i].zone][key];
     for (let i = 0; i < N; i++) { const a = Math.max(0, i - 15), b = Math.min(N - 1, i + 15); o[i] = (raw[b + 1] - raw[a]) / (b - a + 1); } XV[key] = o; }
   const noDitch = new Set(['bridge', 'ford', 'ring', 'rbt', 'narrows', 'square', 'grid', 'deck']);
   for (let i = 0; i < N; i++) {
     const p = pts[i], s = i * STEP;
     p.sh = XV.sh[i] * (0.75 + 0.5 * vnoise(s / 140, 8.1, nseed + 61)); p.shS = XV.shS[i]; p.dw = XV.dw[i]; const kv = vnoise(s / 55, 9.3, nseed + 77); p.kc = XV.kc[i] * (0.8 + 0.35 * kv); p.kf = XV.kf[i] * (0.85 + 0.3 * kv); p.kfm = XV.kfm[i]; p.kf2 = Math.min(p.kfm, XV.kf2[i] * (0.8 + 0.4 * kv)); p.fv = XV.fv[i]; p.kcm = XV.kcm[i]; // (as dug, and as the ground lets them stand: steeper here, gentler there)
-    p.dd = noDitch.has(p.tag) ? 0 : XV.dd[i] * clamp(0.35 + 1.1 * vnoise(s / 90, 3.3, nseed + 51), 0, 1.15);
+    p.dt = noDitch.has(p.tag) ? 0 : XZ[p.zone].dt || 0; const dv = vnoise(s / 90, 3.3, nseed + 51);
+    p.dd = noDitch.has(p.tag) ? 0 : XV.dd[i] * (p.dt === 1 || p.dt === 2 ? 0.85 + 0.3 * dv : clamp(0.35 + 1.1 * dv, 0, 1.15));
+    if (p.dt === 1 && hash2(Math.floor(s / 24), 5, nseed + 57) < 0.25) p.dd = 0; // (under its lids: flush)
     p.bh = surface === 'snow' && p.tag !== 'square' && p.tag !== 'ring' && p.tag !== 'rbt' ? (0.3 + 0.32 * vnoise(s / 60, 1.9, nseed + 71)) * (0.7 + 0.6 * vnoise(s / 4.5, 6.2, nseed + 73)) * (TY.bankH || 1) : 0; /* ploughed banks: lumpy at the scale of a blade's push */
     p.nb = p.tag === 'bridge' || (p.tag === 'deck' && p.dh > 0.6) ? 1 : 0; // a bridge deck does not hold up the ground under it (nor a crossover's, but at the foot of its ramps)
     // a village street: kerbs 12 cm high, a pavement behind them (its width: the shoulder, flat), no ditch
@@ -3000,7 +3041,7 @@ function layStage(seedStr, force) {
       if (r && Math.abs(r.lat) <= r.hw) yy = r.yc - r.bk * r.lat - 0.03;
       else { if (dm === null) { dm = d; ym = r ? r.yc - r.bk * Math.sign(r.lat) * r.hw : p.y; xm = x; zm = z; }
         const dd = d - dm; yy = ym + clamp(natAt(TL, x, z) - natAt(TL, xm, zm), -0.07 * dd, 0.07 * dd) * smooth(2, 16, dd); }
-      sp.push({ x, z, h: p.h, w: wS, y: yy, spur: true, i: -1, sh: 0.6, dd: d > 14 ? XS.dd * 0.6 : 0, bh: 0, nb: 0, surf: srf });
+      sp.push({ x, z, h: p.h, w: wS, y: yy, spur: true, i: -1, sh: 0.6, dd: d > 14 ? (XS.dt ? 0.25 : XS.dd * 0.6) : 0, bh: 0, nb: 0, surf: srf });
     }
     // the crossroads sits where the two straights meet, one corner radius past the start of the arc; the closed road is
     // blocked just beyond the far edge of the road the stage turns into, so the whole corner stays open to cut
@@ -3079,7 +3120,7 @@ function layStage(seedStr, force) {
   const slopeAt = (i, side) => { const p = pts[i], L = p.w / 2 + 8; return natAt(TL, p.x + Math.cos(p.h) * side * L, p.z - Math.sin(p.h) * side * L) - p.y; };
   const fam = () => rch(RK.round) ? 0 : 1;
   const keepOut = [];
-  for (const pr of props) if (pr.kind === 'chev') { const p = pts[pr.i], L = pr.side * (p.w / 2 + p.sh + p.dw + 1.2); keepOut.push({ x: p.x + Math.cos(p.h) * L, z: p.z - Math.sin(p.h) * L, r: 1.7 }); }
+  for (const pr of props) if (pr.kind === 'chev') for (let i = Math.max(0, pr.i0 - 4); i <= Math.min(N - 1, pr.i1 + 3); i += 2) { const p = pts[i], L = pr.side * (p.w / 2 + Math.max(0.5, Math.min(1.6, p.sh * 0.9)) + 0.15); keepOut.push({ x: p.x + Math.cos(p.h) * L, z: p.z - Math.sin(p.h) * L, r: 1.3 }); }
   for (const [i0, sides] of [[startIdx, [-1, 1]], [finishIdx - 50, [-1, 1]], [finishIdx, [-1, 1]]]) for (const sd of sides) { const p = pts[i0], L = sd * (p.w / 2 + Math.max(0.5, p.sh * 0.8)); keepOut.push({ x: p.x + Math.cos(p.h) * L, z: p.z - Math.sin(p.h) * L, r: 1.2 }); }
   const rocksPlaced = [];
   const addRock = (i, lat, o) => {
@@ -3920,6 +3961,7 @@ function buildGround(T) {
   const NA = all.length, AX = new Float64Array(NA), AZ = new Float64Array(NA), AHW = new Float64Array(NA), AEL = new Float64Array(NA), AER = new Float64Array(NA), ASH = new Float64Array(NA), ADD = new Float64Array(NA), ABH = new Float64Array(NA), ALX = new Float64Array(NA), ALZ = new Float64Array(NA), AY = new Float64Array(NA), AI = new Int32Array(NA), AF = new Uint8Array(NA);
   const AKC = new Float64Array(NA), AKF = new Float64Array(NA), ADW = new Float64Array(NA), ASS = new Float64Array(NA), AKB = new Float64Array(NA), AKF2 = new Float64Array(NA); // (each point's own cut and fill slopes, the fill's embankment below its verge, ditch width, shoulder fall and kerb)
   all.forEach((o, k) => { AX[k] = o.x; AZ[k] = o.z; AHW[k] = o.w / 2; AEL[k] = o.eL; AER[k] = o.eR; ASH[k] = o.sh; ADD[k] = o.dd; ABH[k] = o.bh || 0; AKC[k] = o.kc || X.kc; AKF[k] = o.kf || X.kf; ADW[k] = o.dw || X.dw; ASS[k] = o.shS != null ? o.shS : X.shS; AKB[k] = o.kerb || 0; ALX[k] = Math.cos(o.h); ALZ[k] = -Math.sin(o.h); AY[k] = o.y; AI[k] = o.spur ? -1 : o.i; AF[k] = (o.spur ? 1 : 0) | (o.nb ? 2 : 0); AKF2[k] = o.kf2 || AKF[k]; });
+  const ADT = new Uint8Array(NA); for (let k = 0; k < NA; k++) ADT[k] = all[k].dt || 0; // (each point's drain's shape: see XSR)
   // Where each cut and each fill meets the land (its catch point), staked out across the road from every point on each
   // side as a road builder sets them out: a fill from the shoulder's outer edge (the hinge) down at its slope to the land,
   // a cut from the ditch's far side up at its slope to the land, and the land beyond either left as it lies. A fill is laid
@@ -3989,13 +4031,19 @@ function buildGround(T) {
         if (u < 0) { if (fl & 1) { const wq = 1 / (Math.sqrt(d2) + 0.05); spW += wq; spS += wq * AY[k]; spurY = 1; } else { const v = Math.min(AEL[k], AER[k]) - 0.25; if (v < HI) { HI = v; uhi = 0; } if (v < HIr) HIr = v; } continue; }
         const s2 = dx * ALX[k] + dz * ALZ[k] >= 0 ? 0 : 1, e = s2 ? AER[k] : AEL[k], sh = ASH[k], bh = ABH[k];
         const dw = ADW[k]; let base = e - ASS[k] * Math.min(u, sh) + AKB[k] * smooth(0, 0.04, u); if (bh) { const g = (u - bu) / bw; base += bh * Math.exp(-g * g); }
-        const t = (u - sh) / dw, dit = t <= 0 || t >= 1 ? 0 : ADD[k] * (t < 0.55 ? t / 0.55 : (1 - t) / 0.45); // (its bottom 55 % of the way across: the side by the road the gentler, about 1 in 3)
+        const t = (u - sh) / dw, ty = ADT[k], D = ty === 1 || ty === 4 ? 0 : ADD[k], dit = t <= 0 || t >= 1 || !D ? 0 : ty === 3 ? D * Math.min(1, t / 0.3, (1 - t) / 0.3) : D * (t < 0.55 ? t / 0.55 : (1 - t) / 0.45), bk = 0;
+        // (a table drain's floor flat between gentle sides; a paved gutter a shallow V; a U-gutter and a bank are cut and
+        // raised square to the nearest road point, below) // (its bottom 55 % of the way across: the side by the road the gentler, about 1 in 3)
         // (the back slope rises out of the ditch on a curve, each slope turning into the next over a metre or so, not at
         // a crease; past its toe a fill, past its top a cut, gives way, the land beyond left as it lies; and none reaches
         // past 24 m, so every bound is gone well inside the 32 m looked at)
         const j = k * 2 + s2, qb = Math.max(0, u - sh - dw), vf = Math.max(0, u - sh), fv = AFV[k], kf = AKF[k], v1 = fv / kf, kc = AKC[k], qg = CUT_LOW / kc + 0.8;
         const xf = vf - FTO[j], xc = vf - CTO[j], far = u > 24 ? 2 * (u - 24) * (u - 24) : 0;
-        const lo = base - (vf <= v1 ? kf * vf : fv + bend2(vf - v1, kf, FSL[j])) - (xf > 0 ? xf * (1.5 + 4 * xf) : 0) - far;
+        const lo0 = base - (vf <= v1 ? kf * vf : fv + bend2(vf - v1, kf, FSL[j])) - (xf > 0 ? xf * (1.5 + 4 * xf) : 0) - far, cv = ty === 1 || ty === 2 ? 1 : smooth(lo0 - 0.3, lo0 + 0.05, h);
+        // (a drain is dug into the verge, below the line its slope would take from the shoulder: a gutter always, a ditch
+        // where the land stands at or above that line - on an embankment a ditch gives way to the fill's slope - and a bank
+        // stands up out of it)
+        const lo = bk > 0 ? Math.max(lo0, base + bk) : dit > 0 ? lo0 - cv * Math.max(0, lo0 - (base - dit)) : lo0;
         if (RAI[j] > 0) { const lf = RAI[j] * (1 - smooth(v1, v1 + clamp(7 * RAI[j], 12, 22), vf)); if (lf > lift) lift = lf; } // (the land lifted under a road set into a steep hillside: see above)
         const hi = Math.max(lo, base - dit + (qb < 1.6 ? kc * qb * qb / 3.2 : qb <= qg ? kc * (qb - 0.8) : CUT_LOW + bend2(qb - qg, kc, CSL[j])) + (xc > 0 ? xc * (1.5 + 4 * xc) : 0) + far);
         if (lo > LO) { LO = lo; ulo = u; } if (hi < HI) { HI = hi; uhi = u; } if (lo > LOx && !(AI[k] >= 0 && wcOwn[AI[k]])) LOx = lo;
@@ -4010,6 +4058,11 @@ function buildGround(T) {
     else if (LO <= HI) { // (where the land meets the top of a cut or the foot of a fill, rounded off, as the builders leave it)
       const kr = Math.min(0.7, (HI - LO) * 0.45); if (kr > 0.02) { let g = Math.max(kr - Math.abs(h - HI), 0); h = Math.min(h, HI) - g * g / (4 * kr); g = Math.max(kr - Math.abs(h - LO), 0); h = Math.max(h, LO) + g * g / (4 * kr); } else h = clamp(h, LO, HI); }
     else h = (LO * uhi + HI * ulo) / (ulo + uhi + 1e-6);
+    // (a U-gutter's straight walls and flat floor, a bank's steep faces and flat top: square to the nearest road point -
+    // the next point along, a step away, would round so narrow a thing off)
+    if (spurY === null && npk >= 0 && !(AF[npk] & 3) && ADD[npk] > 0 && (ADT[npk] === 1 || ADT[npk] === 4)) { const k = npk, dx = x - AX[k], dz = z - AZ[k], lt = dx * ALX[k] + dz * ALZ[k], al = dz * ALX[k] - dx * ALZ[k];
+      if (Math.abs(al) < 2.2) { const sh = ASH[k], dw = ADW[k], t = (Math.abs(lt) - AHW[k] - sh) / dw; if (t > 0 && t < 1) { const base = (lt >= 0 ? AEL[k] : AER[k]) - ASS[k] * sh, D = ADD[k];
+        if (ADT[k] === 1) h = Math.min(h, base - D * Math.min(1, t * dw / 0.03, (1 - t) * dw / 0.03)); else h = Math.max(h, base + D * Math.min(1, t / 0.22, (1 - t) / 0.22)); } } }
     for (const f of rbts) { const d = Math.hypot(x - f.cx, z - f.cz), lim = f.Rr + f.W / 2; if (d < lim + 10) h = lerp(f.yc - 0.14, h, smooth(lim + 2, lim + 10, d)); }
     // a ford's stream, an old bridge's brook, a big bridge's river: their channels, banks, floors and valley sides cut into
     // the land (see buildWatercourses); they give way to any other part of the road nearby
@@ -4095,8 +4148,11 @@ function buildGround(T) {
     for (const sd of [1, -1]) {
       const k = i * 2 + (sd > 0 ? 0 : 1), o = k * C, e = sd > 0 ? p.eL : p.eR, ext = EXT[k];
       // (a village street's kerb: its face 4 cm wide, then the pavement out to the back of it)
-      const sh = p.sh, dw = p.dw, us = p.nb ? [-hw, -hw * 0.5, 0, sh, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : p.kerb ? [-0.25, 0, 0.04, sh, sh + 0.35, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : [-0.25, 0, sh, sh + dw * 0.55, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext];
-      for (let c = 5; c < C - 1; c++) us[c] = clamp(us[c], us[4] + 0.3 * (c - 4), ext - 0.3 * (C - 1 - c));
+      // (a U-gutter, a table drain or a bank has four corners across it - its two tops and its floor's or top's two ends -
+      // where a V ditch has three: it takes one of the slope's breaks)
+      const sh = p.sh, dw = p.dw, four = !p.nb && !p.kerb && p.dd > 0 && (p.dt === 1 || p.dt === 3 || p.dt === 4), fa = p.dt === 1 ? Math.min(0.2, 0.03 / dw) : p.dt === 3 ? 0.3 : 0.22;
+      const us = p.nb ? [-hw, -hw * 0.5, 0, sh, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : p.kerb ? [-0.25, 0, 0.04, sh, sh + 0.35, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : four ? [-0.25, 0, sh, sh + dw * fa, sh + dw * (1 - fa), sh + dw, BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : [-0.25, 0, sh, sh + dw * 0.55, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext];
+      const c0 = four ? 6 : 5; for (let c = c0; c < C - 1; c++) us[c] = clamp(us[c], us[c0 - 1] + 0.3 * (c - c0 + 1), ext - 0.3 * (C - 1 - c));
       for (let c = 1; c < C; c++) us[c] = Math.min(us[c], ext - 0.03 * (C - 1 - c)); for (let c = 1; c < C; c++) us[c] = Math.max(us[c], us[c - 1] + 0.01);
       for (let c = 0; c < C; c++) {
         const L = hw + us[c], x = p.x + lx * sd * L, z = p.z + lz * sd * L; SU[o + c] = L; SX[o + c] = x; SZ[o + c] = z;
@@ -5973,6 +6029,12 @@ function solidsOf(T, col) {
     if (!col.spur && !col.tyres && col.i != null) { const h = T.pts[col.i].h, ux = Math.cos(h), uz = -Math.sin(h); return col._sol = [-0.175, 0.175].map(t => ({ x: col.x + ux * t, z: col.z + uz * t, R: 0.425, top, col })); }
     return col._sol = [{ x: col.x, z: col.z, R: col.r, top, col }]; }
   if (col.kind === 'block') return col._sol = [{ x: col.x, z: col.z, R: col.r, top: groundY(T, col.x, col.z) + col.H, col }];
+  // (a fence's span between two posts - its wire, or its rails - as a row of thin rounds along it, from the ground up to
+  // its top; a steel crowd barrier standing on its feet, a row of rounds along its frame up to its top rail)
+  if (col.kind === 'bay' || col.kind === 'cbar') { if (col.kind === 'cbar' && col.ax == null) { const ux = Math.sin(col.th) * col.hz, uz = Math.cos(col.th) * col.hz; col.ax = col.x - ux; col.az = col.z - uz; col.bx = col.x + ux; col.bz = col.z + uz; col.len = 2 * col.hz; }
+    const n = Math.max(2, Math.ceil(col.len / 0.35)), L = [];
+    for (let k = 0; k <= n; k++) { const t = k / n, x = col.ax + (col.bx - col.ax) * t, z = col.az + (col.bz - col.az) * t; L.push({ x, z, R: col.rr || 0.06, top: groundY(T, x, z) + (col.hgt || 1.1), col }); }
+    return col._sol = L; }
   return col._sol = [{ x: col.x, z: col.z, R: col.r, top: col.top != null ? col.top : Infinity, col }]; // (a tree or post; the end of a wall or board, as high as it is)
 }
 // a solid's top at a horizontal distance d from its centre (-Infinity off it), and how far out it reaches at height y
@@ -6155,7 +6217,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const wp = T.pts[clamp(Math.floor(wi.dist / STEP), 0, T.pts.length - 1)]; // (as the road is drawn: each 2 m its point's)
     const spw = !onR && !ring && T.spurs && T.spurs.length ? spurAt(T, q0x, q0z) : null; // (a junction's side road is road too)
     const jkw = !onR && !ring && !spw && laneHas(T) ? jkAt(T, q0x, q0z, 0.15) : null; // (and a rallycross circuit's joker lane and start lane)
-    wh.surf = onR ? wp.surf : ring ? 'tarmac' : spw ? spw.surf : jkw ? jkw.surf : wp.kerb && al <= wi.w / 2 + wp.sh + 0.2 ? 'tarmac' : T.surface === 'snow' ? (verge && !info.wall ? 'snow' : 'snowbank') : verge && !info.wall ? 'gravel' : 'grass'; // (a village street's pavement)
+    wh.surf = onR ? wp.surf : ring ? 'tarmac' : spw ? spw.surf : jkw ? jkw.surf : wp.kerb && al <= wi.w / 2 + wp.sh + 0.2 ? 'tarmac' : (wp.dt === 1 || wp.dt === 2) && T.surface !== 'snow' && al <= wi.w / 2 + wp.sh + wp.dw + 0.05 ? (wp.dt === 1 ? 'concrete' : 'tarmac') : T.surface === 'snow' ? (verge && !info.wall ? 'snow' : 'snowbank') : verge && !info.wall ? 'gravel' : 'grass'; // (a village street's pavement)
     if (T.iceN) { const it = iceAt(T, q0x, q0z); if (it !== null && ge < it + 0.03) wh.surf = 'ice'; } // on a frozen stream's ice, on the road or off it
     // (how far up a snowbank the wheel has gone over the road's edge: the deeper into the soft snow, the harder it drags)
     wh.bankH = wh.surf === 'snowbank' ? clamp(ge - roadSurfY(T, wi.dist, (wi.lat >= 0 ? 1 : -1) * wi.w / 2, wi.w), 0, 1.5) : 0;
@@ -7141,7 +7203,7 @@ const boxHit = k => BOX_HIT[k] || ['wall', 0.22, 0.45];
 function solidEnds(T, Q) {
   const P = T.pts, N = P.length, CA = T.colAt; if (!CA) return;
   for (const L of CA) if (L) for (let k = L.length - 1; k >= 0; k--) if (L[k].end) L.splice(k, 1);
-  const inOther = (x, z, self, i) => { for (let k = Math.max(0, i - 3); k <= Math.min(N - 1, i + 3); k++) { for (const b of T.boxAt[k] || []) if (b !== self && ptQuad(x, z, b.q, 0.03)) return true; if (k < N - 1) for (let s = 0; s < 2; s++) { const q = Q[k * 2 + s]; if (q && q !== self && ptQuad(x, z, q.q, 0.03)) return true; } } return false; };
+  const inOther = (x, z, self, i) => { for (let k = Math.max(0, i - 3); k <= Math.min(N - 1, i + 3); k++) { for (const b of T.boxAt[k] || []) if (b !== self && !b.soft && ptQuad(x, z, b.q, 0.03)) return true; if (k < N - 1) for (let s = 0; s < 2; s++) { const q = Q[k * 2 + s]; if (q && q !== self && ptQuad(x, z, q.q, 0.03)) return true; } } return false; };
   // (an end is where it stops: nothing goes on a little way past it, out along its length - or, at a house's corner, out
   // from its middle - as the next length of a wall does; two solids drawn one over the other end together)
   // (a thin one also learns which of its ends are open, e0 and e1: only there is it met end on - see slabHit - and not where
@@ -7150,7 +7212,7 @@ function solidEnds(T, Q) {
   const ends = (o, i, kind, post) => { const S = o.sl; if (S) { for (const s of [-1, 1]) { const x = S.mx + S.ux * S.hl * s, z = S.mz + S.uz * S.hl * s; S[s < 0 ? 'e0' : 'e1'] = add(o, i, x, z, Math.max(0.04, S.ht), kind, slabTop(o, x, z), S.ux * s, S.uz * s, post); } }
     else if (post) { const cx = (o.q[0] + o.q[2] + o.q[4] + o.q[6]) / 4, cz = (o.q[1] + o.q[3] + o.q[5] + o.q[7]) / 4; for (let v = 0; v < 8; v += 2) { const dx = o.q[v] - cx, dz = o.q[v + 1] - cz, l = Math.hypot(dx, dz) || 1; add(o, i, o.q[v], o.q[v + 1], 0.05, kind, o.top, dx / l, dz / l, true); } } };
   for (let k = 0; k < N - 1; k++) for (let s = 0; s < 2; s++) { const q = Q[k * 2 + s]; if (q) ends(q, k, BAR_HIT[q.kind], q.kind !== 3); }
-  const seen = new Set(); for (const L of T.boxAt || []) if (L) for (const b of L) if (!seen.has(b)) { seen.add(b); if (b.i != null && b.i >= 0) ends(b, b.i, boxHit(b.kind)[0], true); }
+  const seen = new Set(); for (const L of T.boxAt || []) if (L) for (const b of L) if (!seen.has(b)) { seen.add(b); if (b.i != null && b.i >= 0 && !b.soft) ends(b, b.i, boxHit(b.kind)[0], true); }
 }
 // A thin solid - a wall, a rail, a parapet, a crowd barrier, a board on its legs - in its own frame: its middle, along it
 // (u) and across it (n), half its length (hl) and thickness (ht); null for a thick one (a house, a pier). A thin one is
@@ -7189,7 +7251,7 @@ function barrierAt(T, info, x, z, y, rad, cx, cz) {
     const h = side && q.sl ? slabOnTop(slabHit(q.sl, x, z, rad, cx, cz), slabTop(q, x, z), y - rad) : ptQuad(x, z, q.q, rad); if (h && (!best || h.pen > best.pen)) { const rail = q.kind === 3; best = { pen: h.pen, n: [h.nx, h.ny || 0, h.nz], kind: BAR_HIT[q.kind], e: rail ? 0.3 : 0.22, mu: rail ? 0.3 : 0.45 }; }
   }
   const bx = T.boxAt ? T.boxAt[info.i] : null;
-  if (bx) for (const b of bx) { if (y - rad > b.top || y + rad < b.bot || y - rad > slabTop(b, x, z)) continue; const h = side && b.sl ? slabOnTop(slabHit(b.sl, x, z, rad, cx, cz), slabTop(b, x, z), y - rad) : ptQuad(x, z, b.q, rad); if (h && (!best || h.pen > best.pen)) { const H = boxHit(b.kind); best = { pen: h.pen, n: [h.nx, h.ny || 0, h.nz], kind: H[0], e: H[1], mu: H[2] }; } }
+  if (bx) for (const b of bx) { if (b.soft || y - rad > b.top || y + rad < b.bot || y - rad > slabTop(b, x, z)) continue; const h = side && b.sl ? slabOnTop(slabHit(b.sl, x, z, rad, cx, cz), slabTop(b, x, z), y - rad) : ptQuad(x, z, b.q, rad); if (h && (!best || h.pen > best.pen)) { const H = boxHit(b.kind); best = { pen: h.pen, n: [h.nx, h.ny || 0, h.nz], kind: H[0], e: H[1], mu: H[2] }; } }
   return best;
 }
 // The edge of the stage beside a point of the car's outline (hwc: the car's half width): where the car's side meets it
@@ -7321,6 +7383,31 @@ function bodySolids(c, S, T, M, out) {
     if (s.shp) { for (const o of propFoot(s, f.q, f.x, f.z)) one(s, Object.assign(o, { top, bot, col: s, air })); } else one(s, { x: f.x, z: f.z, R: propReach(s, f.q), top, bot, col: s, air }); }
   return out;
 }
+// A hedge is a thicket, not a wall: its stems bend and break as a car pushes in, and it drags at the car the more of the
+// car is in it and the faster it goes - about half a g on a car wholly inside a thick one (crash tests on a thick rose
+// hedge: a car entering at 10 degrees stopped 16.5 m on inside it, at a mean 0.45 g; at 20 and 90 degrees, at 50 and 30
+// km/h, it went right through with no more than scratches). Its springy face eases a car brushing along it back out,
+// a little. What it takes from the car flattens it (HEDGE_FLAT joules to a length of it): it drags less where a car has
+// been through, and the page bends it down there (hedgeHit, dmg). A vine row on its trellis is denser.
+const HEDGE_A = 3500, HEDGE_B = 230, HEDGE_FLAT = 15e3, HEDGE_PUSH = 2500;
+function hedgeDrag(c, S, T, M, dt) {
+  if (!T.boxAt || !T.softN) return; const N = T.pts.length, i0 = c.hint, E = shellOf(S).edge, V = c.V, Wv = c.Wv, K = carSetup(S), m = K.m, Ib = K.Ib || (K.Ib = [K.Ip, K.Izz, K.Ir]);
+  let seen = null; if (c.hedgeT > 0) c.hedgeT -= dt;
+  for (let k = Math.max(0, i0 - 3); k <= Math.min(N - 1, i0 + 3); k++) { const L = T.boxAt[k]; if (!L) continue;
+    for (const b of L) { if (!b.soft || c.yb > b.top || (seen && seen.has(b))) continue; (seen || (seen = new Set())).add(b);
+      let n = 0, sx = 0, sz = 0;
+      for (const v of E) { const rx = M[0] * v[0] + M[6] * v[2], rz = M[2] * v[0] + M[8] * v[2]; if (inQuad(c.x + rx, c.z + rz, b.q)) { n++; sx += rx; sz += rz; } }
+      if (!n) continue;
+      const f = n / E.length, dens = (b.dens || 1) * (1 - 0.7 * clamp((b.dmg || 0) / HEDGE_FLAT, 0, 1)), rx = sx / n, rz = sz / n, ry = -0.2;
+      const vpx = V[0] + Wv[1] * rz - Wv[2] * ry, vpz = V[2] + Wv[0] * ry - Wv[1] * rx, sp = Math.hypot(vpx, vpz);
+      const F = (HEDGE_A + HEDGE_B * sp) * dens * f;
+      if (sp > 0.05) { const j = Math.min(F * dt, 0.5 * m * sp), nx = -vpx / sp, nz = -vpz / sp; V[0] += j * nx / m; V[2] += j * nz / m;
+        spinOf(M, Ib, ry * nz, rz * nx - rx * nz, -ry * nx, _sv); Wv[0] += j * _sv[0]; Wv[1] += j * _sv[1]; Wv[2] += j * _sv[2];
+        b.dmg = (b.dmg || 0) + j * sp; (T.hedgeHit || (T.hedgeHit = new Set())).add(b); }
+      // (its face springs back a little: out the side the car's middle is on)
+      if (b.sl) { const S2 = b.sl, cd = (c.x - S2.mx) * S2.nx + (c.z - S2.mz) * S2.nz, sg = cd >= 0 ? 1 : -1, j = HEDGE_PUSH * dens * f * dt; V[0] += S2.nx * sg * j / m; V[2] += S2.nz * sg * j / m; }
+      if (!(c.hedgeT > 0) && sp > 1.5) { c.hedgeT = 0.12; c.ev.push('hedge:' + Math.min(14, sp * Math.sqrt(f + 0.1)).toFixed(1) + ':' + (c.x + rx).toFixed(2) + ':' + (c.yb + 0.6).toFixed(2) + ':' + (c.z + rz).toFixed(2)); } } }
+}
 // Every point where the body meets something this step, and the blows: the motion into each stopped where it lands
 // (bouncing a little from a hard blow), and the body scraping along it with friction; each blow dents the body where it
 // lands. Returned for the overlap to be taken out after the move.
@@ -7355,7 +7442,7 @@ function bodyContacts(c, S, T, info, M, D, dt) {
         V[0] += n[0] * dn - tx * ft; V[2] += n[2] * dn - tz * ft; }
       hits.push({ r: [0, 0, 0], n, pen: Math.min(eg.pen, 0.05), kind: 'edge', edge: true }); } }
   // trees, posts, rocks and bales
-  bodySolids(c, S, T, M, hits); bodyCars(c, S, M, hits);
+  bodySolids(c, S, T, M, hits); bodyCars(c, S, M, hits); hedgeDrag(c, S, T, M, dt);
   if (!hits.length) return hits;
   // the blows, resolved together a few times over (so a body landing on two corners at once is stopped by both)
   const inv = (nx, ny, nz, rx, ry, rz) => { const ne = nx * Ex + ny * Ey + nz * Ez, cx = ry * nz - rz * ny, cy = rz * nx - rx * nz, cz = rx * ny - ry * nx; spinOf(M, Ib, cx, cy, cz, _sv);
@@ -7822,7 +7909,19 @@ const PROP_MAT = {
   stone: { e: 0.12, mu: 0.55, gmu: 0.5, rr: 0.5, crush: null, brk: Infinity, snd: 'rock' },
   plastic: { e: 0.3, mu: 0.35, gmu: 0.45, rr: 0.1, crush: [2.5e3, 0.3], brk: Infinity, snd: 'post' },
   steel: { e: 0.15, mu: 0.3, gmu: 0.45, rr: 0.3, crush: [9e3, 0.6], brk: 5e3, snd: 'post', yield: true },
-  wood: { e: 0.15, mu: 0.5, gmu: 0.6, rr: 0.4, crush: null, brk: Infinity, snd: 'pole' }
+  wood: { e: 0.15, mu: 0.5, gmu: 0.6, rr: 0.4, crush: null, brk: Infinity, snd: 'pole' },
+  // a road sign's face: 2 to 3 mm aluminium sheet on its rails, a few kilograms (light: it rings off what it meets)
+  alu: { e: 0.3, mu: 0.35, gmu: 0.75, rr: 0.5, crush: null, brk: Infinity, snd: 'chev' },
+  // a fence's timber post (75 to 125 mm, 0.6 m in the ground): it holds some 12 kN at a bumper's height while the soil
+  // and the wood give a little, then snaps at the ground (snap: its top is thrown on, see propBreak)
+  fpost: { e: 0.12, mu: 0.5, gmu: 0.6, rr: 0.4, crush: [12e3, 0.3], brk: 2.5e3, snd: 'pole', yield: true, snap: true },
+  // the wire of a stock fence between two posts (line wires 3 to 4 mm, a few kN each): it stretches and holds the car
+  // back, then the strands snap or the staples pull out
+  wire: { e: 0.05, mu: 0.6, gmu: 0.6, rr: 0.3, crush: [7e3, 1.2], brk: 6e3, snd: 'post', yield: true },
+  // a post-and-rail fence's two timber rails between two posts: they bend, split and fly
+  rails: { e: 0.1, mu: 0.5, gmu: 0.6, rr: 0.4, crush: [9e3, 0.35], brk: 2.2e3, snd: 'pole', yield: true },
+  // a steel crowd barrier: 2.3 m of galvanised tube 1.1 m high on its feet, 8 to 14 kg, hooked to the next
+  cbar: { e: 0.25, mu: 0.35, gmu: 0.45, rr: 0.3, crush: null, brk: Infinity, snd: 'crowd' }
 };
 // A prop's material, shape (shp: box, its half sizes hx across, hh up, hz along; cyl, a drum stood on end, its radius R
 // and half height hh), weight (m; me as a blow feels it: one set into the ground takes the ground with it) and heading
@@ -7849,13 +7948,15 @@ function stoneKick(T, s, v, w) {
   const L = T.colAt[s.i], k = L ? L.indexOf(s) : -1; if (k >= 0) L.splice(k, 1);
   const g = rockBaseY(T, s); let y;
   // (a prop: its middle, as it lies - one set into the ground comes out with what was below it; a stone as before)
-  if (s.shp) y = s.rq ? g + propLow(s, s.rq) : g + s.hh - (s.bed ? s.bd || 0 : 0);
+  if (s.shp) y = s.rq ? g + propLow(s, s.rq) : g + s.hh - (s.bed ? s.bd || 0 : 0) + (s.lift || 0); // (lift: held up off the ground - a sign's face on its post)
   else { const H = s.bed ? s.H * 1.5 : s.H; y = g - (s.bed ? 0.5 * s.H : 0) + H / 2; s.H = H; }
   s.fly = { x: s.x, y, z: s.z, v: v.slice(), w: w.slice(), q: s.rq ? s.rq.slice() : [0, Math.sin(s.th / 2), 0, Math.cos(s.th / 2)], i: s.i, g, rest: 0, t: 0 };
   s.bed = 0; s.me = s.m; s._sol = null; s.gy = null; s.rq = null;
   (T.stonesLive || (T.stonesLive = [])).push(s);
   const mv = T.stoneMoved || (T.stoneMoved = []); if (!mv.includes(s)) mv.push(s);
   T.stoneVer = (T.stoneVer || 0) + 1;
+  // (a steel crowd barrier drags the ones hooked to it each side, less and less along the line)
+  if (s.link) for (const o of s.link) if (o && o.mob && !o.fly && !o.gone) { const k = 0.4 + 0.15 * Math.random(); if (Math.hypot(v[0], v[2]) * k > 1) stoneKick(T, o, [v[0] * k, Math.max(0.3, v[1] * k), v[2] * k], [w[0] * k, w[1] * k, w[2] * k]); }
 }
 // A tyre meeting a stone that gives (sol: what solidUnder found under it: the stone, its dome o, how far the dome's
 // middle is from the wheel's centre d, and the stone's top as the tyre's round meets it before it gives, t0; yb: the
@@ -7976,6 +8077,13 @@ function propBreak(T, s, c, n) {
   const L = T.stonesLive, j = L ? L.indexOf(s) : -1; if (j >= 0) L.splice(j, 1);
   const mv = T.stoneMoved || (T.stoneMoved = []); if (!mv.includes(s)) mv.push(s);
   if (n && s.mat === 'steel') { const l = Math.hypot(n[0], n[2]) || 1; s.bend = { dx: -n[0] / l, dz: -n[2] / l }; }
+  // (what it held goes too: a sign's face torn off its bent post and thrown on with the car - pushed over slowly, the face
+  // stays on the post and goes down with it - a snapped post's top, a fence's rails; and a snapped post takes the wire or
+  // rails each side of it down with it)
+  if (s.rel) { const v = c ? c.V : [0, 0, 0], sp = Math.hypot(v[0], v[2]), rn = () => Math.random() - 0.5;
+    for (const r of s.rel) { if (!r || r.fly || r.gone || !r.att) continue; if (s.bend && sp < 4) continue;
+      r.att = false; const k = 0.45 + 0.4 * Math.random(); stoneKick(T, r, [v[0] * k + rn() * 2.5, 1.2 + sp * 0.12 + Math.random() * 1.6, v[2] * k + rn() * 2.5], [rn() * 9, rn() * 9, rn() * 9]); } }
+  if (s.bay) for (const b of s.bay) if (b && !b.gone) propBreak(T, b, c, null);
   T.stoneVer = (T.stoneVer || 0) + 1;
   if (c) c.ev.push('burst:' + s.mat + ':' + x.toFixed(2) + ':' + y.toFixed(2) + ':' + z.toFixed(2));
 }
@@ -8032,30 +8140,38 @@ function stoneLand(T, s) {
 }
 // every stone a car has shifted back where the stage began with it (a new run of the stage)
 function resetStones(T) {
-  const L = T.stoneMoved; T.stonesLive = [];
+  const L = T.stoneMoved; T.stonesLive = []; hedgesSet(T, null);
   if (!L || !L.length) return;
   for (const s of L) {
     const A = T.colAt[s.i], k = A ? A.indexOf(s) : -1; if (k >= 0) A.splice(k, 1);
     const h = s.home || s; // (one that stands where it stood - a steel post bent over - has no home but itself)
-    s.x = h.x; s.z = h.z; s.i = h.i; s.lat = h.lat; s.th = h.th; s.H = h.H; s.bed = h.bed; s.me = h.me; s.fly = null; s.rq = null; s.gy = null; s._sol = null; s.gone = false; s.used = 0; s.bend = null;
+    s.x = h.x; s.z = h.z; s.i = h.i; s.lat = h.lat; s.th = h.th; s.H = h.H; s.bed = h.bed; s.me = h.me; s.fly = null; s.rq = null; s.gy = null; s._sol = null; s.gone = false; s.used = 0; s.bend = null; s.lift = h.lift; s.att = h.att;
     (T.colAt[s.i] || (T.colAt[s.i] = [])).push(s);
   }
   T.stoneMoved = []; T.stoneVer = (T.stoneVer || 0) + 1;
+}
+// the hedges as a run left them (a flashback; null: as the stage began), see hedgeDrag
+function hedgesSet(T, list) {
+  if (T.hedgeHit) for (const b of T.hedgeHit) b.dmg = 0; T.hedgeHit = new Set();
+  if (list) for (const [b, d] of list) { b.dmg = d; T.hedgeHit.add(b); }
+  T.hedgeVer = (T.hedgeVer || 0) + 1;
 }
 
 // the stones a run has moved, as they are now; and the stones put back as they were then (a flashback: see Flash):
 // those moved since back where the stage began with them
 function stonesSave(T) {
-  const L = T.stoneMoved; if (!L || !L.length) return null; const live = new Set(T.stonesLive || []);
-  return L.map(s => ({ s, x: s.x, z: s.z, i: s.i, lat: s.lat, th: s.th, H: s.H, bed: s.bed, me: s.me, fly: s.fly ? JSON.parse(JSON.stringify(s.fly)) : null, rq: s.rq ? s.rq.slice() : null, gy: s.gy, live: live.has(s), col: !!(T.colAt[s.i] && T.colAt[s.i].includes(s)), gone: !!s.gone, used: s.used || 0, bend: s.bend ? Object.assign({}, s.bend) : null }));
+  const L = T.stoneMoved || [], hs = T.hedgeHit && T.hedgeHit.size ? [...T.hedgeHit].map(b => [b, b.dmg || 0]) : null; if (!L.length && !hs) return null; const live = new Set(T.stonesLive || []);
+  const out = L.map(s => ({ s, x: s.x, z: s.z, i: s.i, lat: s.lat, th: s.th, H: s.H, bed: s.bed, me: s.me, lift: s.lift, att: s.att, fly: s.fly ? JSON.parse(JSON.stringify(s.fly)) : null, rq: s.rq ? s.rq.slice() : null, gy: s.gy, live: live.has(s), col: !!(T.colAt[s.i] && T.colAt[s.i].includes(s)), gone: !!s.gone, used: s.used || 0, bend: s.bend ? Object.assign({}, s.bend) : null }));
+  out.hedge = hs; return out;
 }
 function stonesLoad(T, saved) {
+  hedgesSet(T, saved && saved.hedge);
   const L = T.stoneMoved || [], by = new Map((saved || []).map(e => [e.s, e]));
   for (const s of L) {
     const A = T.colAt[s.i], k = A ? A.indexOf(s) : -1; if (k >= 0) A.splice(k, 1);
     const e = by.get(s), h = e || s.home || s;
     s.x = h.x; s.z = h.z; s.i = h.i; s.lat = h.lat; s.th = h.th; s.H = h.H; s.bed = h.bed; s.me = h.me; s.fly = e && e.fly ? JSON.parse(JSON.stringify(e.fly)) : null; s.rq = e && e.rq ? e.rq.slice() : null; s.gy = e ? e.gy : null; s._sol = null;
-    s.gone = !!(e && e.gone); s.used = e ? e.used : 0; s.bend = e && e.bend ? Object.assign({}, e.bend) : null;
+    s.gone = !!(e && e.gone); s.used = e ? e.used : 0; s.bend = e && e.bend ? Object.assign({}, e.bend) : null; s.lift = h.lift; s.att = h.att;
     if (!e || e.col) (T.colAt[s.i] || (T.colAt[s.i] = [])).push(s);
   }
   T.stoneMoved = (saved || []).map(e => e.s); T.stonesLive = (saved || []).filter(e => e.live).map(e => e.s); T.stoneVer = (T.stoneVer || 0) + 1;
@@ -9676,7 +9792,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'B067';
+const SR86_BUILD = 'E1FF';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -11713,23 +11829,29 @@ const Props = {
   T: null, ver: -1, K: {}, slot: new Map(), folded: new Set(), bent: new Set(),
   kindOf(s) { return s.kind === 'block' ? 'block' : s.kind === 'bale' ? (s.tyres ? 'tyre' : s.spur ? 'wrap' : 'bale') : s.kind === 'post' && s.mat === 'plastic' ? 'mark' : null; },
   build(G, T, kinds) {
-    this.T = T; this.ver = -1; this.slot = new Map(); this.folded = new Set(); this.bent = new Set(); this.K = {};
+    this.T = T; this.ver = -1; this.slot = new Map(); this.folded = new Set(); this.bent = new Set(); this.K = {}; this.G = G; this.loose = new Map(); this.hedged = new Set(); this.hver = T.hedgeVer || 0;
     const cnt = {}; for (const L of T.colAt) if (L) for (const c of L) { const k = c.mob && this.kindOf(c); if (k) cnt[k] = (cnt[k] || 0) + 1; }
     for (const k of Object.keys(kinds)) { if (!cnt[k]) continue; const [geo, mat, sc] = kinds[k];
       const m = new THREE.InstancedMesh(geo, mat, cnt[k] + 1); if (k === 'block') m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array((cnt[k] + 1) * 3).fill(1), 3);
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.setMatrixAt(0, _sm.makeScale(1e-4, 1e-4, 1e-4)); m.count = 1; m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; G.add(m); this.K[k] = { m, sc }; }
   },
-  show(s, on) { instShow(s, on); if (s.vis) for (const it of s.vis) instShow(it, on); },
-  unbend(s) { const g = s.g; if (g && g.userData.q0) { g.quaternion.copy(g.userData.q0); g.userData.ba = 0; } },
+  show(s, on) { instShow(s, on); if (s.vis) for (const it of s.vis) instShow(it, on); if (s.wire) wireShow(s.wire, on); },
+  // a post bent over at its foot, by angle a: everything drawn of it, and its sign's face while that is still on it
+  bendTo(s, a) { const b = s.bend, F = s.fy != null ? s.fy : rockBaseY(this.T, s); _sv3.set(b.dz, 0, -b.dx).normalize(); _sq.setFromAxisAngle(_sv3, a);
+    _bm1.makeTranslation(s.x, F, s.z).multiply(_bm2.makeRotationFromQuaternion(_sq)).multiply(_bm3.makeTranslation(-s.x, -F, -s.z)); instXform(s, _bm1); if (s.rel) for (const r of s.rel) if (r.att) instXform(r, _bm1); },
+  unbend(s) { const g = s.g; if (g && g.userData.q0) { g.quaternion.copy(g.userData.q0); g.userData.ba = 0; g.updateMatrix(); } if (s._ik) { instXform(s, null); if (s.rel) for (const r of s.rel) if (r.att) instXform(r, null); } s.ba = 0; },
   // the props the physics has moved against those drawn on their own
   sync() {
     const T = this.T; if (!T || T.stoneVer === this.ver) return; this.ver = T.stoneVer;
-    const moved = (T.stoneMoved || []).filter(s => s.shp || s.kind === 'post'), want = new Set(moved);
+    const moved = (T.stoneMoved || []).filter(s => s.shp || s.kind === 'post' || s.kind === 'bay'), want = new Set(moved);
     let again = false; for (const s of this.folded) if (!want.has(s) || (!s.gone && this.slot.get(s) && this.slot.get(s).gone)) { again = true; break; } for (const s of this.bent) if (!want.has(s) || !s.bend) again = true;
+    for (const s of this.loose.keys()) if (!want.has(s) || (!s.fly && !s.rq && !s.gone)) again = true;
+    if (again) { for (const m of this.loose.values()) if (m.parent) m.parent.remove(m); this.loose.clear(); }
     if (again) { for (const s of this.folded) this.show(s, true); for (const s of this.bent) this.unbend(s); this.folded.clear(); this.bent.clear(); this.slot.clear(); for (const K of Object.values(this.K)) K.m.count = 1; }
     for (const s of moved) {
-      if (s.bend && s.g) { if (!this.bent.has(s)) { this.bent.add(s); if (!s.g.userData.q0) s.g.userData.q0 = s.g.quaternion.clone(); } continue; }
+      if (s.bend && (s.g || s._ik)) { if (!this.bent.has(s)) { this.bent.add(s); s.ba = 0; if (s.g && !s.g.userData.q0) s.g.userData.q0 = s.g.quaternion.clone(); } continue; }
       if (!this.folded.has(s)) { this.show(s, false); this.folded.add(s); }
+      if (s.mk) { if (!this.loose.has(s) && !s.gone) { const m = s.mk(); m.matrixAutoUpdate = true; this.G.add(m); this.loose.set(s, m); } continue; } // (drawn on its own as it flies and lies)
       let q = this.slot.get(s); if (!q && !s.gone) { const K = this.K[this.kindOf(s)]; if (!K || K.m.count >= K.m.instanceMatrix.count) continue; const j = K.m.count++; q = { K, j, done: false, gone: false }; this.slot.set(s, q);
         if (s.c && K.m.instanceColor) { K.m.setColorAt(j, s.c); K.m.instanceColor.needsUpdate = true; } }
       if (q) { q.done = false; q.gone = !!s.gone; }
@@ -11743,12 +11865,27 @@ const Props = {
       else { if (f) { _sp.set(f.x, f.y, f.z); _sq.set(f.q[0], f.q[1], f.q[2], f.q[3]); } else { const rq = s.rq || [0, Math.sin(s.th / 2), 0, Math.cos(s.th / 2)]; _sp.set(s.x, rockBaseY(T, s) + propLow(s, rq), s.z); _sq.set(rq[0], rq[1], rq[2], rq[3]); }
         const sc = q.K.sc(s); _sm.compose(_sp, _sq, _ss.set(sc[0], sc[1], sc[2])); }
       q.K.m.setMatrixAt(q.j, _sm); q.K.m.instanceMatrix.needsUpdate = true; q.done = !f; }
-    for (const s of this.bent) { const g = s.g, b = s.bend, u = g && g.userData; if (!u || !b || u.ba >= 1.3) continue; u.ba = Math.min(1.3, (u.ba || 0) + (dt || 1 / 60) * 7);
-      _sv3.set(b.dz, 0, -b.dx).normalize(); _sq.setFromAxisAngle(_sv3, u.ba); g.quaternion.copy(_sq).multiply(u.q0); }
+    for (const s of this.bent) { if (s._ik) { if (!s.bend || s.ba >= 1.3) continue; s.ba = Math.min(1.3, (s.ba || 0) + (dt || 1 / 60) * 7); this.bendTo(s, s.ba); continue; }
+      const g = s.g, b = s.bend, u = g && g.userData; if (!u || !b || u.ba >= 1.3) continue; u.ba = Math.min(1.3, (u.ba || 0) + (dt || 1 / 60) * 7);
+      _sv3.set(b.dz, 0, -b.dx).normalize(); _sq.setFromAxisAngle(_sv3, u.ba); g.quaternion.copy(_sq).multiply(u.q0); g.updateMatrix(); }
+    // (a sign's face, a post's top, a rail, a crowd barrier: where it flies and where it lies)
+    for (const [s, m] of this.loose) { if (s.gone) { m.visible = false; continue; } const f = s.fly; if (!f && m.userData.rest) continue;
+      if (f) { m.position.set(f.x, f.y, f.z); m.quaternion.set(f.q[0], f.q[1], f.q[2], f.q[3]); m.userData.rest = false; }
+      else { const rq = s.rq || [0, Math.sin(s.th / 2), 0, Math.cos(s.th / 2)]; m.position.set(s.x, rockBaseY(T, s) + propLow(s, rq), s.z); m.quaternion.set(rq[0], rq[1], rq[2], rq[3]); m.userData.rest = true; } }
+    // (the hedges, bent down where the cars have been through them; put back with the stage, or a flashback)
+    if ((T.hedgeVer || 0) !== this.hver) { this.hver = T.hedgeVer || 0; for (const b of this.hedged) hedgeFlat(b); }
+    if (T.hedgeHit) for (const b of T.hedgeHit) if (b.vis && Math.abs((b.dmg || 0) - (b.shown || 0)) > 1200) { hedgeFlat(b); this.hedged.add(b); }
   }
 };
+const _bm1 = new THREE.Matrix4(), _bm2 = new THREE.Matrix4(), _bm3 = new THREE.Matrix4();
+// a broken fence span's wire: gone from where it ran (on: put back)
+function wireShow(w, on) { const A = w.geo.attributes.position, Pa = A.array; if (!w.P0) w.P0 = Pa.slice(w.a * 3, (w.a + w.n) * 3);
+  if (on) Pa.set(w.P0, w.a * 3); else for (let q = 0; q < w.n * 3; q += 6) { const o = w.a * 3 + q; for (let e = 0; e < 3; e++) { const m = (w.P0[q + e] + w.P0[q + 3 + e]) / 2; Pa[o + e] = m; Pa[o + 3 + e] = m; } Pa[o + 1] = Pa[o + 4] = Math.min(w.P0[q + 1], w.P0[q + 4]) - 1.0; }
+  A.needsUpdate = true; }
 // A straw bale bursting: its straw thrown up and out with the blow, the dust of it hanging a moment (see propBreak)
 function propBurst(mat, x, y, z, c) {
+  if (mat === 'fpost' || mat === 'rails') { const R = Math.random, C1 = new THREE.Color('#8a7a64'), C2 = new THREE.Color('#c9b48a'), vx = c ? c.V[0] * 0.4 : 0, vz = c ? c.V[2] * 0.4 : 0;
+    for (let k = 0; k < 16; k++) { const a = R() * 6.283, s = 1 + R() * 3; Particles.spawn(x + (R() - 0.5) * 0.3, y + (R() - 0.3) * 0.6, z + (R() - 0.5) * 0.3, vx + Math.cos(a) * s, 1 + R() * 3, vz + Math.sin(a) * s, R() < 0.5 ? C1 : C2, 0.03 + R() * 0.04, 1 + R(), 1, 0.95); } return; }
   if (mat !== 'straw') return; const vx = c ? c.V[0] * 0.5 : 0, vz = c ? c.V[2] * 0.5 : 0, R = Math.random, C1 = new THREE.Color('#d9bf6a'), C2 = new THREE.Color('#bfa24e'), Cd = new THREE.Color('#e3d6a6');
   for (let k = 0; k < 70; k++) { const a = R() * 6.283, s = 1 + R() * 4; Particles.spawn(x + (R() - 0.5) * 1.1, y + (R() - 0.3) * 0.7, z + (R() - 0.5) * 1.1, vx + Math.cos(a) * s, 1.5 + R() * 4, vz + Math.sin(a) * s, R() < 0.5 ? C1 : C2, 0.05 + R() * 0.07, 1 + R() * 1.6, 1, 0.95); }
   for (let k = 0; k < 18; k++) Particles.spawn(x + (R() - 0.5) * 1.4, y + R() * 0.8, z + (R() - 0.5) * 1.4, vx * 0.4 + (R() - 0.5) * 2, 0.4 + R(), vz * 0.4 + (R() - 0.5) * 2, Cd, 0.5 + R() * 0.6, 1.2 + R(), 0, 0.35);
@@ -11765,6 +11902,221 @@ function tapeTex() {
   for (let x = 0; x < 64; x += 16) { g.fillStyle = '#d8262c'; g.fillRect(x, 0, 8, 8); g.fillStyle = '#f7f5ef'; g.fillRect(x + 8, 0, 8, 8); }
   const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.magFilter = THREE.NearestFilter; TEX.tape = t; return t;
 }
+// ---------- road signs ----------
+// The signs along a stage as each country's regulations draw and place them (the stages run on public roads, closed
+// for the rally, with their signs standing). Warning signs: a triangle with a red border - white in most countries,
+// yellow in the far north - or a yellow diamond with a black border (the high desert, the red gum forest, the sierra
+// plateau, the green hills and the cedar mountains), 0.6 to 0.9 m a side, its foot 1 to 1.8 m above the road, some 50 to
+// 150 m before the danger on the traffic's own side of the road (the left where the traffic keeps left). Curve chevrons:
+// single boards in a row along a sharp bend's outside, each turned square to the drivers coming at it and spaced so three
+// or four show at once (5 to 20 m apart by the bend's radius), their foot about 1.1 m above the road's edge, in the
+// country's colours (black on yellow, white on blue, white on red, white on black, red and white) - and at a hairpin a
+// long board of three or four facing the drivers as they come in. On the road's verge, before the ditch; behind a guard
+// rail, on posts just behind it; on a parapet wall, bolted to its top. Each stands on a 60 mm steel tube, or two: struck,
+// the tube bends over at its foot and the face is torn off and thrown on (see propBreak). The style by stage type: L,
+// traffic keeps left; w, the warning signs' shape (tri, triY: yellow, dia); ch, a chevron's ground and arrow; cs, a single
+// chevron's width and height; mb, the long board's width, height and chevrons; wb, cb, the warning signs' and chevrons'
+// foot over the road; lim, a village's speed limit; vb, a village's name board (ground, border, ink); an, the animals
+// warned of
+const SIGN_STYLE = {
+  fast: { L: 0, w: 'triY', ch: ['#f2c414', '#121212'], cs: [0.6, 0.6], mb: [1.2, 0.6, 3], wb: 1.1, cb: 1.1, lim: 50, vb: ['#1f4fa0', '#f7f7f2', '#f7f7f2'], an: 'moose' },
+  twisty: { L: 1, w: 'tri', ch: ['#121212', '#f7f7f2'], cs: [0.6, 0.75], mb: [1.8, 0.6, 4], wb: 1.1, cb: 1.1, lim: 30, vb: ['#f7f7f2', '#121212', '#121212'], an: 'deer' },
+  farm: { L: 0, w: 'tri', ch: ['#c8202a', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.2, 0.4, 3], wb: 1.1, cb: 1.1, lim: 50, an: 'cow' },
+  maquis: { L: 0, w: 'tri', ch: ['#121212', '#f7f7f2'], cs: [0.6, 0.6], mb: [2.4, 0.6, 4], wb: 1.1, cb: 1.1, lim: 50, an: 'cow' },
+  rocky: { L: 0, w: 'tri', ch: ['#f2c414', '#121212'], cs: [0.5, 0.5], mb: [1.5, 0.5, 3], wb: 1.1, cb: 1.1, lim: 50, an: 'cow' },
+  savanna: { L: 1, w: 'tri', ch: ['#121212', '#f7f7f2'], cs: [0.6, 0.75], mb: [1.8, 0.6, 4], wb: 1.4, cb: 1.2, lim: 50, an: 'cow' },
+  desert: { L: 0, w: 'dia', ch: ['#f2c414', '#121212'], cs: [0.6, 0.76], mb: [1.2, 0.6, 3], wb: 1.5, cb: 1.2, lim: 40, vb: ['#1f7a40', '#f7f7f2', '#f7f7f2'], an: 'cow' },
+  redearth: { L: 1, w: 'dia', ch: ['#f2c414', '#121212'], cs: [0.6, 0.75], mb: [1.2, 0.6, 3], wb: 1.5, cb: 1.2, lim: 50, vb: ['#1f7a40', '#f7f7f2', '#f7f7f2'], an: 'roo' },
+  pampas: { L: 0, w: 'dia', ch: ['#f2c414', '#121212'], cs: [0.6, 0.75], mb: [1.2, 0.6, 3], wb: 1.5, cb: 1.2, lim: 40, vb: ['#1f7a40', '#f7f7f2', '#f7f7f2'], an: 'cow' },
+  pastures: { L: 1, w: 'dia', ch: ['#f2c414', '#121212'], cs: [0.5, 0.65], mb: [1.2, 0.6, 4], wb: 1.5, cb: 1.2, lim: 50, vb: ['#1f7a40', '#f7f7f2', '#f7f7f2'], an: 'cow' },
+  volcanic: { L: 0, w: 'tri', ch: ['#c8202a', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.2, 0.4, 3], wb: 1.1, cb: 1.1, lim: 50, an: 'cow' },
+  mountain: { L: 0, w: 'tri', ch: ['#1f4fa0', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.2, 0.4, 3], wb: 1.0, cb: 1.0, lim: 50, an: 'deer' },
+  lanes: { L: 0, w: 'tri', ch: ['#c8202a', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.6, 0.5, 3], wb: 1.1, cb: 1.1, lim: 50, vb: ['#f2c414', '#121212', '#121212'], an: 'deer' },
+  sweep: { L: 0, w: 'tri', ch: ['#1f4fa0', '#f7f7f2'], cs: [0.6, 0.6], mb: [1.6, 0.4, 3], wb: 1.1, cb: 1.1, lim: 50, an: 'deer' },
+  coast: { L: 0, w: 'tri', ch: ['#1f4fa0', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.2, 0.4, 3], wb: 1.0, cb: 1.0, lim: 50, an: 'cow' },
+  cedar: { L: 1, w: 'dia', ch: ['#d4202a', '#f7f7f2'], cs: [0.45, 0.6], mb: [1.2, 0.5, 3], wb: 1.8, cb: 1.1, lim: 40, vb: ['#1f4fa0', '#f7f7f2', '#f7f7f2'], an: 'deer', jp: 1 },
+  hedges: { L: 1, w: 'tri', ch: ['#121212', '#f7f7f2'], cs: [0.6, 0.75], mb: [1.8, 0.6, 4], wb: 1.1, cb: 1.1, lim: 30, vb: ['#f7f7f2', '#121212', '#121212'], an: 'cow' },
+  range: { L: 0, w: 'tri', ch: ['#c8202a', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.6, 0.5, 3], wb: 1.1, cb: 1.1, lim: 50, vb: ['#f2c414', '#121212', '#121212'], an: 'deer' },
+  mixed: { L: 0, w: 'tri', ch: ['#1f4fa0', '#f7f7f2'], cs: [0.6, 0.6], mb: [1.6, 0.4, 3], wb: 1.1, cb: 1.1, lim: 50, an: 'deer' },
+  forest: { L: 0, w: 'triY', ch: ['#f2c414', '#121212'], cs: [0.6, 0.6], mb: [1.2, 0.6, 3], wb: 1.2, cb: 1.2, lim: 50, vb: ['#1f4fa0', '#f7f7f2', '#f7f7f2'], an: 'moose' },
+  alpine: { L: 0, w: 'tri', ch: ['#1f4fa0', '#f7f7f2'], cs: [0.5, 0.5], mb: [1.2, 0.4, 3], wb: 1.2, cb: 1.2, lim: 50, an: 'deer' },
+  arctic: { L: 0, w: 'triY', ch: ['#f2c414', '#121212'], cs: [0.6, 0.6], mb: [1.2, 0.6, 3], wb: 1.3, cb: 1.3, lim: 50, vb: ['#1f4fa0', '#f7f7f2', '#f7f7f2'], an: 'moose' }
+};
+const signStyle = id => Object.assign({ id: SIGN_STYLE[id] ? id : 'mixed' }, SIGN_STYLE[id] || SIGN_STYLE.mixed);
+// the pictures on the warning signs, in black on a 256 square, centred on (cx, cy)
+function signSym(g, k, cx, cy) {
+  g.fillStyle = g.strokeStyle = '#141414'; g.lineWidth = 15; g.lineCap = 'butt'; g.lineJoin = 'miter';
+  const d = k.endsWith('R') ? 1 : k.endsWith('L') ? -1 : 0, head = (x, y, ax, ay) => { const l = Math.hypot(ax, ay) || 1, ux = ax / l, uy = ay / l, px = -uy, py = ux; g.beginPath(); g.moveTo(x + ux * 26, y + uy * 26); g.lineTo(x + px * 19, y + py * 19); g.lineTo(x - px * 19, y - py * 19); g.closePath(); g.fill(); };
+  const t = k.replace(/[LR]$/, '');
+  if (t === 'curve') { g.beginPath(); g.moveTo(cx - 14 * d, cy + 52); g.lineTo(cx - 14 * d, cy + 6); g.quadraticCurveTo(cx - 14 * d, cy - 30, cx + 18 * d, cy - 32); g.stroke(); head(cx + 18 * d, cy - 32, d, -0.05); }
+  else if (t === 'turn') { g.beginPath(); g.moveTo(cx - 18 * d, cy + 52); g.lineTo(cx - 18 * d, cy - 22); g.lineTo(cx + 12 * d, cy - 22); g.stroke(); head(cx + 12 * d, cy - 22, d, 0); }
+  else if (t === 'dcurve') { g.beginPath(); g.moveTo(cx - 12 * d, cy + 56); g.bezierCurveTo(cx - 12 * d, cy + 26, cx + 22 * d, cy + 30, cx + 22 * d, cy + 4); g.bezierCurveTo(cx + 22 * d, cy - 20, cx - 12 * d, cy - 16, cx - 12 * d, cy - 38); g.stroke(); head(cx - 12 * d, cy - 38, 0, -1); }
+  else if (t === 'side') { g.fillRect(cx - 11, cy - 58, 22, 116); g.fillRect(d > 0 ? cx : cx - 48, cy - 16, 48, 14); }
+  else if (t === 'cross') { g.fillRect(cx - 11, cy - 58, 22, 116); g.fillRect(cx - 48, cy - 8, 96, 14); }
+  else if (t === 'narrow') { g.lineWidth = 12; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(cx + s * 34, cy + 56); g.lineTo(cx + s * 34, cy + 14); g.lineTo(cx + s * 14, cy - 16); g.lineTo(cx + s * 14, cy - 56); g.stroke(); } }
+  else if (t === 'bump') { g.lineWidth = 13; g.beginPath(); g.moveTo(cx - 62, cy + 30); g.quadraticCurveTo(cx - 34, cy - 18, cx - 6, cy + 30); g.quadraticCurveTo(cx + 22, cy - 18, cx + 50, cy + 30); g.stroke(); }
+  else { // animals, as solid shapes: an elk, a deer, a kangaroo, a cow
+    const S = (pts, s) => { g.beginPath(); pts.forEach(([x, y], q) => q ? g.lineTo(cx + x * s, cy + y * s) : g.moveTo(cx + x * s, cy + y * s)); g.closePath(); g.fill(); };
+    if (t === 'moose') { S([[-40, -4], [-30, -16], [10, -18], [22, -26], [30, -24], [44, -10], [48, 0], [40, 4], [30, -4], [22, 6], [20, 20], [16, 44], [10, 44], [8, 22], [-24, 22], [-26, 44], [-32, 44], [-34, 20], [-42, 8]], 1);
+      S([[24, -26], [16, -44], [22, -46], [28, -34], [34, -48], [40, -46], [36, -30]], 1); }
+    else if (t === 'deer') { S([[-46, 6], [-28, -10], [10, -12], [24, -24], [30, -40], [36, -38], [34, -24], [44, -20], [42, -12], [30, -12], [24, 0], [40, 22], [36, 26], [16, 8], [-14, 10], [-36, 30], [-42, 26], [-30, 10]], 1);
+      g.lineWidth = 5; g.beginPath(); g.moveTo(30, 0); g.stroke(); g.beginPath(); g.moveTo(cx + 30, cy - 38); g.lineTo(cx + 22, cy - 56); g.moveTo(cx + 26, cy - 48); g.lineTo(cx + 34, cy - 56); g.stroke(); }
+    else if (t === 'roo') { S([[-10, -20], [4, -36], [12, -44], [18, -40], [16, -30], [24, -26], [10, -16], [18, 4], [16, 24], [30, 36], [34, 44], [4, 42], [-6, 26], [-20, 30], [-56, 46], [-58, 42], [-26, 22], [-22, 0]], 1); }
+    else { S([[-46, -14], [26, -16], [34, -26], [44, -22], [50, -8], [46, -2], [36, -2], [30, 8], [28, 34], [22, 34], [20, 12], [-30, 12], [-32, 34], [-38, 34], [-40, 10], [-48, 0]], 1);
+      g.lineWidth = 5; g.beginPath(); g.moveTo(cx + 34, cy - 26); g.lineTo(cx + 28, cy - 34); g.moveTo(cx + 42, cy - 24); g.lineTo(cx + 46, cy - 32); g.stroke(); }
+  }
+}
+// a sign's face as a texture (and its shape, for its back): k the face - chevL, chevR (a single curve chevron), boardL,
+// boardR (the long board), w:<picture> (a warning sign), lim (a speed limit), vname (a village's name board)
+function signFace(k, st) {
+  const key = 'sf:' + st.id + ':' + k; if (TEX[key]) return TEX[key];
+  let c, g; const ch = st.ch;
+  const chevron = (g, x, y, w, h, d, col) => { const t = w * 0.36; g.fillStyle = col; g.beginPath(); if (d > 0) { g.moveTo(x, y); g.lineTo(x + t, y); g.lineTo(x + w, y + h / 2); g.lineTo(x + t, y + h); g.lineTo(x, y + h); g.lineTo(x + w - t, y + h / 2); } else { g.moveTo(x + w, y); g.lineTo(x + w - t, y); g.lineTo(x, y + h / 2); g.lineTo(x + w - t, y + h); g.lineTo(x + w, y + h); g.lineTo(x + t, y + h / 2); } g.closePath(); g.fill(); };
+  if (k === 'chevL' || k === 'chevR') { const W = 128, H = Math.round(128 * st.cs[1] / st.cs[0]); [c, g] = cnv(W, H); g.fillStyle = ch[0]; g.fillRect(0, 0, W, H); chevron(g, W * 0.22, H * 0.14, W * 0.56, H * 0.72, k === 'chevR' ? 1 : -1, ch[1]); }
+  else if (k === 'boardL' || k === 'boardR') { const W = 512, H = Math.round(512 * st.mb[1] / st.mb[0]), n = st.mb[2], cw = W / n; [c, g] = cnv(W, H); g.fillStyle = ch[0]; g.fillRect(0, 0, W, H); for (let q = 0; q < n; q++) chevron(g, q * cw + cw * 0.2, H * 0.12, Math.min(cw * 0.6, H * 0.62), H * 0.76, k === 'boardR' ? 1 : -1, ch[1]); }
+  else if (k === 'lim' || k === 'limx') { [c, g] = cnv(256, 256); g.beginPath(); g.arc(128, 128, 124, 0, 7); g.fillStyle = '#f7f7f2'; g.fill(); if (k === 'limx') { g.strokeStyle = '#141414'; g.lineWidth = 3; g.stroke(); g.save(); g.beginPath(); g.arc(128, 128, 120, 0, 7); g.clip(); g.translate(128, 128); g.rotate(-Math.PI / 4); g.fillStyle = '#141414'; g.fillRect(-140, -9, 280, 18); g.restore(); }
+    else { g.lineWidth = 24; g.strokeStyle = '#d0202a'; g.beginPath(); g.arc(128, 128, 110, 0, 7); g.stroke(); g.fillStyle = st.jp ? '#1f4fa0' : '#141414'; g.font = '700 108px "Saira Condensed", Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(st.lim), 128, 136); } }
+  else if (k === 'vname') { const V = st.vb || ['#f7f7f2', '#d0202a', '#141414']; [c, g] = cnv(256, 128); g.fillStyle = V[0]; g.fillRect(0, 0, 256, 128); g.strokeStyle = V[1]; g.lineWidth = 10; g.strokeRect(8, 8, 240, 112); g.fillStyle = V[2]; for (const [y, w] of [[44, 150], [74, 100]]) g.fillRect(128 - w / 2, y, w, 14); }
+  else { [c, g] = cnv(256, 256); g.clearRect(0, 0, 256, 256); const sym = k.slice(2);
+    if (st.w === 'dia') { g.beginPath(); g.moveTo(128, 4); g.lineTo(252, 128); g.lineTo(128, 252); g.lineTo(4, 128); g.closePath(); g.fillStyle = '#141414'; g.fill(); g.beginPath(); g.moveTo(128, 16); g.lineTo(240, 128); g.lineTo(128, 240); g.lineTo(16, 128); g.closePath(); g.fillStyle = '#f2c414'; g.fill(); signSym(g, sym, 128, 132); }
+    else { const tri = (r, col) => { g.beginPath(); g.moveTo(128, 128 - r); g.lineTo(128 + r * 0.866, 128 + r * 0.5); g.lineTo(128 - r * 0.866, 128 + r * 0.5); g.closePath(); g.fillStyle = col; g.fill(); };
+      g.save(); g.translate(0, 26); g.lineJoin = 'round'; tri(146, '#d0202a'); tri(112, st.w === 'triY' ? '#f2c414' : '#f7f7f2'); g.restore(); signSym(g, sym, 128, 172); } }
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; TEX[key] = t; return t;
+}
+// a sign's bare back: galvanised grey in its shape (rect, tri, dia, disc)
+function signBackFace(shape) {
+  const key = 'sb:' + shape; if (TEX[key]) return TEX[key]; const [c, g] = cnv(128, 128); g.clearRect(0, 0, 128, 128); g.fillStyle = '#8b8e91'; g.beginPath();
+  if (shape === 'disc') g.arc(64, 64, 62, 0, 7); else if (shape === 'dia') { g.moveTo(64, 2); g.lineTo(126, 64); g.lineTo(64, 126); g.lineTo(2, 64); } else if (shape === 'tri') { g.moveTo(64, 64 - 73 + 13); g.lineTo(64 + 63, 64 + 36.5 + 13); g.lineTo(64 - 63, 64 + 36.5 + 13); } else g.rect(0, 0, 128, 128);
+  g.closePath(); g.fill(); return TEX[key] = new THREE.CanvasTexture(c);
+}
+// an instance drawn where it was built (see inst: track) moved by the world matrix M (null: back where it was built)
+const _ixA = new THREE.Matrix4();
+function instXform(it, M) { if (!it || !it._ik) return;
+  for (const r of it._ik) { _ixA.fromArray(r.M0); if (M) _ixA.premultiply(M);
+    if (r.P) { const P = r.P; P.M.set(_ixA.elements, r.g * 16); for (const S of [P.hi, P.lo]) if (S && S.pos[r.g] >= 0) S.dirty.push(S.pos[r.g]); }
+    else { const R = r.R; R.M.set(_ixA.elements, r.j * 16); R.fresh = true; R.nh = 0; R.nl = 0; } } }
+// Where a sign of width w and foot yb over the road's edge stands beside road point i on side sd (1 left): on the verge
+// before the ditch, behind a guard rail, on a parapet's top or behind a wall; turned to face 'at' (else the traffic coming
+// along the road); its face clear of the rail and every corner of its foot over the ground - set nearer the road where a
+// cut rises under it, or a little higher, and given up where neither will do. Not on a bridge, in a splash, at a
+// roundabout, nor in a tree, a rock, a wall or a house.
+function signSpot(T, i, sd, o) {
+  const P = T.pts, N = P.length; i = clamp(Math.round(i), 2, N - 3); const p = P[i];
+  if (!o.force && (p.nb || p.tag === 'bridge' || p.tag === 'ford' || p.tag === 'ring' || p.tag === 'rbt' || p.tag === 'grid')) return null;
+  const lx = Math.cos(p.h) * sd, lz = -Math.sin(p.h) * sd, rail = !!(sd > 0 ? p.rl : p.rr), par = rail && parapetAt(T, i, sd), wall = !!p.wall, B = rail ? barriers(T) : null, wt = par ? B.top[i * 2 + (sd > 0 ? 0 : 1)] : null;
+  let L = rail ? railLat(T, p) + (par ? 0.18 : 0.5) : wall ? p.w / 2 + 0.75 : p.kerb ? p.w / 2 + Math.max(0.35, p.sh * 0.55) : p.w / 2 + clamp(p.sh * 0.9, 0.5, 1.6);
+  L += o.off || 0; const ye = roadSurfY(T, i * STEP, sd * p.w / 2, p.w); let yb = ye + o.yb;
+  if (par) yb = Math.max(yb, wt + 0.3);
+  const need = rail ? railLat(T, p) + (par ? -0.05 : 0.28) : wall ? p.w / 2 + 0.5 : p.w / 2 + 0.25;
+  for (let tries = 0; tries < 8; tries++) {
+    const x = p.x + lx * L, z = p.z + lz * L, th = o.at ? Math.atan2(o.at.x - x, o.at.z - z) : p.h + Math.PI + (o.yaw || 0), ux = Math.cos(th), uz = -Math.sin(th);
+    let low = 1e9, gmax = -1e9;
+    for (const t of [-0.5, -0.25, 0, 0.25, 0.5]) { const cx = x + ux * o.w * t, cz = z + uz * o.w * t; low = Math.min(low, (cx - p.x) * lx + (cz - p.z) * lz); gmax = Math.max(gmax, groundY(T, cx, cz)); }
+    if (low < need) { L += need - low + 0.04; continue; }
+    if (gmax > yb - 0.15 && !par) { if (!rail && !wall && !o.force && L > p.w / 2 + 0.45) { L = Math.max(p.w / 2 + 0.4, L - 0.3); continue; } if (o.force || gmax - (yb - 0.15) < 0.7) yb = gmax + 0.15; else return null; }
+    // (not in a tree, a rock, a post or a solid; a control's board stands whatever is there: force)
+    if (!o.force) for (let k = Math.max(0, i - 4); k <= Math.min(N - 1, i + 4); k++) { for (const c of T.colAt[k] || []) if ((c.kind === 'tree' || c.kind === 'rock' || c.kind === 'pole' || c.kind === 'post' || c.kind === 'bale' || c.kind === 'block') && Math.hypot(c.x - x, c.z - z) < (c.r || 0.2) + Math.max(0.35, o.w * 0.5)) return null;
+      for (const b of T.boxAt[k] || []) if (!b.soft && b.kind !== 'chev' && ptQuad(x, z, b.q, 0.15)) return null; }
+    const fy = par ? Math.max(groundY(T, x, z), wt - 0.05) : groundY(T, x, z);
+    return { i, x, z, fy, yb, th, sd };
+  }
+  return null;
+}
+// The stage's signs, gathered as they are placed and drawn at the end, each kind of face in one instanced set, their
+// backs and posts in others (so each can be bent over or folded away when a car takes it: see Props). Each post is a
+// solid for the cars, holding its sign's face (rel), which is a prop of its own once torn off.
+function signBuilder(T, inst) {
+  const faces = new Map(), backs = new Map(), posts = [], mats = new Map(), all = [], PLANE = new THREE.PlaneGeometry(1, 1);
+  const mat = (key, tex) => mats.get(key) || mats.set(key, new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5 })).get(key);
+  const SB = {
+    st: signStyle(T.look ? T.look.id : 'mixed'), n: 0, list: all,
+    // spot (signSpot), face key (or tex for a given texture), its shape, width, height; two posts (a long board); mass
+    add(spot, face, shape, w, h, o) {
+      o = o || {}; const th = spot.th, fx = Math.sin(th), fz = Math.cos(th), ux = Math.cos(th), uz = -Math.sin(th), yc = spot.yb + h / 2;
+      const tex = o.tex || signFace(face, SB.st), fkey = o.tex ? 'x:' + (o.key || face) : face, fm = mat('f:' + SB.st.id + ':' + fkey, tex), bm = mat('b:' + shape, signBackFace(shape));
+      const pan = { kind: 'panel', mat: 'alu', shp: 'box', hx: w / 2, hh: h / 2, hz: 0.012, m: clamp(w * h * 9, 1.6, 9), th, x: spot.x, z: spot.z, i: spot.i, mob: true, att: true, w, h, yc, fm, bm, face: fkey, yb: spot.yb };
+      pan.me = pan.m; pan.lift = yc - rockBaseY(T, pan) - pan.hh; pan.gy = null; pan.home = { x: pan.x, z: pan.z, i: pan.i, th, bed: 0, me: pan.m, lift: pan.lift, att: true };
+      pan.mk = () => { const g = new THREE.Group(), a = new THREE.Mesh(PLANE, fm), b = new THREE.Mesh(PLANE, bm); a.scale.set(w, h, 1); a.position.z = 0.006; b.scale.set(w, h, 1); b.rotation.y = Math.PI; b.position.z = -0.003; g.add(a, b); return g; };
+      (faces.get(fkey) || faces.set(fkey, { m: fm, L: [] }).get(fkey)).L.push(pan); (backs.get(shape) || backs.set(shape, { m: bm, L: [] }).get(shape)).L.push(pan);
+      const offs = o.two ? [-(w / 2 - 0.15), w / 2 - 0.15] : [0];
+      for (const of of offs) { const px = spot.x + ux * of - fx * 0.04, pz = spot.z + uz * of - fz * 0.04, fy = spot.fy != null && o.two ? Math.max(groundY(T, px, pz), spot.fy - 0.4) : spot.fy != null ? spot.fy : groundY(T, px, pz), top = spot.yb + h - 0.05;
+        const r = T.fieldAt(px, pz), ii = r.np && r.np.i >= 0 ? r.np.i : spot.i, post = { i: ii, x: px, z: pz, r: 0.035, kind: 'post', mat: 'steel', top, fy, len: top - fy + 0.35, rel: [pan] };
+        posts.push(post); (T.colAt[ii] || (T.colAt[ii] = [])).push(post); }
+      all.push(pan); SB.n++; return pan;
+    },
+    // all of them drawn, once every sign is placed
+    flush() {
+      for (const F of faces.values()) inst(PLANE, F.m, F.L, (d, t) => { d.position.set(t.x + Math.sin(t.th) * 0.006, t.yc, t.z + Math.cos(t.th) * 0.006); d.rotation.set(0, t.th, 0); d.scale.set(t.w, t.h, 1); }, null, { track: true });
+      for (const B of backs.values()) inst(PLANE, B.m, B.L, (d, t) => { d.position.set(t.x - Math.sin(t.th) * 0.003, t.yc, t.z - Math.cos(t.th) * 0.003); d.rotation.set(0, t.th + Math.PI, 0); d.scale.set(t.w, t.h, 1); }, null, { track: true });
+      if (posts.length) inst(new THREE.CylinderGeometry(0.03, 0.03, 1, 6).translate(0, 0.5, 0), stdMat(0x8a8d90), posts, (d, t) => { d.position.set(t.x, t.fy - 0.35, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, t.len, 1); }, null, { track: true });
+    }
+  };
+  return SB;
+}
+// The chevrons along each sharp bend the stage marks (T.props: chev): a single board every 5 to 20 m round the outside
+// from the bend's start to its end, each turned to the drivers coming at it from 15 to 40 m back; and at a hairpin, or the
+// sharpest of the others, the long board where the drivers coming in look, square to their way in
+function chevronSigns(T, SB) {
+  const P = T.pts, N = P.length, st = SB.st, cs = st.cs, mb = st.mb;
+  for (const pr of T.props) { if (pr.kind !== 'chev') continue; const sd = pr.side, r = pr.r || 20, i0 = pr.i0 != null ? pr.i0 : pr.i - 4, i1 = pr.i1 != null ? pr.i1 : pr.i + 4, Lb = Math.max(4, (i1 - i0) * STEP);
+    const turn = Math.abs(wrapAngle(P[clamp(i1, 0, N - 1)].h - P[clamp(i0, 0, N - 1)].h)), face = sd > 0 ? 'chevR' : 'chevL'; let board = null;
+    if (r < 16 || turn > 2.3) { // (the long board: where the road ahead has turned a quarter turn from the way in, or at the bend's end)
+      let ib = i1; for (let i = i0; i <= i1; i++) if (Math.abs(wrapAngle(P[i].h - P[i0].h)) >= Math.min(Math.PI / 2, turn * 0.92)) { ib = i; break; }
+      const sp = signSpot(T, ib, sd, { w: mb[0], yb: st.cb - 0.1, off: 0.35, yaw: wrapAngle(P[i0].h - P[ib].h) });
+      if (sp) { board = sp; SB.add(sp, sd > 0 ? 'boardR' : 'boardL', 'rect', mb[0], mb[1], { two: mb[0] > 1.0 }); } }
+    const S = clamp(0.3 * r + 3.5, 6, 20), n = Math.max(3, Math.round(Lb / S) + 1), D = clamp(2 * r, 15, 40);
+    for (let k = 0; k < n; k++) { const s = (i0 + (i1 - i0) * k / (n - 1)) * STEP, i = Math.round(s / STEP), j = clamp(Math.round((s - D) / STEP), 0, N - 1);
+      if (board && Math.hypot(P[i].x - P[board.i].x, P[i].z - P[board.i].z) < 6) continue;
+      const sp = signSpot(T, i, sd, { w: cs[0], yb: st.cb, at: { x: P[j].x, z: P[j].z } }); if (sp) SB.add(sp, face, 'rect', cs[0], cs[1]); } }
+}
+// The warning signs: before each sharp bend standing on its own (a curve, or a sharp turn where the signs are diamonds),
+// before each run of them (a double bend, by its first), before a junction the stage turns at (a side road), before a
+// village's gate (the road narrowing), a jump (an uneven road) and a cattle grid (cattle), and here and there on the open
+// road the animals that cross it; on the traffic's own side, 40 to 120 m before, none within 25 m of another
+function warningSigns(T, SB) {
+  const P = T.pts, N = P.length, st = SB.st, side = st.L ? 1 : -1, W = st.w === 'dia' ? 0.75 : 0.9, shape = st.w === 'dia' ? 'dia' : 'tri', placed = [];
+  const ctl = [T.startIdx, T.finishIdx, T.stopIdx].concat(T.radio || []);
+  const put = (i, face, extra) => { i = Math.round(i); if (i < T.startIdx + 15 || i > T.finishIdx - 10 || ctl.some(c => Math.abs(i - c) < 22) || placed.some(q => Math.abs(q - i) < 13)) return false;
+    for (let t = 0; t < 4; t++) { const j = i + (t % 2 ? -1 : 1) * Math.ceil(t / 2) * 2, sp = signSpot(T, j, side, { w: W, yb: st.wb + (extra || 0) }); if (sp) { SB.add(sp, face, shape, W, W); placed.push(j); return true; } } return false; };
+  // the bends: runs of one hand under 70 m radius
+  const kap = new Float32Array(N); for (let i = 2; i < N - 2; i++) kap[i] = wrapAngle(P[i + 2].h - P[i - 2].h) / (4 * STEP);
+  const bends = []; for (let i = T.startIdx; i < T.finishIdx;) { const k = kap[i]; if (Math.abs(k) < 1 / 70) { i++; continue; } const sg = Math.sign(k); let j = i, rmin = 1e9; while (j < T.finishIdx && Math.sign(kap[j]) === sg && Math.abs(kap[j]) > 1 / 90) { rmin = Math.min(rmin, 1 / Math.abs(kap[j])); j++; }
+    const ang = Math.abs(wrapAngle(P[j].h - P[i].h)); if (rmin < 45 && ang > 0.6 && !P[i].kerb) bends.push({ i, j, s: sg, r: rmin }); i = j + 1; }
+  for (let b = 0; b < bends.length; b++) { const B = bends[b], prev = bends[b - 1]; if (prev && (B.i - prev.j) * STEP < 140) continue; // (one sign for a run)
+    let n = 1; while (bends[b + n] && (bends[b + n].i - bends[b + n - 1].j) * STEP < 140) n++;
+    let straight = 0; for (let i = B.i - 1; i > T.startIdx && Math.abs(kap[i]) < 1 / 200 && straight < 300; i--) straight += STEP;
+    const D = clamp(straight * 0.45, 35, 120), dir = B.s > 0 ? 'L' : 'R', face = n > 1 ? 'w:dcurve' + dir : st.w === 'dia' && B.r < 26 ? 'w:turn' + dir : 'w:curve' + dir;
+    put(B.i - D / STEP, face); }
+  for (const f of T.feats) { if (f.type === 'square') put(f.s0 - 60 / STEP, 'w:side' + (f.s > 0 ? 'L' : 'R'));
+    else if (f.type === 'narrows') put(f.s0 - 50 / STEP, 'w:narrow'); else if (f.type === 'jump' && hash2(f.s0, 3, T.nseed + 601) < 0.5) put(f.s0 - 70 / STEP, 'w:bump'); else if (f.type === 'grid') put(f.s0 - 60 / STEP, 'w:cow'); }
+  if (st.an) for (let s = (T.startIdx + 200) * STEP; s < (T.finishIdx - 100) * STEP; s += 2200 + 2600 * hash2(Math.round(s), 7, T.nseed + 607)) { const i = Math.round(s / STEP); if (Math.abs(kap[i]) < 1 / 300 && P[i].set !== 'village') put(i, 'w:' + st.an); }
+}
+// a stretch of hedge flattened by what the cars have taken from it (dmg, see hedgeDrag): bent down toward its foot
+function hedgeFlat(b) {
+  const v = b.vis; if (!v || !v.C.geo) return; const A = v.C.geo.attributes.position, Pa = A.array; if (!v.orig) v.orig = Pa.slice(v.s, v.e);
+  const f = 1 - 0.78 * clamp((b.dmg || 0) / HEDGE_FLAT, 0, 1); for (let q = 0; q < v.e - v.s; q += 3) Pa[v.s + q + 1] = v.y0 + (v.orig[q + 1] - v.y0) * f;
+  A.needsUpdate = true; b.shown = b.dmg || 0;
+}
+// leaves and twigs thrown up by a car pushing through a hedge
+function hedgeBurst(x, y, z, v, c) {
+  const R = Math.random, C1 = new THREE.Color('#4e6a34'), C2 = new THREE.Color('#6b5a3a'), vx = c ? c.V[0] * 0.4 : 0, vz = c ? c.V[2] * 0.4 : 0, n = 6 + Math.min(18, v * 1.5) | 0;
+  for (let k = 0; k < n; k++) { const a = R() * 6.283, s = 0.5 + R() * 2.5; Particles.spawn(x + (R() - 0.5) * 1.2, y + R() * 0.9, z + (R() - 0.5) * 1.2, vx + Math.cos(a) * s, 0.8 + R() * 2.5, vz + Math.sin(a) * s, R() < 0.7 ? C1 : C2, 0.04 + R() * 0.05, 0.8 + R() * 1.2, 0.6, 0.9); }
+}
+// The spectators' tape: a stretch a car runs through snaps, its stakes knocked flying (drawn as it was again when the
+// stage starts over or a flashback is taken)
+const Tape = {
+  T: null, segs: null, geo: null, P0: null, near: null,
+  set(T, tapes, geo) { this.T = T; this.segs = tapes; this.geo = geo; this.P0 = geo ? geo.attributes.position.array.slice() : null; this.near = new Map();
+    tapes.forEach(([a, b], k) => { const r = T.fieldAt((a.x + b.x) / 2, (a.z + b.z) / 2), i = r.np && r.np.i >= 0 ? r.np.i : -1; if (i < 0) return; const key = i >> 3; (this.near.get(key) || this.near.set(key, []).get(key)).push(k); }); this.cut = new Uint8Array(tapes.length); },
+  reset() { if (!this.geo || !this.cut.some(x => x)) return; this.geo.attributes.position.array.set(this.P0); this.geo.attributes.position.needsUpdate = true; this.cut.fill(0); },
+  step(c) { if (!this.geo || !c || c.hint == null) return; const sp = Math.hypot(c.V ? c.V[0] : 0, c.V ? c.V[2] : 0); if (sp < 1.5) return;
+    for (const key of [(c.hint >> 3) - 1, c.hint >> 3, (c.hint >> 3) + 1]) for (const k of this.near.get(key) || []) { if (this.cut[k]) continue; const [a, b] = this.segs[k], ex = b.x - a.x, ez = b.z - a.z, L2 = ex * ex + ez * ez || 1, t = clamp(((c.x - a.x) * ex + (c.z - a.z) * ez) / L2, 0, 1), d = Math.hypot(c.x - a.x - ex * t, c.z - a.z - ez * t);
+      if (d > 1.7 || Math.abs((c.yb != null ? c.yb : c.y) - a.y) > 2.5) continue; this.cut[k] = 1; const A = this.geo.attributes.position, Pa = A.array, o = k * 30, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 + 0.95, mz = (a.z + b.z) / 2;
+      for (let q = o; q < o + 30; q += 3) { Pa[q] = mx; Pa[q + 1] = my - 0.9; Pa[q + 2] = mz; } A.needsUpdate = true;
+      const R = Math.random, C1 = new THREE.Color('#d8262c'), C2 = new THREE.Color('#f7f5ef'), C3 = new THREE.Color('#d9d4c8');
+      for (let q = 0; q < 10; q++) Particles.spawn(mx + (R() - 0.5), my, mz + (R() - 0.5), c.V[0] * 0.3 + (R() - 0.5) * 3, 1 + R() * 3, c.V[2] * 0.3 + (R() - 0.5) * 3, q < 6 ? (q % 2 ? C1 : C2) : C3, q < 6 ? 0.05 : 0.08, 1 + R(), 0.7, 0.9); } }
+};
+
 function buildStage(T) {
   Duel.drop(); gameState().rxScreen = null; if (stageGroup) { scene.remove(stageGroup); disposeGroup(stageGroup); } /* (a venue's big screen is its stage's own: see bigScreen) */
   for (const P of stagePools) InstPool.dispose(P);
@@ -11958,12 +12310,17 @@ function buildStage(T) {
   {
     const S = T.side, C = S.C, n = N * 2 * C, pos = new Float32Array(n * 3), cols = new Float32Array(n * 3);
     const kerbC = new THREE.Color(E.kerb || '#a3a09a'), paveC = new THREE.Color(E.pave || '#8f8b84'), masC = new THREE.Color(E.masonry), wallZ = new Set(['mountain', 'coast', 'vineyard']);
+    const gutC = new THREE.Color('#a29f97'), paveG = new THREE.Color(E.road || '#5d5c5a').lerp(new THREE.Color('#8a8781'), 0.35), bankStone = E.roadWall > 0 ? 0.6 : 0.25, turfC = new THREE.Color(E.tuft ? E.tuft[0] : '#5b6b3a').multiplyScalar(0.8);
     for (let i = 0; i < N; i++) for (let sd = 0; sd < 2; sd++) {
       const p = P[i], o = (i * 2 + sd) * C;
       for (let c = 0; c < C; c++) {
         const k = o + c, x = S.x[k], y = S.y[k], z = S.z[k]; pos[k * 3] = x; pos[k * 3 + 1] = y; pos[k * 3 + 2] = z;
         if (p.nb) { const st = c > 0 ? Math.abs((y - S.y[k - 1]) / (S.u[k] - S.u[k - 1] || 1)) : 0; landCol(col, x, z, st, y); } // (under a bridge: the gorge's own ground)
         else if (p.kerb && c <= 3) col.copy(c <= 1 ? kerbC : paveC).multiplyScalar(0.94 + 0.12 * hash2(i >> 1, c + sd * 7, 13)); // (a village street's kerb and pavement)
+        // (a concrete U-gutter - its lids where it is covered - a paved gutter, a bank faced with stone or turf)
+        else if (p.dt === 1 && c >= 2 && c <= (p.dd > 0 ? 5 : 4)) col.copy(gutC).multiplyScalar(c === 3 || c === 4 ? 0.62 : 1);
+        else if (p.dt === 2 && c >= 2 && c <= 4 && p.dd > 0) col.copy(p.surf === 'gravel' ? gutC : paveG).multiplyScalar(c === 3 ? 0.85 : 1);
+        else if (p.dt === 4 && p.dd > 0.25 && c >= 2 && c <= 5) { if (c === 3 || c === 4) col.copy(turfC).lerp(dic, 0.25); else if (hash2(Math.floor(i / 25), sd, 29) < bankStone) col.copy(masC).multiplyScalar(0.85 + 0.25 * hash2(i, c + sd * 5, 23)); else col.copy(turfC).multiplyScalar(0.8 + 0.15 * hash2(i, c + sd * 3, 31)); } // (turf, or here and there faced with stone)
         else if (c <= 1) col.copy(shc).multiplyScalar(c === 0 ? 0.88 : 0.96);
         else if (c === 2) col.copy(shc).lerp(dic, 0.2);
         else if (c === 3 && p.dd > 0.05) col.copy(dic);
@@ -12613,7 +12970,7 @@ function buildStage(T) {
     const gr = [], S = T.side, C = S.C, rnd = mulberry32(strHash('grass:' + T.seed)), gc = [new THREE.Color(E.tuft[0]), new THREE.Color(E.tuft[1]), new THREE.Color(E.tuft[2])], gk = Math.min(1.7, E.flora.grass);
     for (let i = 1; i < N - 1; i++) {
       if (P[i].wall || P[i].tag === 'ring' || P[i].tag === 'rbt') continue;
-      for (let sd = 0; sd < 2; sd++) for (const c of P[i].kerb ? [5, 6] : [2, 4, 4, 5, 6]) { // (none on a village's pavements)
+      for (let sd = 0; sd < 2; sd++) for (const c of P[i].kerb ? [5, 6] : P[i].dt === 1 || P[i].dt === 2 ? [5, 6, 6] : [2, 4, 4, 5, 6]) { // (none on a village's pavements, nor in a gutter)
         if (rnd() > 0.55 * gk) continue; const o = (i * 2 + sd) * C + c, o2 = ((i + 1) * 2 + sd) * C + c, t = rnd(), w = (rnd() - 0.5) * 0.8;
         if (S.u[o] - P[i].w / 2 > S.u[(i * 2 + sd) * C + C - 1] - P[i].w / 2 - 0.5) continue;
         const x = lerp(S.x[o], S.x[o2], t) + (S.x[o + 1] - S.x[o]) * w * 0.3, z = lerp(S.z[o], S.z[o2], t) + (S.z[o + 1] - S.z[o]) * w * 0.3;
@@ -12740,11 +13097,9 @@ function buildStage(T) {
     inst(new THREE.BoxGeometry(1.75, 0.1, 0.1), stdMat(E.poleArm || 0x4e3f30), poles, (d, t) => { d.position.set(t.x, t.y + 7.9, t.z); d.rotation.set(0, t.h - Math.PI / 2, 0); d.scale.set(1, 1, 1); });
     if (wire.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(wire, 3)); G.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x2b2b2b }))); }
   }
-  // chevron boards on the outside of the tightest bends, just beyond the ditch
-  const chevMats = { true: new THREE.MeshLambertMaterial({ map: chevTex(true) }), false: new THREE.MeshLambertMaterial({ map: chevTex(false) }) };
-  for (const pr of T.props) if (pr.kind === 'chev') { const p0 = P[pr.i], key = pr.side > 0 ? 'rl' : 'rr', L = p0[key] ? railLat(T, p0) + (parapetAt(T, pr.i, pr.side) ? 0.75 : 0.5) : p0.w / 2 + p0.sh + p0.dw + 1.2, q = posAt(pr.i, pr.side * L), gy = gAt(q.x, q.z), yr = roadSurfY(T, pr.i * STEP, pr.side * p0.w / 2, p0.w), bc = Math.max(gy, yr - 0.15) + 1.15, h = P[pr.i0].h + Math.PI;
-    const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.7, 0.06), [stdMat(0x333333), stdMat(0x333333), stdMat(0x333333), stdMat(0x333333), chevMats[pr.side > 0], stdMat(0x333333)]); b.position.y = bc - gy; const lh = bc - gy + 0.2, l1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, lh + 0.3, 0.08), stdMat(0x444444)); l1.position.set(-1.1, (lh - 0.3) / 2, -0.05); const l2 = l1.clone(); l2.position.x = 1.1; g.add(b, l1, l2); g.position.set(q.x, gy, q.z); g.rotation.y = h; G.add(g);
-    { const ux = Math.cos(h) * 1.3, uz = -Math.sin(h) * 1.3; solidBox(T, segQuad(q.x - ux, q.z - uz, q.x + ux, q.z + uz, 0.12), bc + 0.35, gy - 1, 'chev'); } } // (board and legs, solid for a car as for anyone)
+  // the road signs, each country's where its rules put them (signBuilder): the curve chevrons and the warning signs now,
+  // the villages' and the rally's boards as they come; all drawn once every one is placed (SB.flush, below)
+  const SB = signBuilder(T, inst); chevronSigns(T, SB); if (!T.sss && !T.loop) warningSigns(T, SB);
   // the marshals at the controls (the spectators come later, once everything they must keep clear of stands: see below)
   let grp = 0;
   // (none at a rallycross circuit's controls: it has none)
@@ -12755,7 +13110,8 @@ function buildStage(T) {
     for (const z of T.zones || []) { if (z.set !== 'village' || z.a < 0 || z.a > T.finishIdx) continue; const RV = mulberry32(strHash('vstreet:' + T.seed + ':' + z.a)); let sd = RV() < 0.5 ? 1 : -1;
       for (let i = Math.max(T.startIdx + 8, z.a + 5); i < Math.min(T.finishIdx - 8, z.b - 4); i += 12 + Math.floor(RV() * 6)) { const p = P[i]; if (!p.kerb || p.tag) continue;
         const q = posAt(i, sd * (p.w / 2 + Math.max(p.sh - 0.3, T.sss ? 1.75 : 0))); posts.push({ x: q.x, z: q.z, y: gY(q.x, q.z), h: p.h, sd }); (T.colAt[i] || (T.colAt[i] = [])).push({ i, x: q.x, z: q.z, r: 0.1, kind: 'pole' }); sd = -sd; }
-      for (const [i, fw] of [[z.a + 2, 1], [z.b - 2, -1]]) { if (i < T.startIdx + 8 || i > T.finishIdx - 8) continue; const p = P[i], q = posAt(i, -(p.w / 2 + (p.kerb ? p.sh * 0.6 : 1.4))); boards.push({ x: q.x, z: q.z, y: gY(q.x, q.z), h: p.h + (fw > 0 ? Math.PI : 0) }); }
+      for (const [i, fw] of [[z.a + 2, 1], [z.b - 2, -1]]) { if (i < T.startIdx + 8 || i > T.finishIdx - 8) continue; const sdv = (SB.st.L ? 1 : -1) * fw, sp = signSpot(T, i, sdv, { w: 1.3, yb: 1.25, yaw: fw > 0 ? 0 : Math.PI, force: true });
+        if (sp) SB.add(sp, 'vname', 'rect', 1.3, 0.65, { two: true }); if (fw > 0) { const s2 = signSpot(T, i + 4, sdv, { w: 0.7, yb: SB.st.wb + 0.25 }); if (s2) SB.add(s2, 'lim', 'disc', 0.7, 0.7); } }
       // (where the people stand: the corners of its junctions, either side of its crossing, and here and there along it)
       const spots = []; for (const f of T.feats) if ((f.type === 'square' || f.type === 'roundabout') && f.s0 >= z.a - 4 && f.s0 <= z.b + 4) spots.push(f.s0 - 6, f.s1 + 6);
       for (const m of T.marks || []) if (m.shape === 'zebra' && m.i >= z.a && m.i <= z.b) spots.push(m.i - 4, m.i + 4);
@@ -12763,7 +13119,9 @@ function buildStage(T) {
       for (const i0 of spots) { const sd2 = RV() < 0.5 ? 1 : -1, n = (T.sss ? 5 : 3) + Math.floor(RV() * 6), g = grp++;
         for (let k = 0; k < n; k++) { const i = clamp(i0 + Math.round((RV() - 0.5) * 6), 1, N - 2), p = P[i]; if (!p.kerb || i < T.startIdx + 4 || i > T.stopIdx) continue; const l = T.sss ? p.w / 2 + 1.75 + RV() * Math.max(0.2, p.sh - 1.95) : p.w / 2 + 0.75 + RV() * Math.max(0.2, p.sh - 1.1), q = posAt(i, sd2 * l); // (a town's super special: behind its blocks)
           crowd.push(crowdPerson(T, q.x, q.z, { R: RC, g, face: Math.atan2(p.x - q.x, p.z - q.z), kind: 'village', i })); }
-        if (!T.sss) for (let k = -1; k <= 1; k++) { const i = clamp(i0 + k * 1, 1, N - 2), p = P[i]; if (!p.kerb) continue; const q = posAt(i, sd2 * (p.w / 2 + 0.35)), fx = Math.sin(P[i].h) * 1.2, fz = Math.cos(P[i].h) * 1.2, by = gY(q.x, q.z); bars.push({ x: q.x, z: q.z, y: by, h: P[i].h }); solidBox(T, segQuad(q.x - fx, q.z - fz, q.x + fx, q.z + fz, 0.16), by + 1.05, by - 1, 'rail'); } } } // (steel: solid, for a car as for anyone; a little deeper than its frame, within its feet, so that even a car going straight at it fast meets it within a step)
+        if (!T.sss) { let prev = null; for (let k = -1; k <= 1; k++) { const i = clamp(i0 + k * 1, 1, N - 2), p = P[i]; if (!p.kerb) { prev = null; continue; } const q = posAt(i, sd2 * (p.w / 2 + 0.35)), fx = Math.sin(P[i].h) * 1.2, fz = Math.cos(P[i].h) * 1.2, by = gY(q.x, q.z);
+          const cb = { kind: 'cbar', mat: 'cbar', shp: 'box', hx: 0.03, hh: 0.55, hz: 1.18, hgt: 1.07, rr: 0.07, m: 12, th: P[i].h, x: q.x, z: q.z, y: by, h: P[i].h, i, mob: true, att: true, link: [] }; cb.me = cb.m; cb.home = { x: q.x, z: q.z, i, th: cb.th, bed: 0, me: cb.m, lift: 0, att: true };
+          if (prev) { prev.link.push(cb); cb.link.push(prev); } prev = cb; bars.push(cb); (T.colAt[i] || (T.colAt[i] = [])).push(cb); walkAddSeg(T, q.x - fx, q.z - fz, q.x + fx, q.z + fz, 0.5, 1.07); } } } } // (steel: solid, for a car as for anyone; a little deeper than its frame, within its feet, so that even a car going straight at it fast meets it within a step)
     // lamp posts: a steel pole, its arm out over the road and the lamp (lit after dark: see Atmos)
     inst(new THREE.CylinderGeometry(0.06, 0.09, 1, 6).translate(0, 0.5, 0), stdMat(0x5c6064), posts, (d, t) => { d.position.set(t.x, t.y - 0.2, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, 7.2, 1); });
     inst(new THREE.BoxGeometry(1.5, 0.07, 0.07).translate(-0.75, 0, 0), stdMat(0x5c6064), posts, (d, t) => { d.position.set(t.x, t.y + 6.9, t.z); d.rotation.set(0, t.h + (t.sd > 0 ? Math.PI : 0), 0); d.scale.set(1, 1, 1); });
@@ -12774,27 +13132,15 @@ function buildStage(T) {
     { const L = [], bx = (x, y, z, sx, sy, sz) => L.push(new THREE.BoxGeometry(sx, sy, sz).translate(x, y, z));
       bx(0, 1.07, 0, 0.035, 0.035, 2.36); bx(0, 0.16, 0, 0.03, 0.03, 2.36); for (const e of [-1, 1]) { bx(0, 0.565, e * 1.18, 0.035, 1.07, 0.035); bx(0, 0.02, e * 1.12, 0.62, 0.04, 0.07); }
       for (let k = 1; k < 18; k++) bx(0, 0.615, -1.18 + k * 2.36 / 18, 0.016, 0.9, 0.016);
-      inst(joinGeos(L), stdMat(0xb8bcc0), bars, (d, t) => { d.position.set(t.x, t.y, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); }); }
-    // the name boards
-    const bm = new THREE.MeshLambertMaterial({ map: villageTex() }), pm = stdMat(0x6a6a6a);
-    for (const b of boards) { const g = new THREE.Group(), post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.5, 0.08), pm), bd = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.62, 0.04), [pm, pm, pm, pm, bm, pm]); post.position.y = 0.95; bd.position.y = 1.85; g.add(post, bd); g.position.set(b.x, b.y, b.z); g.rotation.y = b.h; G.add(g);
-      const r = T.fieldAt(b.x, b.z); if (r.np && r.np.i >= 0) (T.colAt[r.np.i] || (T.colAt[r.np.i] = [])).push({ i: r.np.i, x: b.x, z: b.z, r: 0.06, kind: 'post', mat: 'steel', g, top: b.y + 2.5 }); }
+      const bg = joinGeos(L), bmt = stdMat(0xb8bcc0); for (const b of bars) b.mk = () => new THREE.Mesh(bg, bmt);
+      inst(bg, bmt, bars, (d, t) => { d.position.set(t.x, t.y, t.z); d.rotation.set(0, t.h, 0); d.scale.set(1, 1, 1); }, null, { track: true }); }
   }
   if (T.sss) buildArena();
   // timing boards and controls
   // (a board's face toward the cars; its back plain grey sheet, the same shape)
-  const signMats = {}; const signMat = (k, back) => signMats[k + back] || (signMats[k + back] = new THREE.MeshLambertMaterial({ map: back ? signBackTex(k) : signTex(k), transparent: true, alphaTest: 0.5 }));
-  const postMat = stdMat(0x2a2a2a);
-  // (y: the ground at its foot; yr: the height it is set out for, the road's: a board standing on a bank falling away from
-  // the road has a longer post, so it shows over the edge as one on level ground does)
-  const signPost = (x, z, y, h, kind, yr) => { const top = Math.max(y, yr != null ? yr : y) + 1.76, g = new THREE.Group(), post = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1, 0.07), postMat); post.scale.y = top - y + 0.5; post.position.y = (top - y - 0.5) / 2;
-    const disc = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), signMat(kind, '')), back = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), signMat(kind, 'b')); disc.position.set(0, top - y + 0.19, 0.04); back.position.set(0, top - y + 0.19, 0.035); back.rotation.y = Math.PI; disc.castShadow = true;
-    g.add(post, disc, back); g.position.set(x, y, z); g.rotation.y = h; G.add(g); return g; };
-  // (a sign's post is a steel tube: struck hard it bends flat, see Props; struck lightly it stands)
-  const steelPost = (i, x, z, g, y) => (T.colAt[i] || (T.colAt[i] = [])).push({ i, x, z, r: 0.06, kind: 'post', mat: 'steel', g, top: y + 2.3 });
-  // (on the road's shoulder; behind the guard rail or wall where there is one)
-  const board = (i, side, kind) => { i = clamp(i, 0, N - 1); const p = P[i], key = side > 0 ? 'rl' : 'rr', L = p[key] ? railLat(T, p) + (parapetAt(T, i, side) ? 0.7 : 0.45) : p.w / 2 + Math.max(0.5, p.sh * 0.8), q = posAt(i, side * L);
-    const gy = gAt(q.x, q.z); steelPost(i, q.x, q.z, signPost(q.x, q.z, gy, p.h + Math.PI, kind, roadSurfY(T, i * STEP, side * p.w / 2, p.w)), gy); };
+  // timing boards and controls: round, 0.95 m across, their foot 1.47 m over the road; on the shoulder, behind the rail
+  // or wall where there is one (signSpot: forced, a control's board stands whatever is there)
+  const ctlTex = {}, board = (i, side, kind) => { const sp = signSpot(T, clamp(i, 2, N - 3), side, { w: 0.95, yb: 1.47, force: true }); if (sp) SB.add(sp, 'ctl:' + kind, 'disc', 0.95, 0.95, { tex: ctlTex[kind] || (ctlTex[kind] = signTex(kind)), key: 'ctl:' + kind }); };
   // time control in the run-up (warning board, then the control 25 m on), the start line, the flying finish with
   // its warning 100 m before, the stop control 200 m after it and the end of the control zone beyond that
   if (!T.sss) { board(T.startIdx - 33, -1, 'yclock'); board(T.startIdx - 20, -1, 'rclock'); board(T.startIdx, -1, 'rstart'); board(T.startIdx, 1, 'rstart');
@@ -12802,14 +13148,15 @@ function buildStage(T) {
   board(T.stopIdx - 50, -1, 'ystop'); board(T.stopIdx, -1, 'rstop'); board(T.stopIdx, 1, 'rstop'); board(T.stopIdx + 13, -1, 'eend'); } // (an arena's start and finish have their gantries and lights)
   // radio points: a warning board, then the point itself with its marshal
   for (const i of T.radio || []) { board(i - 50, -1, 'yradio'); board(i, -1, 'bradio'); }
-  for (const sp of T.spurs || []) if (sp.sign) { const g = signPost(sp.sign.x, sp.sign.z, sp.sign.y, sp.sign.h + Math.PI, 'rbar'); const r = T.fieldAt(sp.sign.x, sp.sign.z); if (r.np && r.np.i >= 0) steelPost(r.np.i, sp.sign.x, sp.sign.z, g, sp.sign.y); }
+  for (const sp of T.spurs || []) if (sp.sign) { const s0 = sp.sign, r = T.fieldAt(s0.x, s0.z); SB.add({ i: r.np && r.np.i >= 0 ? r.np.i : T.startIdx, x: s0.x, z: s0.z, fy: s0.y, yb: s0.y + 1.47, th: s0.h + Math.PI }, 'ctl:rbar', 'disc', 0.95, 0.95, { tex: ctlTex.rbar || (ctlTex.rbar = signTex('rbar')), key: 'ctl:rbar' }); }
+  SB.flush(); T.signsN = SB.n;
   Props.build(G, T, propK); // (the props a car can move, drawn on their own once it has)
   const tent = (i, side, col) => { const p = P[i]; const q = posAt(i, side * (p.w / 2 + Math.max(9.5, p.sh + p.dw + 6))); const th = gAt(q.x, q.z); const g = new THREE.Group(); for (const [x, z] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]]) { const wx = q.x + Math.cos(p.h) * x + Math.sin(p.h) * z, wz = q.z - Math.sin(p.h) * x + Math.cos(p.h) * z, ly = gAt(wx, wz) - th - 0.1, leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.2 - ly, 0.06), stdMat(0xdddddd)); leg.position.set(x, (2.2 + ly) / 2, z); g.add(leg); } /* (each leg down to the ground under it) */ const roof = new THREE.Mesh(new THREE.ConeGeometry(2.1, 0.9, 4), stdMat(col)); roof.position.y = 2.6; roof.rotation.y = Math.PI / 4; const table = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.7), stdMat(0xe9e6df)); table.position.set(0, 0.8, 0.4); const tl = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.75, 0.6), stdMat(0x5a5a5a)); tl.position.set(0, 0.38, 0.4); const clockBox = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.25), stdMat(0x1a1a1a)); clockBox.position.set(0.4, 1.0, 0.4); g.add(roof, table, tl, clockBox); g.position.set(q.x, th, q.z); g.rotation.y = p.h; { const at = (x, z) => [q.x + Math.cos(p.h) * x + Math.sin(p.h) * z, q.z - Math.sin(p.h) * x + Math.cos(p.h) * z], r = T.fieldAt(q.x, q.z); if (r.np && r.np.i >= 0) { for (const [x, z] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]]) { const [wx, wz] = at(x, z); (T.colAt[r.np.i] || (T.colAt[r.np.i] = [])).push({ i: r.np.i, x: wx, z: wz, r: 0.05, kind: 'post' }); } const [a0x, a0z] = at(-0.9, 0.4), [a1x, a1z] = at(0.9, 0.4); solidBox(T, segQuad(a0x, a0z, a1x, a1z, 0.7), th + 0.84, th - 1, 'table'); } } G.add(g); };
   if (!T.sss) { tent(T.startIdx + 2, -1, 0xc4202f); tent(T.finishIdx + 4, -1, 0xc4202f); tent(T.stopIdx + 3, -1, 0xf2c014); }
   // the country's houses, field bounds and what stands in the fields, its hedges and walls by the road (buildProps); then
   // its trees, shrubs and tall grasses (plantStage), all their parts drawn instanced (flushPlants); the lakes
   const snowy = (x, y, z) => E.snowy ? 1 : snowLand ? snowCover(T, x, y, z) : 0;
-  const PL = plantParts(), pctx = { G, T, E, FP, lakes: LK, A: partAdder(PL), P, N, posAt, gY, poleHash, snowy };
+  const PL = plantParts(), pctx = { G, T, E, FP, lakes: LK, A: partAdder(PL), P, N, posAt, gY, poleHash, snowy, inst, dummy };
   const PR = buildProps(pctx); pctx.keepAt = PR.keepAt; pctx.PL = PL;
   // (and the things the stage is remembered by, on the high ground: landmarks; no tree grows through one, near or far)
   const PS = plantStage(pctx), LMK = T.landmarks = landmarks(pctx); pctx.lmKeep = LMK.keep;
@@ -12824,8 +13171,8 @@ function buildStage(T) {
     const tp = [], tu = [], ti = [];
     for (const [a, b] of tapes) { const L = Math.hypot(b.x - a.x, b.z - a.z), o = tp.length / 3, ya = a.y + 0.95, yb = b.y + 0.95, sag = Math.min(0.12, L * 0.012); const n = 4; for (let q = 0; q <= n; q++) { const t = q / n, x = lerp(a.x, b.x, t), z = lerp(a.z, b.z, t), y = lerp(ya, yb, t) - sag * 4 * t * (1 - t); tp.push(x, y + 0.035, z, x, y - 0.035, z); tu.push(t * L / 0.5, 0, t * L / 0.5, 1); if (q) { const k = o + q * 2; ti.push(k - 2, k - 1, k, k, k - 1, k + 1); } } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(tu, 2)); g.setIndex(ti); g.computeVertexNormals();
-    G.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tapeTex(), side: THREE.DoubleSide })));
-  }
+    G.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: tapeTex(), side: THREE.DoubleSide }))); Tape.set(T, tapes, g);
+  } else Tape.set(T, [], null);
   drawLakes(G, T, LK, T.surface === 'snow');
   T.decor = Object.assign({ parts: nParts, lakes: LK.length, far: FW, landmarks: LMK.built, lmTris: LMK.tris || 0 }, PR.stats, PS);
   // start & finish arches
@@ -23011,7 +23358,9 @@ function drawMap(cv, live) {
 // peak as the tyre digs in), so boards start again
 // version 10: the roads re-laid as real ones are (narrowing and widening, banked and off-camber bends, crowned, as rough
 // as measured roads of their kind, with potholes and washboard), so the same seed is another road and boards start again
-const STAGE_VER = 10, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
+// version 11: the roadsides built as each country builds them (deeper ditches, concrete and paved gutters, table drains,
+// hedge banks), hedges that give and fences and signs that break, so the same seed is another road and boards start again
+const STAGE_VER = 11, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
 // a stage's times are kept under the stage's own key; each time keeps the assists preset it was driven on (lv)
 const runKey = seed => recKey(seed);
 // (a stage laid out in a country other than its seed's own is a stage of its own, with a board of its own)
@@ -23205,7 +23554,7 @@ function startRun() {
   Duel.drop(); SSFlags.reset(); if (G.T.sss) { const dz = G.rally && Rally.cur && Rally.cur.duel; if (dz) Duel.init(G.T, dz.S, dz.t, dz.inc, dz.name);
     else { const cls = rivalCls(G.spec), pool = stockOf(cls).filter(S => S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
       Duel.init(G.T, S, stagePace(G.T, S, G.T.wet || 0).t * (RALLY_PACE[G.T.surface] || 1.35) * 0.95 * rivalCarK(G.T, G.T.wet || 0, G.spec, RALLY_LVL.national), null, 'The other car'); } } // (its car, against a build, tuned toward the build's pace)
-  placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
+  Tape.reset(); placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
   Particles.clear(); CrowdFx.reset(); crowdReset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1; HELP.cs = 0; inp.kThr = 0; inp.kBrk = 0;
@@ -23476,6 +23825,7 @@ function looseUnder(c) { return c.w.some(w => LOOSE_KINDS.has(w.surf)); }
 function processEvents(c) {
   Rec.evs(c); // (for the replay)
   if (G.mesh && G.mesh.crewAnim && c.ev.length) G.mesh.crewAnim.events(c.ev);
+  Tape.step(c);
   for (const e of c.ev) {
     let [n, v] = e.split(':'); const val = parseFloat(v) || 0;
     if (n === 'up' || n === 'down' || n === 'lim') (G.engEv || (G.engEv = [])).push(n);
@@ -23485,6 +23835,7 @@ function processEvents(c) {
     else if (n === 'esys') engineEvent(c, e.split(':'));
     else if (n === 'air') Snd.air(e.split(':'), c);
     else if (n === 'burst') { const p = e.split(':'); propBurst(p[1], +p[2], +p[3], +p[4], c); }
+    else if (n === 'hedge') { const p = e.split(':'); hedgeBurst(+p[2], +p[3], +p[4], val, c); Snd.impact('bale', val * 0.5, G.camMode === 2, false, c); }
     else if (['wall', 'bank', 'hit', 'bale', 'tyre', 'rock', 'post', 'chev', 'island', 'crowd', 'rail', 'tree', 'pole', 'car', 'block'].includes(n)) { if (n === 'block') n = 'wall'; Snd.impact(n, val, G.camMode === 2, looseUnder(c), c); G.shake = Math.min(1, G.shake + val * 0.05); if (n === 'bale') burstDust(10, 1); ScreenFx.impact(n, val, c.surfName, looseUnder(c), G.T.wet || 0); }
   }
   c.ev.length = 0;
@@ -26009,7 +26360,7 @@ class Baker {
   // into meshes, one for each stretch
   build(G, chunks, cast) {
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true, map: this.map }); let tris = 0;
-    for (const c of this.cells.values()) { if (!c.p.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(c.p, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(c.c, 3)); if (this.map) g.setAttribute('uv', new THREE.Float32BufferAttribute(c.t, 2)); g.computeVertexNormals(); g.computeBoundingSphere();
+    for (const c of this.cells.values()) { if (!c.p.length) continue; const g = c.geo = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(c.p, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(c.c, 3)); if (this.map) g.setAttribute('uv', new THREE.Float32BufferAttribute(c.t, 2)); g.computeVertexNormals(); g.computeBoundingSphere();
       const m = new THREE.Mesh(g, mat); m.castShadow = !!cast; m.receiveShadow = true; m.frustumCulled = false; G.add(m); chunks.push({ m, s: g.boundingSphere }); tris += c.p.length / 9; }
     return tris;
   }
@@ -26047,6 +26398,7 @@ function solidBox(T, q, top, bot, kind, t0, t1, walked) {
   for (let k = 0; k <= 4; k++) { const r = T.fieldAt(k < 4 ? q[k * 2] : cx, k < 4 ? q[k * 2 + 1] : cz); if (!r.np || r.np.i == null || r.np.i < 0 || r.nd > r.np.w / 2 + STAGE_EDGE + 3) continue; at.add(r.np.i); if (k === 4 || i0 < 0) i0 = r.np.i; }
   if (!at.size) return false;
   const b = { i: i0, q, top, bot, kind, sl: slabFrom(q), t0: t0 != null ? t0 : top, t1: t1 != null ? t1 : top }, N = T.pts.length; T.boxes.push(b);
+  if (kind === 'hedge' || kind === 'vine') { b.soft = true; b.dens = kind === 'vine' ? 1.3 : 1; T.softN = (T.softN || 0) + 1; } // (a thicket, not a wall: see hedgeDrag)
   const done = new Set(); for (const c of at) for (let k = Math.max(0, c - 5); k <= Math.min(N - 1, c + 5); k++) if (!done.has(k)) { done.add(k); (T.boxAt[k] || (T.boxAt[k] = [])).push(b); }
   T._barQs = null; // (the car's list of what stands near each road point, made again with this in it)
   return true;
@@ -26194,9 +26546,9 @@ function bakeHouse(B, A, styleId, x, y, z, ry, R, snowy, foot) {
 // A dry stone wall: a battered section about a metre high, its top uneven, each length's stones a little lighter or
 // darker. A hedgerow: a lumpy green bank of shrubs, bulging at the sides. Both follow the ground; within a car's reach of
 // the road they are solid (in boxes along them).
-function bakeLine(B, T, path, kind, col, R, solid, hgt) {
+function bakeLine(B, T, path, kind, col, R, solid, hgt, thk) {
   const n = path.length; if (n < 2) return;
-  const hedge = kind === 'hedge' || kind === 'vine', vine = kind === 'vine', H0 = hgt || (vine ? 0.95 : hedge ? 1.8 + 0.7 * R() : 0.95 + 0.35 * R()), T0 = vine ? 0.36 : hedge ? 1.3 + 0.4 * R() : 0.62;
+  const hedge = kind === 'hedge' || kind === 'vine', vine = kind === 'vine', H0 = hgt || (vine ? 0.95 : hedge ? 1.8 + 0.7 * R() : 0.95 + 0.35 * R()), T0r = vine ? 0.36 : hedge ? 1.3 + 0.4 * R() : 0.62, T0 = thk || T0r;
   const sec = path.map((p, k) => { const a = path[Math.max(0, k - 1)], b = path[Math.min(n - 1, k + 1)], dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1;
     const lump = hedge ? 0.82 + 0.36 * vnoise(p.s / 3.1, 1.7, 911) : 0.92 + 0.16 * vnoise(p.s / 1.7, 2.3, 917); return { x: p.x, y: p.y, z: p.z, nx: -dz / L, nz: dx / L, h: H0 * lump, t: T0 * (hedge ? 0.85 + 0.3 * vnoise(p.s / 4.3, 5.1, 919) : 1) }; });
   for (let k = 0; k < n - 1; k++) walkAddSeg(T, sec[k].x, sec[k].z, sec[k + 1].x, sec[k + 1].z, sec[k].t, sec[k].h); // (no one walks through it: see walkMap)
@@ -26205,9 +26557,10 @@ function bakeLine(B, T, path, kind, col, R, solid, hgt) {
   // (the texture's scale: a dry stone wall's courses about 1.3 m to its height; leaves finer)
   const tu = hedge ? 1.4 : 2.6, tv = hedge ? 1.4 : 1.3, around = (q, pa) => { const o = [0]; for (let j = 1; j < pa.length; j++) { const A0 = P(q, pa[j - 1]), B0 = P(q, pa[j]); o.push(o[j - 1] + Math.hypot(B0[0] - A0[0], B0[1] - A0[1], B0[2] - A0[2])); } return o; };
   for (let k = 0; k < n - 1; k++) { const a = sec[k], b = sec[k + 1], pa = prof(a), m = pa.length, c = col.clone().multiplyScalar(0.86 + 0.24 * hash2(Math.round(path[k].s * 3), 3, 77)), oa = around(a, pa), ob = around(b, pa), ua = path[k].s / tu, ub = path[k + 1].s / tu;
-    for (let j = 0; j < m - 1; j++) { const mid = (pa[j][0] + pa[j + 1][0]) / 2, up = (pa[j][1] + pa[j + 1][1]) / 2 > 0.9 ? 1 : 0.3; B.quad(P(a, pa[j]), P(b, pa[j]), P(b, pa[j + 1]), P(a, pa[j + 1]), c, [a.nx * mid * 2, up, a.nz * mid * 2], null, [ua, oa[j] / tv], [ub, ob[j] / tv], [ub, ob[j + 1] / tv], [ua, oa[j + 1] / tv]); }
+    const Cs = B.cell(a.x, a.z), s0 = Cs.p.length;
+    for (let j = 0; j < m - 1; j++) { const mid = (pa[j][0] + pa[j + 1][0]) / 2, up = (pa[j][1] + pa[j + 1][1]) / 2 > 0.9 ? 1 : 0.3; B.quad(P(a, pa[j]), P(b, pa[j]), P(b, pa[j + 1]), P(a, pa[j + 1]), c, [a.nx * mid * 2, up, a.nz * mid * 2], Cs, [ua, oa[j] / tv], [ub, ob[j] / tv], [ub, ob[j + 1] / tv], [ua, oa[j + 1] / tv]); }
     if (solid) { const e = b, dx = e.x - a.x, dz = e.z - a.z, L = Math.hypot(dx, dz) || 1, o = Math.min(0.3, a.t / 2) / L, t0 = a.y + a.h * 0.95, t1 = e.y + e.h * 0.95;
-      solidBox(T, segQuad(a.x - dx * o, a.z - dz * o, e.x + dx * o, e.z + dz * o, (a.t + e.t) / 2), Math.max(t0, t1), Math.min(a.y, e.y) - 1, kind, t0, t1); } }
+      if (solidBox(T, segQuad(a.x - dx * o, a.z - dz * o, e.x + dx * o, e.z + dz * o, (a.t + e.t) / 2), Math.max(t0, t1), Math.min(a.y, e.y) - 1, kind, t0, t1) && hedge) T.boxes[T.boxes.length - 1].vis = { C: Cs, s: s0, e: Cs.p.length, y0: Math.min(a.y, e.y) }; } }
   // the ends
   for (const [q, s] of [[sec[0], -1], [sec[n - 1], 1]]) { const pa = prof(q), fx = q.nz * s, fz = -q.nx * s, uvp = f => [f[0] * q.t / tu, (f[1] < 0 ? f[1] : f[1] * q.h) / tv];
     for (let j = 1; j < pa.length - 1; j++) B.tri(P(q, pa[0]), P(q, pa[j]), P(q, pa[j + 1]), col, [fx, 0, fz], null, uvp(pa[0]), uvp(pa[j]), uvp(pa[j + 1])); }
@@ -26225,11 +26578,26 @@ function buildProps(ctx) {
   const nearFeat = (x, z, d) => feats.some(f => { const q = P[Math.round((f.s0 + f.s1) / 2)], fx = f.cx != null ? f.cx : q.x, fz = f.cz != null ? f.cz : q.z; return Math.hypot(x - fx, z - fz) < (f.hl || 30) + d; });
   const crowds = T.props.filter(p => p.kind === 'crowd'), wires = [], stats = { walls: 0, hedges: 0, fences: 0, houses: 0, animals: 0 };
   const wallC = new THREE.Color(E.masonry), hedgeC = new THREE.Color(E.hedgeC || (E.season === 'lateautumn' ? '#5e6c3a' : E.season === 'winter' ? '#5e6040' : '#4e6a34'));
-  const lineAlong = (pts, kind, col, solid) => { const path = []; let s = 0; for (let k = 0; k < pts.length; k++) { if (k) s += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z); path.push({ x: pts[k].x, z: pts[k].z, y: gY(pts[k].x, pts[k].z), s }); } bakeLine(kind === 'wall' ? BS : BL, T, path, kind, col, R, solid); };
+  const lineAlong = (pts, kind, col, solid, hgt, thk) => { const path = []; let s = 0; for (let k = 0; k < pts.length; k++) { if (k) s += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].z - pts[k - 1].z); path.push({ x: pts[k].x, z: pts[k].z, y: gY(pts[k].x, pts[k].z), s }); } bakeLine(kind === 'wall' ? BS : BL, T, path, kind, col, R, solid, hgt, thk); };
+  // (within a car's reach of the road a fence is drawn on its own (NF) so that it can break: each timber post a solid that
+  // snaps, its top thrown on; each span between two posts its wire - stretching, then snapping - or its two rails, broken
+  // and thrown; a post snapped takes the spans each side down with it)
+  const NF = { posts: [], rails: [], wires: [] };
   // (a fence: within a car's reach of the road its posts solid, and the wire or rails between them, as a wall is)
-  const fence = (pts, rail) => { for (let k = 0; k < pts.length; k++) { const p = pts[k], y = gY(p.x, p.z); A('trunk', p.x, y - 0.3, p.z, 0.06, rail ? 1.5 : 1.55, 0.06, 0, (R() - 0.5) * 0.05, 0, pc(rail ? '#8a7a64' : '#6e6252', R)); p.y = y;
-      const f = T.fieldAt(p.x, p.z); p.near = !!(f.np && !f.np.spur && f.np.i >= 0 && f.nd < f.np.w / 2 + STAGE_EDGE + 2); if (p.near) (T.colAt[f.np.i] || (T.colAt[f.np.i] = [])).push({ i: f.np.i, x: p.x, z: p.z, r: 0.08, kind: 'post' }); }
-    for (let k = 0; k + 1 < pts.length; k++) { const a = pts[k], b = pts[k + 1], hh = rail ? 1.15 : 1.2; walkAddSeg(T, a.x, a.z, b.x, b.z, 0.1, hh); if (a.near || b.near) solidBox(T, segQuad(a.x, a.z, b.x, b.z, 0.1), Math.max(a.y, b.y) + hh, Math.min(a.y, b.y) - 1, 'fence', a.y + hh, b.y + hh, true); if (rail) { for (const hh of [0.55, 1.05]) B.quad([a.x, a.y + hh, a.z], [b.x, b.y + hh, b.z], [b.x, b.y + hh + 0.12, b.z], [a.x, a.y + hh + 0.12, a.z], new THREE.Color('#9a8a72'), null); }
+  const fence = (pts, rail) => { for (let k = 0; k < pts.length; k++) { const p = pts[k], y = gY(p.x, p.z), tl = (R() - 0.5) * 0.05, pcol = pc(rail ? '#8a7a64' : '#6e6252', R); p.y = y;
+      const f = T.fieldAt(p.x, p.z); p.near = !!(f.np && !f.np.spur && f.np.i >= 0 && f.nd < f.np.w / 2 + STAGE_EDGE + 2);
+      if (!p.near) { A('trunk', p.x, y - 0.3, p.z, 0.06, rail ? 1.5 : 1.55, 0.06, 0, tl, 0, pcol); continue; }
+      const post = { i: f.np.i, x: p.x, z: p.z, r: 0.06, kind: 'post', mat: 'fpost', top: y + (rail ? 1.2 : 1.25), fy: y, c: pcol, rail, rel: [], bay: [] }, top = { kind: 'piece', mat: 'wood', shp: 'cyl', R: 0.055, hh: 0.58, m: 6, th: 0, x: p.x, z: p.z, i: f.np.i, mob: true, att: true, lift: 0.08, c: pcol };
+      top.me = top.m; top.home = { x: p.x, z: p.z, i: f.np.i, th: 0, bed: 0, me: top.m, lift: 0.08, att: true }; top.mk = () => new THREE.Mesh(NF.pg || (NF.pg = new THREE.CylinderGeometry(0.055, 0.055, 1.16, 6)), NF.pm || (NF.pm = stdMat(pcol)));
+      post.rel.push(top); p.post = post; NF.posts.push(post); (T.colAt[f.np.i] || (T.colAt[f.np.i] = [])).push(post); }
+    for (let k = 0; k + 1 < pts.length; k++) { const a = pts[k], b = pts[k + 1], hh = rail ? 1.15 : 1.2; walkAddSeg(T, a.x, a.z, b.x, b.z, 0.1, hh);
+      if (a.near || b.near) { const len = Math.hypot(b.x - a.x, b.z - a.z), mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2, f = T.fieldAt(mx, mz), ii = f.np && f.np.i >= 0 ? f.np.i : (a.post || b.post).i;
+        const bay = { kind: 'bay', mat: rail ? 'rails' : 'wire', i: ii, x: mx, z: mz, r: len / 2 + 0.2, ax: a.x, az: a.z, bx: b.x, bz: b.z, len, hgt: hh, rr: 0.05, rel: [] };
+        if (a.post) a.post.bay.push(bay); if (b.post) b.post.bay.push(bay); (T.colAt[ii] || (T.colAt[ii] = [])).push(bay);
+        if (rail) { for (const h2 of [0.55, 1.05]) { const rl = { kind: 'rail', mat: 'wood', shp: 'box', hx: 0.025, hh: 0.06, hz: len / 2, m: Math.max(3, len * 1.7), th: Math.atan2(b.x - a.x, b.z - a.z), x: mx, z: mz, i: ii, mob: true, att: true, yc: (a.y + b.y) / 2 + h2 + 0.06, pit: Math.atan2(b.y - a.y, len), len };
+            rl.me = rl.m; rl.mk = () => new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, rl.len), NF.rm || (NF.rm = stdMat('#9a8a72'))); NF.rails.push(rl); bay.rel.push(rl); } }
+        else { bay.wire = { a: NF.wires.length / 3, n: 6 }; for (const h2 of [0.45, 0.8, 1.15]) NF.wires.push(a.x, a.y + h2, a.z, b.x, b.y + h2, b.z); } continue; }
+      if (rail) { for (const hh of [0.55, 1.05]) B.quad([a.x, a.y + hh, a.z], [b.x, b.y + hh, b.z], [b.x, b.y + hh + 0.12, b.z], [a.x, a.y + hh + 0.12, a.z], new THREE.Color('#9a8a72'), null); }
       else for (const hh of [0.45, 0.8, 1.15]) wires.push(a.x, a.y + hh, a.z, b.x, b.y + hh, b.z); } };
   // (a line kept where it may stand: on farmed land, clear of the road and its verge, of water and of houses)
   const runs = (pts, okFn) => { const out = []; let cur = []; for (const p of pts) { if (okFn(p)) cur.push(p); else { if (cur.length > 1) out.push(cur); cur = []; } } if (cur.length > 1) out.push(cur); return out; };
@@ -26323,14 +26691,15 @@ function buildProps(ctx) {
   const RH = E.roadHedge || 0, RW = E.roadWall || 0;
   if (RH + RW > 0 && !T.sss) for (const sd of [-1, 1]) { // (none along a super special's barriers)
     let run = [], kind = null;
-    const flush = () => { if (run.length > 3 && kind) { lineAlong(run, kind, kind === 'wall' ? wallC : hedgeC, true); kind === 'wall' ? stats.walls++ : stats.hedges++; } run = []; };
+    const flush = () => { if (run.length > 3 && kind) { const bk = run.filter(q => q.bank).length > run.length / 2, hb = 1.15 + 0.35 * hash2(Math.round(run[0].x), Math.round(run[0].z), 531);
+        lineAlong(run, kind, kind === 'wall' ? wallC : hedgeC, true, bk ? (kind === 'wall' ? 0.55 : hb) : undefined, bk ? (kind === 'wall' ? 0.5 : 0.85) : undefined); kind === 'wall' ? stats.walls++ : stats.hedges++; } run = []; };
     for (let i = Math.max(2, T.startIdx - 30); i < Math.min(N - 2, T.stopIdx + 30); i++) {
       const p = P[i], blk = Math.floor(i * STEP / 70), h = hash2(blk, sd > 0 ? 11 : 13, T.nseed + 521), want = h < RH ? 'hedge' : h < RH + RW ? 'wall' : null;
       const skip = !want || p.wall || p.kerb || p.tag === 'ring' || p.tag === 'rbt' || p.tag === 'ford' || p.tag === 'bridge' || p.tag === 'narrows' || p.tag === 'square' || p.tag === 'chicane' || p.tag === 'grid' || (sd > 0 ? p.rl : p.rr)
         || [T.startIdx, T.finishIdx, T.stopIdx].some(c => Math.abs(i - c) < 14) || (T.radio || []).some(c => Math.abs(i - c) < 30) || crowds.some(c => Math.abs(c.i - i) < 16 && c.side === sd)
-        || (T.spurs || []).some(sp => Math.abs(sp.a - i) < 9) || T.props.some(c => c.kind === 'chev' && Math.abs(c.i - i) < 6 && c.side === sd) || fieldGates(T).some(g => g.sd === sd && Math.abs(g.i - i) < 4) || hash2(i >> 2, sd, T.nseed + 523) < 0.035; // (now and then a gateway)
+        || (T.spurs || []).some(sp => Math.abs(sp.a - i) < 9) || T.props.some(c => c.kind === 'chev' && c.side === sd && i >= (c.i0 != null ? c.i0 : c.i - 5) - 4 && i <= (c.i1 != null ? c.i1 : c.i + 5) + 3) || fieldGates(T).some(g => g.sd === sd && Math.abs(g.i - i) < 4) || hash2(i >> 2, sd, T.nseed + 523) < 0.035; // (now and then a gateway)
       if (skip || want !== kind) { flush(); kind = want; if (skip) continue; }
-      const lat = sd * (p.w / 2 + p.sh + p.dw + (want === 'hedge' ? 0.9 : 0.5)), q = posAt(i, lat);
+      const onBank = p.dt === 4 && p.dd > 0.3, lat = sd * (p.w / 2 + p.sh + (onBank ? p.dw / 2 : p.dw + (want === 'hedge' ? 0.9 : 0.5))), q = posAt(i, lat); q.bank = onBank; // (on a hedge bank: on its top)
       let rock = false; for (let k = Math.max(0, i - 3); k <= Math.min(N - 1, i + 3); k++) for (const o of T.colAt[k] || []) if (o.kind === 'rock' && Math.hypot(o.x - q.x, o.z - q.z) < o.r + 1.2) rock = true;
       if (rock || inLake(T, lakes, q.x, q.z)) { flush(); kind = want; continue; }
       run.push(q);
@@ -26373,7 +26742,7 @@ function buildProps(ctx) {
       let bad = false; for (let k = Math.max(1, i - 10); k <= Math.min(N - 2, i + 10); k++) { const pk = P[k]; if (pk.wall || pk.kerb || noTag.has(pk.tag) || (sd > 0 ? pk.rl : pk.rr)) { bad = true; break; } }
       if (bad || Math.abs(wrapAngle(P[Math.min(N - 1, i + 6)].h - P[Math.max(0, i - 6)].h)) > 0.32) return false;
       if ([T.startIdx, T.finishIdx, T.stopIdx].some(c => Math.abs(i - c) < 25) || (T.radio || []).some(c => Math.abs(i - c) < 30) || crowds.some(c => Math.abs(c.i - i) < 25)
-        || (T.spurs || []).some(sp => Math.abs(sp.a - i) < 12) || T.props.some(c => c.kind === 'chev' && Math.abs(c.i - i) < 8) || nearFeat(p.x, p.z, 20)) return false;
+        || (T.spurs || []).some(sp => Math.abs(sp.a - i) < 12) || T.props.some(c => c.kind === 'chev' && i >= (c.i0 != null ? c.i0 : c.i - 7) - 6 && i <= (c.i1 != null ? c.i1 : c.i + 7) + 6) || nearFeat(p.x, p.z, 20)) return false;
       const ax = Math.cos(p.h) * sd, az = -Math.sin(p.h) * sd, fx = Math.sin(p.h), fz = Math.cos(p.h), near = p.w / 2 + p.sh + p.dw + rr(0.4, 1.4), q = posAt(i, sd * (near + Ll / 2));
       const corner = (u, v) => [q.x + ax * u * Ll / 2 + fx * v * Lp / 2, q.z + az * u * Ll / 2 + fz * v * Lp / 2];
       let y0 = 1e9, y1 = -1e9; for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0], [-1, 0], [1, 0]]) { const [x, z] = corner(u, v), y = gY(x, z); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
@@ -26431,6 +26800,13 @@ function buildProps(ctx) {
       for (let k = 0; k < m; k++) { const x = c.x + (R() - 0.5) * 2 * sp, z = c.z + (R() - 0.5) * 2 * sp; if (roadGap(x, z) < STAGE_EDGE + 12 || inLake(T, lakes, x, z) || keepAt(x, z, 1.5)) continue;
         wildAnimal(A, wd.kind, x, gY(x, z), z, hd + (R() - 0.5) * 1.6, R); keep.add(x, z, { x, z, r: wd.kind === 'giraffe' ? 2 : 1.2 }); stats.wild++; } } }
   if (wires.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(wires, 3)); G.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x55524c }))); }
+  // (the fences near the road: their posts, rails and wire drawn so each can go - see Props)
+  if (ctx.inst) { const I = ctx.inst;
+    if (NF.posts.length) I(new THREE.CylinderGeometry(0.06, 0.07, 1, 6).translate(0, 0.5, 0), stdMat(0xffffff), NF.posts, (d, t) => { d.position.set(t.x, t.fy - 0.3, t.z); d.rotation.set(0, 0, 0); d.scale.set(1, t.top - t.fy + 0.3, 1); }, null, { track: true });
+    for (const rl of NF.rails) { rl.lift = rl.yc - rockBaseY(T, rl) - rl.hh; rl.gy = null; rl.home = { x: rl.x, z: rl.z, i: rl.i, th: rl.th, bed: 0, me: rl.m, lift: rl.lift, att: true }; }
+    if (NF.rails.length) { I(new THREE.BoxGeometry(1, 1, 1), stdMat('#9a8a72'), NF.rails, (d, t) => { d.position.set(t.x, t.yc, t.z); d.rotation.set(-t.pit, t.th, 0, 'YXZ'); d.scale.set(0.05, 0.12, t.len); }, null, { track: true }); ctx.dummy.rotation.order = 'XYZ'; }
+    if (NF.wires.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(NF.wires, 3)); G.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x55524c }))); for (const L of T.colAt) if (L) for (const o of L) if (o.kind === 'bay' && o.wire && !o.wire.geo) o.wire.geo = g; }
+    stats.fenceNear = NF.posts.length; }
   stats.tris = B.build(G, stageChunks, true) + BS.build(G, stageChunks, true) + BL.build(G, stageChunks, true);
   return { keep, keepAt, stats };
 }
@@ -32031,7 +32407,7 @@ const Flash = {
     Rec.n = s.rec.n; Rec.ev.length = Math.min(Rec.ev.length, s.rec.ev); Rec.t = s.rt; Rec.last = s.rec.last; Rec.ds = null; Rec.on = true; Rec.mark('reset');
     if (c.dmg && c.dmg.mode !== 'off' && G.mesh && G.mesh.dv) Rec.ev.push([Rec.t, 'd', { dents: c.dmg.dents.map(d => [d.x, d.y, d.z, d.nx, d.ny, d.nz, d.d, d.r, d.s]) }]);
     // the world as it was: the pieces broken off, the stones kicked and the marks laid since, gone
-    Debris.since(s.rt); stonesLoad(T, s.stones); Stones.sync(); for (const v of Stones.slot.values()) v.done = false; Skids.back(s.skid); Particles.clear();
+    Debris.since(s.rt); stonesLoad(T, s.stones); Tape.reset(); Stones.sync(); for (const v of Stones.slot.values()) v.done = false; Skids.back(s.skid); Particles.clear();
     // (the co-driver on from where the car is again; the camera settled behind it)
     Voice.stop(); snapCamera(); Cam.ok = false; head.j.t = -1;
     this.buf = this.buf.filter(b => b.rt <= s.rt + 1e-6); this.lastT = s.rt;
