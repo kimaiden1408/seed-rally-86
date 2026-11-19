@@ -16,8 +16,11 @@ account; each player types a name.
 
 - `index.html`: the game. `index.html.br` and `index.html.gz` are the same page compressed, which the server sends to
   save data.
-- `voice/`: the co-driver's voice in each of the other languages (one MP3 each, about 300 KB), loaded the first time a
-  player picks that language.
+- `voice/`: the co-drivers' voices. `ID-LANG.mp3` is one voice reading one language (62 files, about 370 KB each),
+  fetched when a player chooses that voice under Co-driver in the menu; `LANG.mp3` are the first co-drivers of the
+  other languages, read if a newer file can't be fetched. Each file holds every phrase of the pace notes, its index in
+  the file's own ID3 tag. The voices are made by computer (speech synthesis), with the open models Supertonic 3
+  (Supertone, BigScience OpenRAIL-M licence) and Kokoro-82M (Apache 2.0 licence).
 - `config.js`: the address of the race server, for the page on GitHub Pages.
 - `server.js` and `package.json`: the race server. It needs one library, `ws`.
 - `render.yaml`: settings for Render, so the server sets itself up.

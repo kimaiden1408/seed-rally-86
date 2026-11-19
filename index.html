@@ -71,6 +71,8 @@ html.usc #inspectBar{transform:scale(var(--us));transform-origin:50% 100%}
 .cond select{font:inherit;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);border:2px solid var(--ink);border-radius:4px;padding:6px 6px;min-width:0;width:100%;text-overflow:ellipsis}
 @media (max-width:400px){ .cond select,.rfield select{font-size:13px;padding:6px 4px} }
 #condNote{margin:4px 0 2px;font-size:14px;color:var(--muted);line-height:1.35}
+/* the co-driver: who, and how they are heard */
+#cdBox .cond{margin:6px 0 2px} #cdBox optgroup{font-style:normal;color:var(--muted)} #cdBox option{color:var(--ink)} .cdhear{margin:4px 0 2px} #cdStatus{color:var(--muted)}
 @media (max-width:360px){ .cond{grid-template-columns:1fr} }
 #featList{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;font-size:15px}
 #featList li{display:flex;align-items:baseline;gap:6px}
@@ -999,6 +1001,21 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     <h2 class="asth">Language</h2>
     <div class="assist langs" role="group" aria-label="Language" id="langBtns" translate="no"></div>
     <p class="small">Each language has its own co-driver, who reads the pace notes in the same words as on screen.</p>
+    <div id="cdBox" translate="no">
+    <h2 class="asth" id="cdH">Co-driver</h2>
+    <div class="cond"><label class="wide"><span id="cdWho">Who reads the notes</span><select id="cdVoice" aria-label="Co-driver voice"></select></label></div>
+    <p class="small cdhear"><button id="cdHear" class="linkbtn" type="button">Hear this voice</button> <span id="cdStatus"></span></p>
+    <p class="rsub" id="cdPaceH">Reading pace</p>
+    <div class="assist" role="group" aria-label="Reading pace" id="cdPace"><button id="cdp_m" type="button">Measured</button><button id="cdp_b" type="button">Brisk</button><button id="cdp_r" type="button">Rapid</button></div>
+    <p class="rsub" id="cdIcH">Intercom</p>
+    <div class="assist" role="group" aria-label="Intercom" id="cdIc"><button id="cdi_clean" type="button">Clean</button><button id="cdi_helmet" type="button">Helmet</button><button id="cdi_radio" type="button">Old radio</button></div>
+    <p class="rsub" id="cdFeelH">The car in the voice</p>
+    <div class="assist" role="group" aria-label="The car in the voice" id="cdFeel"><button id="cdf_0" type="button">Still</button><button id="cdf_1" type="button">Some</button><button id="cdf_2" type="button">Full</button></div>
+    <p class="rsub" id="cdVolH">Voice volume</p>
+    <div class="assist" role="group" aria-label="Voice volume" id="cdVol"><button id="cdv_q" type="button">Quiet</button><button id="cdv_n" type="button">Normal</button><button id="cdv_l" type="button">Loud</button></div>
+    <p id="cdNote" class="small"></p>
+    <p id="cdMade" class="small">These voices are made by computer (speech synthesis), with the open models Supertonic 3 and Kokoro-82M.</p>
+    </div>
     <button id="go" class="go" type="button">Start stage</button>
     <p class="keys" id="keysHelp"></p>
     <p class="keys"><button id="coachBtn" class="ghostbtn" type="button">First-drive tips: show them on the next stage</button></p>
@@ -9674,6 +9691,14 @@ I18N_MORE.zh.push(...["正在生成赛段…","正在生成第一个赛段…","
 I18N_MORE.es.push(...["Creando el tramo…","Creando el primer tramo…","Tu primer tramo: uno corto, sobre tierra seca y a mediodía. Sortea otro tramo cuando quieras.","Consejos de primera conducción: mostrarlos en el próximo tramo","Consejos de primera conducción: activados para el próximo tramo","Ese fue tu primer tramo: corto, seco y de día. Sortea otro tramo para uno completo de 6 a 11 km, con cualquier tiempo, en cualquiera de 22 países.","Los daños están en Visuales y tu coche es el {0}: puedes cambiar ambos en el menú.","Mantén {0} para acelerar cuando se apaguen las luces.","Mantén Gas, abajo a la derecha, para acelerar cuando se apaguen las luces.","Pisa el acelerador cuando se apaguen las luces.","{0} y {1} giran, {2} frena. Frena en línea recta antes de la curva y luego gira.","Las flechas giran, Freno reduce la velocidad. Frena en línea recta antes de la curva y luego gira.","Frena en línea recta antes de la curva y luego gira.","Las tarjetas de arriba son las notas. La flecha es la próxima curva, el número lo rápida que es, de 1 (la más lenta) a 6 (casi a fondo), y los metros van descontando hasta ella.","La línea sobre el camino marca la trazada: verde para acelerar, ámbar para levantar el pie, rojo para frenar.","¿Atascado o fuera del camino? {0} devuelve el coche a él, con 5 segundos añadidos a tu tiempo.","¿Atascado o fuera del camino? El botón de recolocar, arriba a la derecha, devuelve el coche a él, con 5 segundos añadidos a tu tiempo.","¿Atascado o fuera del camino? Tu botón de recolocar devuelve el coche a él, con 5 segundos añadidos a tu tiempo.","Un error se puede deshacer: {0} retrocede unos segundos. Tienes {1} flashbacks por tramo.","Un error se puede deshacer: el botón de flashback, arriba a la derecha, retrocede unos segundos. Tienes {0} flashbacks por tramo.","Un error se puede deshacer: tu botón de flashback retrocede unos segundos. Tienes {0} flashbacks por tramo.","{0} cambia la vista. {1} recorre las ayudas a la conducción, de Casual hasta ninguna.","El botón de cámara cambia la vista. El botón de ayudas recorre las ayudas a la conducción, de Casual hasta ninguna.","Controles, en el menú, muestra qué hace cada botón y permite cambiarlo.","Tramo de la semana","Este es el tramo de la semana: queda 1 día","Este es el tramo de la semana: quedan {0} días","Tramo de la semana: tu tiempo está en su tabla. El lunes llega un tramo nuevo."]);
 I18N_MORE.fr.push(...["Création de la spéciale…","Création de la première spéciale…","Votre première spéciale : courte, sur terre sèche, à midi. Tirez une nouvelle spéciale quand vous voulez.","Conseils de première conduite : les revoir à la prochaine spéciale","Conseils de première conduite : activés pour la prochaine spéciale","C’était votre première spéciale : courte, sèche et de jour. Tirez une nouvelle spéciale pour une complète de 6 à 11 km, par tous les temps, dans l’un des 22 pays.","Les dégâts sont réglés sur Visuels et votre voiture est la {0} : changez l’un ou l’autre dans le menu.","Maintenez {0} pour accélérer à l’extinction des feux.","Maintenez Gaz, en bas à droite, pour accélérer à l’extinction des feux.","Écrasez l’accélérateur à l’extinction des feux.","{0} et {1} dirigent, {2} freine. Ralentissez en ligne droite avant le virage, puis tournez.","Les flèches dirigent, Frein ralentit la voiture. Ralentissez en ligne droite avant le virage, puis tournez.","Ralentissez en ligne droite avant le virage, puis tournez.","Les cartes en haut sont les notes. La flèche indique le prochain virage, le chiffre sa vitesse, de 1 (le plus lent) à 6 (presque à fond), et les mètres décomptent jusqu’à lui.","La ligne sur la route montre la trajectoire : vert pour accélérer, orange pour lever le pied, rouge pour freiner.","Bloqué, ou sorti de la route ? {0} y replace la voiture, pour 5 secondes ajoutées à votre temps.","Bloqué, ou sorti de la route ? Le bouton Replacer, en haut à droite, y replace la voiture, pour 5 secondes ajoutées à votre temps.","Bloqué, ou sorti de la route ? Votre bouton Replacer y replace la voiture, pour 5 secondes ajoutées à votre temps.","Une erreur peut s’effacer : {0} revient quelques secondes en arrière. Vous avez {1} flashbacks par spéciale.","Une erreur peut s’effacer : le bouton Flashback, en haut à droite, revient quelques secondes en arrière. Vous avez {0} flashbacks par spéciale.","Une erreur peut s’effacer : votre bouton Flashback revient quelques secondes en arrière. Vous avez {0} flashbacks par spéciale.","{0} change la vue. {1} fait défiler les aides à la conduite, de Détente jusqu’à aucune.","Le bouton Caméra change la vue. Le bouton Aides fait défiler les aides à la conduite, de Détente jusqu’à aucune.","Commandes, dans le menu, montre le rôle de chaque bouton et permet de le changer.","Spéciale de la semaine","C’est la spéciale de la semaine : encore 1 jour","C’est la spéciale de la semaine : encore {0} jours","Spéciale de la semaine : votre temps est à son classement. Une nouvelle spéciale arrive lundi."]);
 I18N_MORE.de.push(...["Prüfung wird gebaut…","Die erste Prüfung wird gebaut…","Deine erste Prüfung: eine kurze auf trockenem Schotter am Mittag. Würfle jederzeit eine neue Prüfung.","Tipps zur ersten Fahrt: auf der nächsten Prüfung wieder zeigen","Tipps zur ersten Fahrt: für die nächste Prüfung eingeschaltet","Das war deine erste Prüfung: kurz, trocken und bei Tageslicht. Würfle eine neue Prüfung für eine volle von 6 bis 11 km, bei jedem Wetter, in einem von 22 Ländern.","Der Schaden steht auf Optisch und dein Auto ist der {0}: beides lässt sich im Menü ändern.","Halte {0} gedrückt, um zu beschleunigen, sobald die Lichter ausgehen.","Halte Gas unten rechts gedrückt, um zu beschleunigen, sobald die Lichter ausgehen.","Tritt aufs Gas, sobald die Lichter ausgehen.","{0} und {1} lenken, {2} bremst. Bremse auf der Geraden vor der Kurve und lenke dann ein.","Die Pfeile lenken, Bremse verzögert das Auto. Bremse auf der Geraden vor der Kurve und lenke dann ein.","Bremse auf der Geraden vor der Kurve und lenke dann ein.","Die Karten oben sind der Aufschrieb. Der Pfeil zeigt die nächste Kurve, die Zahl, wie schnell sie ist, von 1 (am langsamsten) bis 6 (fast voll), und die Meter zählen bis dorthin herunter.","Die Linie auf der Straße zeigt den Weg: Grün heißt beschleunigen, Orange vom Gas gehen, Rot bremsen.","Festgefahren oder von der Straße ab? {0} setzt das Auto zurück auf die Straße, dafür kommen 5 Sekunden auf deine Zeit.","Festgefahren oder von der Straße ab? Die Reset-Taste oben rechts setzt das Auto zurück auf die Straße, dafür kommen 5 Sekunden auf deine Zeit.","Festgefahren oder von der Straße ab? Deine Reset-Taste setzt das Auto zurück auf die Straße, dafür kommen 5 Sekunden auf deine Zeit.","Ein Fehler lässt sich zurücknehmen: {0} spult ein paar Sekunden zurück. Du hast {1} Rückblenden pro Prüfung.","Ein Fehler lässt sich zurücknehmen: Die Rückblende-Taste oben rechts spult ein paar Sekunden zurück. Du hast {0} Rückblenden pro Prüfung.","Ein Fehler lässt sich zurücknehmen: Deine Rückblende-Taste spult ein paar Sekunden zurück. Du hast {0} Rückblenden pro Prüfung.","{0} wechselt die Ansicht. {1} schaltet die Fahrhilfen durch, von Locker bis ganz aus.","Die Kamera-Taste wechselt die Ansicht. Die Hilfe-Taste schaltet die Fahrhilfen durch, von Locker bis ganz aus.","Steuerung im Menü zeigt, was jede Taste tut, und lässt sie ändern.","Prüfung der Woche","Das ist die Prüfung der Woche: noch 1 Tag","Das ist die Prüfung der Woche: noch {0} Tage","Prüfung der Woche: Deine Zeit steht in ihrer Tabelle. Am Montag kommt eine neue Prüfung."]);
+// (the co-driver's settings: who reads the notes, and how they are heard)
+I18N_MORE.k.push(...["cd|Co-driver", "cd|Who reads the notes", "cd|Co-driver voice", "cd|Hear this voice", "cd|Reading pace", "cd|Measured", "cd|Brisk", "cd|Rapid", "cd|Intercom", "cd|Clean", "cd|Helmet", "cd|Old radio", "cd|The car in the voice", "cd|Still", "cd|Some", "cd|Full", "cd|Voice volume", "cd|Quiet", "cd|Normal", "cd|Loud", "cd|Women", "cd|Men", "cd|Steady and dry", "cd|Clear and brisk", "cd|Low and easy", "cd|Warm and bright", "cd|Bright and quick", "cd|Low and firm", "cd|Quick and dry", "cd|Warm and even", "cd|Deep and calm", "cd|Clear and even", "cd|High and lively", "cd|Crisp and quick", "cd|Low and husky", "cd|British", "cd|American", "cd|(default)", "cd|Measured: the notes read a little slower than a co-driver usually reads them.", "cd|Brisk: as quick as a co-driver reads.", "cd|Rapid: quicker still, for fast stages.", "cd|Clean: the voice as it is.", "cd|Helmet intercom: thin, close and pushed a little hard, the cabin behind it.", "cd|Old radio: narrow and gritty, with a hiss.", "cd|The car leaves the voice alone.", "cd|The car shakes the voice a little.", "cd|The car is in the voice: the road shakes it, landings knock it, hard corners strain it, and it is raised over a loud cabin.", "cd|Fetching the voice...", "cd|This voice could not be fetched: the stage will be read by another.", "cd|These voices are made by computer (speech synthesis), with the open models Supertonic 3 and Kokoro-82M."]);
+I18N_MORE.ko.push(...["코드라이버", "페이스노트를 읽어 줄 사람", "코드라이버 목소리", "이 목소리 들어 보기", "읽는 속도", "차분하게", "빠르게", "아주 빠르게", "인터컴", "깨끗하게", "헬멧", "낡은 무전기", "목소리에 실리는 차의 움직임", "없음", "약간", "전부", "목소리 크기", "작게", "보통", "크게", "여성", "남성", "차분하고 담백한", "또렷하고 시원시원한", "낮고 느긋한", "따뜻하고 밝은", "밝고 빠른", "낮고 단호한", "빠르고 담백한", "따뜻하고 고른", "깊고 침착한", "또렷하고 고른", "높고 생기 있는", "또박또박 빠른", "낮고 허스키한", "영국식", "미국식", "(기본)", "차분하게: 실제 코드라이버보다 조금 느리게 읽습니다.", "빠르게: 실제 코드라이버만큼 빠르게 읽습니다.", "아주 빠르게: 그보다도 빠르게, 빠른 스테이지에 알맞습니다.", "깨끗하게: 목소리를 있는 그대로 들려줍니다.", "헬멧 인터컴: 가늘고 가깝게, 살짝 갈라지게, 뒤로 실내 소음이 깔립니다.", "낡은 무전기: 좁고 거칠며 쉬익 하는 잡음이 섞입니다.", "차의 움직임이 목소리에 실리지 않습니다.", "차의 움직임이 목소리를 살짝 흔듭니다.", "목소리에 차가 실립니다: 노면에 흔들리고, 착지에 숨이 막히고, 급한 코너에서 힘이 들어가며, 시끄러운 실내에서는 목소리를 높입니다.", "목소리를 불러오는 중...", "이 목소리를 불러오지 못했습니다: 스테이지는 다른 목소리가 읽습니다.", "이 목소리들은 컴퓨터로 만든 합성 음성으로, 공개 모델 Supertonic 3와 Kokoro-82M으로 만들었습니다."]);
+I18N_MORE.ja.push(...["コ・ドライバー", "ペースノートを読む人", "コ・ドライバーの声", "この声を聞く", "読む速さ", "ゆっくり", "きびきび", "とても速く", "インカム", "クリア", "ヘルメット", "古い無線", "声に伝わるクルマの動き", "なし", "少し", "フル", "声の音量", "小さめ", "ふつう", "大きめ", "女性", "男性", "落ち着いて淡々と", "明瞭でてきぱき", "低めでゆったり", "温かく明るい", "明るく速い", "低めで力強い", "速くて淡々と", "温かく安定した", "深く穏やか", "明瞭で安定した", "高めで生き生き", "歯切れよく速い", "低めでハスキー", "イギリス英語", "アメリカ英語", "（標準）", "ゆっくり：普段のコ・ドライバーより少しゆっくり読みます。", "きびきび：本物のコ・ドライバーと同じ速さで読みます。", "とても速く：さらに速く読みます。高速ステージ向けです。", "クリア：声をそのまま聞かせます。", "ヘルメットのインカム：細く近く、少し歪んで、背後に車内の音。", "古い無線：狭くざらついて、サーというノイズ混じり。", "クルマの動きは声に伝わりません。", "クルマの動きが声を少し揺らします。", "声にクルマが乗ります：路面で揺れ、着地で詰まり、きついコーナーで力み、うるさい車内では声を張ります。", "声を読み込み中...", "この声を読み込めませんでした。ステージは別の声が読みます。", "これらの声はコンピューターで作った合成音声で、公開モデル Supertonic 3 と Kokoro-82M を使っています。"]);
+I18N_MORE.zh.push(...["领航员", "谁来念路书", "领航员的声音", "试听这个声音", "念的速度", "从容", "利落", "飞快", "对讲机", "干净", "头盔", "老式电台", "声音里的车", "无", "一些", "完全", "人声音量", "小", "正常", "大", "女声", "男声", "沉稳干脆", "清晰利落", "低沉随和", "温暖明亮", "明亮轻快", "低沉坚定", "快速干脆", "温暖平稳", "深沉冷静", "清晰平稳", "高亢活泼", "干脆快速", "低沉沙哑", "英式", "美式", "（默认）", "从容：比领航员平时念得稍慢一些。", "利落：和真正的领航员念得一样快。", "飞快：再快一些，适合高速赛段。", "干净：原原本本的声音。", "头盔对讲机：声音细、贴耳、略带失真，背后是车厢里的噪音。", "老式电台：频带窄、粗糙，带着嘶嘶声。", "车的动静不影响声音。", "车的动静让声音稍有晃动。", "声音里有车：路面让它颤动，落地让它一震，急弯让它吃力，车厢吵的时候声音也会提高。", "正在获取声音...", "无法获取这个声音：赛段将由另一个声音来念。", "这些声音由计算机合成，使用开放模型 Supertonic 3 和 Kokoro-82M 制作。"]);
+I18N_MORE.es.push(...["Copiloto", "Quién lee las notas", "Voz del copiloto", "Oír esta voz", "Ritmo de lectura", "Pausado", "Ágil", "Rápido", "Intercomunicador", "Limpio", "Casco", "Radio antigua", "El coche en la voz", "Nada", "Algo", "Todo", "Volumen de la voz", "Bajo", "Normal", "Alto", "Mujeres", "Hombres", "Sereno y seco", "Claro y enérgico", "Grave y tranquilo", "Cálido y luminoso", "Luminoso y rápido", "Grave y firme", "Rápido y seco", "Cálido y parejo", "Profundo y calmado", "Claro y parejo", "Agudo y vivo", "Nítido y rápido", "Grave y ronco", "británico", "estadounidense", "(predeterminada)", "Pausado: las notas se leen un poco más despacio de lo que suele leerlas un copiloto.", "Ágil: tan rápido como lee un copiloto.", "Rápido: más rápido aún, para tramos veloces.", "Limpio: la voz tal cual.", "Intercomunicador del casco: fina, cercana y algo saturada, con el habitáculo detrás.", "Radio antigua: estrecha y áspera, con un siseo.", "El coche no afecta a la voz.", "El coche sacude un poco la voz.", "El coche está en la voz: el camino la sacude, los aterrizajes la golpean, las curvas fuertes la tensan y se alza sobre un habitáculo ruidoso.", "Cargando la voz...", "No se pudo cargar esta voz: el tramo lo leerá otra.", "Estas voces están hechas por ordenador (síntesis de voz), con los modelos abiertos Supertonic 3 y Kokoro-82M."]);
+I18N_MORE.fr.push(...["Copilote", "Qui lit les notes", "Voix du copilote", "Écouter cette voix", "Rythme de lecture", "Posé", "Vif", "Rapide", "Intercom", "Propre", "Casque", "Vieille radio", "La voiture dans la voix", "Aucune", "Un peu", "Pleinement", "Volume de la voix", "Bas", "Normal", "Fort", "Femmes", "Hommes", "Posé et sec", "Clair et vif", "Grave et détendu", "Chaleureux et lumineux", "Lumineux et rapide", "Grave et ferme", "Rapide et sec", "Chaleureux et égal", "Profond et calme", "Clair et égal", "Aigu et vif", "Net et rapide", "Grave et voilé", "britannique", "américain", "(par défaut)", "Posé : les notes sont lues un peu plus lentement qu’un copilote ne le fait d’habitude.", "Vif : aussi vite que lit un copilote.", "Rapide : plus vite encore, pour les spéciales rapides.", "Propre : la voix telle quelle.", "Intercom du casque : fine, proche et un peu saturée, l’habitacle derrière.", "Vieille radio : étroite et granuleuse, avec un souffle.", "La voiture ne touche pas à la voix.", "La voiture secoue un peu la voix.", "La voiture est dans la voix : la route la secoue, les réceptions la heurtent, les virages appuyés la crispent, et elle monte quand l’habitacle est bruyant.", "Chargement de la voix...", "Impossible de charger cette voix : une autre lira la spéciale.", "Ces voix sont créées par ordinateur (synthèse vocale), avec les modèles ouverts Supertonic 3 et Kokoro-82M."]);
+I18N_MORE.de.push(...["Beifahrer", "Wer den Aufschrieb vorliest", "Stimme des Beifahrers", "Diese Stimme anhören", "Lesetempo", "Ruhig", "Zügig", "Schnell", "Intercom", "Klar", "Helm", "Altes Funkgerät", "Das Auto in der Stimme", "Gar nicht", "Etwas", "Voll", "Lautstärke der Stimme", "Leise", "Normal", "Laut", "Frauen", "Männer", "Ruhig und trocken", "Klar und zügig", "Tief und locker", "Warm und hell", "Hell und schnell", "Tief und bestimmt", "Schnell und trocken", "Warm und gleichmäßig", "Tief und gelassen", "Klar und gleichmäßig", "Hoch und lebhaft", "Knackig und schnell", "Tief und rauchig", "britisch", "amerikanisch", "(Standard)", "Ruhig: Der Aufschrieb wird etwas langsamer gelesen, als ein Beifahrer ihn sonst liest.", "Zügig: so schnell, wie ein Beifahrer liest.", "Schnell: noch schneller, für schnelle Prüfungen.", "Klar: die Stimme, wie sie ist.", "Helm-Intercom: dünn, nah und etwas übersteuert, dahinter der Innenraum.", "Altes Funkgerät: eng und kratzig, mit Rauschen.", "Das Auto lässt die Stimme in Ruhe.", "Das Auto schüttelt die Stimme ein wenig.", "Das Auto ist in der Stimme: Die Straße schüttelt sie, Landungen stauchen sie, harte Kurven pressen sie, und in einem lauten Innenraum wird sie lauter.", "Stimme wird geladen...", "Diese Stimme konnte nicht geladen werden: Eine andere liest die Prüfung.", "Diese Stimmen sind computererzeugt (Sprachsynthese), mit den offenen Modellen Supertonic 3 und Kokoro-82M."]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -9834,7 +9859,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'A2D7';
+const SR86_BUILD = '5D3B';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -9869,7 +9894,8 @@ try { const f = lsGet('sr86.first', null); FIRST.on = f ? f === 'on' : !['best',
 const Boot = { say(t) { const e = document.getElementById('bootSay'); if (e) e.textContent = I18N.text(t); }, done() { const e = document.getElementById('boot'); if (!e || e.dataset.gone) return; e.dataset.gone = '1'; e.classList.add('gone'); try { performance.mark('sr86-ready'); } catch (x) { } setTimeout(() => e.remove(), 500); } };
 // A new stage takes a second or three to build: the stage's card says so before the work starts (the work put off
 // until the page has drawn that), so the menu does not just stop.
-function busyThen(fn) { const b = document.body; if (b.dataset.busy) { fn(); return; } b.dataset.busy = '1'; let ran = false; const go = () => { if (ran) return; ran = true; try { fn(); } finally { delete b.dataset.busy; } };
+function busyThen(fn) { const b = document.body; if (b.dataset.busy) { fn(); return; } b.dataset.busy = '1'; let ran = false; const go = () => { if (ran) return; ran = true; busyThen.wait = busyThen.drop = null; try { fn(); } finally { delete b.dataset.busy; } };
+  busyThen.wait = go; busyThen.drop = () => { ran = true; busyThen.wait = busyThen.drop = null; delete b.dataset.busy; }; // (see the start button, and startRun)
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(go, 0)); setTimeout(go, 300); } // (a page in the background draws nothing: the work goes ahead all the same)
 // a ghost of a long stage is a few hundred kB; when the browser's storage is full, other stages' ghosts make room
 const saveGhost = (key, v) => {
@@ -23015,6 +23041,390 @@ const Voice = {
   stop() { CoDriver.stop(); try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { } }
 };
 function speak(text, at) { Voice.say(text, false, at); }
+// ==== THE CO-DRIVERS: WHO READS THE NOTES, AND THE CAR IN THEIR VOICE ====
+// The player picks who reads the notes (Co-driver, in the menu): men and women, each with a voice and a manner of their
+// own, and in English an accent. Most read every language the game has recordings for, in the same voice; some read one
+// language. Each voice's recordings in a language are one file beside the page (voice/ID-LANG.mp3): every phrase the
+// notes use, in the two intonations a call needs ("|m" going on, "|f" ending it), with its index (where each phrase
+// starts and how long it is) in the file's own ID3 tag, so the file is all there is to fetch. They were made with open
+// speech models: Supertonic 3 (its preset styles M1-M5 and F1-F5; model under the OpenRAIL-M licence) and Kokoro-82M
+// (v1.0 for English, v1.1-zh for Chinese; Apache 2.0), read at the models' own pace and then sped up with the pitch kept,
+// as quick as a co-driver reads, and each phrase checked by a speech recogniser against what it should say.
+// A stage is read by one voice from start to finish: the one chosen if it is ready when the stage starts (else the
+// language's own default, else the English one), never another on the way. A call with a word that has no recording
+// is read without the part that word is in (to the next comma); it is never handed to the browser's own voice, which is
+// a different person (that was the "narrows" call: its word had no recording, and the browser read it, often as a woman).
+// Only when no recording can be had at all does the browser's voice read the stage, the whole of it.
+//
+// The voice rides in the car with the crew. Every frame (CoDriver.feel) the seat's movement reaches it:
+//  - the road through the seat: each jolt (the car's vertical load against its own slow average) squeezes or lightens
+//    the voice and pulls its pitch a little, as a chest pressed by the harness does; a rough road's quicker buzz shakes
+//    it through a slow random wobble whose depth follows the jolting and the road's surface and speed;
+//  - landings and blows (CoDriver.jolt): the voice knocked half out for an instant and its pitch lurched, the
+//    microphone boom knocked against the helmet if it is open, and after a landing the next call waits for the breath;
+//  - in the air the co-driver holds the next call until the car is down, as a co-driver does over a jump;
+//  - hard cornering and braking strain the voice: each phrase a shade higher, quicker and louder;
+//  - the cabin's noise (the mix's own level): a raised voice over a loud car, louder and pushing the intercom harder;
+//  - the open microphone lets in the cabin's own roar under the voice (the mix itself, thin and faint), and the calls
+//    hurry as they queue up and as the car goes faster.
+// What the player hears is the voice through the intercom chosen: clean, a helmet intercom (thin, close, pushed a little
+// hard) or an old radio (narrow and gritty).
+const CODRIVERS = [
+  // id, name, g: m(an) or f (woman), tone (the voice and its manner), acc (an accent, for English: British or American),
+  // langs: what they read
+  { id: 'cl', name: 'Rhys', g: 'm', tone: 'Steady and dry', acc: 'British', langs: ['en'] },
+  { id: 'bf', name: 'Fiona', g: 'f', tone: 'Clear and brisk', acc: 'British', langs: ['en'] },
+  { id: 'ua', name: 'Dale', g: 'm', tone: 'Low and easy', acc: 'American', langs: ['en'] },
+  { id: 'uf', name: 'Kara', g: 'f', tone: 'Warm and bright', acc: 'American', langs: ['en'] },
+  { id: 'm1', name: 'Teo', g: 'm', tone: 'Bright and quick', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'm2', name: 'Marek', g: 'm', tone: 'Low and firm', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'm3', name: 'Lauri', g: 'm', tone: 'Quick and dry', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'm4', name: 'Hugo', g: 'm', tone: 'Warm and even', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'm5', name: 'Oskar', g: 'm', tone: 'Deep and calm', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'f1', name: 'Ines', g: 'f', tone: 'Clear and even', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'f2', name: 'Mila', g: 'f', tone: 'High and lively', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'f4', name: 'Sanna', g: 'f', tone: 'Crisp and quick', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'f5', name: 'Vera', g: 'f', tone: 'Low and husky', langs: ['en', 'ko', 'ja', 'es', 'fr', 'de'] },
+  { id: 'z1', name: 'Hao', g: 'm', tone: 'Steady and dry', langs: ['zh'] },
+  { id: 'z2', name: 'Jun', g: 'm', tone: 'Low and firm', langs: ['zh'] },
+  { id: 'z3', name: 'Lin', g: 'f', tone: 'Clear and even', langs: ['zh'] },
+  { id: 'z4', name: 'Yu', g: 'f', tone: 'High and lively', langs: ['zh'] }
+];
+// each language's own co-driver until the player picks another (the voices each language had before)
+const CD_DEF = { en: 'cl', ko: 'm2', ja: 'm4', zh: 'z1', es: 'm3', fr: 'm4', de: 'm1' };
+// the calls read with a little more weight: the warnings
+const CD_DANGER = /^(caution|don't cut|narrows|jump|big jump|hairpin|square|over bridge narrows|through gate narrows|jump over bridge narrows|.* on the road|tree across the road)$/;
+// a pack's index, from the ID3 tag at the head of its MP3 (a TXXX frame named sr86 holding JSON); null if it has none
+function cdTag(ab) {
+  const u = new Uint8Array(ab); if (u.length < 10 || u[0] !== 73 || u[1] !== 68 || u[2] !== 51) return null;
+  const ss = i => ((u[i] & 127) << 21) | ((u[i + 1] & 127) << 14) | ((u[i + 2] & 127) << 7) | (u[i + 3] & 127), ver = u[3], end = Math.min(u.length, 10 + ss(6));
+  for (let i = 10; i + 10 <= end;) {
+    const id = String.fromCharCode(u[i], u[i + 1], u[i + 2], u[i + 3]); if (!/^[A-Z0-9]{4}$/.test(id)) break;
+    const n = ver >= 4 ? ss(i + 4) : ((u[i + 4] << 24) | (u[i + 5] << 16) | (u[i + 6] << 8) | u[i + 7]) >>> 0, b = i + 10;
+    if (id === 'TXXX' && n > 6) { let j = b + 1; while (j < b + n && u[j] !== 0) j++; let d = ''; for (let q = b + 1; q < j; q++) d += String.fromCharCode(u[q]);
+      if (d === 'sr86') { try { return JSON.parse(new TextDecoder('utf-8').decode(u.subarray(j + 1, b + n))); } catch (e) { return null; } } }
+    i = b + n;
+  }
+  return null;
+}
+// a clip read quicker (rate > 1) or slower with its pitch kept: short windows laid over each other, each taken from
+// where it best carries on the one before (WSOLA)
+function cdStretch(x, rate) {
+  if (Math.abs(rate - 1) < 0.01 || x.length < 1500) return x;
+  const N = 480, Hs = 240, Ha = Hs * rate, tol = 96, w = new Float32Array(N), L = Math.ceil(x.length / rate), y = new Float32Array(L + N), nm = new Float32Array(L + N);
+  for (let i = 0; i < N; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N);
+  let prev = 0;
+  for (let k = 0; ; k++) {
+    const ideal = Math.round(k * Ha), os = k * Hs; if (ideal + N + tol >= x.length || os + N > y.length) break;
+    let best = Math.max(0, ideal);
+    if (k > 0) { const ref = prev + Hs; let bc = -Infinity;
+      if (ref + N <= x.length) for (let d = -tol; d <= tol; d += 2) { const p = ideal + d; if (p < 0 || p + N > x.length) continue; let c = 0; for (let i = 0; i < N; i += 4) c += x[p + i] * x[ref + i]; if (c > bc) { bc = c; best = p; } } }
+    for (let i = 0; i < N; i++) { y[os + i] += x[best + i] * w[i]; nm[os + i] += w[i]; }
+    prev = best;
+  }
+  for (let i = 0; i < L; i++) y[i] = nm[i] > 1e-3 ? y[i] / nm[i] : 0;
+  return y.subarray(0, L);
+}
+Object.assign(CoDriver, {
+  S: {}, q: [], busy: false, srcs: [], endT: 0, tm: 0, out: null, lockK: null, holdT: 0, inAir: false, lfS: 1, jr: 0, joltT: 0, strain: 0, noise: -60, sp: 0, ana: null, anaB: null, warned: {}, wob: null,
+  // the player's choices: who reads each language (v), the pace (m measured, b brisk, r rapid), the intercom (clean,
+  // helmet, radio), how much the car shakes the voice (feel: 0, 1, 2) and how loud it is (q, n, l)
+  set() {
+    if (this._set) return this._set; const d = { v: {}, pace: 'b', ic: 'helmet', feel: 2, vol: 'n' }, o = lsGet('sr86.cd', {}), s = Object.assign({}, d, o && typeof o === 'object' ? o : {});
+    if (!s.v || typeof s.v !== 'object') s.v = {}; if (!/^[mbr]$/.test(s.pace)) s.pace = d.pace; if (!/^(clean|helmet|radio)$/.test(s.ic)) s.ic = d.ic; if ([0, 1, 2].indexOf(s.feel) < 0) s.feel = d.feel; if (!/^[qnl]$/.test(s.vol)) s.vol = d.vol;
+    return (this._set = s);
+  },
+  save() { lsSet('sr86.cd', this.set()); },
+  // the language the co-driver reads: the player's, if any voice reads it; else English
+  lang() { const l = typeof I18N !== 'undefined' ? I18N.lang : 'en'; return CODRIVERS.some(v => v.langs.indexOf(l) >= 0) ? l : 'en'; },
+  voices(l) { return CODRIVERS.filter(v => v.langs.indexOf(l) >= 0); },
+  who(l = this.lang()) { const id = this.set().v[l], v = CODRIVERS.find(c => c.id === id && c.langs.indexOf(l) >= 0); return v ? v.id : CD_DEF[l] || 'cl'; },
+  key(l = this.lang(), id = this.who(l)) { return id + '-' + l; },
+  cur() { return this.lockK || this.key(); },
+  slot(k) { return this.S[k] || (this.S[k] = { k, state: 'idle', raw: null, meta: null, keys: null, offs: 0, pace: 1, cache: {}, ready: null, failT: 0 }); },
+  // a voice's recordings in a language: fetched, their index read, decoded once (offline, before any sound has started),
+  // made to the pace chosen. Those that could not be had are tried again a minute later
+  load(k = this.cur()) {
+    const S = this.slot(k);
+    if (S.state === 'failed' && Date.now() - S.failT > 60000) S.state = 'idle';
+    if (S.state !== 'idle') return S.ready || Promise.resolve(S.state === 'ready');
+    S.state = 'loading';
+    return (S.ready = new Promise(res => {
+      let settled = false;
+      const done = (b, meta) => { if (settled) return; settled = true;
+        if (b && b.length && meta && meta.idx) { S.raw = b; S.meta = meta; S.keys = new Set(Object.keys(meta.idx).map(x => x.split('|')[0])); this.calibrate(S); S.cache = {}; S.state = 'ready'; }
+        else { S.state = 'failed'; S.failT = Date.now(); }
+        res(S.state === 'ready'); this.trim(); this.next(); if (typeof CDUI !== 'undefined') CDUI.status(); };
+      const decode = (ab, meta) => { let ctx = null; const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        try { if (OAC) ctx = new OAC(1, 1, meta.sr || 24000); } catch (e) { ctx = null; }
+        if (!ctx) ctx = Snd.ctx; if (!ctx) { settled = false; S.state = 'idle'; res(false); return; } // (no sound yet: tried again when it starts)
+        try { const p = ctx.decodeAudioData(ab, b => done(b, meta), () => done(null)); if (p && p.then) p.then(b => done(b, meta), () => done(null)); } catch (e) { done(null); } };
+      const inPage = () => this.embedded(k, decode, done);
+      try { fetch('voice/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(ab => { const meta = ab ? cdTag(ab) : null; if (meta) decode(ab, meta); else inPage(); }, inPage); } catch (e) { inPage(); }
+      setTimeout(() => done(null), 60000);
+    }));
+  },
+  // (a voice's recordings decoded take about 11 MB: only those that may be read are kept - the stage's, the one chosen
+  // and the language's own; any other is let go, to be fetched again (from the browser's cache) if it is chosen)
+  trim() {
+    const l = this.lang(), keep = new Set([this.lockK, this.key(l), this.key(l, CD_DEF[l] || 'cl')]);
+    for (const k in this.S) { const S = this.S[k]; if (S.state === 'ready' && !keep.has(k) && !this.q.some(c => c.k === k)) { S.raw = null; S.cache = {}; S.meta = null; S.keys = null; S.state = 'idle'; S.ready = null; } }
+  },
+  // (each language's own co-driver as first recorded, without the newest phrases: the English one inside the page, the
+  // others where the page had them; read when the file can't be had)
+  embedded(k, decode, done) {
+    const [id, l] = k.split('-'), P = id !== (CD_DEF[l] || 'cl') ? null : l === 'en' ? (typeof VOICE_PACK !== 'undefined' ? VOICE_PACK : null) : typeof VOICE_PACKS !== 'undefined' ? VOICE_PACKS[l] : null;
+    if (!P || !P.idx) { done(null); return; } const meta = { sr: P.sr, onset: P.onset, idx: P.idx };
+    try { if (P.mp3) { const bin = atob(P.mp3), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); decode(u8.buffer, meta); }
+      else if (P.src) fetch(P.src).then(r => r.ok ? r.arrayBuffer() : null).then(ab => { if (ab) decode(ab, meta); else done(null); }, () => done(null)); else done(null); } catch (e) { done(null); }
+  },
+  // a decoder may start its output a little late (some keep the MP3 coder's delay): found from where the first sound is
+  calibrate(S) { const d = S.raw.getChannelData(0), sr = S.raw.sampleRate; let i = 0; while (i < d.length && Math.abs(d[i]) <= 0.02) i++; const o = i / sr - S.meta.onset / S.meta.sr; S.offs = Math.abs(o) < 0.25 ? o : 0; },
+  // a phrase as it is read: where it is in the recordings, or (at another pace than a co-driver's own) the phrase made
+  // quicker or slower with its pitch kept, the first time it is read at that pace: [buffer, start, length in s]
+  clip(S, k) {
+    const [s, n] = S.meta.idx[k], a = Math.max(0, s / S.meta.sr + S.offs), len = n / S.meta.sr, r = { m: 0.88, b: 1, r: 1.12 }[this.set().pace] || 1;
+    if (r !== S.pace) { S.pace = r; S.cache = {}; }
+    if (r === 1) return [S.raw, a, len];
+    let c = S.cache[k];
+    if (!c) { const sr = S.raw.sampleRate, x = S.raw.getChannelData(0), i0 = Math.round(a * sr), y = cdStretch(x.subarray(i0, Math.min(x.length, i0 + Math.round(len * sr))), r);
+      try { c = Snd.ctx.createBuffer(1, Math.max(1, y.length), sr); c.getChannelData(0).set(y); } catch (e) { c = null; }
+      if (!c) return [S.raw, a, len]; S.cache[k] = c; }
+    return [c, 0, c.duration];
+  },
+  // a stage's voice, fixed when it starts (see above): the one chosen, even while its recordings are still on the way
+  // (the calls wait for them), unless they could not be had; the menu frees it
+  lock() {
+    const l = this.lang(), k = this.key(l), d = this.key(l, CD_DEF[l] || 'cl'), st = x => this.slot(x).state;
+    if (st(k) === 'failed' && Date.now() - this.slot(k).failT > 60000) this.slot(k).state = 'idle';
+    this.lockK = st(k) !== 'failed' ? k : st(d) !== 'failed' ? d : k; this.load(this.lockK);
+  },
+  unlock() { this.lockK = null; this.load(); },
+  // a call as recorded phrases: the longest phrase matching at each point, and the stop after it (a comma, or the end
+  // of a sentence). A word with no recording drops the part of the call it is in (from the last stop to the next);
+  // the calls are written in English and every language's recordings are cut into the same phrases
+  units(text, keys) {
+    const ap = new RegExp(String.fromCharCode(8217), 'g'), toks = String(text).toLowerCase().replace(ap, "'").match(/[a-z0-9']+|[,.!?;:]/g) || [], words = [], brk = [];
+    for (const t of toks) { if (/^[,.!?;:]$/.test(t)) { if (words.length) brk[words.length - 1] = t === ',' || t === ';' || t === ':' ? ',' : '.'; } else words.push(t); }
+    const us = [], lost = []; let seg = 0;
+    for (let i = 0; i < words.length;) {
+      let n = Math.min(7, words.length - i), k = '';
+      for (; n > 0; n--) { k = words.slice(i, i + n).join(' '); if (keys.has(k)) break; }
+      if (n) { const b = brk[i + n - 1] || ''; us.push({ k, brk: b }); i += n; if (b) seg = us.length; continue; }
+      let j = i; while (j < words.length - 1 && !brk[j]) j++;
+      lost.push(words.slice(i, j + 1).join(' ')); us.length = seg; i = j + 1;
+      if (us.length && brk[j] === '.') us[us.length - 1].brk = '.';
+    }
+    return { us, lost };
+  },
+  phrases(text) { const S = this.slot(this.cur()); return S.keys ? this.units(text, S.keys).us : null; },
+  // read a call (at: where along the stage its first note starts, so a call left behind can be skipped). false if no
+  // recording can be had at all
+  say(text, at) {
+    const k = this.cur(), S = this.slot(k);
+    if (S.state === 'idle' || S.state === 'failed') this.load(k);
+    if (S.state === 'failed') return false;
+    this.q.push({ text, at, k }); if (this.q.length > 6) this.q.shift(); this.took = text;
+    this.next(); return true;
+  },
+  // a warning that can't wait: ahead of the notes waiting to be read
+  first(text) { const k = this.cur(), S = this.slot(k); if (S.state === 'idle' || S.state === 'failed') this.load(k); if (S.state === 'failed') return false; this.q.unshift({ text, at: null, k }); this.took = text; this.next(); return true; },
+  passed(at) { const c = G.car; return at != null && G.state === 'run' && !!c && (c.info ? c.info.dist : G.prog * STEP) > at - 3; },
+  // the next call (one whose recordings are still on the way waits for them; none starts with the car in the air, or
+  // while the co-driver gets the breath back after a landing)
+  next() {
+    const C = Snd.ctx; if (this.busy || !C || this.inAir || C.currentTime < this.holdT) return;
+    while (this.q.length) {
+      const c = this.q[0], S = this.slot(c.k); if (S.state === 'loading' || S.state === 'idle') return; this.q.shift();
+      if (S.state !== 'ready' || this.passed(c.at)) continue;
+      const r = this.units(c.text, S.keys); for (const w of r.lost) if (!this.warned[w]) { this.warned[w] = 1; try { console.warn('co-driver: no recording for "' + w + '"'); } catch (e) { } }
+      if (!r.us.length) continue; this.play(r.us, c.k); return;
+    }
+  },
+  feelK() { return [0, 0.5, 1][this.set().feel] || 0; },
+  // (how loud the cabin is, 0 to 1: the whole mix's level, about -22 dB on the grid with the engine idling, -15 under way,
+  // -6 flat out: measured)
+  loud() { return clamp((this.noise + 21) / 14, 0, 1); },
+  // the voice's chain: the car's wobble and jolts move its pitch (vib: a short delay whose length is moved), then the
+  // intercom chosen: its band, its presence, a soft clip it is pushed into, held level; then they move its level
+  // (trem: after the intercom's own compressor, which would even it out). The open microphone's share of the cabin
+  // joins it ahead of the intercom
+  chain(C) {
+    const st = this.set(), P = { clean: [110, 2600, 2, 9500, 1.2, 0.8, 0.012], helmet: [280, 2300, 5, 4300, 2, 1, 0.03], radio: [480, 1700, 7, 3000, 4, 1.35, 0.05] }[st.ic] || [280, 2300, 5, 4300, 2, 1, 0.03];
+    const inp = C.createGain(), vib = C.createDelay(0.05), trem = C.createGain(), pre = C.createGain(), hp = C.createBiquadFilter(), pk = C.createBiquadFilter(), lp = C.createBiquadFilter(), drv = C.createGain(), sh = C.createWaveShaper(), cmp = C.createDynamicsCompressor(), vol = C.createGain(), lim = C.createDynamicsCompressor();
+    vib.delayTime.value = 0.012; trem.gain.value = 1; pre.gain.value = 1;
+    hp.type = 'highpass'; hp.frequency.value = P[0]; hp.Q.value = 0.8; pk.type = 'peaking'; pk.frequency.value = P[1]; pk.Q.value = 0.9; pk.gain.value = P[2]; lp.type = 'lowpass'; lp.frequency.value = P[3]; lp.Q.value = 0.9;
+    drv.gain.value = P[5]; sh.curve = Snd.curve ? Snd.curve(P[4]) : null; sh.oversample = '2x';
+    cmp.threshold.value = -20; cmp.knee.value = 6; cmp.ratio.value = 4; cmp.attack.value = 0.003; cmp.release.value = 0.12;
+    vol.gain.value = { q: 0.6, n: 0.95, l: 1.35 }[st.vol] || 0.95; lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.08;
+    inp.connect(vib); vib.connect(pre); pre.connect(hp); hp.connect(pk); pk.connect(lp); lp.connect(drv); drv.connect(sh); sh.connect(cmp); cmp.connect(trem); trem.connect(vol); vol.connect(lim); lim.connect(C.destination);
+    // (the wobble: slow random movement, 3-25 a second; its depth set each frame)
+    const m = C.createBufferSource(), mT = C.createGain(), mD = C.createGain(); m.buffer = this.wobble(C); m.loop = true; mT.gain.value = 0; mD.gain.value = 0;
+    m.connect(mT); mT.connect(trem.gain); m.connect(mD); mD.connect(vib.delayTime); m.start();
+    // (the cabin let in by the open microphone: the mix itself, its middle only; and on the radio a hiss)
+    const bl = C.createBiquadFilter(), blg = C.createGain(); bl.type = 'bandpass'; bl.frequency.value = 1100; bl.Q.value = 0.55; blg.gain.value = 0;
+    if (Snd.master) { Snd.master.connect(bl); bl.connect(blg); blg.connect(pre); }
+    let hs = null, hsg = null; if (Snd.nb) { hs = C.createBufferSource(); hs.buffer = Snd.nb; hs.loop = true; hsg = C.createGain(); hsg.gain.value = 0; hs.connect(hsg); hsg.connect(pre); hs.start(); }
+    return { inp, vib, trem, pre, drv, vol, lim, mT, mD, m, bl, blg, hs, hsg, bleed: P[6], drive: P[5] };
+  },
+  // the intercom or the volume changed: the chain made again for the next call
+  rechain() {
+    const o = this.out; if (!o) return; this.out = null;
+    // (the old one let go once what it is reading is done)
+    setTimeout(() => { try { o.m.stop(); if (o.hs) o.hs.stop(); if (Snd.master) Snd.master.disconnect(o.bl); o.lim.disconnect(); } catch (e) { } }, Math.max(0, ((this.endT || 0) - (Snd.ctx ? Snd.ctx.currentTime : 0)) * 1000) + 200);
+  },
+  wobble(C) {
+    if (this.wob) return this.wob;
+    const sr = 8000, n = sr * 6, b = C.createBuffer(1, n, sr), d = b.getChannelData(0), R = mulberry32(86);
+    // (a sum of slow tones at random pitches and phases, each a whole number of cycles in the loop so it joins up)
+    for (let j = 0; j < 14; j++) { const f = Math.round((3 + 22 * Math.pow(R(), 1.4)) * 6) / 6, ph = R() * 6.283, a = 1 / Math.sqrt(1 + f / 6); for (let i = 0; i < n; i++) d[i] += a * Math.sin(6.283 * f * i / sr + ph); }
+    let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); for (let i = 0; i < n; i++) d[i] /= pk;
+    return (this.wob = b);
+  },
+  // read the phrases, one after another as a co-driver runs them together: a beat at a comma, a breath at a full stop
+  play(us, k) {
+    const C = Snd.ctx, S = this.slot(k), ch = this.out || (this.out = this.chain(C)), loud = this.loud(), strain = this.strain;
+    const urg = (this.q.length ? 1.04 : 1) * (1 + 0.025 * smooth(28, 45, this.sp)), rate = urg * (1 + 0.025 * strain);
+    const t0 = Math.max(C.currentTime + 0.04, this.endT); let t = t0;
+    for (let i = 0; i < us.length; i++) {
+      const u = us[i], fin = i === us.length - 1 || u.brk === '.', want = u.k + (fin ? '|f' : '|m'), key = want in S.meta.idx ? want : u.k + (fin ? '|m' : '|f');
+      if (!(key in S.meta.idx)) continue;
+      const [buf, a, n] = this.clip(S, key), src = C.createBufferSource(), g = C.createGain();
+      src.buffer = buf; src.playbackRate.value = rate; g.gain.value = (CD_DANGER.test(u.k) ? 1.12 : 1) * (1 + 0.3 * loud) * (1 + 0.12 * strain);
+      src.connect(g); g.connect(ch.inp); src.start(t, a, n); this.srcs.push(src);
+      src.onended = () => { const j = this.srcs.indexOf(src); if (j >= 0) this.srcs.splice(j, 1); try { g.disconnect(); } catch (e) { } };
+      t += n / rate + (i === us.length - 1 ? 0 : (u.brk === '.' ? 0.26 : u.brk === ',' ? 0.085 : 0.025) / urg);
+    }
+    this.endT = t + 0.12; this.busy = true;
+    this.mic(C, t0, t, loud);
+    const D = Snd.duck; if (D) { D.gain.setTargetAtTime(0.72, Math.max(C.currentTime, t0 - 0.06), 0.04); D.gain.setTargetAtTime(1, t + 0.05, 0.15); }
+    this.talk(t0, t);
+    clearTimeout(this.tm); this.tm = setTimeout(() => { this.busy = false; this.next(); }, Math.max(0, (t - C.currentTime) * 1000 + 60));
+  },
+  // the microphone open while the co-driver speaks: the cabin let in (louder for a raised voice), the intercom pushed
+  // harder over a loud car, and the radio's hiss
+  mic(C, a, b, loud) {
+    const o = this.out, s = Math.max(C.currentTime, a - 0.03);
+    const g = o.blg.gain; g.setValueAtTime(0, s); g.linearRampToValueAtTime(o.bleed * (0.6 + 0.8 * loud), a); g.setValueAtTime(o.bleed * (0.6 + 0.8 * loud), b); g.linearRampToValueAtTime(0, b + 0.09);
+    const d = o.drv.gain; d.setValueAtTime(o.drive * (1 + 0.6 * loud), s);
+    if (o.hsg) { const h = o.hsg.gain, lv = this.set().ic === 'radio' ? 0.02 : this.set().ic === 'helmet' ? 0.006 : 0; h.setValueAtTime(0, s); h.linearRampToValueAtTime(lv, a); h.setValueAtTime(lv, b); h.linearRampToValueAtTime(0, b + 0.06); }
+  },
+  // the crew drawn talking while the co-driver really is
+  talk(t0, t) { const A = G.mesh && G.mesh.crewAnim, C = Snd.ctx; if (!A) return; const go = () => { A.talkUntil = Math.max(A.talkUntil || 0, A.t + (t - Math.max(t0, C.currentTime))); A.said = true; }; const w = (t0 - C.currentTime) * 1000; if (w > 20) setTimeout(go, w); else go(); },
+  // each frame: the seat, the road, the air, the g-forces and the cabin's noise, into the voice
+  feel(dt) {
+    const C = Snd.ctx, c = G.car; if (!C || !c || !(dt > 0)) return;
+    const F = this.feelK(), sp = Math.hypot(c.u || 0, c.v || 0); this.sp = sp;
+    // (in the air: the next call held; down again: a moment more)
+    const air = !c.grounded && (c.airT || 0) > 0.15;
+    if (air) this.inAir = true; else if (this.inAir) { this.inAir = false; this.holdT = Math.max(this.holdT, C.currentTime + 0.12); }
+    if (!this.inAir && this.holdT && C.currentTime >= this.holdT) { this.holdT = 0; this.next(); }
+    this.strain = clamp((Math.hypot(c.ax || 0, c.ay || 0) / 9.81 - 0.4) / 0.9, 0, 1);
+    // (the cabin's noise: the whole mix's level, quick to rise, slow to fall)
+    if (Snd.master && !this.ana) { try { this.ana = C.createAnalyser(); this.ana.fftSize = 1024; Snd.master.connect(this.ana); this.anaB = new Float32Array(1024); } catch (e) { this.ana = null; } }
+    if (this.ana) { this.ana.getFloatTimeDomainData(this.anaB); let e = 0; for (let i = 0; i < this.anaB.length; i++) e += this.anaB[i] * this.anaB[i]; const db = 10 * Math.log10(e / this.anaB.length + 1e-9); this.noise += (db - this.noise) * Math.min(1, dt * (db > this.noise ? 8 : 1.5)); }
+    const o = this.out; if (!o) return;
+    // (the seat's jolts: the load against its slow average; the road's buzz from them and from the surface)
+    const lf = isFinite(c.lf) ? c.lf : 1; this.lfS += (lf - this.lfS) * Math.min(1, dt * 5); const d = air ? 0 : lf - this.lfS;
+    this.jr += (d * d - this.jr) * Math.min(1, dt * 4);
+    const rough = c.surfName === 'ice' ? 0.15 : c.surfName === 'tarmac' || c.surfName === 'stone' || c.surfName === 'concrete' ? 0.3 : c.surfName === 'snow' ? 0.6 : 1;
+    const buzz = F * clamp(Math.sqrt(this.jr) * 0.45 + rough * 0.07 * smooth(3, 25, sp), 0, 0.3), t = C.currentTime;
+    o.mT.gain.setTargetAtTime(buzz * 2, t, 0.05); o.mD.gain.setTargetAtTime(buzz * 0.002, t, 0.05);
+    if (t > this.joltT) { o.trem.gain.setTargetAtTime(1 - F * clamp(d * 0.18, -0.2, 0.35), t, 0.012); o.vib.delayTime.setTargetAtTime(0.012 + F * clamp(d * 0.0015, -0.003, 0.004), t, 0.02); }
+  },
+  // a landing (v: its load, g) or a blow (v: how hard): the voice knocked half out of the chest for an instant, its
+  // pitch lurched, the open microphone knocked; after a landing the next call waits for the breath
+  jolt(v, kind, vy) {
+    const C = Snd.ctx, o = this.out, F = this.feelK(), k = kind === 'land' ? clamp(Math.max((v - 2.6) / 4, ((vy || 0) - 1.5) / 5), 0, 1) : clamp((v - 1) / (kind === 'light' ? 16 : 10), 0, 1);
+    if (!C || k < 0.05) return; const t = C.currentTime;
+    if (kind === 'land') this.holdT = Math.max(this.holdT, t + 0.15 + 0.35 * k);
+    if (!o || !F) return; this.joltT = t + 0.3;
+    const g = o.trem.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(1 - 0.55 * F * k, t + 0.02); g.setTargetAtTime(1, t + 0.06, 0.07);
+    const d = o.vib.delayTime; d.cancelScheduledValues(t); d.setValueAtTime(d.value, t); d.linearRampToValueAtTime(0.012 + 0.004 * F * k, t + 0.03); d.setTargetAtTime(0.012, t + 0.05, 0.09);
+    if (this.busy && k > 0.25 && Snd.nb) { const n = C.createBufferSource(), f = C.createBiquadFilter(), e = C.createGain(); n.buffer = Snd.nb; f.type = 'bandpass'; f.frequency.value = 420; f.Q.value = 1.1; e.gain.setValueAtTime(0.25 * F * k, t); e.gain.exponentialRampToValueAtTime(0.0001, t + 0.07); n.connect(f); f.connect(e); e.connect(o.pre); n.start(t); n.stop(t + 0.09); }
+  },
+  stop() {
+    this.q.length = 0; clearTimeout(this.tm); this.busy = false; this.endT = 0; this.holdT = 0; this.inAir = false;
+    for (const s of this.srcs.splice(0)) { try { s.onended = null; s.stop(); } catch (e) { } }
+    const D = Snd.duck, C = Snd.ctx; if (D && C) { D.gain.cancelScheduledValues(C.currentTime); D.gain.setValueAtTime(1, C.currentTime); }
+  }
+});
+Object.defineProperty(CoDriver, 'state', { get() { return this.slot(this.cur()).state; }, configurable: true });
+// a new language chosen: its co-driver's recordings fetched straight away, so the first call is ready
+I18N_HOOK = function (l) { try { CoDriver.load(); if (typeof CDUI !== 'undefined') CDUI.render(); } catch (e) { } };
+Object.assign(Voice, {
+  init() {
+    CoDriver.load();
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') { this.ok = false; return; }
+    // (the browser's own voice, for a stage when no recording can be had: for each language the most natural voice on
+    // offer, a man's or a woman's as the co-driver chosen is)
+    const pick = () => { try { const all = speechSynthesis.getVoices() || [];
+      for (const [l] of LANGS) { const g = (CODRIVERS.find(v => v.id === CoDriver.who(l)) || {}).g || 'm', vs = all.filter(v => (l === 'zh' ? /^(zh|cmn)([-_](cn|hans|sg))?$/i : new RegExp('^' + l + '([-_]|$)', 'i')).test(v.lang)),
+        fem = /female|woman|zira|hazel|susan|libby|sonia|mia|samantha|karen|moira|tessa|serena|victoria|kate|aria|jenny|michelle|yuna|kyoko|sun-?hi|xiaoxiao|helena|amelie|marie|anna|petra|monica|paulina/i,
+        sc = v => (/natural|neural|online|enhanced|premium/i.test(v.name) ? 4 : 0) + (l === 'en' && /en[-_]GB/i.test(v.lang) ? 2 : 0) + ((fem.test(v.name) ? 'f' : 'm') === g ? 3 : 0);
+        this.voices[l] = vs.sort((a, b) => sc(b) - sc(a))[0] || null; } } catch (e) { } };
+    this.pick = pick; pick(); try { speechSynthesis.addEventListener('voiceschanged', pick); } catch (e) { }
+  },
+  // the call in the player's language as the screen shows it (for the browser's voice), or null
+  words(text, l) {
+    if (l !== I18N.lang) return null; const cjk = l === 'ja' || l === 'zh';
+    const t = String(text).split(/[.] */).filter(Boolean).map(x => pnSay(x.trim())).join(cjk ? String.fromCharCode(12290) : '. '); return t && t !== text ? t : null;
+  },
+  say(text, force, at) {
+    if (!G.voice && !force) return;
+    if (CoDriver.say(text, at)) return;
+    // (no recording to be had at all: the browser's own voice, for the whole stage)
+    const l = CoDriver.lang(), w = l !== 'en' && this.voices[l] && this.ok !== false ? this.words(text, l) : null;
+    Snd.radio(); this.speak(w || text, w ? l : 'en');
+  },
+  // the rallycross pit wall on the radio: not the co-driver (there is none on a circuit) - the browser's own voice
+  spotter(t) { if (!G.voice) return; const l = I18N.lang, w = l !== 'en' && this.voices[l] && this.ok !== false ? this.words(t, l) : null; Snd.radio(); this.speak(w || t, w ? l : 'en'); },
+  // a word from the co-driver before the notes again (after the car is put back on the road): ahead of what waits
+  react(text) { if (!G.voice) return; if (!CoDriver.first(text)) this.say(text); },
+  // a warning of something on the road: read before the notes waiting
+  warn(text) { if (!G.voice) return; if (!CoDriver.first(text)) this.say(text); }
+});
+// the race surprises called out, as the screen warns of them
+const REV_CALL = { animals: e => `Caution, ${{ sheep: 'sheep', cows: 'cows', horse: 'horses', deer: 'deer', reindeer: 'reindeer' }[e.ak] || 'sheep'} on the road.`, tractor: () => 'Caution, tractor on the road.', tree: () => 'Caution, tree across the road.', rocks: () => 'Caution, rocks on the road.' };
+// ---------- the co-driver's settings (the menu) ----------
+// (its words are the game's own, 'cd|...', put in by this code, not by the page's translator: a word as short as
+// Normal or Full means something else elsewhere)
+const CDUI = {
+  T(t) { return typeof I18N !== 'undefined' && I18N.say ? I18N.say('cd|' + t) : t; },
+  TEXTS: [['cdH', 'Co-driver'], ['cdWho', 'Who reads the notes'], ['cdHear', 'Hear this voice'], ['cdPaceH', 'Reading pace'], ['cdp_m', 'Measured'], ['cdp_b', 'Brisk'], ['cdp_r', 'Rapid'],
+    ['cdIcH', 'Intercom'], ['cdi_clean', 'Clean'], ['cdi_helmet', 'Helmet'], ['cdi_radio', 'Old radio'], ['cdFeelH', 'The car in the voice'], ['cdf_0', 'Still'], ['cdf_1', 'Some'], ['cdf_2', 'Full'],
+    ['cdVolH', 'Voice volume'], ['cdv_q', 'Quiet'], ['cdv_n', 'Normal'], ['cdv_l', 'Loud'], ['cdMade', 'These voices are made by computer (speech synthesis), with the open models Supertonic 3 and Kokoro-82M.']],
+  LABELS: [['cdVoice', 'Co-driver voice'], ['cdPace', 'Reading pace'], ['cdIc', 'Intercom'], ['cdFeel', 'The car in the voice'], ['cdVol', 'Voice volume']],
+  init() {
+    const sel = $('#cdVoice'); if (!sel) return;
+    sel.addEventListener('change', () => { const S = CoDriver.set(); S.v[CoDriver.lang()] = sel.value; CoDriver.save(); Snd.init(); this.render(); const k = CoDriver.key(); CoDriver.load(k).then(ok => { if (ok && CoDriver.key() === k) this.hear(); }); });
+    const grp = (pre, key, vals, after) => vals.forEach(v => { const b = $('#' + pre + v); if (b) b.addEventListener('click', () => { CoDriver.set()[key] = key === 'feel' ? +v : v; CoDriver.save(); if (after) after(); this.render(); }); });
+    grp('cdp_', 'pace', ['m', 'b', 'r'], () => this.hear());
+    grp('cdi_', 'ic', ['clean', 'helmet', 'radio'], () => { CoDriver.rechain(); this.hear(); });
+    grp('cdf_', 'feel', ['0', '1', '2']);
+    grp('cdv_', 'vol', ['q', 'n', 'l'], () => { CoDriver.rechain(); this.hear(); });
+    const h = $('#cdHear'); if (h) h.addEventListener('click', () => this.hear());
+    this.render();
+  },
+  render() {
+    const sel = $('#cdVoice'); if (!sel) return; const l = CoDriver.lang(), S = CoDriver.set(), who = CoDriver.who(l), T = t => this.T(t);
+    for (const [id, t] of this.TEXTS) { const e = $('#' + id); if (e) e.textContent = T(t); }
+    for (const [id, t] of this.LABELS) { const e = $('#' + id); if (e) e.setAttribute('aria-label', T(t)); }
+    sel.textContent = '';
+    for (const [g, gl] of [['f', 'Women'], ['m', 'Men']]) { const og = document.createElement('optgroup'); og.label = T(gl);
+      for (const v of CoDriver.voices(l).filter(v => v.g === g)) { const o = document.createElement('option'); o.value = v.id; const d = CD_DEF[l] === v.id ? T('(default)') : ''; o.textContent = v.name + ' - ' + T(v.tone) + (v.acc ? ', ' + T(v.acc) : '') + (d ? (/^[(]/.test(d) ? ' ' : '') + d : ''); og.append(o); }
+      if (og.children.length) sel.append(og); }
+    sel.value = who;
+    const on = (id, v) => { const b = $('#' + id); if (b) b.setAttribute('aria-pressed', v ? 'true' : 'false'); };
+    for (const v of ['m', 'b', 'r']) on('cdp_' + v, S.pace === v); for (const v of ['clean', 'helmet', 'radio']) on('cdi_' + v, S.ic === v); for (const v of [0, 1, 2]) on('cdf_' + v, S.feel === v); for (const v of ['q', 'n', 'l']) on('cdv_' + v, S.vol === v);
+    const n = $('#cdNote'); if (n) n.textContent = [{ m: 'Measured: the notes read a little slower than a co-driver usually reads them.', b: 'Brisk: as quick as a co-driver reads.', r: 'Rapid: quicker still, for fast stages.' }[S.pace],
+      { clean: 'Clean: the voice as it is.', helmet: 'Helmet intercom: thin, close and pushed a little hard, the cabin behind it.', radio: 'Old radio: narrow and gritty, with a hiss.' }[S.ic],
+      ['The car leaves the voice alone.', 'The car shakes the voice a little.', 'The car is in the voice: the road shakes it, landings knock it, hard corners strain it, and it is raised over a loud cabin.'][S.feel]].map(T).join(l === 'ja' || l === 'zh' ? '' : ' ');
+    this.status();
+  },
+  status() { const s = $('#cdStatus'); if (!s) return; const st = CoDriver.slot(CoDriver.key()).state; s.textContent = st === 'loading' ? this.T('Fetching the voice...') : st === 'failed' ? this.T('This voice could not be fetched: the stage will be read by another.') : ''; },
+  hear() { Snd.init(); Snd.mute(false); G.voice = true; CoDriver.stop(); CoDriver.unlock(); Voice.say('Left 4 tightens 2, over crest, 150', true); }
+};
 // the next pace note, with the notes linked to it ("left 3 into right 4"), read in one breath as a co-driver
 // reads them; each is marked as called from where the car is now, so backing up the road rewinds them
 function noteCall(T, dist) {
@@ -23657,6 +24067,7 @@ const Coach = {
   },
 };
 function startRun() {
+  if (busyThen.drop) busyThen.drop(); // (never a stage built under the car)
   RaceEvents.clear(); FullScr.go(); // (the screen filled again as a stage starts, if the player left full screen in the menu)
   if (Replay.on) Replay.exit(); Inspect.close();
   if (G.show) G.show.mesh.root.visible = false;
@@ -23687,7 +24098,7 @@ function startRun() {
   Atmos.apply(G.T, stageCond(G.T)); Wipers.phase = 0; Wipers.rest = 0; Wipers.extra = 0; Wipers.pos = Wipers.prev = 0; ScreenFx.reset();
   initTyres(G.car, G.T, G.phys, G.rally && G.rally.tw); // (in a rally, worn as far as they have run since service)
   Gfx.bgSteps = null; Gfx.warm(G.mesh); // (what the menu had not got to yet, now)
-  G.calledTo = G.noteK; G.callFrom = []; const first = noteCall(G.T, G.T.startIdx * STEP); Voice.say((G.rally ? Rally.callName() : MP.phase === 'race' ? 'Race stage ' + G.T.seed : G.T.loop && RX.cfg ? (RX.cfg.label || 'Rallycross') : 'Stage ' + G.T.seed) + '. ' + first);
+  G.calledTo = G.noteK; G.callFrom = []; const first = noteCall(G.T, G.T.startIdx * STEP); CoDriver.lock(); Voice.say((G.rally ? Rally.callName() : MP.phase === 'race' ? 'Race stage ' + G.T.seed : G.T.loop && RX.cfg ? (RX.cfg.label || 'Rallycross') : 'Stage ' + G.T.seed) + '. ' + first);
   if (G.rally) Rally.onStart(); else { G.lead = null; $('#rallyTag').textContent = ''; }
   if (G.T.loop && RX.cfg) RX.begin(); else RX.end(true); // (a rallycross race: the rest of the field on the grid; see RX)
   snapCamera(); Rec.start(); Flash.reset(); // (recorded from the grid, with what damage it carries: see Rec; the flashbacks: see Flash)
@@ -23888,6 +24299,7 @@ function resetCar() {
   engineRecover(c); // (out of the water, it turns again unless the water broke it)
   G.cut = null; G.odoAtProg = G.odo; Rec.mark('reset'); // (the replay jumps here)
   if (G.state === 'run') { if (mp) flash((plugs ? 'Plugs out and the water cranked out of the cylinders' : river ? 'Out of the river' : righted ? 'Back on your wheels' : 'Back on the road') + ': no time lost. A ghost until clear of the other cars'); else if (plugs) { G.penalty += 120; flash('Plugs out and the water cranked out of the cylinders: 2 minute penalty'); } else if (river) { G.penalty += 30; flash('Pulled out of the river and back on the road: 30 s penalty'); } else if (righted) { G.penalty += 30; flash('Spectators put you back on your wheels and the road: 30 s penalty'); } else { G.penalty += 5; flash('Recovered: 5 second penalty'); } }
+  if (!mp && G.state === 'run' && !G.finished) Voice.react('Okay, go.');
   G.camYaw = p.h; snapCamera();
 }
 function togglePause() { if (G.state !== 'run' && G.state !== 'countdown') return; if (G.finished && G.rally) return; if (Fix.open) { Fix.close(); return; }
@@ -23900,7 +24312,7 @@ function togglePause() { if (G.state !== 'run' && G.state !== 'countdown') retur
 const FLOOD_C = new THREE.Color('#fff2d8');
 // the head-to-head of a super special: you against the car on the other lane
 function duelLine(total) { const d = total - Duel.total, nm = Duel.name, mid = nm.replace(/^The /, 'the '); return Math.abs(d) < 0.05 ? `Dead heat with ${mid}.` : d < 0 ? `You beat ${mid} on the other lane by ${(-d).toFixed(1)} s.` : `${nm} on the other lane beat you by ${d.toFixed(1)} s.`; }
-function toMenu() { Coach.hide(); if (Replay.on) Replay.exit(); Rec.clear(); Duel.drop(); RivalGhosts.stop(); RX.end(); RXUI.hide(); orbitOff(); G.rally = null; G.paused = false; G.mpMenu = false; MP.onMenu(); Snd.mute(true); Snd.engineOn(false); Snd.envOff(); Voice.stop(); G.state = 'menu'; if (G.mesh) G.mesh.root.visible = false; if (G.ghostMesh) G.ghostMesh.root.visible = false; G.lead = null; showScreen('menu'); if (Rally.mode === 'rally') Rally.renderMenu(); else if (Rally.mode === 'mp') { MP.enterMenu(); } else { renderBoard(); renderFacts(); } renderSetupLine(); }
+function toMenu() { Coach.hide(); if (Replay.on) Replay.exit(); Rec.clear(); Duel.drop(); RivalGhosts.stop(); RX.end(); RXUI.hide(); orbitOff(); G.rally = null; G.paused = false; G.mpMenu = false; MP.onMenu(); Snd.mute(true); Snd.engineOn(false); Snd.envOff(); Voice.stop(); CoDriver.unlock(); G.state = 'menu'; if (G.mesh) G.mesh.root.visible = false; if (G.ghostMesh) G.ghostMesh.root.visible = false; G.lead = null; showScreen('menu'); if (Rally.mode === 'rally') Rally.renderMenu(); else if (Rally.mode === 'mp') { MP.enterMenu(); } else { renderBoard(); renderFacts(); } renderSetupLine(); }
 // (the results at the finish leave the driving instruments off the screen, for the view round the car: see Orbit; the
 // replay has its own bar: see Replay)
 function showScreen(which) { $('#menu').hidden = which !== 'menu'; $('#hud').hidden = which !== 'hud'; $('#finish').hidden = which !== 'finish'; $('#pause').hidden = true; $('#rally').hidden = which !== 'rally' && which !== 'result'; const rp = $('#replay'); if (rp) rp.hidden = which !== 'replay'; document.body.dataset.mode = which; }
@@ -23955,14 +24367,14 @@ function processEvents(c) {
   for (const e of c.ev) {
     let [n, v] = e.split(':'); const val = parseFloat(v) || 0;
     if (n === 'up' || n === 'down' || n === 'lim') (G.engEv || (G.engEv = [])).push(n);
-    else if (n === 'land') { Snd.land(Math.abs(c.landV || 0), G.camMode === 2, looseUnder(c)); G.shake = Math.min(1, G.shake + val * 0.08); burstDust(14, 1.4); ScreenFx.land(Math.abs(c.landV || 0), looseUnder(c), G.T.wet || 0); }
-    else if (n === 'rockw') { Snd.rockWheel(parseInt(e.split(':')[2], 10) || 0, val); G.shake = Math.min(1, G.shake + val * 0.05); }
+    else if (n === 'land') { Snd.land(Math.abs(c.landV || 0), G.camMode === 2, looseUnder(c)); G.shake = Math.min(1, G.shake + val * 0.08); burstDust(14, 1.4); ScreenFx.land(Math.abs(c.landV || 0), looseUnder(c), G.T.wet || 0); CoDriver.jolt(val, 'land', Math.abs(c.landV || 0)); }
+    else if (n === 'rockw') { Snd.rockWheel(parseInt(e.split(':')[2], 10) || 0, val); CoDriver.jolt(val, 'light'); G.shake = Math.min(1, G.shake + val * 0.05); }
     else if (n === 'stone') { const wi = parseInt(e.split(':')[2], 10); Snd.stoneHit(isNaN(wi) ? -1 : wi, val); G.shake = Math.min(1, G.shake + val * 0.008); }
     else if (n === 'esys') engineEvent(c, e.split(':'));
     else if (n === 'air') Snd.air(e.split(':'), c);
     else if (n === 'burst') { const p = e.split(':'); propBurst(p[1], +p[2], +p[3], +p[4], c); }
-    else if (n === 'hedge') { const p = e.split(':'); hedgeBurst(+p[2], +p[3], +p[4], val, c); Snd.impact('bale', val * 0.5, G.camMode === 2, false, c); }
-    else if (['wall', 'bank', 'hit', 'bale', 'tyre', 'rock', 'post', 'chev', 'island', 'crowd', 'rail', 'tree', 'pole', 'car', 'block'].includes(n)) { if (n === 'block') n = 'wall'; Snd.impact(n, val, G.camMode === 2, looseUnder(c), c); G.shake = Math.min(1, G.shake + val * 0.05); if (n === 'bale') burstDust(10, 1); ScreenFx.impact(n, val, c.surfName, looseUnder(c), G.T.wet || 0); }
+    else if (n === 'hedge') { const p = e.split(':'); hedgeBurst(+p[2], +p[3], +p[4], val, c); Snd.impact('bale', val * 0.5, G.camMode === 2, false, c); CoDriver.jolt(val * 0.5, 'light'); }
+    else if (['wall', 'bank', 'hit', 'bale', 'tyre', 'rock', 'post', 'chev', 'island', 'crowd', 'rail', 'tree', 'pole', 'car', 'block'].includes(n)) { if (n === 'block') n = 'wall'; Snd.impact(n, val, G.camMode === 2, looseUnder(c), c); G.shake = Math.min(1, G.shake + val * 0.05); if (n === 'bale') burstDust(10, 1); ScreenFx.impact(n, val, c.surfName, looseUnder(c), G.T.wet || 0); CoDriver.jolt(val, n === 'crowd' || n === 'bale' || n === 'tyre' ? 'light' : 'hit'); }
   }
   c.ev.length = 0;
 }
@@ -24988,7 +25400,7 @@ const RaceEvents = {
     const t = typeof MP !== 'undefined' && MP.raceNow ? MP.raceNow() : null; this.rt = t; if (t == null) return;
     if (!this.wxSaid && Atmos.story) { const tk = Atmos.story.find(k => k.turn); if (tk && t >= tk.t - 3 && WEATHER[tk.wx]) { this.wxSaid = true; const W = WEATHER[tk.wx];
       flash(W.rain + W.snow > 0.1 ? `The weather is turning: ${W.name.toLowerCase()} on the way` : W.vis < 300 ? `The weather is turning: ${W.name.toLowerCase()} rolling in` : 'The weather is turning: the sky is clearing'); } }
-    if (c && G.state === 'run' && !G.finished) for (const e of this.L) { if (this.said.has(e.k)) continue; const d = (e.i - c.hint) * STEP; if (d > 0 && d < REV.warn) { this.said.add(e.k); flash(REV_SAY[e.kind](e)); } }
+    if (c && G.state === 'run' && !G.finished) for (const e of this.L) { if (this.said.has(e.k)) continue; const d = (e.i - c.hint) * STEP; if (d > 0 && d < REV.warn) { this.said.add(e.k); flash(REV_SAY[e.kind](e)); if (REV_CALL[e.kind]) Voice.warn(REV_CALL[e.kind](e)); } }
     for (const e of this.L) if (e.kind === 'animals' && (!c || Math.abs(e.i - c.hint) < 600)) this.draw(e, t);
   },
   draw(e, t) {
@@ -25124,7 +25536,7 @@ function updateRun(dt) {
   const orbitNew = Orbit.on && G.orbitAt != null && G.time - G.orbitAt < 2.6;
   if (G.finished && !G.finShown && !orbitNew && ((sp < 0.6 && sinceFin > 1.5) || sinceFin > (MP.phase === 'done' ? 2 : 14))) { // (in a race against friends the results come up as the car slows: the race room follows soon after the last car is in)
   G.finShown = true; if (G.rally) Rally.showResult(); else if (MP.phase === 'done') MP.results(); else if (RX.on) RXUI.results(); else { $('#finReplay').hidden = !Replay.can(); showScreen('finish'); } }
-  crewJolt(G.physDt); updateCamera(dt); updateHud(sp); Coach.step(dt);
+  crewJolt(G.physDt); updateCamera(dt); updateHud(sp); Coach.step(dt); CoDriver.feel(dt);
   Rec.frame(c, m, G.wpos, !!inp.handbrake && !G.finished); // (the run as it went, for its replay)
   Flash.take(); // (and the last seconds of it as it was, for a flashback)
 }
@@ -25947,6 +26359,7 @@ function init() {
   for (const c of CLASSES.concat('CU')) { const t = $('#cls_' + c); if (t) t.addEventListener('click', () => pickClass(c)); }
   Workshop.init();
   $('#voiceTest').addEventListener('click', () => { Snd.init(); Snd.mute(false); G.voice = true; Voice.say('Left 4 tightens 2, over crest, 150', true); });
+  CDUI.init();
   // the link can carry conditions: #seed or #seed/time/weather
   const hp = (location.hash || '').replace('#', '').split('/'), hr = (hp[0] || '').split('@'); let seed = (hr[0] || '').replace(/\D/g, '').slice(0, 6); if (!seed && FIRST.on) { seed = FIRST.seed; FIRST.stage = true; } if (!seed) seed = String(10000 + Math.floor(Math.random() * 89999));
   if (location.hash) COND.reg = hr[1] && REGIONS[hr[1]] ? hr[1] : null; // (#seed@country: the stage laid out in another country)
@@ -25960,7 +26373,8 @@ function init() {
   { const wb = $('#weekBtn'); if (wb) wb.addEventListener('click', () => Week.go()); }
   $('#rnd').addEventListener('click', () => busyThen(() => setSeed(String(Math.floor(Math.random() * 999999) + 1))));
   { const cb = $('#coachBtn'); if (cb) { const tx = () => { cb.textContent = lsGet('sr86.coach', false) === true || FIRST.on ? 'First-drive tips: on for the next stage' : 'First-drive tips: show them on the next stage'; }; cb.addEventListener('click', () => { if (!FIRST.on) lsSet('sr86.coach', lsGet('sr86.coach', false) !== true); tx(); }); tx(); Coach.btn = tx; } }
-  $('#go').addEventListener('click', () => { if (Rally.mode === 'mp') { MP.go(); return; } if (Rally.mode === 'rally') { Rally.go(); return; } if (Rally.mode === 'rx') { if ($('#seed').value && G.T && $('#seed').value !== G.T.seed) setSeed($('#seed').value); RXUI.go(); return; } if (!G.T) return; if (!$('#seed').value) setSeed('1'); else if ($('#seed').value !== G.T.seed) setSeed($('#seed').value); startRun(); });
+  $('#go').addEventListener('click', () => { if (busyThen.wait) busyThen.wait(); // (a stage still to be built from the menu's last change: built now, so the stage that starts is the one the menu shows)
+    if (Rally.mode === 'mp') { MP.go(); return; } if (Rally.mode === 'rally') { Rally.go(); return; } if (Rally.mode === 'rx') { if ($('#seed').value && G.T && $('#seed').value !== G.T.seed) setSeed($('#seed').value); RXUI.go(); return; } if (!G.T) return; if (!$('#seed').value) setSeed('1'); else if ($('#seed').value !== G.T.seed) setSeed($('#seed').value); startRun(); });
   $('#copy').addEventListener('click', e => copyChallenge(e.currentTarget));
   for (const k of ['auto', 'high', 'medium', 'low']) { const bt = $('#gx_' + k); if (bt) bt.addEventListener('click', () => Gfx.set(k)); } Gfx.render();
   for (const [id, m] of [['#au_hp', 'hp'], ['#au_sp', 'sp']]) { const bt = $(id); if (bt) bt.addEventListener('click', () => Snd.listen(m)); } Snd.listenUI(); FullScr.init();
@@ -30358,7 +30772,7 @@ Object.assign(CrewAnim.prototype, {
   // the simulation's events for the frame (a rock under a wheel kicks the steering)
   events(ev) { for (const e of ev) { const p = e.split(':'); if (p[0] === 'rockw') this.rockIn = Math.max(this.rockIn || 0, Math.min(1, (parseFloat(p[1]) || 0) / 6)); } },
   // a note read out: the co-driver talks for as long as it takes to read it
-  say(text) { this.talkUntil = this.t + 0.25 + 0.058 * String(text || '').length; this.said = true; }
+  say(text) { if (typeof CoDriver !== 'undefined' && CoDriver.took === text) { CoDriver.took = null; return; } this.talkUntil = this.t + 0.25 + 0.058 * String(text || '').length; this.said = true; }
 });
 // how far off a car's crew are drawn, by the graphics level (metres): the full mesh within the first distance, the light
 // one within the second, none beyond (from further off they are lost behind the glass); the light one is moved 30 times
@@ -36463,7 +36877,7 @@ const RX = {
   // field's times run on from their pace
   retire() { const me = this.me; if (!me || me.fin != null) return; me.out = 'retired'; G.finished = true; G.finShown = true; Snd.mute(true); RXUI.results(); },
   // the pit wall's word in the driver's ear: the laps, the joker, the order
-  say(t) { if (G.voice && G.state !== 'menu') try { Voice.say(t, false); } catch (e) { } },
+  say(t) { if (G.voice && G.state !== 'menu') try { Voice.spotter(t); } catch (e) { } },
   // the player's car put back on the track (reset), a few metres back from where it left it, away from the others
   recover(e) {
     const T = this.T, c = e.c, M = this.M, J = T.sss && T.sss.rx;
