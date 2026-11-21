@@ -989,6 +989,9 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     <h2 class="asth">Damage</h2>
     <div class="assist" role="group" aria-label="Damage"><button id="dm_off" type="button">Off</button><button id="dm_visual" type="button">Visual</button><button id="dm_real" type="button">Realistic</button></div>
     <p id="dmgNote" class="small"></p>
+    <h2 class="asth">Tyres</h2>
+    <div class="assist" role="group" aria-label="Tyre model"><button id="ty_auto" type="button">Auto</button><button id="ty_ring" type="button">Flexible ring</button><button id="ty_classic" type="button">Classic</button></div>
+    <p id="tyNote" class="small"></p>
     <h2 class="asth">Graphics</h2>
     <div class="assist" role="group" aria-label="Graphics quality"><button id="gx_auto" type="button">Auto</button><button id="gx_high" type="button">High</button><button id="gx_medium" type="button">Medium</button><button id="gx_low" type="button">Low</button></div>
     <p id="gfxNote" class="small"></p>
@@ -6109,6 +6112,906 @@ function solidUnder(T, i0, x, z, yb, hx, hz, hw, Rw) {
   }
   return _under;
 }
+// ---- the tyre as a flexible ring ----
+// The physical tyre model the professional simulators use (a flexible belt ring, as the published papers on it build it). The
+// belt - the steel and rubber band under the tread - is a ring round the rim: it hardly stretches, bends in the wheel's
+// plane and out of it and twists, and is held to the rim by the sidewalls (radially, round the rim and sideways, each
+// stiffer the more air is in the tyre: 0.2 + 0.8 p/p0 of a road tyre's, the carcass's own share for a rally tyre's
+// reinforced walls) while the air pulls it taut, which is what lets it lie flat on the road. On it the tread: blocks of
+// rubber, each pressed into the road by the belt as a spring and sheared along it, sticking to the road and carried along
+// until what its rubber holds at its own pressure (less, the harder it is pressed) can no longer hold it, then sliding
+// (more slowly the faster it slides). Nothing else is assumed: the patch's length and shape, how the load spreads along
+// and across it, the cornering and braking stiffness, the aligning torque and its fall at the limit, how far the tyre
+// rolls before its force builds, camber thrust, the rolling resistance (the rubber's hysteresis as the belt and tread
+// are squashed and let go), the growth of the belt at speed and the way it swallows a stone or the edge of a pothole
+// all come out of the ring and its blocks meeting the road's own shape under them.
+// How it is solved, so it runs on any device: the belt is linear in the rim's frame, so it is taken mode by mode round
+// the ring (FTM of them, a belt of 2 FTM segments), each mode's response to a load fixed under the wheel as the ring
+// rolls through it (its stiffness, its hysteresis, its inertia spinning: the belt's pressure and spin) found exactly;
+// summed they give how the belt under the patch gives to each block's push. The game steps at 240 Hz, too slowly to
+// carry the belt's own ringing (80 Hz and up), so the belt is taken as settled each step, rolling; the blocks keep their
+// history (how far each has been carried, sticking or sliding, since it met the road), carried round with the belt
+// exactly however far it turns in a step. The contact - the belt's give against each block's push, the stick and the
+// slide - is solved together, implicitly, each step (a few sub-steps when the wheel turns fast).
+const FTM = 96; // (modes round the ring)
+let FTX = 10; // (rows of blocks along the patch)
+let FTY = 5; // (blocks across the tread)
+const FTE = 4; // (rows kept beyond each end of the patch's: the belt's shape ahead of it, where the rubber coming in has been)
+const FT_RC = { tarmac: 1.4, gravel: 1.1, snow: 1.1, winter: 1.1, stud: 1.1, xc: 0.8, mt: 0.85, road: 1.1 }; // the crown's radius across the tread (m)
+// the ring of one tyre (TB: as built; WH: its wheel; pD: the pressure it is built for, bar): its build, and its
+// stiffnesses as they start (ftCal sets the ones its own figures fix)
+function ftParams(TB, WH, pD) {
+  const R = WH.R, bt = TB.bt, tr = TB.h0 + 0.003, fam = TB.fam;
+  return { R, bt, B: TB.B, H: TB.H, pD, ps: TB.ps, fam,
+    rhoA: bt * (tr * (1 - 0.5 * TB.void) * 1150 + 6), tr, // (the belt and tread's mass per metre: rubber, and the belt's steel)
+    EA: 2e7, EI: 3, EIy: 1.2e4, GJ: 5, nc: 3, kr: 6.5e5, kt: 6.5e5, ky: 6e4, kbK: 0.5, kk: 2e5, cKp: 0.0008, es: 1, // see ftAt; GJ: the belt's own torsion (a thin band of cords in rubber twists easily: N m2); nc: how short a wave of it lives about the flattened patch (see ftModal); es: how far the belt goes in before its sidewalls fold and hold it out no harder (m, fitted)
+    gs: 0.08, gb: 0.08, gt: 0.12, cv: 1e-4, kc: 3, ktf: 1, kxf: 1.15, // hysteresis: sidewalls, belt, tread; viscous (s); tread's radial / shear stiffness; its shear stiffness against tyreStiff's, and along the wheel against across
+    ec: (bt / 2) * (bt / 2) / (2 * (FT_RC[fam] || 1)), gap: Math.max(0.035, 0.48 * TB.H), kfl: 6e6, // the crown's drop at the tread's edge; the rim flange: how far the belt goes in before the sidewall is crushed between it and the road, and how stiff it is then (N/m per metre)
+    mc: new Map(), kcache: new Map(), cal: 0 };
+}
+// its stiffnesses at a running pressure p (bar), the ring's way: radially and round the rim 0.2 + 0.8 p/p0 (the carcass's
+// own share ps), sideways 0.1 + 0.9 p/p0, the belt's bending 0.9 + 0.1 p/p0; the air's pull on the belt T0 = p b R; the
+// crown bulging out between the sidewalls the harder it is pumped (cKp, m per bar)
+function ftAt(F, p) {
+  const s = F.s || (F.s = { p: -1 }); if (s.p === p && s.v === F.cal) return s; s.p = p; s.v = F.cal;
+  const fr = (p + F.ps) / (F.pD + F.ps), fl = (p + 0.5 * F.ps) / (F.pD + 0.5 * F.ps);
+  s.kr = F.kr * fr; s.kt = F.kt * fr; s.ky = F.ky * fl; s.kb = s.kr * F.bt * F.bt / 4 * F.kbK; s.EI = F.EI * (0.9 + 0.1 * p / F.pD);
+  s.T0 = Math.max(0.05, p) * 1e5 * F.bt * F.R; s.kk = F.kk * (0.7 + 0.3 * p / F.pD); s.k0 = -F.cKp * (p - F.pD); return s;
+}
+// the ring's response, mode by mode, to a load that stays put under the wheel while the belt turns through it at Om
+// (rad/s, + towards +theta: the belt at the patch moves backwards on a car going forwards, Om = -omega), at pressure p.
+// In-plane each mode n is a radial wave w = W e^{ins} with the belt round the rim v = i V e^{ins} (W, V complex); its
+// stiffness per metre of belt: stretching EA (W - nV)^2/R^2, bending EI (n^2-1)^2 W^2/R^4, the air's pull T0 (n^2-1) W^2/R^2
+// (taut, the belt only flattens against it), the sidewalls kr W^2 + kt V^2; spinning: the spin's own pull on the belt and
+// its throw outwards, the Coriolis force, and the inertia of the wave rolling past (n Om). Out of plane, the belt's
+// sideways wave Y and its twist B (B: the turn of the belt's section that presses the tread's edge on the axle's side, +a,
+// into the road, as the blocks see it): bending edgewise EIy (n^2 Y + R B)^2/R^4 (it twists and bends together, being
+// curved: the ring tipped whole, n = 1, moves its foot one way and lifts the tread's edge on that side, B = -Y/R), twisting
+// GJ n^2 (B + Y/R)^2/R^2, pulled taut by the air and the spin (T0 + Tc) n^2 Y^2/R^2, and the sidewalls ky Y^2 + kb B^2.
+// The rubber's loss is hysteretic (a loss factor, whatever the speed, the way rubber is: the belt lags the load by the
+// same angle at 10 km/h as at 100), with a little viscous loss besides. ip: in-plane, n = -M..M, op: out of plane, n = 0..M,
+// each the 2x2 compliance [a, b; c, d] as re/im pairs; w0: the belt's growth at this speed (m)
+// (the belt's turn, in steps of about 5% - the ring's response hardly changes within one - and its key)
+const ftOq = Om => { const a = Math.abs(Om); return a < 4 ? Math.round(Om * 2) / 2 : Math.sign(Om) * Math.exp(Math.round(Math.log(a) * 20) / 20); };
+const ftOk = Om => { const a = Math.abs(Om); return a < 4 ? Math.round(Om * 2) + 64 : (Om > 0 ? 200 : 600) + Math.round(Math.log(a) * 20); };
+function ftModal(F, p, Om) {
+  const key = Math.round(p * 50) * 2048 + ftOk(Om), C = F.mc, hit = C.get(key); if (hit && hit.v === F.cal) return hit;
+  const M = FTM, R = F.R, R2 = R * R, R4 = R2 * R2, s = ftAt(F, p), rA = F.rhoA, Oq = ftOq(Om), O2 = Oq * Oq, Tc = rA * R2 * O2;
+  const ip = new Float64Array((2 * M + 1) * 8), op = new Float64Array((M + 1) * 8), EAR = F.EA / R2;
+  const inv = (o, j, ar, ai, br, bi, cr, ci, dr, di) => { // [a b; c d]^-1 into o at j (complex)
+    const er = ar * dr - ai * di - (br * cr - bi * ci), ei = ar * di + ai * dr - (br * ci + bi * cr), m = er * er + ei * ei, xr = er / m, xi = -ei / m;
+    o[j] = dr * xr - di * xi; o[j + 1] = dr * xi + di * xr; o[j + 2] = -(br * xr - bi * xi); o[j + 3] = -(br * xi + bi * xr);
+    o[j + 4] = -(cr * xr - ci * xi); o[j + 5] = -(cr * xi + ci * xr); o[j + 6] = ar * xr - ai * xi; o[j + 7] = ar * xi + ai * xr; };
+  for (let n = -M; n <= M; n++) {
+    const j = (n + M) * 8, n2 = n * n, sg = Math.tanh(n * Oq / 0.4), hs = F.gs * sg, hb = F.gb * sg, vi = n * Oq * F.cv;
+    if (n === 0) { inv(ip, j, s.kr + EAR + s.EI / R4 - rA * O2, 0, 0, 0, 0, 0, s.kt, 0); continue; }
+    const eb = s.EI * (n2 - 1) * (n2 - 1) / R4, ar = s.kr + eb + EAR + s.T0 * (n2 - 1) / R2 - rA * O2, ai = s.kr * (hs + vi) + eb * hb;
+    const br = -n * EAR + n * rA * O2, dr = s.kt + n2 * EAR - n2 * rA * O2, di = s.kt * (hs + vi);
+    inv(ip, j, ar, ai, br, 0, br, 0, dr, di);
+  }
+  const eY = F.EIy / R4;
+  for (let n = 0; n <= M; n++) {
+    const j = n * 8, n2 = n * n, sg = n ? Math.tanh(n * Oq / 0.4) : 0, hs = F.gs * sg, hb = F.gb * sg, vi = n * Oq * F.cv, gj = F.GJ * n2 / R2;
+    // (the belt's own curvature, 1/R, is what couples its twist with its edgewise bending and its torsion with its sideways
+    // slope, and what makes twisting it stretch one edge and squash the other; pressed flat on the road it has none there:
+    // the short waves, which live about the patch, couple and evert less - cN)
+    const cN = F.nc > 0 ? 1 / (1 + n2 / (F.nc * F.nc)) : 1, yy = eY * n2 * n2 + gj * cN * cN / R2, yb = cN * (eY * n2 * R + gj / R), bb = eY * R2 * cN * cN + gj;
+    inv(op, j, s.ky + yy + (s.T0 + Tc) * n2 / R2 - n2 * O2 * rA, s.ky * (hs + vi) + yy * hb, yb, yb * hb, yb, yb * hb, s.kb + bb + s.T0 * F.bt * F.bt / 12 * n2 / R2, s.kb * (hs + vi) + bb * hb);
+  }
+  const o = { v: F.cal, ip, op, w0: rA * O2 * R / (s.kr + EAR + s.EI / R4 - rA * O2) };
+  if (C.size > 400) C.clear(); C.set(key, o); return o;
+}
+// the belt's give at the rows of the patch: the displacement at row i from a load at row k, for rows dth apart, as eight
+// kernels over i - k = -(nx+FTE-1)..(nx+FTE-1) (index i - k + nx + FTE - 1: the rows beyond the patch's too): radial and round the belt from radial and round-the-belt loads
+// (wr, wt, vr, vt), sideways and twist from sideways loads and twisting moments (ya, yb, ba, bb). Each the ring's modes
+// summed at that offset, divided by the belt's length
+function ftKernel(F, p, Om, dth, nx) {
+  const key = (Math.round(p * 50) * 2048 + ftOk(Om)) * 1024 + Math.round(Math.log(dth) * 20) + 512, C = F.kcache, hit = C.get(key);
+  if (hit && hit.v === F.cal && hit.nx === nx) return hit;
+  const H = ftModal(F, p, Om), ip = H.ip, op = H.op, M = FTM, nk = 2 * (nx + FTE) - 1, sc = 1 / (2 * Math.PI * F.R), oK = nx + FTE - 1;
+  const K = { v: F.cal, nx, dth, w0: H.w0, wr: new Float64Array(nk), wt: new Float64Array(nk), vr: new Float64Array(nk), vt: new Float64Array(nk),
+    ya: new Float64Array(nk), yb: new Float64Array(nk), ba: new Float64Array(nk), bb: new Float64Array(nk) };
+  for (let k = 0; k < nk; k++) {
+    const D = (k - oK) * dth, c1 = Math.cos(D), s1 = Math.sin(D);
+    let wr = ip[M * 8], vt = ip[M * 8 + 6], wt = 0, vr = 0, ya = op[0], yb = op[2], ba = op[4], bb = op[6];
+    let cp = 1, sp = 0; // cos, sin of n D, by rotation
+    for (let n = 1; n <= M; n++) {
+      const c = cp * c1 - sp * s1, s = sp * c1 + cp * s1; cp = c; sp = s;
+      const j = (n + M) * 8, jm = (M - n) * 8; // +n: e^{inD} = c + i s; -n: c - i s
+      wr += ip[j] * c - ip[j + 1] * s + ip[jm] * c + ip[jm + 1] * s;
+      wt += (ip[j + 3] * c + ip[j + 2] * s) + (ip[jm + 3] * c - ip[jm + 2] * s); // Re(-i H12 e) = Im(H12 e)
+      vr -= (ip[j + 5] * c + ip[j + 4] * s) + (ip[jm + 5] * c - ip[jm + 4] * s); // Re(i H21 e) = -Im(H21 e)
+      vt += ip[j + 6] * c - ip[j + 7] * s + ip[jm + 6] * c + ip[jm + 7] * s;
+      const q = n * 8; // out of plane: H_{-n} = conj(H_n), so 2 Re(H e)
+      ya += 2 * (op[q] * c - op[q + 1] * s); yb += 2 * (op[q + 2] * c - op[q + 3] * s); ba += 2 * (op[q + 4] * c - op[q + 5] * s); bb += 2 * (op[q + 6] * c - op[q + 7] * s);
+    }
+    K.wr[k] = wr * sc; K.wt[k] = wt * sc; K.vr[k] = vr * sc; K.vt[k] = vt * sc; K.ya[k] = ya * sc; K.yb[k] = yb * sc; K.ba[k] = ba * sc; K.bb[k] = bb * sc;
+  }
+  if (C.size > 700) C.clear(); C.set(key, K); return K;
+}
+// ---- the ground under a tyre ----
+// The ring meets the road's own shape under each block. For a step the ground about a tyre is taken once: its height along
+// three lines down the wheel's way (under the tread's middle and either edge, gk points FTG apart over the reach of the
+// patch through the step) and the solids it may roll onto (rocks, stones, bales: their shapes as they are). G.k: 0 that,
+// 1 a level plane at G.y (a test rig's drum, with G.cl a cleat across it: from x0, w long, hh high)
+const FTG = 0.025, FT_GL = 26;
+function ftH(G, x, z, o) {
+  let h, gx = 0, gz = 0;
+  if (G.k === 1) { h = G.y; const cl = G.cl; if (cl && x > cl.x0 - cl.r && x < cl.x0 + cl.w + cl.r) { // (a cleat with rounded edges, radius r)
+      const u = x < cl.x0 + cl.r ? x - cl.x0 - cl.r : x > cl.x0 + cl.w - cl.r ? x - cl.x0 - cl.w + cl.r : 0, e = Math.abs(u);
+      if (e < cl.r) { const t = Math.sqrt(cl.r * cl.r - e * e), hh = cl.hh - cl.r + t; if (hh > 0) { h = G.y + hh; gx = -u / Math.max(t, 0.25 * cl.r); } } } }
+  else {
+    const ux = x - G.ox, uz = z - G.oz, xi = (ux * G.hx + uz * G.hz - G.x0) / G.dx, ze = (ux * G.hz - uz * G.hx) / G.dz; // (along, in steps; across, left +, in half-widths)
+    const n = G.n, fi = xi < 0 ? 0 : xi > n - 1.001 ? n - 1.001 : xi, i = fi | 0, t = fi - i, zc = ze < -1 ? -1 : ze > 1 ? 1 : ze, L = zc < 0 ? 0 : 1, tz = zc < 0 ? zc + 1 : zc;
+    const Y = G.y, a0 = Y[L * n + i], a1 = Y[L * n + i + 1], b0 = Y[(L + 1) * n + i], b1 = Y[(L + 1) * n + i + 1], hA = a0 + (a1 - a0) * t, hB = b0 + (b1 - b0) * t;
+    h = hA + (hB - hA) * tz; const dxi = ((a1 - a0) * (1 - tz) + (b1 - b0) * tz) / G.dx, dze = (hB - hA) / G.dz;
+    gx = dxi * G.hx + dze * G.hz; gz = dxi * G.hz - dze * G.hx;
+    for (let k = 0; k < G.ns; k++) { const s = G.sol[k], dx = x - s.x, dz = z - s.z, d2 = dx * dx + dz * dz; if (d2 >= s.R * s.R) continue;
+      let top, sl = 0; if (s.H > 0) { const d = Math.sqrt(d2), r = d / s.R, c = Math.sqrt(Math.max(1e-4, 1 - r * r)); top = s.g + s.H * c; sl = d > 1e-6 ? Math.min(3, s.H * r / (s.R * c)) / d : 0; } else top = s.top;
+      if (top > h) { h = top; gx = -sl * dx; gz = -sl * dz; } }
+  }
+  o.h = h; o.gx = gx; o.gz = gz; return o;
+}
+// ---- the contact: one sub-step ----
+// ft: the wheel's state (ftNew); F: its ring; P: the friction for the step (ftFric); G: the ground; S: the pose at the end of
+// the sub-step (C its centre; dn, fw: down and forward in its plane; a: its axle, to the right; n, tl, tt: the contact's
+// frame; om: its spin, rad/s; p: its pressure, bar); h: the sub-step (s); its forces added into O (ftAcc)
+function ftNew(nx, ny) {
+  const nb = nx * ny, ne = (nx + 2 * FTE) * ny, f = n => new Float64Array(n);
+  return { nx, ny, th0: 0, dth: 0.01, rth0: 0, rdth: 0.01, has: 0, ps: 0, c1: 0, c2: 0, Rt: 0, on: new Uint8Array(nb), q: f(nb), dl: f(ne), bx: f(nb), by: f(nb), sx: f(nb), sy: f(nb),
+    Xx: f(ne), Xy: f(ne), Xz: f(ne), Xok: new Uint8Array(nx + 2 * FTE), w: f(nx), v: f(nx), y: f(nx), be: f(nx), ka: f(nx * 6), LrF: f(nx), LtF: f(nx), LaF: f(nx),
+    C: f(3), dn: f(3), fw: f(3), a: f(3), Pc: f(ny), Wc: f(ny), lead: f(ny).fill(NaN) };
+}
+const FTW = (() => { const N = 16 * 8, f = n => new Float64Array(n); // (scratch, for up to 16 rows of 8 blocks)
+  return { th: f(16), er: f(48), et: f(48), Px: f(N), Py: f(N), Pz: f(N), nx_: f(N), ny_: f(N), nz_: f(N), d: f(N), q: f(N), ke: f(N), fin: f(N),
+    on0: f(N), bx0: f(N), by0: f(N), sx0: f(N), sy0: f(N), dl0: f(N), X0x: f(N), X0y: f(N), X0z: f(N), fx: f(N), fy: f(N), Kxx: f(N), Kxy: f(N), Kyy: f(N),
+    bx: f(N), by: f(N), sx: f(N), sy: f(N), vs: f(N), pw: f(N), sl: f(N),
+    w: f(16), v: f(16), y: f(16), be: f(16), ka: f(96), z0: f(6), uz: f(N), Mz: f(96), Cz: f(96), Ez: f(96), Fz: f(16 * 36), Rz: f(96), dz_: f(96), Mi: f(16 * 36), tz: f(6), tz2: f(6), Lr: f(16), Lt: f(16), La: f(16), Mb: f(16), Mk: f(16), A: f(16), B: f(16), Ck: f(16), D: f(16), E: f(16), Fk: f(16),
+    At: f(16), Bt: f(16), Aa: f(16), Ba: f(16), Rk: f(16), kk: f(16), J: f(32 * 32), J2: f(16 * 16), r: f(32), r2: f(16), hh: f(N), hx: f(N), hz: f(N), hpx: f(N), hpz: f(N), sg: f(N), dl0r: f(N), piv: new Int32Array(32), eta: f(8), phi: f(8), cr: f(8),
+    LrF: f(16), LtF: f(16), LaF: f(16), Svv: f(16), Svy: f(16), Syv: f(16), Syy: f(16), lx: f(8), ly: f(8), lz: f(8), li: f(8), g1: f(16), g2: f(16), g3: f(16), cnt: [0, 0, 0, 0], Ph: f(48), JR: f(19 * 19), rr: f(19), Jwb: f(256), Jbw: f(256), Jbb: f(256), Gv: f(256), Gy: f(256), dw_: f(16), db_: f(16), dk_: f(16), w0f: f(16), J5: f(36), r5: f(6), pc: f(3), pc2: f(3), rpv: f(16), rpy: f(16), JPv: f(48), JPy: f(48), JPw: f(48), JPz: f(48), hg: { h: 0, gx: 0, gz: 0 } }; })();
+// a 2n x 2n system [A B; C D] x = r (J row-major, 2n wide) solved block by block: A x1 = r1, then D x2 = r2 - C x1, then
+// A x1 = r1 - B x2 again (one sweep and a half: the two halves - radial and twist, or along and across - are coupled
+// only weakly, and the Newton round it takes up what is left), into r
+function ftBGS(J, r, n, M, b) {
+  const n2 = 2 * n, r1 = FTW.g1, r2 = FTW.g2, y1 = FTW.g3;
+  for (let i = 0; i < n; i++) { r1[i] = r[i]; r2[i] = r[n + i]; }
+  for (let i = 0; i < n; i++) { for (let k = 0; k < n; k++) M[i * n + k] = J[i * n2 + k]; b[i] = r1[i]; } ftLin(M, b, n); for (let i = 0; i < n; i++) y1[i] = b[i];
+  for (let i = 0; i < n; i++) { let s = r2[i]; for (let k = 0; k < n; k++) { M[i * n + k] = J[(n + i) * n2 + n + k]; s -= J[(n + i) * n2 + k] * y1[k]; } b[i] = s; } ftLin(M, b, n); for (let i = 0; i < n; i++) r[n + i] = b[i];
+  for (let i = 0; i < n; i++) { let s = r1[i]; for (let k = 0; k < n; k++) { M[i * n + k] = J[i * n2 + k]; s -= J[i * n2 + n + k] * r[n + k]; } b[i] = s; } ftLin(M, b, n); for (let i = 0; i < n; i++) r[i] = b[i];
+}
+// (the part of a field over the rows a quadratic along them carries - its coefficients into c, by least squares against
+// Phi - and what is left, into rp)
+function ftProj(Ph, r, nx, c, rp) {
+  let a00 = 0, a01 = 0, a02 = 0, a11 = 0, a12 = 0, a22 = 0, b0 = 0, b1 = 0, b2 = 0;
+  for (let i = 0; i < nx; i++) { const p0 = Ph[i * 3], p1 = Ph[i * 3 + 1], p2 = Ph[i * 3 + 2], v = r[i]; a00 += p0 * p0; a01 += p0 * p1; a02 += p0 * p2; a11 += p1 * p1; a12 += p1 * p2; a22 += p2 * p2; b0 += p0 * v; b1 += p1 * v; b2 += p2 * v; }
+  const c00 = a11 * a22 - a12 * a12, c01 = a02 * a12 - a01 * a22, c02 = a01 * a12 - a02 * a11, det = a00 * c00 + a01 * c01 + a02 * c02 || 1e-30;
+  c[0] = (c00 * b0 + c01 * b1 + c02 * b2) / det; c[1] = (c01 * b0 + (a00 * a22 - a02 * a02) * b1 + (a01 * a02 - a00 * a12) * b2) / det; c[2] = (c02 * b0 + (a01 * a02 - a00 * a12) * b1 + (a00 * a11 - a01 * a01) * b2) / det;
+  for (let i = 0; i < nx; i++) rp[i] = r[i] - c[0] * Ph[i * 3] - c[1] * Ph[i * 3 + 1] - c[2] * Ph[i * 3 + 2];
+}
+// a dense solve in place (J: n x n row-major, r: right-hand side, into r), Gaussian elimination with partial pivoting
+function ftLin(J, r, n) {
+  for (let c = 0; c < n; c++) {
+    let pm = c, bv = Math.abs(J[c * n + c]); for (let i = c + 1; i < n; i++) { const v = Math.abs(J[i * n + c]); if (v > bv) { bv = v; pm = i; } }
+    if (pm !== c) { for (let k = c; k < n; k++) { const t = J[c * n + k]; J[c * n + k] = J[pm * n + k]; J[pm * n + k] = t; } const t = r[c]; r[c] = r[pm]; r[pm] = t; }
+    const d = J[c * n + c] || 1e-12;
+    for (let i = c + 1; i < n; i++) { const f = J[i * n + c] / d; if (f === 0) continue; for (let k = c + 1; k < n; k++) J[i * n + k] -= f * J[c * n + k]; r[i] -= f * r[c]; }
+  }
+  for (let i = n - 1; i >= 0; i--) { let s = r[i]; for (let k = i + 1; k < n; k++) s -= J[i * n + k] * r[k]; r[i] = s / (J[i * n + i] || 1e-12); }
+}
+// the friction for a step (into P): on the hard part (hw of the patch) rubber stuck at mu0 (at the pressure pref; pressed
+// harder it holds less, by (p/pref)^-ep), sliding at mu0 (r + (1 - r) e^{-v/vd}); on the loose part (lw) the ground's hold
+// muL (its rubber part muLr less pressed harder, the grains in the grooves lphi), sheared over Kl; the studs' bite per
+// square metre of tread (Fsa) skating to rs of it at sv; each block column's rubber, its temperature's grip gz[j] and its
+// shear stiffness ct[j] (N/m3)
+function ftFricNew(ny) { return { mu0: 1, r: 0.8, vd: 5, hw: 1, lw: 0, muLr: 0, lphi: 0, Kl: 0.004, Fsa: 0, rs: 1, sv: 0, sk: 0.002, pref: 2.2e5, ep: 0.2, vh: 0.02, gz: new Float64Array(ny).fill(1), ct: new Float64Array(ny).fill(6e7) }; }
+let FT_SK = 0.002; // (m: how far a stud leans in the rubber before it bites fully, at the least; a longer stud leans further: 0.6 of how far it stands out)
+// the belt's shapes across the tread beyond its radial give and twist (the rest of what its columns can do, ny - 2 of
+// them): discrete orthonormal polynomials of the column's place across, degree 2 and up; the belt's hold on each - its
+// tension across, which the air gives it, resisting the columns moving apart (as a membrane: their differences squared),
+// scaled so that the dish (the first) is held by kk as the single dish was - and the dish's share of the crown's change
+// with pressure. Found once for each number of columns
+const FT_XB = new Map();
+function ftXB(ny) {
+  let B = FT_XB.get(ny); if (B) return B;
+  const m = ny - 2, u = new Float64Array(ny), S = new Float64Array(ny * Math.max(1, m)), V = [];
+  for (let j = 0; j < ny; j++) u[j] = 2 * (-0.5 + (j + 0.5) / ny);
+  const dot = (a, b) => { let t = 0; for (let j = 0; j < ny; j++) t += a[j] * b[j]; return t; };
+  for (let d = 0; d < ny; d++) { const v = new Float64Array(ny); for (let j = 0; j < ny; j++) v[j] = Math.pow(u[j], d);
+    for (const w of V) { const c = dot(v, w); for (let j = 0; j < ny; j++) v[j] -= c * w[j]; } const n = Math.sqrt(dot(v, v)) || 1; for (let j = 0; j < ny; j++) v[j] /= n; V.push(v); }
+  for (let mm = 0; mm < m; mm++) for (let j = 0; j < ny; j++) S[j * m + mm] = V[mm + 2][j];
+  // (the membrane's hold, in the basis: sum of the neighbours' differences squared; and the continuous dish's own, for the scale)
+  const ph = new Float64Array(ny); for (let j = 0; j < ny; j++) ph[j] = u[j] * u[j] - 1 / 3;
+  let dph = 0; for (let j = 0; j + 1 < ny; j++) dph += (ph[j + 1] - ph[j]) * (ph[j + 1] - ph[j]);
+  const K = new Float64Array(Math.max(1, m * m));
+  for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) { let t = 0; for (let j = 0; j + 1 < ny; j++) t += (S[(j + 1) * m + a] - S[j * m + a]) * (S[(j + 1) * m + b] - S[j * m + b]); K[a * m + b] = t / (dph || 1); }
+  const P2 = new Float64Array(Math.max(1, m)); for (let mm = 0; mm < m; mm++) { let t = 0; for (let j = 0; j < ny; j++) t += S[j * m + mm] * ph[j]; P2[mm] = t; }
+  B = { m, S, K, P2 }; FT_XB.set(ny, B); return B;
+}
+function ftSub(ft, F, P, G, S, h, O) {
+  const W = FTW, nx = ft.nx, ny = ft.ny, s = ftAt(F, S.p), om = S.om, Om = -om, hg = W.hg, bt = F.bt, tr = F.tr;
+  const C = S.C, dn = S.dn, fw = S.fw, a = S.a, nn = S.n, tl = S.tl, tt = S.tt;
+  const mo = ftModal(F, S.p, Om), Rt = F.R + mo.w0;
+  for (let j = 0; j < ny; j++) { const e = -bt / 2 + (j + 0.5) * bt / ny, u = 2 * e / bt; W.eta[j] = e; W.phi[j] = u * u - 1 / 3; W.cr[j] = F.ec * u * u; }
+  // the contact's direction in the wheel's plane, and where the tread as it is built reaches into the ground
+  const na = nn[0] * a[0] + nn[1] * a[1] + nn[2] * a[2], ddx = -nn[0] + na * a[0], ddy = -nn[1] + na * a[1], ddz = -nn[2] + na * a[2];
+  const thc = Math.atan2(ddx * fw[0] + ddy * fw[1] + ddz * fw[2], ddx * dn[0] + ddy * dn[1] + ddz * dn[2]);
+  const NS = 15, TS = 0.65; let thA = 9, thB = -9;
+  for (let m = 0; m < NS; m++) { const th = thc - TS + 2 * TS * m / (NS - 1), c = Math.cos(th), sn = Math.sin(th), ex = c * dn[0] + sn * fw[0], ey = c * dn[1] + sn * fw[1], ez = c * dn[2] + sn * fw[2];
+    for (let jj = 0; jj < 3; jj++) { const j = jj === 0 ? 0 : jj === 1 ? (ny - 1) >> 1 : ny - 1, r = Rt - W.cr[j], e = W.eta[j], py = C[1] + r * ey + e * a[1];
+      ftH(G, C[0] + r * ex + e * a[0], C[2] + r * ez + e * a[2], hg); if (hg.h - py > -0.002) { if (th < thA) thA = th; if (th > thB) thB = th; } } }
+  if (thA > thB) { ftClear(ft, S); return 0; }
+  thA -= TS / (NS - 1); thB += TS / (NS - 1);
+  // the rows: about where the patch was (it moves under the wheel only as the wheel tips), a little beyond its ends, within
+  // the reach; further where it reached the end rows (it may go on beyond them). If it still reaches them, again, wider
+  let lo = thA, hi = thB, nAct = 0, th0 = 0, dth = 0, K = null, Ab = 0;
+  let keep = 0;
+  if (ft.has) { const sh = thc - ft.thc, od = ft.dth, o0 = ft.th0 + sh, o1 = o0 + (nx - 1) * od, c1 = ft.c1 + sh, c2 = ft.c2 + sh;
+    // (the patch well inside the rows, filling most of them: the same rows again, moved only as the wheel tipped)
+    if (!ft.e1 && !ft.e2 && c1 >= o0 + 0.9 * od && c2 <= o1 - 0.9 * od && c2 - c1 >= (nx - 4.5) * od && o0 >= thA - od && o1 <= thB + od) keep = 1;
+    lo = Math.max(thA, c1 - (ft.e1 ? 3 : 1.25) * od); hi = Math.min(thB, c2 + (ft.e2 ? 3 : 1.25) * od); if (hi < lo) { lo = thA; hi = thB; }
+    if (keep) { lo = o0; hi = o1; } }
+  for (let pass = 0; pass < 3; pass++) {
+    if (hi - lo < 0.03) { const m = (lo + hi) / 2; lo = m - 0.015; hi = m + 0.015; }
+    if (keep && pass === 0) { dth = ft.dth; th0 = lo; } else { dth = Math.exp(Math.ceil(Math.log((hi - lo) / (nx - 1)) * 20) / 20); th0 = (lo + hi) / 2 - dth * (nx - 1) / 2; }
+    K = ftKernel(F, S.p, Om, dth, nx); Ab = Rt * dth * bt / ny;
+    nAct = ftNormal(ft, F, P, G, S, h, K, th0, dth, Rt, Ab, s);
+    if (!nAct) { if (lo > thA + 1e-9 || hi < thB - 1e-9) { lo = thA; hi = thB; keep = 0; continue; } break; }
+    let e1 = 0, e2 = 0; for (let j = 0; j < ny; j++) { if (W.q[j] > 0) e1 = 1; if (W.q[(nx - 1) * ny + j] > 0) e2 = 1; }
+    const span = (nx - 1) * dth, nlo = e1 && th0 > thA + 0.25 * dth ? Math.max(thA, th0 - 0.5 * span) : lo, nhi = e2 && th0 + span < thB - 0.25 * dth ? Math.min(thB, th0 + span + 0.5 * span) : hi;
+    ft.e1 = e1; ft.e2 = e2; if (nlo === lo && nhi === hi) break; lo = nlo; hi = nhi;
+    if (ft.ps) { for (let i = 0; i < nx; i++) { ft.w[i] = W.w[i]; ft.v[i] = W.v[i]; ft.y[i] = W.y[i]; ft.be[i] = W.be[i]; } for (let q = 0; q < nx * 6; q++) ft.ka[q] = W.ka[q]; ft.rth0 = th0; ft.rdth = dth; } // (the next pass starts from this one's belt)
+  }
+  if (!nAct) { ftClear(ft, S); return 0; }
+  const Z = FT_Z; Z.th0 = th0; Z.dth = dth; Z.thc = thc; Z.Rt = Rt; Z.Ab = Ab; Z.K = K; return ftTan(ft, F, P, G, S, h, O, Z);
+}
+// the belt pressed into the ground by the blocks, for rows dth apart from th0 (K: their kernels; Ab: a block's area; s: the
+// ring at its pressure): each block's history brought to its row, then Newton on the belt's radial give w and twist be
+// at each row (its bending across the tread ka settled row by row), the blocks that touch found as it goes, the
+// friction's loads as last found. The blocks touching, counted
+function ftNormal(ft, F, P, G, S, h, K, th0, dth, Rt, Ab, s) {
+  const W = FTW, nx = ft.nx, ny = ft.ny, om = S.om, hg = W.hg, bt = F.bt, tr = F.tr, C = S.C, dn = S.dn, fw = S.fw, a = S.a;
+  const Kwr = K.wr, Kwt = K.wt, Kba = K.ba, Kbb = K.bb, o0 = nx - 1 + FTE;
+  const kkR = s.kk * Rt * dth, has = ft.ps, oth = ft.th0, odt = ft.dth, oC = ft.C, odn = ft.dn, ofw = ft.fw, oa = ft.a, oRt = ft.Rt;
+  const XB = ftXB(ny), mz = XB.m, XS = XB.S, XK = XB.K, z0 = W.z0; for (let q = 0; q < mz; q++) z0[q] = s.k0 * XB.P2[q]; // (the shapes' rest: the crown's change with pressure)
+  // the belt where it was (where it is: it moves only as the load does), and each block's history: the rubber that is at
+  // each row now was om h further round last time
+  for (let i = 0; i < nx; i++) {
+    const th = th0 + i * dth, c = Math.cos(th), sn = Math.sin(th), i3 = 3 * i; W.th[i] = th;
+    W.er[i3] = c * dn[0] + sn * fw[0]; W.er[i3 + 1] = c * dn[1] + sn * fw[1]; W.er[i3 + 2] = c * dn[2] + sn * fw[2];
+    W.et[i3] = -sn * dn[0] + c * fw[0]; W.et[i3 + 1] = -sn * dn[1] + c * fw[1]; W.et[i3 + 2] = -sn * dn[2] + c * fw[2];
+    const fs = has ? clamp((th - ft.rth0) / ft.rdth, 0, nx - 1) : -1; // (beyond the old rows, the nearest's: the belt as last found, perhaps on rows of another spacing)
+    if (fs >= 0) { const i0 = Math.min(nx - 2, fs | 0), t = fs - i0, u = 1 - t;
+      W.w[i] = ft.w[i0] * u + ft.w[i0 + 1] * t; W.v[i] = ft.v[i0] * u + ft.v[i0 + 1] * t; W.y[i] = ft.y[i0] * u + ft.y[i0 + 1] * t; W.be[i] = ft.be[i0] * u + ft.be[i0 + 1] * t; for (let q = 0; q < mz; q++) W.ka[i * mz + q] = ft.ka[i0 * mz + q] * u + ft.ka[(i0 + 1) * mz + q] * t;
+      W.LrF[i] = ft.LrF[i0] * u + ft.LrF[i0 + 1] * t; W.LtF[i] = ft.LtF[i0] * u + ft.LtF[i0 + 1] * t; W.LaF[i] = ft.LaF[i0] * u + ft.LaF[i0 + 1] * t; }
+    else { W.w[i] = 0; W.v[i] = 0; W.y[i] = 0; W.be[i] = 0; for (let q = 0; q < mz; q++) W.ka[i * mz + q] = z0[q]; W.LrF[i] = 0; W.LtF[i] = 0; W.LaF[i] = 0; }
+    // (the old rows, with those kept beyond the patch's ends: FTE more each side, where the belt's shape was found too). Each
+    // column's leading edge last time tells whether this rubber was on the road then: upstream of it, it has come on since
+    // (fresh); behind it, it carries what it had, found between its rows - or between its row and the edge, where it had
+    // only just come on
+    const ts = th + om * h, fo = has ? (ts - oth) / odt + FTE : -1, ne = nx + 2 * FTE, i0 = fo >= 0 && fo <= ne - 1 ? Math.min(ne - 2, fo | 0) : -1, t = fo - i0, u = 1 - t;
+    const ok = i0 >= 0 && ft.Xok[i0] && ft.Xok[i0 + 1], c0 = i0 - FTE;
+    for (let j = 0; j < ny; j++) { const k = i * ny + j, Lo = ft.lead[j];
+      W.on0[k] = 0; W.bx0[k] = 0; W.by0[k] = 0; W.sx0[k] = 0; W.sy0[k] = 0;
+      if (ok) { const e0 = i0 * ny + j, e1 = e0 + ny;
+        W.dl0[k] = ft.dl[e0] * u + ft.dl[e1] * t; W.X0x[k] = ft.Xx[e0] * u + ft.Xx[e1] * t; W.X0y[k] = ft.Xy[e0] * u + ft.Xy[e1] * t; W.X0z[k] = ft.Xz[e0] * u + ft.Xz[e1] * t;
+        if (Lo === Lo && (om > 0 ? ts <= Lo : om < 0 ? ts >= Lo : true)) { // (on the road last time)
+          const a0 = c0 >= 0 && c0 < nx && ft.on[c0 * ny + j], a1 = c0 + 1 >= 0 && c0 + 1 < nx && ft.on[(c0 + 1) * ny + j];
+          if (a0 && a1) { const k0 = c0 * ny + j, k1 = k0 + ny; W.on0[k] = 1; W.bx0[k] = ft.bx[k0] * u + ft.bx[k1] * t; W.by0[k] = ft.by[k0] * u + ft.by[k1] * t; W.sx0[k] = ft.sx[k0] * u + ft.sx[k1] * t; W.sy0[k] = ft.sy[k0] * u + ft.sy[k1] * t; }
+          else if (a0 || a1) { const ia = a0 ? c0 : c0 + 1, ka = ia * ny + j, tha = oth + ia * odt, g = clamp((ts - Lo) / ((tha - Lo) || 1e-9), 0, 1); // (towards nothing at the edge)
+            W.on0[k] = 1; W.bx0[k] = ft.bx[ka] * g; W.by0[k] = ft.by[ka] * g; W.sx0[k] = ft.sx[ka] * g; W.sy0[k] = ft.sy[ka] * g; } } }
+      else { const r = (has ? oRt : Rt) - W.cr[j], e = W.eta[j];
+        if (has) { const c2 = Math.cos(ts), s2 = Math.sin(ts); // (rubber from further round: where it was, as built, last time)
+          W.X0x[k] = oC[0] + r * (c2 * odn[0] + s2 * ofw[0]) + e * oa[0]; W.X0y[k] = oC[1] + r * (c2 * odn[1] + s2 * ofw[1]) + e * oa[1]; W.X0z[k] = oC[2] + r * (c2 * odn[2] + s2 * ofw[2]) + e * oa[2];
+          ftH(G, W.X0x[k], W.X0z[k], hg); W.dl0[k] = Math.min(0, hg.h - W.X0y[k]); }
+        else { W.X0x[k] = C[0] + r * W.er[i3] + e * a[0]; W.X0y[k] = C[1] + r * W.er[i3 + 1] + e * a[1]; W.X0z[k] = C[2] + r * W.er[i3 + 2] + e * a[2]; W.dl0[k] = 0; } }
+    }
+  }
+  const kbA = F.kc * Ab, n2 = 2 * nx, J = W.J, r = W.r, ny_ = ny;
+  for (let i = 0; i < nx; i++) { const x = (2 * i - (nx - 1)) / (nx - 1); W.Ph[i * 3] = 1; W.Ph[i * 3 + 1] = x; W.Ph[i * 3 + 2] = x * x - 1 / 3; W.w0f[i] = W.w[i]; }
+  const kfl = F.kfl * Rt * dth, gap = F.gap, ksr = s.kr * Rt * dth; // (the rim flange, row by row: stiff as the sidewall is crushed, giving back about a third as it comes off; the sidewalls' own radial support there)
+  let nAct = 0, rq = 1;
+  for (let it = 0; it < 10; it++) {
+    let changed = 0; nAct = 0;
+    // where each block's tip is with the belt as it stands, and how far into the ground (the ground found once a
+    // sub-step; as the tread settles - its tips moving only radially - on its plane there)
+    if (it === 0) for (let i = 0; i < nx; i++) {
+      const i3 = 3 * i, erx = W.er[i3], ery = W.er[i3 + 1], erz = W.er[i3 + 2], etx = W.et[i3], ety = W.et[i3 + 1], etz = W.et[i3 + 2], wi = W.w[i], bi = W.be[i], vi = W.v[i], yi = W.y[i];
+      for (let j = 0; j < ny_; j++) { const k = i * ny_ + j, e = W.eta[j]; let uz = 0; for (let q = 0; q < mz; q++) uz += XS[j * mz + q] * W.ka[i * mz + q]; W.uz[k] = uz; const rad = Rt - W.cr[j] + wi + e * bi + uz;
+        const px = C[0] + rad * erx + vi * etx + (e + yi) * a[0], py = C[1] + rad * ery + vi * ety + (e + yi) * a[1], pz = C[2] + rad * erz + vi * etz + (e + yi) * a[2];
+        ftH(G, px, pz, hg); const gx = hg.gx, gz = hg.gz, L = Math.sqrt(1 + gx * gx + gz * gz);
+        W.Px[k] = px; W.Py[k] = py; W.Pz[k] = pz; W.nx_[k] = -gx / L; W.ny_[k] = 1 / L; W.nz_[k] = -gz / L; W.d[k] = (hg.h - py) / L; }
+    }
+    else for (let i = 0; i < nx; i++) {
+      const i3 = 3 * i, erx = W.er[i3], ery = W.er[i3 + 1], erz = W.er[i3 + 2], dw = W.dw_[i], db = W.db_[i];
+      for (let j = 0; j < ny_; j++) { const k = i * ny_ + j; let du = 0; for (let q = 0; q < mz; q++) du += XS[j * mz + q] * W.dz_[i * mz + q]; W.uz[k] += du; const dr = dw + W.eta[j] * db + du; if (dr === 0) continue;
+        W.Px[k] += dr * erx; W.Py[k] += dr * ery; W.Pz[k] += dr * erz; W.d[k] -= dr * (W.nx_[k] * erx + W.ny_[k] * ery + W.nz_[k] * erz); }
+    }
+    // (the tread's hysteresis: stiffer while it is being squashed, softer as it comes back - by how fast the rubber there
+    // is being squashed now, the patch's shape rolling through it and the load changing, held through the iterations so
+    // the Newton sees one spring; and its viscous part, by the same rate)
+    if (rq) for (let i = 0; i < nx; i++) { const ia = i > 0 ? i - 1 : i, ib = i < nx - 1 ? i + 1 : i, fs = has ? (W.th[i] - oth) / odt + FTE : -1, ne = nx + 2 * FTE;
+      const e0 = fs >= 0 && fs <= ne - 1 ? Math.min(ne - 2, fs | 0) : -1, tq = fs - e0, okd = e0 >= 0 && ft.Xok[e0] && ft.Xok[e0 + 1];
+      for (let j = 0; j < ny_; j++) { const k = i * ny_ + j, dd = (Math.max(0, W.d[ib * ny_ + j]) - Math.max(0, W.d[ia * ny_ + j])) / ((ib - ia) * dth);
+        const dOld = okd ? ft.dl[e0 * ny_ + j] * (1 - tq) + ft.dl[(e0 + 1) * ny_ + j] * tq : W.d[k], rate = (Math.max(0, W.d[k]) - Math.max(0, dOld)) / h - om * dd;
+        W.sg[k] = Math.tanh(rate / P.vh); W.dl0r[k] = clamp(rate, -3, 3); } }
+    rq = 0;
+    for (let i = 0; i < nx; i++) {
+      W.Lr[i] = 0; W.Lt[i] = 0; W.La[i] = 0; W.Mb[i] = 0; W.A[i] = 0; W.B[i] = 0; W.D[i] = 0; W.At[i] = 0; W.Bt[i] = 0; W.Aa[i] = 0; W.Ba[i] = 0;
+      for (let q = 0; q < mz; q++) { W.Mz[i * mz + q] = 0; W.Cz[i * mz + q] = 0; W.Ez[i * mz + q] = 0; } for (let q = 0; q < mz * mz; q++) W.Fz[i * 36 + q] = 0;
+      const i3 = 3 * i, erx = W.er[i3], ery = W.er[i3 + 1], erz = W.er[i3 + 2], etx = W.et[i3], ety = W.et[i3 + 1], etz = W.et[i3 + 2];
+      for (let j = 0; j < ny_; j++) { const k = i * ny_ + j, e = W.eta[j], d = W.d[k];
+        let q = 0, ke = 0;
+        if (d > 0) { const kb = kbA * P.ct[j]; ke = kb * Math.max(0.2, 1 + F.gt * W.sg[k] + F.cv * W.dl0r[k] / 0.005); q = ke * d; } // (its damping grows with how far it is pressed in, Hunt and Crossley's way: no force where it only just touches)
+        if ((q > 0) !== (W.q[k] > 0) && it > 0) changed++;
+        W.q[k] = q; W.ke[k] = ke; if (q <= 0) continue; nAct++;
+        const nX = W.nx_[k], nY = W.ny_[k], nZ = W.nz_[k], nr = nX * erx + nY * ery + nZ * erz, nt = nX * etx + nY * ety + nZ * etz, nA = nX * a[0] + nY * a[1] + nZ * a[2], k2 = ke * nr * nr;
+        W.Lr[i] += q * nr; W.Lt[i] += q * nt; W.La[i] += q * nA; W.Mb[i] += e * q * nr; W.A[i] += k2; W.B[i] += k2 * e; W.D[i] += k2 * e * e;
+        if (mz === 3) { const s0 = XS[j * 3], s1 = XS[j * 3 + 1], s2 = XS[j * 3 + 2], ia = i * 3, io = i * 36, qn = q * nr, ke2 = k2 * e; // (three shapes, unrolled)
+          W.Mz[ia] += s0 * qn; W.Mz[ia + 1] += s1 * qn; W.Mz[ia + 2] += s2 * qn; W.Cz[ia] += k2 * s0; W.Cz[ia + 1] += k2 * s1; W.Cz[ia + 2] += k2 * s2; W.Ez[ia] += ke2 * s0; W.Ez[ia + 1] += ke2 * s1; W.Ez[ia + 2] += ke2 * s2;
+          W.Fz[io] += k2 * s0 * s0; W.Fz[io + 3] += k2 * s1 * s0; W.Fz[io + 4] += k2 * s1 * s1; W.Fz[io + 6] += k2 * s2 * s0; W.Fz[io + 7] += k2 * s2 * s1; W.Fz[io + 8] += k2 * s2 * s2; }
+        else for (let a1 = 0; a1 < mz; a1++) { const sa = XS[j * mz + a1], ia = i * mz + a1; W.Mz[ia] += sa * q * nr; W.Cz[ia] += k2 * sa; W.Ez[ia] += k2 * e * sa; for (let b1 = 0; b1 <= a1; b1++) W.Fz[i * 36 + a1 * mz + b1] += k2 * sa * XS[j * mz + b1]; }
+        W.At[i] += ke * nt * nr; W.Bt[i] += ke * nt * nr * e; W.Aa[i] += ke * nA * nr; W.Ba[i] += ke * nA * nr * e;
+      }
+      // (the sidewalls fold as the belt is pushed in, holding it out less than in proportion: a radial characteristic fitted
+      // to the tyre's own load against deflection; past the gap the rim flange, pushing the belt back out)
+      const ew = -W.w[i]; if (ew > 0 && F.es < 0.5) { const th = Math.tanh(ew / F.es); W.Lr[i] -= ksr * (ew - F.es * th); W.A[i] -= ksr * th * th; }
+      const e = ew - gap; if (e > 0) { const kf = kfl * (-W.w[i] >= -W.w0f[i] - 1e-6 ? 1 : 0.33); W.Lr[i] += kf * e; W.A[i] += kf; }
+      for (let a1 = 0; a1 < mz; a1++) { let t = 0; for (let b1 = 0; b1 < mz; b1++) t += XK[a1 * mz + b1] * (W.ka[i * mz + b1] - z0[b1]); W.Rz[i * mz + a1] = kkR * t - W.Mz[i * mz + a1]; } // (the shapes' residuals: the belt's hold against the blocks' push)
+    }
+    // (no block touching with the belt as it stands - as it was last found, or pushed in too far by the last iteration: the
+    // belt springs back to its free shape first, and only if none touches even then is this part of the tyre off the road)
+    if (!nAct) { let fr = 0; for (let i = 0; i < nx; i++) { if (Math.abs(W.w[i]) > 1e-7 || Math.abs(W.be[i]) > 1e-7) fr = 1; for (let q = 0; q < mz; q++) if (Math.abs(W.ka[i * mz + q] - z0[q]) > 1e-7) fr = 1; }
+      if (!fr) break;
+      for (let i = 0; i < nx; i++) { W.dw_[i] = -W.w[i]; W.db_[i] = -W.be[i]; W.w[i] = 0; W.be[i] = 0; for (let q = 0; q < mz; q++) { W.dz_[i * mz + q] = z0[q] - W.ka[i * mz + q]; W.ka[i * mz + q] = z0[q]; } }
+      rq = 1; continue; }
+    // (the residuals; the system's blocks: radial against radial, twist against twist, and their coupling, solved in turn)
+    // (the residuals; the system's blocks: radial against radial, twist against twist, and their coupling. The twist over the
+    // patch is smooth - the belt twists against its sidewalls over a longer length than the patch's - so its change is
+    // sought as a quadratic along the rows (Phi), the radial give row by row: nx + 3 unknowns)
+    const Ap = W.g1, Bp = W.g2, Dp = W.g3, cw = W.Svv, cb = W.Syy, lr = W.Svy, lb = W.Syv, Ph = W.Ph, nr3 = nx + 3, JR = W.JR, rr = W.rr, Jwb = W.Jwb, Jbw = W.Jbw, Jbb = W.Jbb;
+    for (let k = 0; k < nx; k++) { // (the belt's shapes across, settled within each row for its radial give and twist: their Schur complement)
+      ftXM(W, k, mz, kkR, XK); const Mi = W.Mi, mo = k * 36, tz = W.tz, tz2 = W.tz2; let aa = 0, ab = 0, bb2 = 0, ar = 0, br = 0;
+      for (let a1 = 0; a1 < mz; a1++) { let s1 = 0, s2 = 0; for (let b1 = 0; b1 < mz; b1++) { s1 += Mi[mo + a1 * mz + b1] * W.Cz[k * mz + b1]; s2 += Mi[mo + a1 * mz + b1] * W.Ez[k * mz + b1]; } tz[a1] = s1; tz2[a1] = s2; }
+      for (let a1 = 0; a1 < mz; a1++) { const c1 = W.Cz[k * mz + a1], e1 = W.Ez[k * mz + a1], r1 = W.Rz[k * mz + a1]; aa += c1 * tz[a1]; ab += c1 * tz2[a1]; bb2 += e1 * tz2[a1]; ar += tz[a1] * r1; br += tz2[a1] * r1; }
+      Ap[k] = W.A[k] - aa; Bp[k] = W.B[k] - ab; Dp[k] = W.D[k] - bb2; cw[k] = ar; cb[k] = br; lr[k] = W.Lr[k] + W.LrF[k]; lb[k] = W.La[k] + W.LaF[k]; }
+    for (let i = 0; i < nx; i++) {
+      let sw = 0, sb = 0, cwK = 0, cbK = 0; const ri = i * nr3;
+      for (let k = 0; k < nx; k++) { const g = i - k + o0, kw = Kwr[g], kt_ = Kwt[g], ka = Kba[g], kbb = Kbb[g];
+        sw += kw * lr[k] + kt_ * (W.Lt[k] + W.LtF[k]); sb += ka * lb[k] + kbb * (W.Mb[k] - tr * W.LaF[k]); cwK += kw * cw[k]; cbK += kbb * cb[k];
+        JR[ri + k] = kw * Ap[k] + kt_ * W.At[k]; Jwb[i * nx + k] = kw * Bp[k] + kt_ * W.Bt[k]; Jbw[i * nx + k] = ka * W.Aa[k] + kbb * Bp[k]; Jbb[i * nx + k] = ka * W.Ba[k] + kbb * Dp[k]; }
+      JR[ri + i] += 1; Jbb[i * nx + i] += 1; rr[i] = -(W.w[i] - sw) + cwK; W.r2[i] = -(W.be[i] - sb) + cbK;
+    }
+    // (the radial give and the twist solved together, row by row: a belt of cords in rubber twists so easily that it need
+    // not twist smoothly over the patch)
+    const n2r = 2 * nx, JF = W.J;
+    for (let i = 0; i < nx; i++) { for (let k = 0; k < nx; k++) { JF[i * n2r + k] = JR[i * nr3 + k]; JF[i * n2r + nx + k] = Jwb[i * nx + k]; JF[(nx + i) * n2r + k] = Jbw[i * nx + k]; JF[(nx + i) * n2r + nx + k] = Jbb[i * nx + k]; } r[i] = rr[i]; r[nx + i] = W.r2[i]; }
+    ftLin(JF, r, n2r);
+    let mx = 0;
+    for (let i = 0; i < nx; i++) { let dw = r[i], db = r[nx + i]; const lim = 0.01; if (dw > lim) dw = lim; else if (dw < -lim) dw = -lim; if (db > 0.1) db = 0.1; else if (db < -0.1) db = -0.1;
+      const Mi = W.Mi, mo = i * 36; let dkm = 0; // (the row's inverse, as found for its condensation)
+      for (let a1 = 0; a1 < mz; a1++) { let t = 0; for (let b1 = 0; b1 < mz; b1++) t += Mi[mo + a1 * mz + b1] * (W.Rz[i * mz + b1] + W.Cz[i * mz + b1] * dw + W.Ez[i * mz + b1] * db); W.dz_[i * mz + a1] = -t; dkm = Math.max(dkm, Math.abs(t)); }
+      if (dkm > 0.004) { const sc = 0.004 / dkm; for (let a1 = 0; a1 < mz; a1++) W.dz_[i * mz + a1] *= sc; dkm = 0.004; } // (as the radial give's, a step's change of shape held to a few mm)
+      for (let a1 = 0; a1 < mz; a1++) W.ka[i * mz + a1] += W.dz_[i * mz + a1];
+      W.w[i] += dw; W.be[i] += db; W.dw_[i] = dw; W.db_[i] = db; mx = Math.max(mx, Math.abs(dw), Math.abs(db) * bt, dkm); }
+    W.cnt[0]++; if (mx < 3e-6 && !changed && it > 0) break;
+  }
+  W.cnt[2]++; return nAct;
+}
+
+// (a row's shapes across: the belt's hold kkR K plus the blocks' push, inverted into W.Mi - symmetric positive, m <= 6:
+// Cholesky; and the slope across of the tread's face at block k of column j: its columns' radial places, crown and
+// shapes, between its neighbours)
+function ftXM(W, i, m, kkR, K) {
+  const M = W.Mi, L = W.Fz, o = i * 36, T = FT_XT; for (let a = 0; a < m; a++) for (let b = 0; b <= a; b++) { const v = kkR * K[a * m + b] + L[o + a * m + b]; T[a * m + b] = v; T[b * m + a] = v; }
+  if (m === 3) { const a = T[0], b = T[1], c = T[2], d = T[4], e = T[5], f = T[8], A = d * f - e * e, B = c * e - b * f, Cc = b * e - c * d, det = a * A + b * B + c * Cc || 1e-30;
+    M[o] = A / det; M[o + 1] = M[o + 3] = B / det; M[o + 2] = M[o + 6] = Cc / det; M[o + 4] = (a * f - c * c) / det; M[o + 5] = M[o + 7] = (b * c - a * e) / det; M[o + 8] = (a * d - b * b) / det; return; }
+  for (let a = 0; a < m; a++) for (let b = 0; b < m; b++) M[o + a * m + b] = a === b ? 1 : 0; // (Gauss-Jordan, small and symmetric positive)
+  for (let c = 0; c < m; c++) { const d = T[c * m + c] || 1e-12; for (let b = 0; b < m; b++) { T[c * m + b] /= d; M[o + c * m + b] /= d; }
+    for (let a = 0; a < m; a++) { if (a === c) continue; const f = T[a * m + c]; if (f === 0) continue; for (let b = 0; b < m; b++) { T[a * m + b] -= f * T[c * m + b]; M[o + a * m + b] -= f * M[o + c * m + b]; } } }
+}
+const FT_XT = new Float64Array(36);
+function ftXSl(W, k, j, ny) {
+  const ja = j > 0 ? j - 1 : j, jb = j < ny - 1 ? j + 1 : j, ka = k - j + ja, kb = k - j + jb;
+  return ((W.uz[kb] - W.cr[jb]) - (W.uz[ka] - W.cr[ja])) / ((W.eta[jb] - W.eta[ja]) || 1);
+}
+function ftClear(ft, S) {
+  ft.has = 0; ft.on.fill(0); ft.q.fill(0); ft.bx.fill(0); ft.by.fill(0); ft.sx.fill(0); ft.sy.fill(0); ft.dl.fill(-1); ft.w.fill(0); ft.v.fill(0); ft.y.fill(0); ft.be.fill(0); ft.ka.fill(0);
+  ft.LrF.fill(0); ft.LtF.fill(0); ft.LaF.fill(0); ft.Xok.fill(0); ft.lead.fill(NaN); ft.ps = 0;
+}
+// the blocks along the road: each block's base carried over the ground since it met it (and the belt's give round and
+// sideways under the blocks' push, solved with it): stuck, its rubber sheared until its friction at its own pressure is
+// reached, then sliding; on loose ground the ground sheared under it; its studs biting. Then the step's forces, into O
+function ftTan(ft, F, P, G, S, h, O, Z) {
+  const W = FTW, nx = ft.nx, ny = ft.ny, C = S.C, a = S.a, tl = S.tl, tt = S.tt, n2 = 2 * nx, J = W.J, r = W.r, tr = F.tr, Kn = Z.K, Kvr = Kn.vr, Kvt = Kn.vt, Kya = Kn.ya, Kyb = Kn.yb, o0 = nx - 1 + FTE, Ab = Z.Ab;
+  const pya = a[0] * tl[0] + a[1] * tl[1] + a[2] * tl[2], pyb = a[0] * tt[0] + a[1] * tt[1] + a[2] * tt[2], hw = P.hw, lw = P.lw;
+  // rubber that has just come onto the road: on a rolling wheel it met it at the patch's leading edge (where the tread first
+  // reaches the ground, between the rows, in each column) and has been carried with the patch since, so its base has gone
+  // over the ground by the patch's own slip since then: from where the edge is now, less the wheel's travel since (exact
+  // when rolling steadily, however far the belt turns in a sub-step). Barely turning, it came on as the load grew: the
+  // part of the sub-step since it touched
+  const om = S.om, rolling = Math.abs(om) * h > 0.2 * Z.dth, up = om > 0, VC = S.V, vcl = VC[0] * tl[0] + VC[1] * tl[1] + VC[2] * tl[2], vct = VC[0] * tt[0] + VC[1] * tt[1] + VC[2] * tt[2];
+  for (let j = 0; j < ny; j++) { let ia = -1; if (up) { for (let i = nx - 1; i >= 0; i--) if (W.q[i * ny + j] > 0) { ia = i; break; } } else { for (let i = 0; i < nx; i++) if (W.q[i * ny + j] > 0) { ia = i; break; } }
+    W.li[j] = -1; if (ia < 0) continue; const ib = up ? ia + 1 : ia - 1;
+    if (ib < 0 || ib >= nx) { W.li[j] = ia; W.lx[j] = W.Px[ia * ny + j]; W.ly[j] = W.Py[ia * ny + j]; W.lz[j] = W.Pz[ia * ny + j]; continue; }
+    const ka = ia * ny + j, kb2 = ib * ny + j, t = W.d[ka] / (W.d[ka] - W.d[kb2]); W.li[j] = ia + (ib - ia) * t;
+    W.lx[j] = W.Px[ka] + (W.Px[kb2] - W.Px[ka]) * t; W.ly[j] = W.Py[ka] + (W.Py[kb2] - W.Py[ka]) * t; W.lz[j] = W.Pz[ka] + (W.Pz[kb2] - W.Pz[ka]) * t; }
+  const fin = W.fin; // (1: in contact before; 0..1: the part of the sub-step since it touched; < 0: fresh at the leading edge, minus the time since)
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) { const k = i * ny + j; if (!(W.q[k] > 0)) { fin[k] = 0; continue; }
+    if (W.on0[k] > 0.5) fin[k] = 1; // (on the road last time: from where it was)
+    else if (rolling && W.li[j] >= 0 && ft.lead[j] === ft.lead[j]) fin[k] = -Math.min(h, Math.abs(W.li[j] - i) * Z.dth / Math.abs(om)) - 1e-12; // (come on at the edge since)
+    else fin[k] = W.dl0[k] >= 0 ? 1 : clamp(W.d[k] / (W.d[k] - W.dl0[k]), 0, 1); } // (come down onto the road since)
+  const vA = FTW.Mk, yA = FTW.Rk; for (let i = 0; i < nx; i++) { vA[i] = W.v[i]; yA[i] = W.y[i]; }
+  // (the normal loads, kept: Lr, Lt, La, Mb from the normal solve)
+  const Lr = FTW.Lr, Lt = FTW.Lt, La = FTW.La, Mb = FTW.Mb;
+  for (let it = 0; it < 5; it++) {
+    for (let i = 0; i < nx; i++) { W.LtF[i] = 0; W.LaF[i] = 0; W.LrF[i] = 0; W.Svv[i] = 0; W.Svy[i] = 0; W.Syv[i] = 0; W.Syy[i] = 0; }
+    for (let i = 0; i < nx; i++) {
+      const i3 = 3 * i, etx = W.et[i3], ety = W.et[i3 + 1], etz = W.et[i3 + 2], erx = W.er[i3], ery = W.er[i3 + 1], erz = W.er[i3 + 2];
+      const pva = etx * tl[0] + ety * tl[1] + etz * tl[2], pvb = etx * tt[0] + ety * tt[1] + etz * tt[2], dv = W.v[i] - vA[i], dy = W.y[i] - yA[i];
+      // (how the tread's face leans at this row along the wheel - the belt's slope round it, which the road flattens - and
+      // across it, by column: the belt's twist and its bending across, less the crown)
+      const wp = (W.w[i < nx - 1 ? i + 1 : i] - W.w[i > 0 ? i - 1 : i]) / ((i < nx - 1 ? i + 1 : i) - (i > 0 ? i - 1 : i)) / Z.dth / Z.Rt;
+      for (let j = 0; j < ny; j++) { const k = i * ny + j, q = W.q[k]; if (q <= 0) { W.fx[k] = 0; W.fy[k] = 0; W.vs[k] = 0; W.pw[k] = 0; W.sl[k] = 0; continue; }
+        const px = W.Px[k] + dv * etx + dy * a[0], py = W.Py[k] + dv * ety + dy * a[1], pz = W.Pz[k] + dv * etz + dy * a[2], f0 = fin[k], fresh = f0 < 0, fk = fresh ? Math.min(1, -f0 / h) : f0;
+        let dbx, dby;
+        if (fresh) { // (where it met the ground stays put: the edge then was where it is now, less the wheel's travel and the belt's give
+          // there since - the belt's part of the sub-step's give, by the time since it touched)
+          const iL = clamp(Math.round(W.li[j]), 0, nx - 1), L3 = 3 * iL, dvL = W.v[iL] - vA[iL], dyL = W.y[iL] - yA[iL], te = -f0, gL = 1 - fk;
+          const ex = px - W.lx[j] - gL * (dvL * W.et[L3] + dyL * a[0]), ey = py - W.ly[j] - gL * (dvL * W.et[L3 + 1] + dyL * a[1]), ez = pz - W.lz[j] - gL * (dvL * W.et[L3 + 2] + dyL * a[2]);
+          dbx = ex * tl[0] + ey * tl[1] + ez * tl[2] + vcl * te; dby = ex * tt[0] + ey * tt[1] + ez * tt[2] + vct * te; }
+        else { const ex = px - W.X0x[k], ey = py - W.X0y[k], ez = pz - W.X0z[k]; dbx = (ex * tl[0] + ey * tl[1] + ez * tl[2]) * fk; dby = (ex * tt[0] + ey * tt[1] + ez * tt[2]) * fk; }
+        const pres = q / Ab, pf = clamp(Math.pow(pres / P.pref, -P.ep), 0.7, 1.6), kt = P.ct[j] * Ab * F.ktf, kx = kt * F.kxf;
+        // (a block squashed along the road's normal but built square to the belt's face is sheared too where the two lean
+        // apart - a leaning wheel's blocks pushed over towards its lean, which is its camber thrust; the rubber's shear
+        // stiffer along the face than across it as its compression is: by how much less, through how far it is squashed)
+        const nX = W.nx_[k], nY = W.ny_[k], nZ = W.nz_[k], nr = nX * erx + nY * ery + nZ * erz, nE = nX * etx + nY * ety + nZ * etz + wp * nr, nAa = nX * a[0] + nY * a[1] + nZ * a[2] + (W.be[i] + ftXSl(W, i * ny + j, j, ny)) * nr;
+        const dK = W.d[k] > 0 ? W.d[k] : 0, kn = W.ke[k], oE = -dK * (kx - kn) * nE, oA = -dK * (kt - kn) * nAa, gOx = oE * pva + oA * pya, gOy = oE * pvb + oA * pyb;
+        let fx = 0, fy = 0, kxx = 0, kxy = 0, kyy = 0, pw = 0, vsl = 0, slid = 0;
+        if (hw > 0) { // rubber on the hard part: stuck (sheared: stiffer along the wheel than across, as blocks are), or sliding
+          // against its friction, the slide along the force it would have had
+          let sx = (fresh ? 0 : W.sx0[k]) + dbx, sy = (fresh ? 0 : W.sy0[k]) + dby; const gx = kx * sx + gOx, gy = kt * sy + gOy, ft_ = Math.sqrt(gx * gx + gy * gy), mus = P.mu0 * pf * P.gz[j], lim = mus * q;
+          if (ft_ <= lim) { fx = -gx; fy = -gy; kxx = -kx; kyy = -kt; }
+          else { const ux = gx / ft_, uy = gy / ft_, ke_ = 1 / (ux * ux / kx + uy * uy / kt), tb = fresh ? Math.max(-f0, 1e-4) : Math.max(fk * h, 1e-4); let fm = lim, mk = mus;
+            // (how fast the tip slides: for rubber carried on from last time, the trial's excess along the force, through the
+            // block's give that way, over its time on the road this sub-step; for rubber come on at the leading edge since, it
+            // has slid since it broke away, at about the speed its base has gone over the ground since it touched - not its
+            // excess over all that time, which would count its time stuck as slow sliding)
+            if (fresh) { vsl = ft_ / ke_ / tb; mk = mus * (P.r + (1 - P.r) * Math.exp(-vsl / P.vd)); fm = mk * q; }
+            else for (let m = 0; m < 3; m++) { vsl = Math.max(0, (ft_ - fm) / ke_ / tb); mk = mus * (P.r + (1 - P.r) * Math.exp(-vsl / P.vd)); fm = mk * q; }
+            fx = -fm * ux; fy = -fm * uy; sx = (fm * ux - gOx) / kx; sy = (fm * uy - gOy) / kt; const c = fm / ft_;
+            kxx = -c * kx * (1 - ux * ux); kxy = c * Math.sqrt(kx * kt) * ux * uy; kyy = -c * kt * (1 - uy * uy); pw = fm * Math.max(0, ft_ - fm) / ke_ / h; slid = 1; } // (its work: the force through how far it slid)
+          W.sx[k] = sx; W.sy[k] = sy; fx *= hw; fy *= hw; kxx *= hw; kxy *= hw; kyy *= hw; pw *= hw;
+        } else { W.sx[k] = 0; W.sy[k] = 0; }
+        const bx = (fresh ? 0 : W.bx0[k]) + dbx, by = (fresh ? 0 : W.by0[k]) + dby, bm = Math.sqrt(bx * bx + by * by); W.bx[k] = bx; W.by[k] = by;
+        if (lw > 0) { // the loose ground sheared under it (Janosi: it holds more the further it is carried, never falling away), the
+          // block's rubber in series
+          const Fm = (P.muLr * pf * P.gz[j] + P.lphi) * q, Kl = P.Kl, k0 = Fm / Kl;
+          if (bm > 1e-9 && Fm > 0) { let lam = bm * kt / (kt + k0);
+            for (let m = 0; m < 4; m++) { const E = Math.exp(-lam / Kl), g = kt * (bm - lam) - Fm * (1 - E), dg = -kt - Fm / Kl * E; lam = clamp(lam - g / dg, 0, bm); }
+            const E = Math.exp(-lam / Kl), fm = Fm * (1 - E), ks = Fm / Kl * E, kpar = -kt * ks / (kt + ks), kper = -fm / bm, ux = bx / bm, uy = by / bm;
+            fx -= lw * fm * ux; fy -= lw * fm * uy; kxx += lw * (kpar * ux * ux + kper * (1 - ux * ux)); kxy += lw * (kpar - kper) * ux * uy; kyy += lw * (kpar * uy * uy + kper * (1 - uy * uy));
+            pw += lw * fm * Math.sqrt(dbx * dbx + dby * dby) / h; }
+          else if (Fm > 0) { const kk = -kt * k0 / (kt + k0); kxx += lw * kk; kyy += lw * kk; }
+        }
+        if (P.Fsa > 0) { // the studs: each leans in the rubber over FT_SK and bites; skating on ice the faster it slides
+          const vb = Math.sqrt(dbx * dbx + dby * dby) / h, Fs = P.Fsa * Ab * (P.sv > 0 ? P.rs + (1 - P.rs) * Math.exp(-vb / P.sv) : 1);
+          const SK = P.sk || FT_SK; if (bm > 1e-9) { const E = Math.exp(-bm / SK), fm = Fs * (1 - E), kpar = -Fs / SK * E, kper = -fm / bm, ux = bx / bm, uy = by / bm;
+            fx -= fm * ux; fy -= fm * uy; kxx += kpar * ux * ux + kper * (1 - ux * ux); kxy += (kpar - kper) * ux * uy; kyy += kpar * uy * uy + kper * (1 - uy * uy); pw += fm * vb; }
+          else { kxx -= Fs / SK; kyy -= Fs / SK; }
+        }
+        W.fx[k] = fx; W.fy[k] = fy; W.vs[k] = vsl; W.pw[k] = pw; W.sl[k] = slid;
+        const Fwx = fx * tl[0] + fy * tt[0], Fwy = fx * tl[1] + fy * tt[1], Fwz = fx * tl[2] + fy * tt[2];
+        W.LtF[i] += Fwx * etx + Fwy * ety + Fwz * etz; W.LaF[i] += Fwx * a[0] + Fwy * a[1] + Fwz * a[2]; W.LrF[i] += Fwx * erx + Fwy * ery + Fwz * erz;
+        const kva = kxx * pva + kxy * pvb, kvb = kxy * pva + kyy * pvb, kya_ = kxx * pya + kxy * pyb, kyb_ = kxy * pya + kyy * pyb;
+        W.Svv[i] += fk * (pva * kva + pvb * kvb); W.Syv[i] += fk * (pya * kva + pyb * kvb); W.Svy[i] += fk * (pva * kya_ + pvb * kyb_); W.Syy[i] += fk * (pya * kya_ + pyb * kyb_);
+      }
+    }
+    // (the belt round and sideways under the patch: it hardly stretches and bends edgewise only over a length longer than the
+    // patch, so its change is sought as a quadratic along the rows each way - six unknowns - its remainder taken as it stands)
+    const Ph = W.Ph, rv = W.Gv, ry = W.Gy, rpv = W.rpv, rpy = W.rpy, JPv = W.JPv, JPy = W.JPy, JPw = W.JPw, JPz = W.JPz, M6 = W.J5, b6 = W.r5;
+    for (let i = 0; i < nx; i++) {
+      let sv = 0, sy = 0;
+      for (let k = 0; k < nx; k++) { const g = i - k + o0; sv += Kvr[g] * (Lr[k] + W.LrF[k]) + Kvt[g] * (Lt[k] + W.LtF[k]); sy += Kya[g] * (La[k] + W.LaF[k]) + Kyb[g] * (Mb[k] - tr * W.LaF[k]); }
+      rv[i] = -(W.v[i] - sv); ry[i] = -(W.y[i] - sy);
+    }
+    ftProj(Ph, rv, nx, W.pc, rpv); ftProj(Ph, ry, nx, W.pc2, rpy);
+    // J Phi, column by column (vv, vy, yv, yy: JPv holds [vv | yv] and JPy [vy | yy] for the three shapes), and J rp
+    for (let i = 0; i < nx; i++) for (let m = 0; m < 3; m++) { let a1 = 0, a2 = 0, a3 = 0, a4 = 0;
+      for (let k = 0; k < nx; k++) { const g = i - k + o0, gy = Kya[g] - tr * Kyb[g], ph = Ph[k * 3 + m]; a1 += Kvt[g] * W.Svv[k] * ph; a2 += Kvt[g] * W.Svy[k] * ph; a3 += gy * W.Syv[k] * ph; a4 += gy * W.Syy[k] * ph; }
+      JPv[i * 3 + m] = Ph[i * 3 + m] - a1; JPy[i * 3 + m] = -a2; JPw[i * 3 + m] = -a3; JPz[i * 3 + m] = Ph[i * 3 + m] - a4; }
+    for (let i = 0; i < nx; i++) { let a1 = 0, a2 = 0, a3 = 0, a4 = 0;
+      for (let k = 0; k < nx; k++) { const g = i - k + o0, gy = Kya[g] - tr * Kyb[g]; a1 += Kvt[g] * W.Svv[k] * rpv[k]; a2 += Kvt[g] * W.Svy[k] * rpy[k]; a3 += gy * W.Syv[k] * rpv[k]; a4 += gy * W.Syy[k] * rpy[k]; }
+      W.g1[i] = rv[i] - (rpv[i] - a1) + a2; W.g2[i] = ry[i] + a3 - (rpy[i] - a4); }
+    for (let m = 0; m < 3; m++) { let bv = 0, by = 0; for (let i = 0; i < nx; i++) { bv += Ph[i * 3 + m] * W.g1[i]; by += Ph[i * 3 + m] * W.g2[i]; } b6[m] = bv; b6[3 + m] = by;
+      for (let m2 = 0; m2 < 3; m2++) { let a1 = 0, a2 = 0, a3 = 0, a4 = 0; for (let i = 0; i < nx; i++) { const ph = Ph[i * 3 + m]; a1 += ph * JPv[i * 3 + m2]; a2 += ph * JPy[i * 3 + m2]; a3 += ph * JPw[i * 3 + m2]; a4 += ph * JPz[i * 3 + m2]; }
+        M6[m * 6 + m2] = a1; M6[m * 6 + 3 + m2] = a2; M6[(3 + m) * 6 + m2] = a3; M6[(3 + m) * 6 + 3 + m2] = a4; } }
+    ftLin(M6, b6, 6);
+    for (let i = 0; i < nx; i++) { r[i] = b6[0] * Ph[i * 3] + b6[1] * Ph[i * 3 + 1] + b6[2] * Ph[i * 3 + 2] + rpv[i]; r[nx + i] = b6[3] * Ph[i * 3] + b6[4] * Ph[i * 3 + 1] + b6[5] * Ph[i * 3 + 2] + rpy[i]; }
+    let mx = 0; for (let i = 0; i < nx; i++) { const dv = clamp(r[i], -0.02, 0.02), dy = clamp(r[nx + i], -0.02, 0.02); W.v[i] += dv; W.y[i] += dy; mx = Math.max(mx, Math.abs(dv), Math.abs(dy)); }
+    W.cnt[1]++; if (mx < 1.5e-6) break;
+  }
+  W.cnt[3]++;
+  // kept for the next sub-step, and the forces of this one
+  let any = 0, c1 = 9, c2 = -9, sq = 0, sqs = 0, Fx = 0, Fy = 0, Fz = 0, Mx = 0, My = 0, Mz = 0, cx = 0, cy = 0, cz = 0, pw = 0;
+  ft.Xok.fill(0);
+  for (let i = 0; i < nx; i++) {
+    const i3 = 3 * i, etx = W.et[i3], ety = W.et[i3 + 1], etz = W.et[i3 + 2], dv = W.v[i] - vA[i], dy = W.y[i] - yA[i]; ft.Xok[i + FTE] = 1;
+    for (let j = 0; j < ny; j++) { const k = i * ny + j, e = (i + FTE) * ny + j, q = W.q[k], px = W.Px[k] + dv * etx + dy * a[0], py = W.Py[k] + dv * ety + dy * a[1], pz = W.Pz[k] + dv * etz + dy * a[2];
+      ft.Xx[e] = px; ft.Xy[e] = py; ft.Xz[e] = pz; ft.dl[e] = W.d[k]; ft.q[k] = q;
+      if (q > 0) { any = 1; if (W.th[i] < c1) c1 = W.th[i]; if (W.th[i] > c2) c2 = W.th[i]; ft.on[k] = 1; ft.bx[k] = W.bx[k]; ft.by[k] = W.by[k]; ft.sx[k] = W.sx[k]; ft.sy[k] = W.sy[k];
+        const fx = W.fx[k], fy = W.fy[k], gx = q * W.nx_[k] + fx * tl[0] + fy * tt[0], gy = q * W.ny_[k] + fx * tl[1] + fy * tt[1], gz = q * W.nz_[k] + fx * tl[2] + fy * tt[2];
+        Fx += gx; Fy += gy; Fz += gz; const rx = px - C[0], ry = py - C[1], rz = pz - C[2]; Mx += ry * gz - rz * gy; My += rz * gx - rx * gz; Mz += rx * gy - ry * gx;
+        sq += q; cx += q * px; cy += q * py; cz += q * pz; if (W.sl[k]) sqs += q; pw += W.pw[k]; O.Pc[j] += W.pw[k] * h; }
+      else { ft.on[k] = 0; ft.bx[k] = 0; ft.by[k] = 0; ft.sx[k] = 0; ft.sy[k] = 0; }
+    }
+  }
+  // the belt's shape beyond the patch's end the rubber comes in from, as far as it will come round in a sub-step: where the
+  // tread there is, and how far it reaches into the ground (the rows' loads through the kernels)
+  { const om = S.om, ng = Math.min(FTE, Math.ceil(Math.abs(om) * h / Z.dth) + 2), up = om >= 0, dn = S.dn, fw = S.fw, Rt = Z.Rt, k0g = ftAt(F, S.p).k0, hg = W.hg;
+    const Kwr = Kn.wr, Kwt = Kn.wt, Kba = Kn.ba, Kbb = Kn.bb;
+    for (let m = 0; m < ng; m++) {
+      const gi = up ? nx + m : -1 - m, th = Z.th0 + gi * Z.dth, c = Math.cos(th), sn = Math.sin(th); // (gi: the row's place counting from the patch's first)
+      const erx = c * dn[0] + sn * fw[0], ery = c * dn[1] + sn * fw[1], erz = c * dn[2] + sn * fw[2], etx = -sn * dn[0] + c * fw[0], ety = -sn * dn[1] + c * fw[1], etz = -sn * dn[2] + c * fw[2];
+      let wg = 0, vg = 0, yg = 0, bg = 0;
+      for (let k = 0; k < nx; k++) { const g = gi - k + o0, lr = Lr[k] + W.LrF[k], lt = Lt[k] + W.LtF[k], la = La[k] + W.LaF[k], mb = Mb[k] - tr * W.LaF[k];
+        wg += Kwr[g] * lr + Kwt[g] * lt; vg += Kvr[g] * lr + Kvt[g] * lt; yg += Kya[g] * la + Kyb[g] * mb; bg += Kba[g] * la + Kbb[g] * mb; }
+      const ie = gi + FTE; ft.Xok[ie] = 1;
+      for (let j = 0; j < ny; j++) { const e = ie * ny + j, et_ = W.eta[j], rad = Rt - W.cr[j] + wg + et_ * bg + W.phi[j] * k0g;
+        const px = C[0] + rad * erx + vg * etx + (et_ + yg) * a[0], py = C[1] + rad * ery + vg * ety + (et_ + yg) * a[1], pz = C[2] + rad * erz + vg * etz + (et_ + yg) * a[2];
+        ft.Xx[e] = px; ft.Xy[e] = py; ft.Xz[e] = pz; ftH(G, px, pz, hg); ft.dl[e] = (hg.h - py) / Math.sqrt(1 + hg.gx * hg.gx + hg.gz * hg.gz); }
+    }
+  }
+  for (let q = 0; q < nx * 6; q++) ft.ka[q] = W.ka[q];
+  for (let i = 0; i < nx; i++) { ft.w[i] = W.w[i]; ft.v[i] = W.v[i]; ft.y[i] = W.y[i]; ft.be[i] = W.be[i]; ft.LrF[i] = W.LrF[i]; ft.LtF[i] = W.LtF[i]; ft.LaF[i] = W.LaF[i]; }
+  ft.th0 = Z.th0; ft.dth = Z.dth; ft.rth0 = Z.th0; ft.rdth = Z.dth; ft.thc = Z.thc; ft.Rt = Z.Rt; ft.has = any; ft.c1 = c1; ft.c2 = c2; ft.ps = 1;
+  for (let j = 0; j < ny; j++) ft.lead[j] = W.li[j] >= 0 ? Z.th0 + W.li[j] * Z.dth : NaN;
+  for (let m = 0; m < 3; m++) { ft.C[m] = C[m]; ft.dn[m] = S.dn[m]; ft.fw[m] = S.fw[m]; ft.a[m] = a[m]; }
+  O.T += h; O.F[0] += Fx * h; O.F[1] += Fy * h; O.F[2] += Fz * h; O.M[0] += Mx * h; O.M[1] += My * h; O.M[2] += Mz * h;
+  if (sq > 0) { // (the patch's length down its middle: where the tread meets the road, between the rows)
+    const jm = (ny - 1) >> 1; let i1 = -1, i2 = -1; for (let i = 0; i < nx; i++) if (W.q[i * ny + jm] > 0) { if (i1 < 0) i1 = i; i2 = i; }
+    let len = 0; if (i1 >= 0) { const d1 = W.d[i1 * ny + jm], d2 = W.d[i2 * ny + jm], e1 = i1 > 0 ? d1 / (d1 - W.d[(i1 - 1) * ny + jm]) : 0.5, e2 = i2 < nx - 1 ? d2 / (d2 - W.d[(i2 + 1) * ny + jm]) : 0.5;
+      len = (i2 - i1 + e1 + e2) * Z.dth * Z.Rt; }
+    O.cp[0] += cx / sq * h; O.cp[1] += cy / sq * h; O.cp[2] += cz / sq * h; O.tc += h; O.sl += sqs / sq * h; O.len += len * h; }
+  O.pw += pw * h; return any;
+}
+// a step's forces, gathered over its sub-steps: T (s), F, M (N, N m: world, about the wheel's centre, times T), cp (the
+// centre of pressure), sl (the share of the load on rubber sliding), len (the patch's length), pw (the work of sliding, J),
+// Pc (its share in each block column)
+function ftAcc(ny) { return { T: 0, tc: 0, F: [0, 0, 0], M: [0, 0, 0], cp: [0, 0, 0], sl: 0, len: 0, pw: 0, Pc: new Float64Array(ny) }; }
+function ftAccReset(O) { O.T = 0; O.tc = 0; O.F[0] = O.F[1] = O.F[2] = 0; O.M[0] = O.M[1] = O.M[2] = 0; O.cp[0] = O.cp[1] = O.cp[2] = 0; O.sl = 0; O.len = 0; O.pw = 0; O.Pc.fill(0); return O; }
+// (the resolution: the most the rim turns in a sub-step, rows along the patch, blocks across)
+function ftSetQ(dth, nx, ny, ep, kl, sk) { FT_DTH = dth; FTX = nx; FTY = ny; if (ep != null) FT_EP = ep; if (kl != null) FT_KL = kl; if (sk != null) FT_SK = sk; }
+// one game step of a tyre: its sub-steps (the rim turning no more than FT_DTH in each), the wheel moving through them as
+// it moved at the step's start. B: the wheel then - C its centre, V its velocity, om its spin, uw, fw, aw (up and forward in
+// its plane, its axle to the left), Wb the body's spin (its axes turn with it), n, tl, tt the contact's frame, p the
+// pressure. The step's forces, averaged, into O
+let FT_DTH = 0.6; const FTS = { C: [0, 0, 0], V: null, dn: [0, 0, 0], fw: [0, 0, 0], a: [0, 0, 0], n: null, tl: null, tt: null, om: 0, p: 2 };
+const FT_Z = { th0: 0, dth: 0, thc: 0, Rt: 0, Ab: 0, K: null }; // (the patch's rows for the tangential solve, one object kept)
+const FT_W0 = [0, 0, 0];
+function ftRot(Wb, u, t, o, sg) { const wx = Wb[0] * t, wy = Wb[1] * t, wz = Wb[2] * t; o[0] = sg * (u[0] + wy * u[2] - wz * u[1]); o[1] = sg * (u[1] + wz * u[0] - wx * u[2]); o[2] = sg * (u[2] + wx * u[1] - wy * u[0]); }
+function ftRun(ft, F, P, G, B, dt, O) {
+  const ns = clamp(Math.ceil(Math.abs(B.om) * dt / FT_DTH), 1, 4), h = dt / ns, S = FTS, Wb = B.Wb || FT_W0;
+  ftAccReset(O); S.n = B.n; S.tl = B.tl; S.tt = B.tt; S.om = B.om; S.p = B.p; S.V = B.V;
+
+  for (let k = 1; k <= ns; k++) { const t = k * h;
+    for (let m = 0; m < 3; m++) S.C[m] = B.C[m] + B.V[m] * t;
+    ftRot(Wb, B.uw, t, S.dn, -1); ftRot(Wb, B.fw, t, S.fw, 1); ftRot(Wb, B.aw, t, S.a, -1);
+    ftSub(ft, F, P, G, S, h, O); }
+  const T = O.T || 1; for (let m = 0; m < 3; m++) { O.F[m] /= T; O.M[m] /= T; }
+  if (O.tc > 0) { for (let m = 0; m < 3; m++) O.cp[m] /= O.tc; O.sl /= O.tc; O.len /= O.tc; }
+  O.pw /= T; return O;
+}
+// ---- fitting the ring to the tyre ----
+// A ring is fitted to its tyre's own figures as such a ring is fitted to a tyre's measurements - here the figures the game's
+// handling was set by (tyreStiff's, and the brush on the same road): at its nominal load and pressure, how far it is
+// squashed and how long its patch is (the ring's radial support and its belt's bending), how stiff it is pushed sideways
+// under the wheel (its sidewalls sideways), its cornering and braking stiffness (its blocks' shear, across and along) and
+// its rolling resistance (its rubber's losses). Found once for each build (ftRing)
+const FT_CAL = new Map();
+function ftRigRun(F, P, ft, o, n) { // (a test rig: the tyre on a level road at y = 0, its centre at height o.y, moving at o.V along +z turned by o.al, spinning at o.om, for n steps; its forces into o.O)
+  const G = o.G || (o.G = { k: 1, y: 0, cl: null }), B = o.B || (o.B = { C: [0, 0, 0], V: [0, 0, 0], om: 0, uw: [0, 1, 0], fw: [0, 0, 1], aw: [1, 0, 0], Wb: [0, 0, 0], n: [0, 1, 0], tl: [0, 0, 1], tt: [1, 0, 0], p: 2 }), O = o.O || (o.O = ftAcc(ft.ny));
+  B.p = o.p; B.om = o.om; B.V[0] = o.V * Math.sin(o.al || 0); B.V[2] = o.V * Math.cos(o.al || 0); B.C[1] = o.y;
+  for (let s = 0; s < n; s++) { B.C[0] = o.x || 0; ftRun(ft, F, P, G, B, 1 / 240, O); B.C[2] += B.V[2] / 240; o.x = (o.x || 0) + (o.dx || 0) + B.V[0] / 240; }
+  return O;
+}
+function ftCal(F, TB, WH, pD) {
+  const R = WH.R, Fz0 = TB.Fz0, T = {}; tyreStiff(TB, Fz0, pD, pD, R, WH.kt, TB.Topt, 0, T); const Cy = T.Cy * (WH.ca || 1);
+  // (the brush on a hard road, its friction as the rig's: across at half a degree, along at half a per cent either way)
+  const B = Object.assign({}, T, { hw: 1, lw: 0, Fst: 0, z: 0, mu0: 1, r: 0.8, vd: 7, muL: 0, R, Fz: Fz0, Cy, rub: 1, lrub: 0, lphi: 0, K: 0.005, st: 0, pk: 0, sig: 0, b: T.b });
+  const br = (al, kap) => { B.vx = 20 * Math.cos(al); B.vy = 20 * Math.sin(al); B.slipV = kap * B.vx; B.sx = kap / (1 + kap); B.sy = Math.tan(al) / (1 + kap); return tyreForce(B); };
+  const tFy = -br(0.5 * Math.PI / 180, 0).fy, tCx = (br(0, 0.005).fx - br(0, -0.005).fx) / 0.01, tPen = Fz0 / WH.kt, tLen = 2 * T.a, tKy = T.kcy, tCrr = 0.014 * (1 + 0.15 * (20 / 27.8) * (20 / 27.8));
+  const P = ftFricNew(FTY), ct = TB.G * 1e6 * (1 - TB.void) * TB.blk / (TB.h0 + 0.003); P.ct.fill(ct); P.mu0 = 1; P.r = 0.8; P.vd = 7; P.pref = Fz0 / (2 * T.a * T.b);
+  const ft = ftNew(FTX, FTY), o = { p: pD, V: 0, om: 0, al: 0, y: R - tPen }, bump = () => { F.cal++; ftClear(ft, null); };
+  const press = () => { // (the load Fz0: how far squashed, and the patch's length)
+    let p0 = tPen, p1 = tPen * 1.1, f0, f1; bump(); o.V = 0; o.om = 0; o.al = 0; o.x = 0;
+    o.y = R - p0; f0 = ftRigRun(F, P, ft, o, 8).F[1] - Fz0; o.y = R - p1; f1 = ftRigRun(F, P, ft, o, 6).F[1] - Fz0;
+    for (let i = 0; i < 6 && Math.abs(f1) > 2; i++) { const p2 = clamp(p1 - f1 * (p1 - p0) / ((f1 - f0) || 1), 0.3 * tPen, 3 * tPen); p0 = p1; f0 = f1; p1 = p2; o.y = R - p1; f1 = ftRigRun(F, P, ft, o, 5).F[1] - Fz0; }
+    return [p1, o.O.len]; };
+  // 1. the radial support: squashed tPen at Fz0 (the belt's bending kept as a steel belt's: the patch's length is the ring's own)
+  for (let it = 0, k0 = F.kr, e0 = Math.log(press()[0] / tPen); it < 6; it++) { if (Math.abs(e0) < 0.005) break;
+    const k1 = k0 * Math.exp(1.4 * e0); F.kt *= k1 / F.kr; F.kr = k1; const e1 = Math.log(press()[0] / tPen), sl = (e1 - e0) / Math.log(k1 / k0 || 1.0001);
+    const k2 = k1 * Math.exp(-e1 / clamp(sl, -2, -0.15)); F.kt *= k2 / F.kr; F.kr = k2; k0 = k2; e0 = Math.log(press()[0] / tPen); }
+  // 1b. the sidewalls' fold: three times the load squashes it three times as far less a tenth (radial tyres stiffen a little
+  // as the patch spreads, no more); the radial support fitted again after
+  const at = pn => { bump(); o.V = 0; o.om = 0; o.al = 0; o.x = 0; o.y = R - pn; return ftRigRun(F, P, ft, o, 10).F[1]; };
+  const refit = () => { for (let it = 0, k0 = F.kr, e0 = Math.log(press()[0] / tPen); it < 5; it++) { if (Math.abs(e0) < 0.004) break; const k1 = k0 * Math.exp(1.6 * e0); F.kt *= k1 / F.kr; F.kr = k1;
+      const e1 = Math.log(press()[0] / tPen), sl = (e1 - e0) / Math.log(k1 / k0 || 1.0001); const k2 = k1 * Math.exp(-e1 / clamp(sl, -2, -0.1)); F.kt *= k2 / F.kr; F.kr = k2; k0 = k2; e0 = Math.log(press()[0] / tPen); } };
+  const prog = () => at(3 * tPen) / (3.3 * Fz0);
+  { let best = 1, bv = Infinity; const kr0 = F.kr, kt0 = F.kt; // (a scan: the fit is not monotonic where the sidewalls fold early)
+    for (const es of [0.003, 0.005, 0.008, 0.013, 0.021, 0.034, 0.055, 0.09, 1]) { F.es = es; F.kr = kr0; F.kt = kt0; refit(); const g = Math.abs(Math.log(prog())); if (g < bv) { bv = g; best = es; } if (g < 0.015) break; }
+    F.es = best; F.kr = kr0; F.kt = kt0; refit(); }
+  const [pen] = press(); o.y = R - pen;
+  // 2. the sidewalls sideways: the rim pushed 1 mm across, the patch held, against tKy
+  const side = () => { bump(); o.V = 0; o.om = 0; o.al = 0; o.x = 0; o.dx = 0; ftRigRun(F, P, ft, o, 6); o.dx = 0.0002; ftRigRun(F, P, ft, o, 5); o.dx = 0; return -ftRigRun(F, P, ft, o, 3).F[0] / 0.001; };
+  for (let it = 0, k0 = F.ky, s0 = side(); it < 5; it++) { const e = Math.log(s0 / tKy); if (Math.abs(e) < 0.01) break; const k1 = k0 * Math.exp(-e * 1.1); F.ky = k1; const s1 = side(); const sl = Math.log(s1 / s0) / Math.log(k1 / k0 || 1.0001); F.ky = k0 * Math.exp(-Math.log(s0 / tKy) / clamp(sl, 0.2, 2)); k0 = F.ky; s0 = side(); }
+  // 3. its blocks across: the force at half a degree, freely rolling, against the brush's; 4. and along: braking and driving
+  // stiffness about free rolling; 5. the rubber's losses: free rolling at 20 m/s (no torque on the wheel), its drag against
+  // tCrr. Twice round, as each moves the others a little
+  const roll = (kap, al, n) => { bump(); o.V = 20; o.al = al; o.om = 20 * Math.cos(al) * (1 + kap) / R; o.x = 0; o.dx = 0; return ftRigRun(F, P, ft, o, n); };
+  const free = () => { let k0 = 0.002, k1 = 0.006, m0 = roll(k0, 0, 40).M[0], m1 = roll(k1, 0, 40).M[0], O = o.O;
+    for (let i = 0; i < 5 && Math.abs(k1 - k0) > 2e-5; i++) { const k2 = clamp(k1 - m1 * (k1 - k0) / ((m1 - m0) || 1e-9), -0.02, 0.03); k0 = k1; m0 = m1; k1 = k2; O = roll(k1, 0, 40); m1 = O.M[0]; } return [k1, -O.F[2] / O.F[1]]; };
+  const fit = (get, set, val, want, sc) => { let a0 = val, y0 = get(); // (a secant on the logs)
+    for (let it = 0; it < 6; it++) { const e = Math.log(y0 / want); if (Math.abs(e) < 0.006) break; const a1 = a0 * Math.exp(-sc * e); set(a1); const y1 = get(), sl = Math.log(y1 / y0) / Math.log(a1 / a0);
+      a0 = a1 * Math.exp(-Math.log(y1 / want) / clamp(sl, 0.1, 3)); set(a0); y0 = get(); } };
+  let kf = free()[0];
+  for (let pass = 0; pass < 2; pass++) {
+    fit(() => -roll(kf, 0.5 * Math.PI / 180, 40).F[0], v => { F.ktf = v; }, F.ktf, tFy, 1.3);
+    fit(() => (roll(kf + 0.005, 0, 40).F[2] - roll(kf - 0.005, 0, 40).F[2]) / 0.01, v => { F.kxf = v; }, F.kxf, tCx, 1.3);
+    const g0 = F.gs, b0 = F.gb, t0 = F.gt, c0 = F.cv; let lf = 1;
+    fit(() => { const r = free(); kf = r[0]; return r[1]; }, v => { lf = v; F.gs = g0 * v; F.gb = b0 * v; F.gt = t0 * v; F.cv = c0 * v; }, 1, tCrr, 1);
+  }
+  // 6. where its grip peaks, against the brush's on the same road (across: slip angle; along: slip), for what the rest of
+  // the game reads of a tyre (how near its peak it is, and the slip it peaks at: the assists, the crews' turn limit)
+  const pkOf = (gr, a0, a1, n) => { let best = -1, at = a0; for (let m = 0; m <= n; m++) { const x = a0 + (a1 - a0) * m / n, v = gr(x); if (v > best) { best = v; at = x; } } return at; };
+  const ra = pkOf(x => -roll(kf, x, 40).F[0], 3 * Math.PI / 180, 21 * Math.PI / 180, 9), ba = pkOf(x => -br(x, 0).fy, 1 * Math.PI / 180, 21 * Math.PI / 180, 40);
+  const rk = pkOf(x => roll(kf + x, 0, 40).F[2], 0.03, 0.3, 9), bk = pkOf(x => br(0, x).fx, 0.01, 0.3, 58);
+  bump(); F.mc.clear(); F.kcache.clear();
+  return { tPen, tLen, tKy, tFy, tCx, tCrr, kf, pref: P.pref, pkA: Math.tan(ra) / Math.tan(ba), pkK: rk / bk };
+}
+// a tyre's ring, fitted once for its build and kept (F: ftParams after ftCal; F.cl: the fit's figures)
+// (kept between visits where the page gives it somewhere to keep them, FT_STORE: get(key), set(key, fit); FT_FITV says
+// which ring the fits are of - another ring, and they are found again)
+let FT_STORE = null;
+const FT_FITV = 'r22.1';
+const FT_FITK = ['kr', 'kt', 'ky', 'es', 'ktf', 'kxf', 'gs', 'gb', 'gt', 'cv'];
+const FT_FITS_CL = ['tPen', 'tLen', 'tKy', 'tFy', 'tCx', 'tCrr', 'kf', 'pref', 'pkA', 'pkK'];
+function ftRing(TB, WH, pD) {
+  const key = TB.fam + '|' + TB.B + '|' + TB.H + '|' + TB.ps + '|' + pD + '|' + WH.R + '|' + WH.kt + '|' + (WH.ca || 1) + '|' + TB.Fz0 + '|' + TB.G + '|' + TB.void + '|' + TB.h0 + '|' + TB.blk + '|' + FTX + 'x' + FTY;
+  let F = FT_CAL.get(key); if (F) return F;
+  F = ftParams(TB, WH, pD);
+  // (the game's own tyres were fitted when it was built, FT_FITS; another, as this browser kept it; else fitted now, and kept)
+  const T = typeof FT_FITS !== 'undefined' && FT_FITS.v === FT_FITV ? FT_FITS.f[key] : null; let kept = null;
+  if (!T) { try { kept = FT_STORE && FT_STORE.get(key); } catch (e) { kept = null; } }
+  if (T) { FT_FITK.forEach((k, j) => { F[k] = T[j]; }); F.cl = {}; FT_FITS_CL.forEach((k, j) => { F.cl[k] = T[FT_FITK.length + j]; }); F.cal++; }
+  else if (kept && kept.v === FT_FITV && kept.p && kept.cl) { for (const k of FT_FITK) if (kept.p[k] != null) F[k] = kept.p[k]; F.cl = kept.cl; F.cal++; }
+  else { F.cl = ftCal(F, TB, WH, pD); if (FT_STORE) { const fit = {}; for (const k of FT_FITK) fit[k] = F[k]; try { FT_STORE.set(key, { v: FT_FITV, p: fit, cl: F.cl }); } catch (e) { } } }
+  F.pref = F.cl.pref; F.key = key; FT_CAL.set(key, F); return F;
+}
+// the rings a car's tyres need, fitted before it sets off (not on its first step): its two axles' builds
+function ftPrep(S) { if (!S || !S.tyreC || S.tandem) return; const WH = wheelOf(S), pD = tyrePoptOf(S.tyreC); for (const TB of tyreBuild(S)) ftRing(TB, WH, pD); }
+// how quickly this device steps a ring (microseconds a step, a rolling tyre at a slip angle, after warming up): a ring
+// built for a tarmac tyre as it is, unfitted, on the test rig
+function ftBench() {
+  const C = TYRE_C.tS || Object.values(TYRE_C)[0], TB = tyreBuildOf(C, 0.225, WHEEL), pD = tyrePoptOf(C), F = ftParams(TB, WHEEL, pD), P = ftFricNew(FTY), ft = ftNew(FTX, FTY);
+  P.ct.fill(TB.G * 1e6 * (1 - TB.void) * TB.blk / (TB.h0 + 0.003)); P.mu0 = 1.3; P.r = 0.8; P.vd = 7; P.pref = TB.Fz0 / 0.02;
+  const o = { p: pD, V: 20, om: 20 / F.R, al: 0.06, y: F.R - TB.Fz0 / WHEEL.kt, x: 0, dx: 0 }, now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  ftRigRun(F, P, ft, o, 150); let best = Infinity; for (let r = 0; r < 4; r++) { const t0 = now(); ftRigRun(F, P, ft, o, 60); best = Math.min(best, (now() - t0) * 1000 / 60); } return best; // (the quickest of four rounds: a pause in one is not the device)
+}
+// the friction on each block from what the surfaces under the tyre give it (TP: after tyreSurf and tyreLevels, the
+// brush's levels for this road; km: what the contact loses beyond; MX the surfaces' shares; fam the tyre's kind; w its
+// wear): the rubber's own friction at the reference pressure (the brush's at the patch, its load's share taken out: each
+// block's own pressure sets it here), the ring's own peak for each surface (FTK), the studs per square metre of tread
+let FT_EP = 0.3; // (how much less rubber holds the harder it is pressed: (p/pref)^-FT_EP)
+let FT_KL = 0.6; // (the loose ground's shear length under a block, against the brush's under the whole patch)
+function ftFric(P, TP, TB, F, fam, MX, km, w) {
+  let c = 0, cw = 0; for (let j = 0; j < MX.n; j++) { const k = MX.k[j], f = FTK[fam || (TYRE[k] || TYRE.gravel).home]; c += MX.w[j] * (f && f[k] || 1); cw += MX.w[j]; }
+  c = cw > 0 ? c / cw : 1;
+  P.hw = TP.hw; P.lw = TP.lw; P.mu0 = TP.rub * km * c; P.r = clamp(TP.r, 0.2, 0.99); P.vd = TP.vd; P.muLr = TP.lrub * km * c; P.lphi = TP.lphi * km * c; P.Kl = TP.K * FT_KL;
+  P.Fsa = TB.studs ? TP.st * TB.studs * TB.sh * 1000 * (1 - 0.5 * w) * km * c / (2 * Math.PI * F.R * F.bt) : 0; P.rs = TP.rs; P.sv = TP.sv; P.sk = Math.max(FT_SK, 0.6 * (TB.sh || 0)); P.pref = F.pref; P.ep = FT_EP;
+  return P;
+}
+// the plough: the sidewall shoving aside what the tyre has sunk into, as tyreForce has it (TP: the patch's figures, with
+// its half-length a and the speeds), into o
+function ftPlough(TP, o) {
+  o.px = 0; o.py = 0; if (!(TP.z > 0)) return o;
+  const a2 = 2 * TP.a, z = TP.z, l = Math.max(a2, 2 * Math.sqrt(2 * TP.R * z)), Vm = Math.sqrt(TP.vx * TP.vx + TP.vy * TP.vy + 0.09), sa = TP.vy / Vm, ca = TP.vx / Vm, as = Math.abs(sa);
+  const D = Math.max(0, TP.sig * z * (l * as - TP.b * (1 - Math.abs(ca))));
+  let px = -D * ca + 0.5 * TP.pk * z * TP.b * TP.slipV * Math.min(Math.abs(TP.slipV), Math.abs(TP.vx) + 1), py = -(D * sa + TP.pk * z * l * TP.vy * Math.abs(TP.vy));
+  const f = Math.hypot(px, py), cap = 0.5 * TP.Fz; if (f > 1e-6) { const k = 1 / Math.sqrt(1 + (f / cap) * (f / cap)); px *= k; py *= k; }
+  o.px = px; o.py = py; return o;
+}
+// ---- the tread's heat, across it (the ring's thermal model, by column) ----
+// Each column of tread has a skin (its surface, heated by the rubber's sliding, quick to warm and cool) and its body
+// (the rest of the rubber, heated by its hysteresis as it is squashed and let go), over the carcass (the belt and
+// sidewalls, heated by theirs) round the air inside, whose temperature sets the running pressure. The skin passes its
+// heat into the body and the air stream; the body into the carcass; the carcass into the air inside and out through
+// the sidewalls; the air inside into the rim. Their capacities add up to the tyre's (TYRE_CAP), their cooling to its
+// own (as the single tread temperature it was before): over a stage the tyre's mean temperature runs as it did, but now
+// a leaning tyre's inner shoulder runs hotter than its outer, a slide flashes the skin, and the pressure follows the air
+// inside, which warms more slowly. ty: the tyre's state (T, w, p as before; Ts, Tb, wz by column, Tc, Tg)
+const FT_TH = { s: 0.08, b: 0.52, c: 0.4, ts: 2.5, tb: 45, tg: 12, air: 0.7 }; // (shares of TYRE_CAP; the skin's, the body's and the air inside's time constants (s); the tread's share of the cooling)
+function ftHeatInit(tw, ny) {
+  if (tw.Ts && tw.Ts.length === ny) return tw;
+  tw.Ts = new Float64Array(ny).fill(tw.T); tw.Tb = new Float64Array(ny).fill(tw.T); tw.wz = new Float64Array(ny).fill(tw.w || 0); tw.Tc = tw.T; tw.Tg = tw.T; return tw;
+}
+// a step's heat (Pc: the sliding work into each column, W, its share into the tyre already taken; Ph: the rubber's
+// hysteresis, W; ld: each column's share of the load; hA: the cooling, W/K, as before; aT: the air; cap: the capacity, J/K;
+// rim: the rim's temperature, warmed by the brakes), each node implicit in its own exchanges (steady for any step)
+function ftHeat(tw, ny, Pc, Ph, ld, hA, aT, cap, rim, dt) {
+  const T = FT_TH, Cs = T.s * cap / ny, Cb = T.b * cap / ny, Cc = T.c * cap, Cg = 0.02 * cap, gsb = Cs / T.ts, gbc = Cb / T.tb, gcg = Cg / T.tg, grm = Cg / (3 * T.tg), hS = hA * T.air / ny, hC = hA * (1 - T.air);
+  const Tc = tw.Tc; let qc = 0, mb = 0, mw = 0;
+  for (let j = 0; j < ny; j++) {
+    const Ts = tw.Ts[j], Tb = tw.Tb[j], nTs = (Ts * Cs / dt + Pc[j] + gsb * Tb + hS * aT) / (Cs / dt + gsb + hS), nTb = (Tb * Cb / dt + 0.55 * Ph * ld[j] + gsb * nTs + gbc * Tc) / (Cb / dt + gsb + gbc);
+    tw.Ts[j] = nTs; tw.Tb[j] = nTb; qc += gbc * nTb; mb += nTb; mw += tw.wz[j]; }
+  tw.Tc = (Tc * Cc / dt + 0.45 * Ph + qc + gcg * tw.Tg + hC * aT) / (Cc / dt + ny * gbc + gcg + hC);
+  tw.Tg = (tw.Tg * Cg / dt + gcg * tw.Tc + grm * rim) / (Cg / dt + gcg + grm);
+  tw.T = mb / ny; tw.w = mw / ny; return tw;
+}
+// the grip each column's rubber has at its temperature and the tyre's pressure (TC: the compound; pOpt: the pressure it is
+// built for), as the single temperature gave it before (stepCar's gk), into gz; and each column's shear stiffness (its
+// body's temperature, its wear) into ct
+function ftColumns(P, tw, TC, TB, pOpt, ny) {
+  const dp = (tw.p - pOpt) / 0.35, pk = Math.max(0.9, 1 - (dp < 0 ? 0.025 : 0.05) * dp * dp);
+  for (let j = 0; j < ny; j++) { const Tt = 0.5 * (tw.Ts[j] + tw.Tb[j]), dT = (Tt - TC.Topt) / TC.win, wj = tw.wz[j];
+    P.gz[j] = TC.mu * Math.max(0.86, dT < 0 ? 1 - 0.12 * Math.pow(Math.max(0, -dT - 0.35), 2) : 1 - 0.15 * Math.pow(Math.max(0, dT - 0.25), 2)) * pk;
+    P.ct[j] = TB.G * 1e6 * clamp(1 + 0.012 * (TB.Topt - tw.Tb[j]), 0.75, 1.6) * (1 - TB.void) * (TB.blk + (1 - TB.blk) * 0.6 * wj) / (TB.h0 * (1 - 0.75 * wj) + 0.003); }
+}
+// ---- in the game ----
+// the ground about a tyre for its step (into G): three lines down its way (under the tread's middle and its edges, hx, hz
+// its heading, from back behind the touch point (x0, z0) to ahead of where the patch will be at the step's end), and the
+// solids it may roll onto - a rock's dome, a stone (pressed down as far as it gives), a bale's top - as they are
+function ftGround(T, info, c, G, x0, z0, hx, hz, half, yC, back, ahead, yb, R) {
+  const span = back + ahead, n = clamp(Math.ceil(span / FTG) + 1, 6, FT_GL), dx = span / (n - 1), lx = hz, lz = -hx, q = _gq;
+  G.k = 0; G.ox = x0; G.oz = z0; G.hx = hx; G.hz = hz; G.x0 = -back; G.dx = dx; G.dz = half; G.n = n;
+  const Y = G.y || (G.y = new Float64Array(3 * FT_GL)), sc = G.sc || (G.sc = { a: -1, b: 0, c: 0, S: null });
+  for (let L = 0; L < 3; L++) { const zl = (L - 1) * half;
+    for (let i = 0; i < n; i++) { const xi = -back + i * dx, x = x0 + xi * hx + zl * lx, z = z0 + xi * hz + zl * lz; worldInfoTo(info, c, x, z, q); Y[L * n + i] = surfaceY(T, q.wi, x, z, yC, sc); } }
+  const sol = G.sol || (G.sol = []); let ns = 0; const LP = T.loop ? T.pts.length - 1 : 0, i0 = info.i, reach = R + 0.45;
+  for (let i1 = LP ? i0 - 4 : Math.max(0, i0 - 4); i1 <= (LP ? i0 + 4 : Math.min(T.pts.length - 1, i0 + 4)); i1++) {
+    const L = T.colAt[LP ? ((i1 % LP) + LP) % LP : i1]; if (!L) continue;
+    for (const col of L) { if ((col.kind !== 'rock' && col.kind !== 'bale' && col.kind !== 'block') || Math.abs(col.x - x0) > 3 || Math.abs(col.z - z0) > 3) continue;
+      const gv = col.mob ? stoneGive(col) : 1;
+      for (const o of solidsOf(T, col)) { const dxo = o.x - x0, dzo = o.z - z0; if (dxo * dxo + dzo * dzo > (reach + o.R) * (reach + o.R)) continue;
+        let H = 0, top; if (o.H != null) { H = o.H * gv; top = o.g + H; if (top - yb > CLIMB) continue; } else { top = o.top; if (top - yb > WTOL) continue; }
+        const s = sol[ns] || (sol[ns] = { x: 0, z: 0, R: 0, H: 0, g: 0, top: 0 }); s.x = o.x; s.z = o.z; s.R = o.R; s.H = H; s.g = o.g != null ? o.g : top; s.top = top; ns++; if (ns >= 24) break; } } }
+  G.ns = ns; return G;
+}
+// one wheel's tyre through a step, the ring's way, for the car it is on (in place of the brush): its ring (fitted for its
+// build), the ground about it, each block's friction from the surfaces under it, the contact solved. X: what stepCar has
+// for it (see there); its forces and the patch's figures into wh as the brush's were, the torque on the wheel into wh.ftT,
+// the heat into its tread (when it has one) into wh.ftQ
+const FT_X = {}; // (what stepCar hands ftWheel, one object kept)
+const FT_W = [0, 1, 2, 3].map(() => ({ G: { k: 0 }, O: ftAcc(FTY), P: ftFricNew(FTY), B: { C: [0, 0, 0], V: [0, 0, 0], om: 0, uw: null, fw: null, aw: null, Wb: null, n: null, tl: null, tt: null, p: 2 }, ld: new Float64Array(FTY), Pc: new Float64Array(FTY) }));
+function ftWheel(X) {
+  const wh = X.wh, Z = FT_W[X.i], TB = X.TB, TP = X.TP, tw = X.tw, TC = X.TC, R0 = X.R0, dt = X.dt;
+  const F = ftRing(TB, X.WH, X.pD), ft = wh.ft && wh.ft.nx === FTX && wh.ft.ny === FTY ? wh.ft : (wh.ft = ftNew(FTX, FTY)), P = Z.P, B = Z.B, O = Z.O, C = wh.C;
+  // (moved far since the last step - put somewhere else: the contact starts afresh)
+  if (ft.ps && (C[0] - ft.C[0]) * (C[0] - ft.C[0]) + (C[1] - ft.C[1]) * (C[1] - ft.C[1]) + (C[2] - ft.C[2]) * (C[2] - ft.C[2]) > 1) ftClear(ft, null);
+  if (tw) { ftHeatInit(tw, FTY); ftColumns(P, tw, TC, TB, X.pOpt, FTY); } else { P.gz.fill(1); P.ct.fill(TB.G * 1e6 * (1 - TB.void) * TB.blk / (TB.h0 + 0.003)); }
+  ftFric(P, TP, TB, F, X.fam, wh.mix, X.km, tw ? tw.w : 0);
+  // the wheel's centre moving with the body (and along its strut), its axes, its spin; the ground about it
+  const V = X.V, Wv = X.Wv, rx = C[0] - X.cx, ry = C[1] - X.cy, rz = C[2] - X.cz;
+  B.V[0] = V[0] + Wv[1] * rz - Wv[2] * ry - wh.Ld * X.Ex; B.V[1] = V[1] + Wv[2] * rx - Wv[0] * rz - wh.Ld * X.Ey; B.V[2] = V[2] + Wv[0] * ry - Wv[1] * rx - wh.Ld * X.Ez;
+  B.C[0] = C[0]; B.C[1] = C[1]; B.C[2] = C[2]; B.uw = wh.uw; B.fw = wh.fw; B.aw = wh.aw; B.Wb = Wv; B.n = wh.n; B.tl = wh.tl; B.tt = wh.tt; B.om = wh.omega; B.p = tw ? tw.p : X.pOpt;
+  const q = wh.q, vh = B.V[0] * X.hx + B.V[2] * X.hz, pe = Math.max(0, X.pen) + 0.03, lc = Math.sqrt(2 * R0 * Math.min(pe, R0)) + 0.03;
+  ftGround(X.T, X.info, X.c, Z.G, q[0], q[2], X.hx, X.hz, 0.62 * TB.bt, C[1], lc + Math.max(0, -vh * dt), lc + Math.max(0, vh * dt), C[1] - R0, R0);
+  ftRun(ft, F, P, Z.G, B, dt, O);
+  // the forces in the contact's frame, applied at the centre of pressure, and the turn about it; the torque on the wheel
+  const n = wh.n, tl = wh.tl, tt = wh.tt, Fv = O.F, M = O.M;
+  let Fz = Fv[0] * n[0] + Fv[1] * n[1] + Fv[2] * n[2], Fx = Fv[0] * tl[0] + Fv[1] * tl[1] + Fv[2] * tl[2], Fy = Fv[0] * tt[0] + Fv[1] * tt[1] + Fv[2] * tt[2];
+  if (!(Fz > 0) || !(O.tc > 0)) { wh.Fz = 0; wh.Fx = 0; wh.Fy = 0; wh.Mz = 0; wh.ftT = 0; wh.ftQ = 0; wh.rho = 0; return 0; }
+  q[0] = O.cp[0]; q[1] = O.cp[1]; q[2] = O.cp[2];
+  const ax = q[0] - C[0], ay = q[1] - C[1], az = q[2] - C[2], mx = M[0] - (ay * Fv[2] - az * Fv[1]), my = M[1] - (az * Fv[0] - ax * Fv[2]), mz = M[2] - (ax * Fv[1] - ay * Fv[0]);
+  let Mz = mx * n[0] + my * n[1] + mz * n[2], T = M[0] * wh.aw[0] + M[1] * wh.aw[1] + M[2] * wh.aw[2];
+  // the brush at the same load and the wheel's slips as they are, for what the rest of the game reads of the tyre (how near
+  // its peak it is, the grip and slip angle there) and the plough's push through what it sinks into
+  const vx = X.vx, vy = X.vy, avx = Math.abs(vx), kap = clamp(X.slipV / Math.max(avx, 0.5), -0.95, 20);
+  TP.Fz = Fz; TP.a = Math.max(0.01, O.len / 2); TP.vx = vx; TP.vy = vy; TP.slipV = X.slipV; TP.R = R0; TP.sx = kap / (1 + kap); TP.sy = vy / Math.max(avx, 0.5) / (1 + kap); tyreForce(TP);
+  Fx += TP.px; Fy += TP.py; T -= TP.px * R0;
+  // (the ring's own peak: further out in slip than the brush's on a hard road, by the ratio its fit found - across for the
+  // slip angle it peaks at, both ways for how near it is, by how the slip lies)
+  const cl = F.cl, hw = TP.hw || 0, sxa = Math.abs(TP.sx), sya = Math.abs(TP.sy), pkA = 1 + ((cl.pkA || 1) - 1) * hw, pk = 1 + (((cl.pkA || 1) * sya + (cl.pkK || 1) * sxa) / (sxa + sya || 1) - 1) * hw;
+  wh.Fz = Fz; wh.Fx = Fx; wh.Fy = Fy; wh.Mz = Mz; wh.ftT = T; wh.rho = TP.rho / pk; wh.muPk = TP.muPk; wh.tanPk = TP.tanPk * pkA; wh.loose = TP.lw > 0.5;
+  // the heat: each column's sliding work (the tread's share of it, by the surface: TYRE_HEAT, as before), and the rubber's
+  // hysteresis - the rolling resistance's work: its drag at the patch times the speed it rolls at
+  let sq = 0; for (let j = 0; j < FTY; j++) { let s = 0; for (let k = j; k < FTX * FTY; k += FTY) s += ft.q[k]; Z.ld[j] = s; sq += s; }
+  for (let j = 0; j < FTY; j++) { const pw = O.Pc[j] / (O.T || dt); Z.ld[j] = sq > 0 ? Z.ld[j] / sq : 1 / FTY; Z.Pc[j] = pw * X.heat;
+    // (and the wear: each column worn by its own sliding, faster overheated; a column's life is its share of the tread's)
+    if (tw && X.wearK > 0) tw.wz[j] = Math.min(1, tw.wz[j] + dt * pw * X.wearK * FTY * (1 + Math.max(0, tw.Tb[j] - X.Topt - 10) / 15)); }
+  // (what the rim and the road put into the tyre that its rubber's sliding did not take: its hysteresis - freely rolling, the
+  // rolling resistance's drag times the speed)
+  wh.ftQ = Math.max(0, -(T + TP.px * R0) * wh.omega - ((Fx - TP.px) * vx + (Fy - TP.py) * vy) - O.pw);
+  wh.ftPw = O.pw; return 1;
+}
+// The ring's own grip for each kind of tyre on each surface (a factor on the brush's levels, as FAMK is on TYRE's), found by
+// ftkCalib (the harness) so the ring's peak - the most it holds up to 25 degrees of slip angle at 20 m/s, at the reference
+// tyre's load and pressure, the plough's push with it - is TYRE's mu times TYRE_FAM's, as the brush's is
+const FTK = { gravel: { gravel: 1.0461, tarmac: 1.2298, stone: 1.2149, snow: 1.0265, grass: 1.0259, snowbank: 0.9358, ice: 1.086, snowlayer: 0.9997, slush: 1.0308, dirt: 1.1205, loose: 1.0033, hard: 1.0874, powder: 0.9718, paint: 1.2114, concrete: 1.2197, moss: 1.199, steel: 1.1765 },
+  tarmac: { gravel: 1.1154, tarmac: 1.273, stone: 1.2691, snow: 1.0994, grass: 1.1008, snowbank: 1.0303, ice: 1.1713, snowlayer: 1.0711, slush: 1.1081, dirt: 1.1465, loose: 1.0722, hard: 1.1284, powder: 1.0544, paint: 1.2691, concrete: 1.2713, moss: 1.2506, steel: 1.2588 },
+  snow: { gravel: 1.0179, tarmac: 1.1447, stone: 1.1299, snow: 1.1248, grass: 1.0021, snowbank: 0.9422, ice: 1.0846, snowlayer: 1.0093, slush: 1.0012, dirt: 1.0354, loose: 0.9807, hard: 1.054, powder: 0.9423, paint: 1.1296, concrete: 1.1302, moss: 1.1173, steel: 1.1056 },
+  winter: { gravel: 1.0047, tarmac: 1.1628, stone: 1.1395, snow: 1.0169, grass: 1.0022, snowbank: 0.9205, ice: 1.0861, snowlayer: 0.9875, slush: 1.014, dirt: 1.076, loose: 0.9726, hard: 1.037, powder: 0.9345, paint: 1.1395, concrete: 1.157, moss: 1.1403, steel: 1.1323 },
+  stud: { gravel: 1.0088, tarmac: 1.1547, stone: 1.1382, snow: 1.0312, grass: 1.0068, snowbank: 0.9336, ice: 0.9991, snowlayer: 1.0035, slush: 1.0139, dirt: 1.0645, loose: 0.9785, hard: 1.04, powder: 0.9413, paint: 1.1375, concrete: 1.1424, moss: 1.1498, steel: 1.1051 },
+  xc: { gravel: 0.992, tarmac: 1.0404, stone: 0.9975, snow: 0.942, grass: 0.9377, snowbank: 0.8406, ice: 0.982, snowlayer: 0.9072, slush: 0.9093, dirt: 1.0042, loose: 0.9528, hard: 0.9959, powder: 0.9061, paint: 0.9775, concrete: 1.0058, moss: 0.9714, steel: 0.9735 },
+  mt: { gravel: 1.0057, tarmac: 1.108, stone: 1.0948, snow: 0.9704, grass: 0.9746, snowbank: 0.8913, ice: 0.9995, snowlayer: 0.946, slush: 0.9498, dirt: 1.0597, loose: 0.9738, hard: 1.0308, powder: 0.9429, paint: 1.0826, concrete: 1.101, moss: 1.0798, steel: 1.0228 },
+  road: { gravel: 1.0631, tarmac: 1.2302, stone: 1.2275, snow: 1.068, grass: 1.0662, snowbank: 1.0033, ice: 1.1605, snowlayer: 1.0443, slush: 1.0911, dirt: 1.1473, loose: 1.0279, hard: 1.1046, powder: 1.0108, paint: 1.2275, concrete: 1.2328, moss: 1.2036, steel: 1.1921 } };
+// the rings fitted to every tyre the game builds (each car's, on each surface, of each compound), when the game was built
+// (harness: ftfits gen.js): its key (see ftRing), then kr, kt, ky, es, ktf, kxf, gs, gb, gt, cv, then the fit's tPen, tLen, tKy, tFy, tCx, tCrr, kf, pref, pkA, pkK
+const FT_FITS = { v: "r22.1", f: {
+  "gravel|0.235|0.15275|0.5|2|0.31|230000|1|2715.5555555555557|1.8|0.4|0.013|0.85|10x5": [869875, 869875, 83742.5, 0.005, 0.862634, 1.18296, 0.170679, 0.170679, 0.256018, 0.000213349, 0.0118068, 0.0983062, 96433, 336.813, 54795, 0.0150869, 0.0027649, 133576, 1.69176, 1.61538],
+  "gravel|0.235|0.15275|0.5|2|0.31|230000|1|2715.5555555555557|2.4|0.4|0.013|0.85|10x5": [756360, 756360, 82158.6, 0.008, 0.887184, 1.19808, 0.188808, 0.188808, 0.283211, 0.000236009, 0.0118068, 0.0983062, 96433, 404.835, 69145.3, 0.0150869, 0.00260626, 133576, 1.47647, 1.5],
+  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|1.7|0.12|0.007|1|10x5": [681125, 681125, 251530, 0.003, 1.16831, 1.36914, 0.220042, 0.220042, 0.330063, 0.000275053, 0.0118068, 0.0983062, 221303, 679.828, 126473, 0.0150869, 0.00224066, 125050, 1.11165, 1.09091],
+  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|1.4|0.12|0.007|1|10x5": [623533, 623533, 257819, 0.005, 1.20225, 1.32224, 0.222194, 0.222194, 0.333292, 0.000277743, 0.0118068, 0.0983062, 221303, 615.808, 110272, 0.0150869, 0.00239757, 125050, 1.40343, 1.38462],
+  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|2.1|0.12|0.007|1|10x5": [673503, 673503, 254512, 0.003, 1.0957, 1.40813, 0.22534, 0.22534, 0.33801, 0.000281675, 0.0118068, 0.0983062, 221303, 748.938, 145434, 0.0150869, 0.00190717, 125050, 1.7559, 2],
+  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|1.6|0.3|0.008|1|10x5": [644325, 644325, 274082, 0.005, 1.15935, 1.29631, 0.216901, 0.216901, 0.325352, 0.000271127, 0.0118068, 0.0983062, 221303, 553.689, 95670.8, 0.0150869, 0.00248978, 125050, 1.27517, 1.2],
+  "winter|0.235|0.10575|0.3|2.1|0.31|230000|1|2715.5555555555557|1.4|0.35|0.009|0.6|10x5": [873719, 873719, 212841, 0.005, 0.850004, 1.19048, 0.163213, 0.163213, 0.24482, 0.000204017, 0.0118068, 0.0983062, 168786, 291.513, 44831.2, 0.0150869, 0.0029146, 136682, 1.44572, 1.5],
+  "stud|0.235|0.10575|0.3|2.1|0.31|230000|1|2715.5555555555557|1.45|0.35|0.009|0.6|10x5": [868070, 868070, 211146, 0.005, 0.850658, 1.17507, 0.164676, 0.164676, 0.247014, 0.000205845, 0.0118068, 0.0983062, 168786, 299.264, 46229, 0.0150869, 0.00286621, 136682, 1.51962, 1.54839],
+  "snow|0.235|0.15275|0.4|2|0.31|230000|1|2715.5555555555557|1.9|0.45|0.014|0.6|10x5": [868852, 868852, 86298.1, 0.008, 0.796523, 1.17328, 0.159168, 0.159168, 0.238752, 0.00019896, 0.0118068, 0.0983062, 93716.4, 239.309, 36627.6, 0.0150869, 0.00299999, 136682, 1.37906, 1.38462],
+  "gravel|0.205|0.13325|0.5|2|0.31|230000|1|2368.8888888888887|1.8|0.4|0.013|0.85|10x5": [969231, 969231, 112338, 0.005, 0.816903, 1.19935, 0.169491, 0.169491, 0.254237, 0.000211864, 0.0102995, 0.0907544, 110545, 263.145, 41784.8, 0.0150869, 0.00202365, 144691, 1.30932, 1.4],
+  "gravel|0.205|0.13325|0.5|2|0.31|230000|1|2368.8888888888887|2.4|0.4|0.013|0.85|10x5": [933041, 933041, 107269, 0.005, 0.838728, 1.21706, 0.176991, 0.176991, 0.265487, 0.000221239, 0.0102995, 0.0907544, 110545, 319.594, 53088.8, 0.0150869, 0.0019054, 144691, 1.30063, 1.56522],
+  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|1.7|0.12|0.007|1|10x5": [773379, 773379, 342855, 0.003, 1.06289, 1.37671, 0.209264, 0.209264, 0.313896, 0.00026158, 0.0102995, 0.0907544, 253689, 547.041, 98609.5, 0.0150869, 0.00167047, 135455, 1.40343, 1.5],
+  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|1.4|0.12|0.007|1|10x5": [784195, 784195, 353586, 0.003, 1.00971, 1.27043, 0.204681, 0.204681, 0.307021, 0.000255851, 0.0102995, 0.0907544, 253689, 491.666, 85432.8, 0.0150869, 0.00169506, 135455, 1.64489, 1.71429],
+  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|2.1|0.12|0.007|1|10x5": [760940, 760940, 341236, 0.003, 1.09826, 1.4049, 0.225063, 0.225063, 0.337594, 0.000281328, 0.0102995, 0.0907544, 253689, 607.816, 114252, 0.0150869, 0.00164888, 135455, 1.56013, 1.8],
+  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|1.6|0.3|0.008|1|10x5": [797258, 797258, 365501, 0.003, 1.00844, 1.22234, 0.198913, 0.198913, 0.29837, 0.000248642, 0.0102995, 0.0907544, 253689, 438.759, 73702, 0.0150869, 0.00167961, 135455, 1.50693, 1.41176],
+  "winter|0.205|0.09225|0.3|2.1|0.31|230000|1|2368.8888888888887|1.4|0.35|0.009|0.6|10x5": [983594, 983594, 320410, 0.005, 0.80774, 1.16813, 0.166758, 0.166758, 0.250137, 0.000208448, 0.0102995, 0.0907544, 193487, 225.002, 33947.7, 0.0150869, 0.00201952, 148056, 1.31701, 1.45946],
+  "stud|0.205|0.09225|0.3|2.1|0.31|230000|1|2368.8888888888887|1.45|0.35|0.009|0.6|10x5": [976071, 976071, 314959, 0.005, 0.822737, 1.1724, 0.168507, 0.168507, 0.252761, 0.000210634, 0.0102995, 0.0907544, 193487, 231.22, 35026.6, 0.0150869, 0.00199104, 148056, 1.31701, 1.33333],
+  "snow|0.205|0.13325|0.4|2|0.31|230000|1|2368.8888888888887|1.9|0.45|0.014|0.6|10x5": [1078400, 1078400, 118335, 0.005, 0.731067, 1.17915, 0.154532, 0.154532, 0.231797, 0.000193164, 0.0102995, 0.0907544, 107431, 184.432, 27706.2, 0.0150869, 0.00244204, 148056, 1.53959, 1.17391],
+  "gravel|0.215|0.13975|0.5|2|0.31|230000|1|2484.4444444444443|1.8|0.4|0.013|0.85|10x5": [933028, 933028, 101131, 0.005, 0.862217, 1.2046, 0.179471, 0.179471, 0.269207, 0.000224339, 0.0108019, 0.0933127, 105404, 286.947, 45939.4, 0.0150869, 0.00213014, 140724, 1.37961, 1.28571],
+  "gravel|0.215|0.13975|0.5|2|0.31|230000|1|2484.4444444444443|2.4|0.4|0.013|0.85|10x5": [899771, 899771, 97011.2, 0.005, 0.853551, 1.21451, 0.177892, 0.177892, 0.266838, 0.000222365, 0.0108019, 0.0933127, 105404, 347.266, 58233.8, 0.0150869, 0.0021095, 140724, 1.38309, 1.36364],
+  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|1.7|0.12|0.007|1|10x5": [740102, 740102, 306793, 0.003, 1.06162, 1.33952, 0.212248, 0.212248, 0.318372, 0.00026531, 0.0108019, 0.0933127, 241890, 590.499, 107605, 0.0150869, 0.00179089, 131741, 1.40343, 1.5],
+  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|1.4|0.12|0.007|1|10x5": [749537, 749537, 313894, 0.003, 1.02555, 1.26737, 0.206364, 0.206364, 0.309545, 0.000257955, 0.0108019, 0.0933127, 241890, 532.164, 93427.6, 0.0150869, 0.00179409, 131741, 1.64489, 1.71429],
+  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|2.1|0.12|0.007|1|10x5": [730509, 730509, 306113, 0.003, 1.07666, 1.37861, 0.225528, 0.225528, 0.338293, 0.000281911, 0.0108019, 0.0933127, 241890, 654.154, 124355, 0.0150869, 0.00180063, 131741, 1.56013, 1.8],
+  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|1.6|0.3|0.008|1|10x5": [761139, 761139, 326053, 0.003, 1.02388, 1.25787, 0.199942, 0.199942, 0.299914, 0.000249928, 0.0108019, 0.0933127, 241890, 476.132, 80753.3, 0.0150869, 0.00193337, 131741, 1.84941, 1.5],
+  "winter|0.215|0.09675|0.3|2.1|0.31|230000|1|2484.4444444444443|1.4|0.35|0.009|0.6|10x5": [944041, 944041, 278381, 0.005, 0.819761, 1.21627, 0.163069, 0.163069, 0.244603, 0.000203836, 0.0108019, 0.0933127, 184487, 246.368, 37410.8, 0.0150869, 0.00243317, 143996, 1.77141, 1.54286],
+  "stud|0.215|0.09675|0.3|2.1|0.31|230000|1|2484.4444444444443|1.45|0.35|0.009|0.6|10x5": [936968, 936968, 275398, 0.005, 0.822998, 1.2211, 0.164138, 0.164138, 0.246207, 0.000205172, 0.0108019, 0.0933127, 184487, 253.09, 38592.2, 0.0150869, 0.00237372, 143996, 1.77141, 1.41176],
+  "snow|0.215|0.13975|0.4|2|0.31|230000|1|2484.4444444444443|1.9|0.45|0.014|0.6|10x5": [1032610, 1032610, 105683, 0.005, 0.74665, 1.16985, 0.155275, 0.155275, 0.232913, 0.000194094, 0.0108019, 0.0933127, 102434, 202.048, 30543.4, 0.0150869, 0.0027061, 143996, 1.43423, 1.39535],
+  "gravel|0.225|0.14625000000000002|0.5|2|0.31|230000|1|2600|1.8|0.4|0.013|0.85|10x5": [899899, 899899, 91736.9, 0.005, 0.845918, 1.21573, 0.170502, 0.170502, 0.255753, 0.000213127, 0.0113043, 0.095829, 100719, 311.513, 50277, 0.0150869, 0.00244307, 137029, 1.37961, 1.55556],
+  "gravel|0.225|0.14625000000000002|0.5|2|0.31|230000|1|2600|2.4|0.4|0.013|0.85|10x5": [869281, 869281, 88356.7, 0.005, 0.902212, 1.25182, 0.195569, 0.195569, 0.293354, 0.000244461, 0.0113043, 0.095829, 100719, 375.692, 63587.4, 0.0150869, 0.00222417, 137029, 1.38309, 1.42857],
+  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|1.7|0.12|0.007|1|10x5": [709400, 709400, 276966, 0.003, 1.0743, 1.36203, 0.213663, 0.213663, 0.320494, 0.000267078, 0.0113043, 0.095829, 231139, 634.78, 116897, 0.0150869, 0.00183622, 128282, 1.56013, 1.63636],
+  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|1.4|0.12|0.007|1|10x5": [717461, 717461, 282354, 0.003, 1.02697, 1.31332, 0.207313, 0.207313, 0.310969, 0.000259141, 0.0113043, 0.095829, 231139, 573.564, 101710, 0.0150869, 0.00207031, 128282, 1.81034, 2.76923],
+  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|2.1|0.12|0.007|1|10x5": [700824, 700824, 275301, 0.003, 1.0903, 1.37467, 0.225408, 0.225408, 0.338113, 0.000281761, 0.0113043, 0.095829, 231139, 701.214, 134753, 0.0150869, 0.0017691, 128282, 1.56013, 1.2],
+  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|1.6|0.3|0.008|1|10x5": [728385, 728385, 292241, 0.003, 1.14973, 1.2766, 0.210053, 0.210053, 0.315079, 0.000262566, 0.0113043, 0.095829, 231139, 514.459, 88078.5, 0.0150869, 0.00216347, 128282, 1.16822, 1.2],
+  "winter|0.225|0.10125|0.3|2.1|0.31|230000|1|2600|1.4|0.35|0.009|0.6|10x5": [907730, 907730, 242242, 0.005, 0.840291, 1.20248, 0.163957, 0.163957, 0.245935, 0.000204946, 0.0113043, 0.095829, 176288, 268.546, 41039, 0.0150869, 0.0027445, 140215, 1.44572, 1.45455],
+  "stud|0.225|0.10125|0.3|2.1|0.31|230000|1|2600|1.45|0.35|0.009|0.6|10x5": [901620, 901620, 240772, 0.005, 0.8465, 1.20869, 0.16496, 0.16496, 0.24744, 0.0002062, 0.0113043, 0.095829, 176288, 275.778, 42326.8, 0.0150869, 0.0026811, 140215, 1.44572, 1.5],
+  "snow|0.225|0.14625000000000002|0.4|2|0.31|230000|1|2600|1.9|0.45|0.014|0.6|10x5": [991440, 991440, 95181.4, 0.005, 0.769438, 1.18437, 0.152206, 0.152206, 0.228308, 0.000190257, 0.0113043, 0.095829, 97881.6, 220.346, 33517.4, 0.0150869, 0.00271681, 140215, 1.32427, 1.46341],
+  "gravel|0.195|0.12675|0.5|2|0.31|230000|1|2253.3333333333335|1.8|0.4|0.013|0.85|10x5": [1004620, 1004620, 128589, 0.005, 0.798004, 1.23067, 0.170368, 0.170368, 0.255553, 0.00021296, 0.0097971, 0.088151, 116214, 240.137, 37815.6, 0.0150869, 0.00179325, 148964, 1.44572, 1.35484],
+  "gravel|0.195|0.12675|0.5|2|0.31|230000|1|2253.3333333333335|2.4|0.4|0.013|0.85|10x5": [962242, 962242, 120880, 0.005, 0.844627, 1.19288, 0.17775, 0.17775, 0.266625, 0.000222188, 0.0097971, 0.088151, 116214, 292.716, 48157, 0.0150869, 0.00165683, 148964, 1.30063, 1.5],
+  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|1.7|0.12|0.007|1|10x5": [800737, 800737, 386152, 0.003, 1.01602, 1.31317, 0.209214, 0.209214, 0.313822, 0.000261518, 0.0097971, 0.088151, 266699, 504.47, 89921.5, 0.0150869, 0.00143321, 139455, 1.40343, 1.38462],
+  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|1.4|0.12|0.007|1|10x5": [812445, 812445, 398007, 0.003, 1.00792, 1.25172, 0.204396, 0.204396, 0.306595, 0.000255495, 0.0097971, 0.088151, 266699, 452.126, 77735, 0.0150869, 0.00140512, 139455, 2.01872, 1.6],
+  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|2.1|0.12|0.007|1|10x5": [615747, 615747, 386222, 0.013, 1.12602, 1.41184, 0.241497, 0.241497, 0.362246, 0.000301872, 0.0097971, 0.088151, 266699, 562.263, 104460, 0.0150869, 0.00158394, 139455, 1.56013, 1.63636],
+  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|1.6|0.3|0.008|1|10x5": [827306, 827306, 418378, 0.003, 0.992477, 1.27972, 0.198143, 0.198143, 0.297214, 0.000247679, 0.0097971, 0.088151, 266699, 402.394, 66931.2, 0.0150869, 0.00160281, 139455, 1.39012, 1.41176],
+  "winter|0.195|0.08775000000000001|0.3|2.1|0.31|230000|1|2253.3333333333335|1.4|0.35|0.009|0.6|10x5": [1027330, 1027330, 370004, 0.005, 0.785002, 1.19298, 0.163682, 0.163682, 0.245523, 0.000204602, 0.0097971, 0.088151, 203409, 204.468, 30650.7, 0.0150869, 0.00212506, 152428, 1.2606, 1.53846],
+  "stud|0.195|0.08775000000000001|0.3|2.1|0.31|230000|1|2253.3333333333335|1.45|0.35|0.009|0.6|10x5": [1019060, 1019060, 366459, 0.005, 0.794793, 1.19986, 0.164594, 0.164594, 0.246891, 0.000205742, 0.0097971, 0.088151, 203409, 210.192, 31630.9, 0.0150869, 0.00207007, 152428, 1.2606, 1.57895],
+  "snow|0.195|0.12675|0.4|2|0.31|230000|1|2253.3333333333335|1.9|0.45|0.014|0.6|10x5": [1129850, 1129850, 136181, 0.005, 0.708226, 1.19266, 0.152087, 0.152087, 0.228131, 0.000190109, 0.0097971, 0.088151, 112940, 167.515, 25006.5, 0.0150869, 0.00206127, 152428, 1.48429, 1.125],
+  "gravel|0.165|0.10725000000000001|0.5|2|0.31|230000|1|1906.6666666666665|1.8|0.4|0.013|0.85|10x5": [1332100, 1332100, 196655, 0.003, 0.717487, 1.24158, 0.158328, 0.158328, 0.237491, 0.000197909, 0.00828986, 0.0800328, 137344, 176.197, 27044.7, 0.0150869, 0.00117175, 164074, 1.43835, 1.62162],
+  "gravel|0.185|0.12025|0.5|2|0.31|230000|1|2137.777777777778|1.8|0.4|0.013|0.85|10x5": [1048660, 1048660, 145632, 0.005, 0.778866, 1.22303, 0.169841, 0.169841, 0.254761, 0.000212301, 0.00929469, 0.0854991, 122496, 217.954, 34034.3, 0.0150869, 0.00162052, 153584, 1.37848, 1.45455],
+  "gravel|0.165|0.10725000000000001|0.5|2|0.31|230000|1|1906.6666666666665|2.4|0.4|0.013|0.85|10x5": [1254710, 1254710, 182073, 0.003, 0.799687, 1.24434, 0.171073, 0.171073, 0.25661, 0.000213841, 0.00828986, 0.0800328, 137344, 217.264, 34683.2, 0.0150869, 0.0012646, 164074, 1.51962, 1.44828],
+  "gravel|0.185|0.12025|0.5|2|0.31|230000|1|2137.777777777778|2.4|0.4|0.013|0.85|10x5": [1001860, 1001860, 138238, 0.005, 0.826494, 1.19443, 0.17675, 0.17675, 0.265124, 0.000220937, 0.00929469, 0.0854991, 122496, 266.672, 43442.5, 0.0150869, 0.00147342, 153584, 1.22727, 1.38462],
+  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|1.7|0.12|0.007|1|10x5": [746863, 746863, 598247, 0.008, 1.02378, 1.33124, 0.223824, 0.223824, 0.335735, 0.00027978, 0.00828986, 0.0800328, 315189, 382.777, 65822.5, 0.0150869, 0.00109104, 153601, 1.64489, 1.2],
+  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|1.7|0.12|0.007|1|10x5": [653457, 653457, 446749, 0.013, 1.06942, 1.34121, 0.231755, 0.231755, 0.347633, 0.000289694, 0.00929469, 0.0854991, 281115, 462.853, 81552.9, 0.0150869, 0.00149311, 143781, 1.64489, 1.38462],
+  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|1.4|0.12|0.007|1|10x5": [762871, 762871, 630788, 0.008, 0.97348, 1.24765, 0.217107, 0.217107, 0.325661, 0.000271384, 0.00828986, 0.0800328, 315189, 339.924, 56515.8, 0.0150869, 0.00112122, 153601, 1.39012, 1.41176],
+  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|1.4|0.12|0.007|1|10x5": [853439, 853439, 452152, 0.003, 0.983794, 1.23476, 0.202597, 0.202597, 0.303896, 0.000253247, 0.00929469, 0.0854991, 281115, 413.61, 70343.3, 0.0150869, 0.00128651, 143781, 1.50693, 1.5],
+  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|2.1|0.12|0.007|1|10x5": [703254, 703254, 564383, 0.013, 1.04481, 1.29756, 0.236116, 0.236116, 0.354174, 0.000295145, 0.00828986, 0.0800328, 315189, 431.029, 77097.4, 0.0150869, 0.000984258, 153601, 1.81034, 1.38462],
+  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|2.1|0.12|0.007|1|10x5": [644214, 644214, 436812, 0.013, 1.1152, 1.42654, 0.24075, 0.24075, 0.361125, 0.000300937, 0.00929469, 0.0854991, 281115, 517.562, 94993.6, 0.0150869, 0.00136684, 143781, 1.40343, 1.63636],
+  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|1.6|0.3|0.008|1|10x5": [785523, 785523, 670425, 0.008, 0.935333, 1.24872, 0.21021, 0.21021, 0.315315, 0.000262763, 0.00828986, 0.0800328, 315189, 299.934, 48371.8, 0.0150869, 0.00114682, 153601, 1.5831, 1.5],
+  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|1.6|0.3|0.008|1|10x5": [869959, 869959, 483485, 0.003, 0.963944, 1.2653, 0.197463, 0.197463, 0.296195, 0.000246829, 0.00929469, 0.0854991, 281115, 367.094, 60448.1, 0.0150869, 0.00132124, 143781, 1.70605, 1.33333],
+  "winter|0.165|0.07425000000000001|0.3|2.1|0.31|230000|1|1906.6666666666665|1.4|0.35|0.009|0.6|10x5": [1195970, 1195970, 684204, 0.005, 0.717914, 1.20775, 0.162697, 0.162697, 0.244045, 0.000203371, 0.00828986, 0.0800328, 240392, 148.08, 21765.5, 0.0150869, 0.00145298, 167890, 1.53959, 1.2766],
+  "winter|0.185|0.08325|0.3|2.1|0.31|230000|1|2137.777777777778|1.4|0.35|0.009|0.6|10x5": [1077440, 1077440, 443545, 0.005, 0.76697, 1.20511, 0.163218, 0.163218, 0.244827, 0.000204023, 0.00929469, 0.0854991, 214404, 184.788, 27520.8, 0.0150869, 0.00187355, 157156, 1.37906, 1.46341],
+  "stud|0.165|0.07425000000000001|0.3|2.1|0.31|230000|1|1906.6666666666665|1.45|0.35|0.009|0.6|10x5": [1183840, 1183840, 663811, 0.005, 0.723012, 1.2132, 0.163661, 0.163661, 0.245492, 0.000204577, 0.00828986, 0.0800328, 240392, 152.39, 22474.7, 0.0150869, 0.00142249, 167890, 1.43423, 1.33333],
+  "stud|0.185|0.08325|0.3|2.1|0.31|230000|1|2137.777777777778|1.45|0.35|0.009|0.6|10x5": [1067470, 1067470, 435710, 0.005, 0.76841, 1.22906, 0.16387, 0.16387, 0.245804, 0.000204837, 0.00929469, 0.0854991, 214404, 190.029, 28406.4, 0.0150869, 0.00180461, 157156, 1.37906, 1.5],
+  "snow|0.165|0.10725000000000001|0.4|2|0.31|230000|1|1906.6666666666665|1.9|0.45|0.014|0.6|10x5": [1328220, 1328220, 224282, 0.005, 0.647323, 1.17675, 0.154454, 0.154454, 0.231681, 0.000193067, 0.00828986, 0.0800328, 133475, 121.127, 17738.7, 0.0150869, 0.00168641, 167890, 1.2959, 1.01695],
+  "snow|0.185|0.12025|0.4|2|0.31|230000|1|2137.777777777778|1.9|0.45|0.014|0.6|10x5": [1187080, 1187080, 159145, 0.005, 0.680823, 1.16427, 0.155863, 0.155863, 0.233794, 0.000194828, 0.00929469, 0.0854991, 119045, 151.313, 22445, 0.0150869, 0.00207773, 157156, 1.28505, 1.17647],
+  "gravel|0.175|0.11374999999999999|0.5|2|0.31|230000|1|2022.222222222222|1.8|0.4|0.013|0.85|10x5": [1097500, 1097500, 167879, 0.005, 0.758038, 1.227, 0.168969, 0.168969, 0.253454, 0.000211211, 0.00879227, 0.0827945, 129496, 196.63, 30443.3, 0.0150869, 0.00144638, 158601, 1.31701, 1.37143],
+  "gravel|0.175|0.11374999999999999|0.5|2|0.31|230000|1|2022.222222222222|2.4|0.4|0.013|0.85|10x5": [1217220, 1217220, 156690, 0.003, 0.78892, 1.20108, 0.163711, 0.163711, 0.245566, 0.000204638, 0.00879227, 0.0827945, 129496, 241.506, 38949.8, 0.0150869, 0.0012282, 158601, 1.37961, 1.33333],
+  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|1.7|0.12|0.007|1|10x5": [719389, 719389, 509756, 0.008, 1.04067, 1.35819, 0.224813, 0.224813, 0.337219, 0.000281016, 0.00879227, 0.0827945, 297179, 422.262, 73515.8, 0.0150869, 0.00128589, 148478, 1.27517, 1.28571],
+  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|1.4|0.12|0.007|1|10x5": [730257, 730257, 536481, 0.008, 1.00097, 1.23793, 0.218479, 0.218479, 0.327719, 0.000273099, 0.00879227, 0.0827945, 297179, 376.185, 63267.1, 0.0150869, 0.00127388, 148478, 1.50693, 1.5],
+  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|2.1|0.12|0.007|1|10x5": [668174, 668174, 489794, 0.013, 1.10555, 1.43355, 0.243379, 0.243379, 0.365068, 0.000304223, 0.00879227, 0.0827945, 297179, 473.79, 85867.3, 0.0150869, 0.00115557, 148478, 1.81034, 1.5],
+  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|1.6|0.3|0.008|1|10x5": [744993, 744993, 568781, 0.008, 0.967369, 1.24503, 0.211962, 0.211962, 0.317943, 0.000264952, 0.00879227, 0.0827945, 297179, 332.919, 54259.3, 0.0150869, 0.0013073, 148478, 1.28994, 1.57895],
+  "winter|0.175|0.07875|0.3|2.1|0.31|230000|1|2022.222222222222|1.4|0.35|0.009|0.6|10x5": [1132650, 1132650, 545952, 0.005, 0.742419, 1.21413, 0.163271, 0.163271, 0.244906, 0.000204089, 0.00879227, 0.0827945, 226656, 165.985, 24558.8, 0.0150869, 0.00160743, 162290, 1.32427, 1.22727],
+  "stud|0.175|0.07875|0.3|2.1|0.31|230000|1|2022.222222222222|1.45|0.35|0.009|0.6|10x5": [1121590, 1121590, 530051, 0.005, 0.747787, 1.20801, 0.164297, 0.164297, 0.246446, 0.000205372, 0.00879227, 0.0827945, 226656, 170.754, 25354.1, 0.0150869, 0.00157425, 162290, 1.49145, 1.28571],
+  "snow|0.175|0.11374999999999999|0.4|2|0.31|230000|1|2022.222222222222|1.9|0.45|0.014|0.6|10x5": [1252330, 1252330, 185289, 0.005, 0.660913, 1.17305, 0.155163, 0.155163, 0.232744, 0.000193953, 0.00879227, 0.0827945, 125848, 135.845, 20022.2, 0.0150869, 0.00187377, 162290, 1.33869, 1.09091],
+  "mt|0.318|0.2385|0.8|2.8|0.47|600000|0.8|15264|2.3|0.45|0.015|0.65|10x5": [1914490, 1914490, 58140.4, 0.013, 0.38597, 1.70704, 0.136281, 0.136281, 0.204421, 0.000170351, 0.02544, 0.183668, 116376, 749.038, 174192, 0.0150869, 0.0019034, 307461, 1, 1.2766],
+  "road|0.215|0.129|0.25|4|0.354|300000|0.9|6688.888888888889|2|0.3|0.0085|0.8|10x5": [556424, 556424, 119251, 0.008, 0.834381, 1.54054, 0.17645, 0.17645, 0.264675, 0.000220563, 0.0222963, 0.151601, 151701, 763.145, 162754, 0.0150869, 0.000433966, 238625, 1.30932, 1.42857],
+  "winter|0.215|0.09675|0.3|4|0.354|300000|0.9|6688.888888888889|1.45|0.35|0.009|0.6|10x5": [556870, 556870, 75639.4, 0.013, 0.912661, 1.31523, 0.143825, 0.143825, 0.215738, 0.000179782, 0.0222963, 0.151601, 104716, 533.389, 96302.1, 0.0150869, 0.00125387, 238625, 1.27346, 1.45946] } };
 // ---- the car's motion ----
 // One rigid body, the car, carried on four wheels. Each wheel hangs on a strut that slides along the body's own up (on a
 // bank, or with the body leaning, the spring pushes along the car, not straight up), with the wheel's own mass on it;
@@ -6236,7 +7139,7 @@ function stepCar(c, S, inp, dt, T, opts) {
       if (dl > 1e-3) { dx /= dl; dy /= dl; dz /= dl; } else { dx = 0; dy = 0; dz = 0; } o[0] = Cx + (Rw - rt) * dx - rt * n[0]; o[1] = Cy + (Rw - rt) * dy - rt * n[1]; o[2] = Cz + (Rw - rt) * dz - rt * n[2]; return o; };
     const q = wh.q || (wh.q = [0, 0, 0]), n = wh.n || (wh.n = [0, 1, 0]); touch(n, q);
     // the wheel's heading over the ground, and the ground about the contact
-    let hx = fwx, hz = fwz, hl = Math.hypot(hx, hz); if (hl < 1e-3) { hx = Fx0; hz = Fz0; hl = Math.hypot(hx, hz) || 1; } hx /= hl; hz /= hl;
+    let hx = fwx, hz = fwz, hl = Math.hypot(hx, hz); if (hl < 1e-3) { hx = Fx0; hz = Fz0; hl = Math.hypot(hx, hz) || 1; } hx /= hl; hz /= hl; wh.hx = hx; wh.hz = hz;
     const q0x = q[0], q0z = q[2], bog = TD && !G.front, tw0 = (G.front ? S.tyres[0] : S.tyres[1] * (bog && TD.dual ? 2.15 : 1)) / 2200; let ge, sa, scr; // (twin tyres: the ground under both)
     if (bog) { // a bogie: the ground under each of its tyres (a stone or a rock under one of them lifts it), the beam sharing them out
       const dd = TD.d, t2 = wh.t2 || (wh.t2 = {}), yb2 = Cy - Rw, fx = Fx0 * dd, fz = Fz0 * dd;
@@ -6303,7 +7206,9 @@ function stepCar(c, S, inp, dt, T, opts) {
     // nothing. bS: the front tyre's share, for the tyre forces)
     if (bog) { const p2 = pen - wh.bLo, F2 = wh.bLo > 0 ? (p2 > 0 ? Math.max(0, tyreLoad(kt, p2) + WH.ct * prate) * dl : 0) : Math.max(0, Fz), F1 = Math.max(0, Fz), Ft = F1 + F2;
       wh.bS = Ft > 0 ? (wh.bLo > 0 ? (wh.bUp > 0 ? F1 : F2) / Ft : 0.5) : 0.5; Fz = Ft; }
-    wh.Fz = pen > 0 ? Math.max(0, Fz) : 0;
+    // (the flexible-ring tyre, where it is on: its load comes from its blocks meeting the road, below)
+    wh.ftOn = !!(opts && opts.ft) && !S.tandem && !(DR && (DR.w[i].off || DR.w[i].flat)); wh.pen = pen; if (!wh.ftOn && wh.ft) wh.ft = null; // (not on a vehicle with bogies: one tyre model a vehicle, its axles rolling alike)
+    wh.Fz = wh.ftOn ? 0 : pen > 0 ? Math.max(0, Fz) : 0;
     if (wh.Fz > 0) anyContact = true; Fzsum += wh.Fz;
     // the frame of the contact: along the wheel's heading over the ground and across it (to the left); how the wheel
     // leans against the ground (its top to the left > 0), and how far it is over on its sidewall
@@ -6335,6 +7240,26 @@ function stepCar(c, S, inp, dt, T, opts) {
     // patch sideways one way and the rear one's the other, so they scrub against each other in a turn: dvy)
     const bog = TD && !G.front, dvy = bog ? TD.d * (Wv[0] * wh.n[0] + Wv[1] * wh.n[1] + Wv[2] * wh.n[2]) : 0;
     wh.slipL = slipV; wh.slipT = vy;
+    if (wh.ftOn) { // the flexible ring (ftWheel): the same surfaces and the same compound in its temperature window, worn and at
+      // its pressure, but the contact found block by block on the road's own shape
+      const TB = TBS[G.front ? 0 : 1], tw = ty ? ty[i] : null; let gk = 1, wetC = 1, aq = 1, wear = 0, kq = 1, pR = S.pOpt || 2, tT = TB.Topt, tw0 = 0;
+      if (tw) { const dT = (tw.T - TC.Topt) / TC.win, dp = (tw.p - S.pOpt) / 0.35;
+        gk = TC.mu * Math.max(0.86, dT < 0 ? 1 - 0.12 * Math.pow(Math.max(0, -dT - 0.35), 2) : 1 - 0.15 * Math.pow(Math.max(0, dT - 0.25), 2)) * Math.max(0.9, 1 - (dp < 0 ? 0.025 : 0.05) * dp * dp);
+        wetC = TC.wet; aq = TC.aqua; wear = Math.pow(tw.w, 1.3); pR = tw.p; tT = tw.T; tw0 = tw.w; kq = Math.sqrt(clamp(tw.p / S.pOpt, 0.5, 1.5)) * (1 - 0.35 * tw.w); }
+      const MX = wh.mix, plan = smooth(12 * kq, 32 * kq, au), TY = wh.ty || (wh.ty = { r: 0, vd: 0, cam: 0, crr: 0, heat: 0, abr: 0, pav: 0 });
+      tyreSurf(TP, TB, fam, MX, wetC, iceR, iceS, 1 - 0.3 * plan * aq, tw0, wear);
+      const pool = Math.max(water, MX.pool * (0.15 + 0.85 * plan));
+      TY.r = TP.r; TY.vd = TP.vd; TY.cam = TP.cam; TY.crr = TP.crr * (1 + 0.15 * (au / 27.8) * (au / 27.8)) + Math.min(0.15, MX.pool * (0.02 + 0.0005 * au * au)) + (wh.bankH ? 0.3 * Math.min(1.4, wh.bankH / 0.45) : 0); TY.heat = TP.heat; TY.abr = TP.abr; TY.pav = TP.pav;
+      const km = (S.gripK || 1) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
+      tyreStiff(TB, Math.max(wh.ftFz || Fzn, 0.3 * Fzn), pR, S.pOpt || pR, R0, WH.kt * wh.ktK, tT, tw0, TP); TP.Cy *= WH.ca || 1; TP.w = tw0; tyreLevels(TP, TB, gk, km, R0);
+      const X = FT_X; X.c = c; X.T = T; X.info = info; X.wh = wh; X.i = i; X.TB = TB; X.TP = TP; X.tw = tw; X.TC = TC; X.WH = WH; X.pD = tyrePoptOf(TC); X.pOpt = S.pOpt || pR; X.fam = fam; X.km = km; X.R0 = R0; X.dt = dt;
+      X.V = V; X.Wv = Wv; X.cx = c.x; X.cy = c.yb; X.cz = c.z; X.Ex = Ex; X.Ey = Ey; X.Ez = Ez; X.hx = wh.hx; X.hz = wh.hz; X.pen = wh.pen; X.vx = vx; X.vy = vy; X.slipV = slipV; X.heat = TY.heat;
+      X.wearK = tw ? TY.abr * TC.wear / (WH.tk ? TYRE_LIFE * WH.tk[0] * K.NT[i] : TYRE_LIFE) : 0; X.Topt = TC ? TC.Topt : 40; ftWheel(X);
+      wh.ftFz = wh.Fz; if (wh.Fz > 0) anyContact = true; Fzsum += wh.Fz; if (wh.rho > maxRho) maxRho = wh.rho; wh.ux *= 0.8; wh.uy *= 0.8;
+      wh.Mk = G.front && wh.Fz > 0 ? wh.Mz - wh.Fy * R0 * Math.tan(SP.caster * Math.PI / 180) - G.side * (wh.Fx * (SP.scrub || 0) + (wh.Td || 0) * ((SP.kpo || 0) - (SP.scrub || 0)) / R0) : 0;
+      const gx = wh.Fx * tl[0] + wh.Fy * tt[0], gy = wh.Fx * tl[1] + wh.Fy * tt[1], gz = wh.Fx * tl[2] + wh.Fy * tt[2];
+      wh.fF = gx * Fx0 + gy * Fy0 + gz * Fz0; wh.fL = gx * Lx + gy * Ly + gz * Lz; continue;
+    }
     if (wh.Fz <= 0) { wh.Fx = 0; wh.Fy = 0; wh.Mz = 0; wh.Mk = 0; wh.rho = 0; wh.fF = 0; wh.fL = 0; wh.ux *= 0.8; wh.uy *= 0.8; if (bog) { wh.ux2 = (wh.ux2 || 0) * 0.8; wh.uy2 = (wh.uy2 || 0) * 0.8; } continue; }
     const Fzc = Math.min(wh.Fz, Fzn * 4), Dw = DR ? DR.w[i] : null, TB = TBS[G.front ? 0 : 1];
     // the fitted tyre: in its temperature window or not, worn, at its pressure
@@ -6419,6 +7344,9 @@ function stepCar(c, S, inp, dt, T, opts) {
   if (ty) { const aT = T.air != null ? T.air : 15, va = au + 1;
     for (let i = 0; i < 4; i++) { const tw = ty[i], wh = W[i], on = wh.Fz > 0, snowy = wh.surf === 'snow' || wh.surf === 'snowbank' || wh.surf === 'ice' || wh.surf === 'snowlayer' || wh.surf === 'slush';
       const hA = (18 + 1.6 * va) * (1 + (on ? (snowy ? 1.2 : 2.5 * (wh.mix ? wh.mix.wet : wetK)) : 0) + 1.5 * Math.max(water, wh.mix ? wh.mix.pool : 0));
+      if (wh.ftOn && tw.Ts) { const kN = WH.tk ? K.NT[i] : 1, rim = aT + 0.12 * Math.max(0, (c.brk ? c.brk[i] : aT) - aT); // (the rim warmed by its brake)
+        ftHeat(tw, FTY, on ? FT_W[i].Pc : FT_W[i].Pc.fill(0), on ? wh.ftQ || 0 : 0, FT_W[i].ld, hA * (WH.tk ? WH.tk[1] * kN : 1), aT, TYRE_CAP * (WH.tk ? WH.tk[0] * kN : 1), rim, dt);
+        tw.P = 0; tw.p = hotP(S.pCold[i], tw.Tg, S.pSet); continue; }
       const Pin = on ? tw.P + 0.016 * wh.Fz * va * Math.pow(S.pOpt / Math.max(0.8, tw.p), 0.8) : 0;
       tw.T += WH.tk ? dt * (Pin - hA * WH.tk[1] * K.NT[i] * (tw.T - aT)) / (TYRE_CAP * WH.tk[0] * K.NT[i]) : dt * (Pin - hA * (tw.T - aT)) / TYRE_CAP; tw.P = 0; tw.p = hotP(S.pCold[i], tw.T, S.pSet); } }
   // engine
@@ -6470,13 +7398,13 @@ function stepCar(c, S, inp, dt, T, opts) {
     const kb = SP.bias / Math.max(0.05, 1 - SP.bias) * BK.R.tq / BK.F.tq, P = BRK_P * (S.bpK || 1);
     pF = lp[0] * P * (kb >= 1 ? 1 : kb); pR = lp[0] * P * (kb >= 1 ? 1 / kb : 1) * (inp.kR != null ? inp.kR : 1); pH = lp[1]; } // (kR: an anti-lock system's rear channel, see driveHelp)
   for (let i = 0; i < 4; i++) {
-    const G = K.W[i], wh = W[i]; wh.omega += dt * (-wh.Fx * R0) / IW[i];
+    const G = K.W[i], wh = W[i]; wh.omega += dt * (wh.ftOn ? wh.ftT || 0 : -wh.Fx * R0) / IW[i];
     const ax = BK ? (G.front ? BK.F : BK.R) : null, tB = BT[i];
     // (the pads' grip at their temperature: the compound's own at its best, less cold, fading past 650 C)
     const mu = ax ? (padT ? PAD_MU.tarmac * (0.72 + 0.28 * smooth(40, 300, tB)) : PAD_MU.gravel * (0.9 + 0.1 * smooth(40, 180, tB))) * brakeFade(tB) : 0;
     const bwI = inp.bw ? inp.bw[i] || 0 : 0; // (a stability system's pressure at this caliper alone: see escHelp)
     const Tp = ax ? Math.max(G.front ? pF : pR, bwI * BRK_P * (S.bpK || 1)) * ax.tq * mu : (bT * (AB ? (G.front ? AB.kF : AB.kR) : G.front || inp.kR == null ? 1 : inp.kR) + bwI * m * g * SP.brake * R0) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(tB);
-    let Tb = Tp + ((wh.ty ? wh.ty.crr : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? 0.16 : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
+    let Tb = Tp + ((wh.ty ? (wh.ftOn ? Math.max(0, wh.ty.crr - 0.014 * (1 + 0.15 * (au / 27.8) * (au / 27.8)) * smooth(0.02, 0.5, au)) : wh.ty.crr) : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? 0.16 : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
     // (the hydraulic handbrake: its own master cylinder on the rear calipers, its pads as hot as the discs)
     const Th = G.front ? 0 : ax ? (S.hbT || 1700) * pH * mu / (padT ? PAD_MU.tarmac : PAD_MU.gravel) : (AB ? AB.kP > 0 : hb) ? (S.hbT || 1700) * (AB ? AB.kP : 1) : 0; Tb += Th;
     const w0 = Math.abs(wh.omega), d = Tb * dt / IW[i]; if (w0 <= d) wh.omega = 0; else wh.omega -= Math.sign(wh.omega) * d;
@@ -9699,6 +10627,14 @@ I18N_MORE.zh.push(...["领航员", "谁来念路书", "领航员的声音", "试
 I18N_MORE.es.push(...["Copiloto", "Quién lee las notas", "Voz del copiloto", "Oír esta voz", "Ritmo de lectura", "Pausado", "Ágil", "Rápido", "Intercomunicador", "Limpio", "Casco", "Radio antigua", "El coche en la voz", "Nada", "Algo", "Todo", "Volumen de la voz", "Bajo", "Normal", "Alto", "Mujeres", "Hombres", "Sereno y seco", "Claro y enérgico", "Grave y tranquilo", "Cálido y luminoso", "Luminoso y rápido", "Grave y firme", "Rápido y seco", "Cálido y parejo", "Profundo y calmado", "Claro y parejo", "Agudo y vivo", "Nítido y rápido", "Grave y ronco", "británico", "estadounidense", "(predeterminada)", "Pausado: las notas se leen un poco más despacio de lo que suele leerlas un copiloto.", "Ágil: tan rápido como lee un copiloto.", "Rápido: más rápido aún, para tramos veloces.", "Limpio: la voz tal cual.", "Intercomunicador del casco: fina, cercana y algo saturada, con el habitáculo detrás.", "Radio antigua: estrecha y áspera, con un siseo.", "El coche no afecta a la voz.", "El coche sacude un poco la voz.", "El coche está en la voz: el camino la sacude, los aterrizajes la golpean, las curvas fuertes la tensan y se alza sobre un habitáculo ruidoso.", "Cargando la voz...", "No se pudo cargar esta voz: el tramo lo leerá otra.", "Estas voces están hechas por ordenador (síntesis de voz), con los modelos abiertos Supertonic 3 y Kokoro-82M."]);
 I18N_MORE.fr.push(...["Copilote", "Qui lit les notes", "Voix du copilote", "Écouter cette voix", "Rythme de lecture", "Posé", "Vif", "Rapide", "Intercom", "Propre", "Casque", "Vieille radio", "La voiture dans la voix", "Aucune", "Un peu", "Pleinement", "Volume de la voix", "Bas", "Normal", "Fort", "Femmes", "Hommes", "Posé et sec", "Clair et vif", "Grave et détendu", "Chaleureux et lumineux", "Lumineux et rapide", "Grave et ferme", "Rapide et sec", "Chaleureux et égal", "Profond et calme", "Clair et égal", "Aigu et vif", "Net et rapide", "Grave et voilé", "britannique", "américain", "(par défaut)", "Posé : les notes sont lues un peu plus lentement qu’un copilote ne le fait d’habitude.", "Vif : aussi vite que lit un copilote.", "Rapide : plus vite encore, pour les spéciales rapides.", "Propre : la voix telle quelle.", "Intercom du casque : fine, proche et un peu saturée, l’habitacle derrière.", "Vieille radio : étroite et granuleuse, avec un souffle.", "La voiture ne touche pas à la voix.", "La voiture secoue un peu la voix.", "La voiture est dans la voix : la route la secoue, les réceptions la heurtent, les virages appuyés la crispent, et elle monte quand l’habitacle est bruyant.", "Chargement de la voix...", "Impossible de charger cette voix : une autre lira la spéciale.", "Ces voix sont créées par ordinateur (synthèse vocale), avec les modèles ouverts Supertonic 3 et Kokoro-82M."]);
 I18N_MORE.de.push(...["Beifahrer", "Wer den Aufschrieb vorliest", "Stimme des Beifahrers", "Diese Stimme anhören", "Lesetempo", "Ruhig", "Zügig", "Schnell", "Intercom", "Klar", "Helm", "Altes Funkgerät", "Das Auto in der Stimme", "Gar nicht", "Etwas", "Voll", "Lautstärke der Stimme", "Leise", "Normal", "Laut", "Frauen", "Männer", "Ruhig und trocken", "Klar und zügig", "Tief und locker", "Warm und hell", "Hell und schnell", "Tief und bestimmt", "Schnell und trocken", "Warm und gleichmäßig", "Tief und gelassen", "Klar und gleichmäßig", "Hoch und lebhaft", "Knackig und schnell", "Tief und rauchig", "britisch", "amerikanisch", "(Standard)", "Ruhig: Der Aufschrieb wird etwas langsamer gelesen, als ein Beifahrer ihn sonst liest.", "Zügig: so schnell, wie ein Beifahrer liest.", "Schnell: noch schneller, für schnelle Prüfungen.", "Klar: die Stimme, wie sie ist.", "Helm-Intercom: dünn, nah und etwas übersteuert, dahinter der Innenraum.", "Altes Funkgerät: eng und kratzig, mit Rauschen.", "Das Auto lässt die Stimme in Ruhe.", "Das Auto schüttelt die Stimme ein wenig.", "Das Auto ist in der Stimme: Die Straße schüttelt sie, Landungen stauchen sie, harte Kurven pressen sie, und in einem lauten Innenraum wird sie lauter.", "Stimme wird geladen...", "Diese Stimme konnte nicht geladen werden: Eine andere liest die Prüfung.", "Diese Stimmen sind computererzeugt (Sprachsynthese), mit den offenen Modellen Supertonic 3 und Kokoro-82M."]);
+// (the tyre model's setting)
+I18N_MORE.k.push(...["Tyre model", "Flexible ring", "Classic", "Flexible-ring tyres", "The flexible-ring tyre where this device runs it smoothly, the classic one where it would not.", "Each tyre a belt on its sidewalls, its tread blocks meeting the road one by one: how it squashes, twists and grips, block by block.", "The most detailed, and the heaviest to run.", "The brush tyre: the same grip, worked out for the whole patch at once.", "Lighter to run.", "On this device: the flexible ring.", "On this device: the classic tyre.", "Times on each go on boards of their own."]);
+I18N_MORE.ko.push(...["타이어 모델", "유연 링", "클래식", "유연 링 타이어", "이 기기에서 매끄럽게 돌아가면 유연 링 타이어를, 그렇지 않으면 클래식 타이어를 씁니다.", "각 타이어를 사이드월이 받치는 벨트와 노면에 하나씩 닿는 트레드 블록으로 계산해, 블록 하나하나가 눌리고 비틀리고 노면을 붙잡는 모습까지 담습니다.", "가장 정밀하지만 계산 부담도 가장 큽니다.", "브러시 타이어: 같은 접지력을 접지면 전체에 대해 한 번에 계산합니다.", "계산이 더 가볍습니다.", "이 기기: 유연 링.", "이 기기: 클래식 타이어.", "각 모델의 기록은 따로 순위표에 올라갑니다."]);
+I18N_MORE.ja.push(...["タイヤモデル", "フレキシブルリング", "クラシック", "フレキシブルリングのタイヤ", "この端末で滑らかに動くならフレキシブルリングのタイヤを、そうでなければクラシックのタイヤを使います。", "各タイヤを、サイドウォールに支えられたベルトと、一つずつ路面に触れるトレッドブロックとして計算し、ブロックごとのつぶれ、ねじれ、グリップを表します。", "最も精密ですが、計算の負荷も最も大きくなります。", "ブラシタイヤ：同じグリップを、接地面全体についてまとめて計算します。", "計算が軽くなります。", "この端末：フレキシブルリング。", "この端末：クラシックタイヤ。", "タイムはそれぞれ別のランキングに記録されます。"]);
+I18N_MORE.zh.push(...["轮胎模型", "柔性环", "经典", "柔性环轮胎", "本设备能流畅运行时使用柔性环轮胎，否则使用经典轮胎。", "每条轮胎都按胎侧支撑的带束层和逐块接触路面的胎面花纹块来计算：逐块算出它如何被压扁、扭转和抓地。", "最精细，但运算负担也最重。", "刷子轮胎模型：同样的抓地力，对整个接地面一次算出。", "运算更轻。", "本设备：柔性环。", "本设备：经典轮胎。", "两种模型的成绩分别计入各自的排行榜。"]);
+I18N_MORE.es.push(...["Modelo de neumático", "Anillo flexible", "Clásico", "Neumáticos de anillo flexible", "El neumático de anillo flexible si este dispositivo lo mueve con fluidez; si no, el clásico.", "Cada neumático, una banda sobre sus flancos con sus tacos tocando la carretera uno a uno: cómo se aplasta, se tuerce y agarra, taco a taco.", "El más detallado, y el más pesado de calcular.", "El neumático de cepillo: el mismo agarre, calculado para toda la huella de una vez.", "Más ligero de calcular.", "En este dispositivo: el anillo flexible.", "En este dispositivo: el neumático clásico.", "Los tiempos de cada uno van a tablas propias."]);
+I18N_MORE.fr.push(...["Modèle de pneu", "Anneau flexible", "Classique", "Pneus à anneau flexible", "Le pneu à anneau flexible si cet appareil le fait tourner sans à-coups, sinon le classique.", "Chaque pneu, une ceinture sur ses flancs dont les pains touchent la route un à un : comment il s'écrase, se tord et accroche, pain par pain.", "Le plus détaillé, et le plus lourd à calculer.", "Le pneu à brosse : la même adhérence, calculée pour toute l'empreinte d'un coup.", "Plus léger à calculer.", "Sur cet appareil : l'anneau flexible.", "Sur cet appareil : le pneu classique.", "Les temps de chacun vont dans leurs propres classements."]);
+I18N_MORE.de.push(...["Reifenmodell", "Flexibler Ring", "Klassisch", "Reifen mit flexiblem Ring", "Der Reifen mit flexiblem Ring, wenn dieses Gerät ihn flüssig rechnet, sonst der klassische.", "Jeder Reifen ein Gürtel auf seinen Flanken, dessen Profilblöcke die Straße einer nach dem anderen berühren: wie er sich staucht, verdreht und greift, Block für Block.", "Am genauesten, und am aufwendigsten zu rechnen.", "Der Bürstenreifen: derselbe Grip, für die ganze Aufstandsfläche auf einmal gerechnet.", "Leichter zu rechnen.", "Auf diesem Gerät: der flexible Ring.", "Auf diesem Gerät: der klassische Reifen.", "Die Zeiten beider kommen in eigene Bestenlisten."]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -9859,7 +10795,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '5D3B';
+const SR86_BUILD = '6E2C';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -23730,7 +24666,7 @@ function setLevel(id, say) {
 // the preset on the dashboard, and on the touch level button
 function showRunTag() {
   const R = G.run, on = R && G.state !== 'menu', hc = on && G.hard, lv = Ctl.level(), tag = $('#assistTag'), t = $('#tHelp');
-  if (tag) tag.textContent = !on ? '' : hc ? 'Hardcore: no assists' : 'Assists: ' + levelName(lv);
+  if (tag) tag.textContent = (!on ? '' : hc ? 'Hardcore: no assists' : 'Assists: ' + levelName(lv)) + (on && G.ftOn ? ' ' + String.fromCharCode(183) + ' Flexible-ring tyres' : '');
   if (t) { t.textContent = hc ? 'HC' : LV_SHORT[lv] || 'Lvl'; t.classList.toggle('on', !hc && lv !== 'advanced'); t.setAttribute('aria-label', hc ? 'Hardcore: no assists' : `Assists ${levelName(lv)}: tap for the next preset`); }
 }
 // ---------- Hardcore ----------
@@ -23840,7 +24776,7 @@ function drawMap(cv, live) {
 // as measured roads of their kind, with potholes and washboard), so the same seed is another road and boards start again
 // version 11: the roadsides built as each country builds them (deeper ditches, concrete and paved gutters, table drains,
 // hedge banks), hedges that give and fences and signs that break, so the same seed is another road and boards start again
-const STAGE_VER = 11, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag();
+const STAGE_VER = 11, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag() + (typeof Tyres !== 'undefined' ? Tyres.tag() : ''); // (~fr: on the flexible-ring tyres, a board of their own)
 // a stage's times are kept under the stage's own key; each time keeps the assists preset it was driven on (lv)
 const runKey = seed => recKey(seed);
 // (a stage laid out in a country other than its seed's own is a stage of its own, with a board of its own)
@@ -24073,6 +25009,7 @@ function startRun() {
   if (G.show) G.show.mesh.root.visible = false;
   // the car the physics drives: the chosen car with its setup for this stage (in a rally, the one fitted at service)
   { const env = stageEnv(G.T); G.phys = setupSpec(G.spec, G.rally ? Rally.setupNow(G.spec, env) : setupFor(G.spec, env), env); }
+  G.ftOn = Tyres.ring() && !G.phys.tandem; if (G.ftOn) { try { ftPrep(G.phys); } catch (e) { G.ftOn = false; } } // (the flexible-ring tyres, see Tyres)
   Snd.init(); Snd.mute(false); Snd.setCar(G.phys); Snd.stage(G.T); Snd.engineOn(true); G.demo = null; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); G.state = 'countdown'; G.cd = 5.999; G.cdLast = 6; G.time = 0; G.penalty = 0; G.finished = false; G.finShown = false; G.finT = 0; G.crewMood = null; G.orbitAt = null; G.orbitOff = false; G.orbitWas = false; orbitOff();
   dropCarMesh(G.mesh); G.mesh = buildCarMesh(G.spec, false, nightKit(G.T)); if (G.phys.snorkel) fitSnorkel(G.mesh); scene.add(G.mesh.root);
   if (G.ghostMesh) { dropCarMesh(G.ghostMesh); G.ghostMesh = null; }
@@ -25438,7 +26375,7 @@ function physics(dt) {
   if (RaceEvents.on) RaceEvents.pre(c, dt); // (a race's animals near the car: see RaceEvents)
   // (held on the brakes, at the finish or under the race menu, a car stops and stays stopped: the brake held at a
   // standstill doesn't select reverse as it does when the driver holds it)
-  stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished || !!G.mpMenu || Fix.on() });
+  stepCar(c, G.phys, I, dt, T, { hold, noRev: G.finished || !!G.mpMenu || Fix.on(), ft: !!G.ftOn });
   if (RaceEvents.on) RaceEvents.post(c);
   if (RX.on) { G.time = G.finished ? G.time + dt : RX.t; RX.post(dt); return; } // (a rallycross race keeps its own clock, laps and finish; past the finish the run's clock goes on, for the car pulling up)
   if (!hold) { G.time += dt; }
@@ -26351,7 +27288,7 @@ const FullScr = {
 function init() {
   Particles.init(); CrowdFx.init(); Skids.init(); Atmos.init(); Precip.init(); CarLights.init(); ScreenFx.init(); resize(); addEventListener('resize', () => { resize(); if (G.state === 'menu') drawMap($('#mapPrev'), false); });
   { const mq = window.matchMedia && matchMedia('(pointer:coarse)'); if (mq && mq.addEventListener) mq.addEventListener('change', () => UIFit.fit()); } // (a touch screen's laptop folded into a tablet, and back)
-  Ctl.load(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init(); Hard.init();
+  Ctl.load(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init(); Tyres.init(); Hard.init();
   // the sound starts on the first touch or key (browsers allow it no sooner), so its models are warmed up by the time a
   // stage starts
   const wake = () => { removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true); Snd.init(); };
@@ -33737,6 +34674,46 @@ const Workshop = {
 // tail. The panels that open (bonnet, boot lid or tailgate, doors) can be sprung from their latches, jammed by the bent
 // metal round them, swing on their hinges and be torn off (see the panels, below); under them, the engine bay, boot or
 // luggage space the car was built with (see the car kit) is seen, and crushed with the rest.
+// ---------- tyres ----------
+// The car the player drives runs on the flexible-ring tyre (the core's ftWheel: each tyre a belt on its sidewalls, its
+// tread blocks meeting the road one by one) or on the classic brush tyre the crews and every other car run on. Auto
+// takes the ring where this device steps it quickly enough (measured once, ftBench, and kept) and the graphics chip is
+// not a modest one, else the classic tyre. A run keeps the tyre it set off on, and its times go on a board of their own
+// (Tyres.tag, in recKey); a rally keeps the setting it started with. The rings' fits are kept in this browser
+// (FT_STORE), so a car's tyres are fitted once
+const TYRE_MODEL_NAMES = { auto: 'Auto', ring: 'Flexible ring', classic: 'Classic' };
+const TYRE_MODEL_NOTES = {
+  auto: 'The flexible-ring tyre where this device runs it smoothly, the classic one where it would not.',
+  ring: 'Each tyre a belt on its sidewalls, its tread blocks meeting the road one by one: how it squashes, twists and grips, block by block. The most detailed, and the heaviest to run.',
+  classic: 'The brush tyre: the same grip, worked out for the whole patch at once. Lighter to run.'
+};
+const Tyres = {
+  mode: ['auto', 'ring', 'classic'].includes(lsGet('sr86.tyres', 'auto')) ? lsGet('sr86.tyres', 'auto') : 'auto',
+  fast: null,
+  init() {
+    try { const m = lsGet('sr86.ftfit', {}), keep = m && typeof m === 'object' && Object.keys(m).length < 80 ? m : {};
+      FT_STORE = { m: keep, get(k) { return this.m[k]; }, set(k, v) { this.m[k] = v; lsSet('sr86.ftfit', this.m); } }; } catch (e) { FT_STORE = null; }
+    for (const k of Object.keys(TYRE_MODEL_NAMES)) { const b = $('#ty_' + k); if (b) b.addEventListener('click', () => { if (this.locked()) return; this.mode = k; lsSet('sr86.tyres', k); this.render(); }); }
+    this.render();
+  },
+  locked() { return Rally.mode === 'rally' && !!Rally.st; },
+  setting() { return this.locked() && Rally.st.tyres ? Rally.st.tyres : this.mode; },
+  // (this device: quick enough for the ring? measured the first time it is asked, and kept)
+  quick() {
+    if (this.fast == null) { const kept = lsGet('sr86.tyresFast', null); if (kept && kept.v === FT_FITV) this.fast = !!kept.q;
+      else { let us = Infinity; try { us = ftBench(); } catch (e) { us = Infinity; } this.fast = us < 55; lsSet('sr86.tyresFast', { v: FT_FITV, q: this.fast, us: Math.round(us) }); } }
+    return this.fast && !(typeof Gfx !== 'undefined' && Gfx.weak);
+  },
+  current() { const m = this.setting(); return m === 'auto' ? (this.quick() ? 'ring' : 'classic') : m; },
+  ring() { return this.current() === 'ring'; },
+  // (a vehicle with bogies runs on the classic tyre whatever the setting: one model a vehicle)
+  tag() { const g = typeof G !== 'undefined' ? G : null, run = g && g.run && g.state && g.state !== 'menu'; return (run ? !!g.ftOn : this.ring() && !(g && g.spec && g.spec.tandem)) ? '~fr' : ''; }, // (a run on, or just over: the tyres it ran on)
+  render() {
+    const m = this.setting(), lk = this.locked();
+    for (const k of Object.keys(TYRE_MODEL_NAMES)) { const b = $('#ty_' + k); if (b) { b.setAttribute('aria-pressed', m === k ? 'true' : 'false'); b.disabled = lk && m !== k; } }
+    const n = $('#tyNote'); if (n) n.textContent = TYRE_MODEL_NOTES[m] + (m === 'auto' ? (this.quick() ? ' On this device: the flexible ring.' : ' On this device: the classic tyre.') : '') + ' Times on each go on boards of their own.' + (lk ? ' Set for this rally.' : '');
+  }
+};
 const DMG_NAMES = { off: 'Off', visual: 'Visual', real: 'Realistic' };
 const DMG_NOTES = {
   off: 'No damage: the car cannot be hurt or rolled over.',
@@ -36062,7 +37039,7 @@ const Rally = {
   // -- starting, continuing and leaving --
   create() {
     const c = Object.assign({}, this.cfg), car = G.spec.id;
-    return { v: RALLY_V, cfg: c, car, dmg: Damage.mode, hard: Hard.on, dyn: COND.dyn !== 'fixed', made: Date.now(), field: rallyField(c, car), at: 0, res: [], crew: new Array(16).fill('run'), why: new Array(16).fill(null), pen: new Array(16).fill(0), log: [] };
+    return { v: RALLY_V, cfg: c, car, dmg: Damage.mode, tyres: Tyres.mode, hard: Hard.on, dyn: COND.dyn !== 'fixed', made: Date.now(), field: rallyField(c, car), at: 0, res: [], crew: new Array(16).fill('run'), why: new Array(16).fill(null), pen: new Array(16).fill(0), log: [] };
   },
   go() {
     if (!this.st) { this.st = this.create(); this.save(); }
