@@ -5312,7 +5312,7 @@ const WHEEL = { R: 0.31, I: 1.25, mu: 36, kt: 230000, ct: 450, sx: 0.2, sy: 0.32
 // against the frame; the beam shares the load between its tyres, so each tyre follows the ground under it and the pivot
 // rises only half as far as one tyre does (see stepCar). dual: each of those a pair of tyres side by side (twin rear
 // wheels), the pair's load shared between them, each gripping with its own half
-const wheelOf = S => S._wh || (S._wh = S.wheel ? Object.assign({}, WHEEL, S.wheel) : WHEEL);
+const wheelOf = S => S._wh || (S._wh = S.wheel || S.tyWheel ? Object.assign({}, WHEEL, S.wheel, S.tyWheel) : WHEEL);
 // the gearing at the road of a car whose driven tyres roll on another radius than the model's wheel (S.rollR, m): its
 // gears scaled by the ratio, so its speed at each engine speed and its pull at the road are those of its own tyres (the
 // final drive shown stays the car's own)
@@ -5464,8 +5464,10 @@ function airStep(c, S, brk, hb, run, rpm, dt) {
   a.kP = clamp((A.sp[1] - a.s) / (A.sp[1] - A.sp[0]), 0, 1);
   return a;
 }
-// a tyre's load at a deflection p: its sidewall, then past 7 cm the rim crushing it against the ground (four times as stiff)
-const tyreLoad = (kt, p) => kt * Math.min(p, 0.07) + (p > 0.07 ? 3 * kt * (p - 0.07) : 0);
+// a tyre's load at a deflection p: its sidewall, then past kn (7 cm on a rally car's gravel tyre, less on a lower profile:
+// its data sheet's rimDist) the rim crushing it against the ground (three times as stiff). A tyre with a data sheet
+// stiffens a little as it is pressed further (q: a q-th more for each d1, the deflection under its nominal load, further)
+const tyreLoad = (kt, p, kn = 0.07, q = 0, d1 = 1) => { const s = Math.min(p, kn); return kt * s * (1 + q * (s / d1 - 1)) + (p > kn ? 3 * kt * (p - kn) : 0); };
 const HBS = [0.08, 20]; // hydraulic bump stop: the length of travel it works over (m), its strength against the main bump damping
 const SUSP_DEF = { fF: 1.8, fR: 1.8, zB: 0.3, zR: 0.55, travel: 0.13, droop: 0.12, arbF: 0.3, arbR: 0.25, rcF: 0.07, rcR: 0.11, antiDive: 0.15, antiSquat: 0.2, camF: -1.5, camR: -1.0, gainF: -14, gainR: -10, rollCam: 1.0, caster: 5, kpi: 10, toeR: 0.2, ack: 0.6, hcg: 0.46, bias: 0.62, brake: 1.35, Ie: 0.17 };
 const DIFF_DEF = { f: { type: 'open', pre: 20 }, r: { type: 'plate', pre: 60, ramp: 0.4 }, c: { type: 'plate', pre: 100, ramp: 0.4 } };
@@ -5707,8 +5709,13 @@ const TYRE_BUILD = {
 // one tyre as built (C: its compound, B: its section width, m; WH: its wheel): its carcass's stiffness at a reference
 // pressure (Cc0: twisting and bending under the patch, the wider and the shorter its sidewall the stiffer; Ky0: pushed
 // sideways under the wheel, rising steeply as the sidewall shortens) and its nominal load (Fz0: the wheel's, for its width)
-function tyreBuildOf(C, B, WH) {
-  const fam = C ? C.fam : 'gravel', F = TYRE_BUILD[fam] || TYRE_BUILD.gravel, H = F.asp * B;
+function tyreBuildOf(C, B, WH, SH) {
+  const fam = C ? C.fam : 'gravel', F = TYRE_BUILD[fam] || TYRE_BUILD.gravel, H = SH ? SH.H : F.asp * B;
+  // (from its data sheet, tyreSheet: its own sidewall, tread, rubber, carcass and radial stiffness (kt, each axle's own),
+  // its rolling resistance (crr0), how its rubber slides (rK, vdK), its belt (the ring's EI, EIy and GJ against today's,
+  // and its mass, mBelt: what moves with the belt, three fifths of the tyre without its mousse)
+  if (SH) return { fam, B, bt: SH.tw, H, h0: SH.td, void: SH.void, blk: SH.blk, ps: SH.ps, studs: SH.studs, sh: SH.sh, G: C.G, Topt: C.Topt, Fz0: SH.Fz0, Cc0: SH.Cc0, Ky0: SH.Ky0, kyK: 1, kxK: 1,
+    kt: SH.kz, crr0: SH.crr, rK: SH.rK, vdK: SH.vdK, EIk: SH.EI, EIyk: SH.EIy, GJk: SH.GJ, mBelt: 0.6 * (SH.mass - (SH.mousse ? 2.5 : 0)), sheet: SH };
   return { fam, B, bt: F.tw * B, H, h0: (C && C.tread) || F.tread, void: C && C.void != null ? C.void : F.void, blk: F.blk, ps: F.ps,
     studs: F.studs || 0, sh: F.sh || 0, G: (C && C.G) || 2, Topt: C ? C.Topt : 40, Fz0: (WH.Fz0 || 2600) * B / 0.225,
     Cc0: 120000 * Math.pow(B / 0.205, 1.5) * Math.sqrt(0.13 / H), Ky0: 115000 * Math.pow(B / 0.205, 0.6) * Math.pow(0.13 / H, 1.6), kyK: 1, kxK: 1 };
@@ -5718,12 +5725,224 @@ function tyreBuildOf(C, B, WH) {
 function tyreBuild(S) {
   if (S._tb && S._tbC === S.tyreC) return S._tb;
   const WH = wheelOf(S), C = S.tyreC; S._tbC = C;
-  return (S._tb = [0, 1].map(j => { const T = tyreBuildOf(C, S.tyres[j] / 1000, WH);
-    if (WH !== WHEEL) { const P = tyreStiff(T, T.Fz0, tyrePoptOf(C), tyrePoptOf(C), WH.R, WH.kt, T.Topt, 0, {});
+  return (S._tb = [0, 1].map(j => { const T = tyreBuildOf(C, S.tyres[j] / 1000, WH, S.tySh ? S.tySh[j] : null);
+    if (S.wheel) { const P = tyreStiff(T, T.Fz0, tyrePoptOf(C), tyrePoptOf(C), WH.R, WH.kt, T.Topt, 0, {});
       T.kyK = P.Cy * (WH.ca || 1) / P.kcy / WH.sy; T.kxK = P.Cx / (4 * P.kcy) / WH.sx; }
     return T; }));
 }
 const tyrePoptOf = C => C ? tyrePopt(C) : 2;
+// ---- the tyres each car ran: its era's, in the sizes its real counterpart ran ----
+// Every rally car's tyres are now the ones its real counterpart ran in its day: the sizes it ran on each surface (rim
+// diameter, section width, profile and rim width), built as that era built them, on the compounds of that era. Each
+// tyre has a data sheet in the terms a flexible-structure tyre model is parameterized in (its maker's measurements:
+// size, rim, pressure, mass, tread depth and base height, rubber hardness (Shore A) and the tread's net-to-gross share,
+// radial stiffness as load at two deflections and how far it goes to the rim, lateral and longitudinal stiffness,
+// rolling resistance, the belt's growth with speed and how much stiffer the tyre is rolling than standing), worked out
+// once from its size and its build (tyreSheet), and both tyre models are built from it: the brush (tyreBuildOf) and the
+// flexible ring (ftParams, fitted to the same sheet by ftCal). What the eras differ in, against a World Rally Car's
+// tyres of the early 2000s (the game's reference, = 1):
+//   Cc, Ky: the carcass's own stiffness against the belt twisting under the patch and against the rim pushed sideways
+//     (the 1970s' first low-profile radials, on lighter belts and softer sidewalls, about a fifth less);
+//   EI, EIy, GJ: the belt's bending in its plane and across, and its twist (the ring's own);
+//   mu: the rubber's grip on each kind of surface at its best (the compounds' chemistry: a 1970s racing compound about
+//     four fifths of today's on tarmac, the gap smaller on loose ground, where the surface sets the grip);
+//   r, vd: how much of its grip it keeps sliding, and over what sliding speed it falls (older rubber falls away more
+//     gently past its peak, and later);
+//   sh: the rubber's hardness against today's (Shore A, at 20 C); win: its temperature window against today's (older
+//     compounds worked over a narrower range); wear, cut: how fast it wears and how readily a stone cuts it;
+//   crr: its rolling resistance; mass: its mass against a tyre of today's build in its size; reinf: its sidewall's
+//     reinforcement against today's;
+//   keys: the compounds the era had (the 1970s had no super-soft tarmac rubber);
+//   studs: the studded tyres' studs [studs a tyre, how far each stands out (m)] - [studs to each metre of the tread's
+//     circumference, how far, 1] where the rule was a spacing - as the rules of the day allowed them:
+//     from 1974 Sweden's road rule, which its rally ran to, 150 a tyre (their length not yet limited); from 1983 12 to
+//     every 10 cm of the tread's circumference, their length, weight and shape limited; from 1986 the Swedish Rally's
+//     own 20 to every 10 cm (384 on a gravel-size tyre), today's 20 mm long with 6.5 mm standing out (7 to 8 mm on
+//     today's snow tyre); a winter tarmac tyre's today 234, standing out no more than 2 mm. How far they stood out
+//     before today's is an estimate: set so each era's pace on snow against today's is the Swedish Rally's (its
+//     winners' average speeds: 89 to 97 km/h in 1978-82, 105 in 1983-84, 111 to 116 in 2002-05);
+//   tread, void: the tread's depth (m) and the share of its face that is grooves, by kind;
+//   mousse: a foam ring inside the tyre that carries the car when it punctures (from the late 1980s; banned at the
+//     top level from 2008): a punctured tyre runs on it at reduced grip instead of on its rim, and it adds mass
+const TYRE_ERA = {
+  G4: { k: 'G4', y: '1972-82', Cc: 0.8, Ky: 0.85, EI: 0.7, EIy: 0.6, GJ: 0.8, mu: { gravel: 0.92, tarmac: 0.84, snow: 0.95, winter: 0.9, stud: 0.95 }, r: 0.06, vd: 1.3, sh: 3,
+    win: 0.85, wear: 1.15, cut: 1.35, crr: 1.2, mass: 0.95, rim: 0.85, reinf: 0.85, keys: ['gS', 'gH', 'tS', 'tH', 'tW', 'sn', 'tWi', 'tSt'],
+    studs: { sn: [150, 0.01], tSt: [150, 0.002] }, tread: { gravel: 0.011, tarmac: 0.0075, snow: 0.012, winter: 0.0085, stud: 0.0085 }, void: { gravel: 0.36, tarmac: 0.18, snow: 0.42, winter: 0.33, stud: 0.33 } },
+  B: { k: 'B', y: '1983-86', Cc: 0.9, Ky: 0.92, EI: 0.85, EIy: 0.8, GJ: 0.9, mu: { gravel: 0.95, tarmac: 0.9, snow: 0.97, winter: 0.94, stud: 0.97 }, r: 0.03, vd: 1.15, sh: 2,
+    win: 0.92, wear: 1.08, cut: 1.2, crr: 1.1, mass: 0.97, rim: 0.85, reinf: 0.95, keys: ['gS', 'gH', 'tSS', 'tS', 'tH', 'tW', 'sn', 'tWi', 'tSt'],
+    studs: { sn: [120, 0.0075, 1], tSt: [120, 0.002, 1] }, tread: { gravel: 0.012, tarmac: 0.007 }, void: { gravel: 0.38, tarmac: 0.15 } },
+  A: { k: 'A', y: '1987-99', Cc: 0.96, Ky: 0.96, EI: 0.95, EIy: 0.92, GJ: 0.95, mu: { gravel: 0.97, tarmac: 0.95, snow: 0.99, winter: 0.97, stud: 0.99 }, r: 0.015, vd: 1.06, sh: 1,
+    win: 0.96, wear: 1.04, cut: 1.1, crr: 1.05, mass: 1, rim: 0.9, reinf: 1, keys: null, studs: { sn: [189, 0.006, 1] } },
+  F2: { k: 'F2', y: '1996-2000', Cc: 0.98, Ky: 0.98, EI: 0.98, EIy: 0.96, GJ: 0.98, mu: { gravel: 0.98, tarmac: 0.97, snow: 0.99, winter: 0.98, stud: 0.99 }, r: 0.01, vd: 1.03, sh: 0.5,
+    win: 0.98, wear: 1.02, cut: 1.05, crr: 1.03, mass: 1, rim: 0.9, reinf: 1, keys: null, studs: { sn: [189, 0.0065, 1] }, mousse: true },
+  WRC: { k: 'WRC', y: '2001-10', Cc: 1, Ky: 1, EI: 1, EIy: 1, GJ: 1, mu: {}, r: 0, vd: 1, sh: 0, win: 1, wear: 1, cut: 1, crr: 1, mass: 1, rim: 0.95, reinf: 1, keys: null, studs: { sn: [189, 0.0065, 1] }, mousse: true },
+  R2: { k: 'R2', y: '2021-25', Cc: 1.02, Ky: 1.02, EI: 1, EIy: 1, GJ: 1, mu: { gravel: 0.99, tarmac: 0.99 }, r: 0, vd: 1, sh: 0, win: 1, wear: 0.9, cut: 0.9, crr: 0.98, mass: 1, rim: 1, reinf: 1,
+    keys: null, studs: { sn: [189, 0.0075, 1], tSt: [234, 0.002] } }
+};
+// a tyre's size: 'W/AR-R' (its nominal section width, mm / its profile, % - its rim, inches), its rim's width (in), and
+// where its maker publishes them its overall diameter, its section width and its tread's width (mm)
+const tzOk = s => { const i = s.indexOf('/'), j = s.indexOf('-'); return i > 0 && j > i + 1 && +s.slice(0, i) > 0 && +s.slice(i + 1, j) > 0 && +s.slice(j + 1) > 0; };
+const tz = (s, rw, D, sec, tw) => { const i = s.indexOf('/'), j = s.indexOf('-'), W = +s.slice(0, i); return { s, W, AR: +s.slice(i + 1, j) / 100, rim: +s.slice(j + 1), rw: rw || Math.round(W * 0.063) / 2, D: D || 0, sec: sec || 0, tw: tw || 0 }; };
+// what each class ran on gravel (g), tarmac (t), snow (s, studded) and a winter tarmac road (w), front and rear, where a
+// car of it is not listed below. Today's: the gravel 205/65-15 and the tarmac 235/40-18 on 7 and 8 inch rims, the snow
+// tyre in the gravel tyre's size on a narrow tread; the early 2000s' tarmac tyre was 650 mm across on an 18-inch rim;
+// the kit cars ran 18-inch rims 8 inches wide on tarmac; Group A 17 inches by 8 on tarmac and 15 by 7 on gravel
+const TYRE_FIT_CLS = {
+  R2: { g: [tz('205/65-15', 7, 648, 221, 185)], t: [tz('235/40-18', 8, 650, 225, 210)], s: [tz('205/65-15', 7, 650, 202, 145)], w: [tz('235/40-18', 8, 649, 222, 175)] },
+  WRC: { g: [tz('205/65-15', 7, 645, 214, 176)], t: [tz('225/40-18', 8, 650, 225, 200)], s: [tz('205/65-15', 7, 647, 205, 150)], w: [tz('215/45-18', 7.5, 650)] },
+  F2: { g: [tz('195/65-15', 6.5, 633, 200, 168)], t: [tz('225/40-18', 8)], s: [tz('195/65-15', 6.5, 633, 200, 150)], w: [tz('205/50-16', 7)] },
+  A: { g: [tz('205/65-15', 7)], t: [tz('235/40-17', 8, 620, 250, 230)], s: [tz('205/65-15', 7)], w: [tz('205/55-16', 7)] }
+};
+// each car's own, where its class's will not do (and the Group 4 and Group B cars, whose sizes were their own): the
+// period's tarmac tyres in the sizes today's reproductions of them are made in (the 1970s' 13- and 15-inch low-profile
+// racing radials, 50 to 35 series, and Group B's 16-inch ones, front and rear apart on the rear-driven cars), and the
+// gravel tyres in the car's own gravel sizes (tyreSize). mousse: whether its tyres carried one (the cars of 1993 on)
+const TYRE_FIT_CAR = {
+  // Group B
+  ardent_5t: { g: [tz('235/60-15', 8)], t: [tz('255/50-16', 9, 661, 256, 225)] },
+  vespera_sc: { g: [tz('205/65-15', 7), tz('235/60-15', 8)], t: [tz('235/45-15', 8.5, 595, 238, 210), tz('315/40-16', 11, 658, 315, 285)] },
+  petrel_m4: { g: [tz('215/65-15', 7)], t: [tz('235/50-16', 8.5)] },
+  halberd_x4: { g: [tz('225/60-15', 7.5)], t: [tz('255/50-16', 9, 661, 256, 225), tz('315/40-16', 11, 658, 315, 285)] },
+  mamba_tc: { g: [tz('225/60-15', 7.5), tz('235/60-15', 8)], t: [tz('255/50-16', 9, 661, 256, 225), tz('315/40-16', 11, 658, 315, 285)] },
+  tasman_6r: { g: [tz('205/65-15', 7), tz('235/60-15', 8)], t: [tz('225/50-16', 8), tz('285/40-16', 10.5)] },
+  bantam_6x: { g: [tz('225/60-15', 7.5), tz('235/60-15', 8)], t: [tz('255/50-16', 9, 661, 256, 225), tz('315/40-16', 11, 658, 315, 285)] },
+  corbeau_maxi: { g: [tz('195/65-15', 6.5), tz('235/60-15', 8)], t: [tz('235/45-15', 8.5, 595, 238, 210), tz('285/40-15', 10, 610, 291, 260)] },
+  // Group A
+  veloce_hr: {}, sentai_gt4: { mousse: true }, acrobat_2t: { mousse: true }, katana_evo: { t: [tz('225/40-18', 8)], mousse: true }, bastion_rs: { mousse: true },
+  kaiser_3r: { g: [tz('195/65-15', 6.5)], t: [tz('225/50-16', 8)] }, ronin_tx: { g: [tz('195/65-15', 6.5)], t: [tz('205/50-16', 7)] }, hiryu_18t: { g: [tz('195/65-15', 6.5)], t: [tz('205/50-16', 7)] },
+  // World Rally Cars: the last of them ran without the mousse (banned from 2008)
+  caspen_4t: { mousse: false },
+  // Group 4: tarmac on the period's 13-inch (16/53 and 20/53 in the makers' metric sizes) and 15-inch racing radials
+  xebec_24v: { t: [tz('225/50-15', 7.5, 605, 230), tz('285/40-15', 10.5, 610, 291)] },
+  lugger_18: { t: [tz('175/60-13', 6, 542, 187), tz('225/45-13', 8, 533, 231)] },
+  tartane_16v: { t: [tz('235/45-15', 8.5, 595, 238, 210), tz('285/40-15', 10, 610, 291, 260)] },
+  pinnace_20: { t: [tz('225/45-13', 8, 533, 231, 205)] },
+  shallop_22: { t: [tz('225/45-13', 8, 533, 231, 205)] },
+  carrack_24: { t: [tz('235/45-15', 8.5, 595, 238, 210), tz('285/40-15', 10, 610, 291, 260)] },
+  felucca_14t: { t: [tz('225/50-15', 7.5, 605, 230), tz('275/45-15', 9.5, 622, 273)] },
+  barque_21t: { t: [tz('225/50-15', 7.5, 605, 230)] },
+  ketch_30: { t: [tz('235/45-15', 8.5, 595, 238, 210), tz('285/40-15', 10, 610, 291, 260)] },
+  galliot_v8: { t: [tz('225/50-15', 7.5, 605, 230)] },
+  yawl_20t: { t: [tz('215/55-15', 7, 612, 224)] },
+  polacca_v4: { t: [tz('175/60-13', 6, 542, 187)] }
+};
+// which of a car's fitments a compound is (gravel, tarmac, studded snow, winter tarmac)
+const tyreKindOf = C => C.fam === 'gravel' ? 'g' : C.fam === 'snow' ? 's' : C.fam === 'winter' || C.fam === 'stud' ? 'w' : 't';
+const tyreEraOf = S => S && !S.tyreSet ? TYRE_ERA[S.cls] || null : null;
+// the compounds a car's era had, for a surface
+const tyreEraKeys = (S, list) => { const E = tyreEraOf(S); return E && E.keys ? list.filter(k => E.keys.includes(k)) : list; };
+// (a compound the era did not have, in its nearest: super-soft tarmac rubber as soft)
+const tyreEraKey = (S, k) => { const E = tyreEraOf(S); return E && E.keys && !E.keys.includes(k) ? (k === 'tSS' ? 'tS' : E.keys[0]) : k; };
+// A compound's rubber as its era made it: its grip on each surface, its hardness, its window, its wear
+// (TYRE_SHORE: today's compounds' Shore A hardness at 20 C, which with the tread's stiffness rule (tyreShoreG) gives the
+// stiffness each has at its best temperature (TYRE_C's G))
+const TYRE_SHORE = {};
+// the tread rubber's shear stiffness at its working temperature (MPa) from its Shore A hardness at 20 C: Young's modulus
+// E = 218,300 x 1.0482792^S N/m2 (the hardness scale's own relation), shear a third of it, stiffer as the rubber is
+// worked at speed (1.38: a tread block deformed at the patch's rate against a hardness test's slow press), and softer as
+// it warms (as tyreStiff has it)
+const tyreShoreG = (S, Topt) => 1.38 * 218300 * Math.pow(1.0482792, S) / 3e6 / clamp(1 + 0.012 * (Topt - 20), 0.75, 1.6);
+for (const k in TYRE_C) { const C = TYRE_C[k]; TYRE_SHORE[k] = Math.round(Math.log(C.G * clamp(1 + 0.012 * (C.Topt - 20), 0.75, 1.6) * 3e6 / 1.38 / 218300) / Math.log(1.0482792) * 10) / 10; }
+const _tyreCE = new Map();
+function tyreCompound(S, k) {
+  const E = tyreEraOf(S), C = TYRE_C[k]; if (!E || !C) return C;
+  const id = E.k + ':' + k; let X = _tyreCE.get(id); if (X) return X;
+  const sh = TYRE_SHORE[k] + E.sh;
+  X = Object.assign({}, C, { era: E.k, shore: sh, G: Math.round(tyreShoreG(sh, C.Topt) * 1000) / 1000, mu: C.mu * (E.mu[C.fam] || 1), win: C.win * E.win, wear: C.wear * E.wear, cut: C.cut * E.cut });
+  _tyreCE.set(id, X); return X;
+}
+// a car's tyres for a compound: the sizes (front, rear), its era and whether they carry a mousse. A built car on other
+// widths than its body's runs its body's sizes with the section widths it chose (the profile and rim kept)
+function tyreFitOf(S, k) {
+  const E = tyreEraOf(S), C = TYRE_C[k]; if (!E || !C) return null;
+  const id = S.body || (S.base && S.base.id) || S.id, base = CARS.find(c => c.id === id) || S, own = TYRE_FIT_CAR[id] || {}, cls = TYRE_FIT_CLS[E.k] || {}, kind = tyreKindOf(C);
+  let sz = own[kind] || cls[kind];
+  if (!sz) sz = own.g || cls.g || (base.tyreSize ? base.tyreSize.map(t => tzOk(t) ? tz(t) : null).filter(Boolean) : null); // (snow and winter: in its gravel sizes)
+  if (!sz || !sz.length) return null;
+  sz = [sz[0], sz[1] || sz[0]];
+  const tw = S.tyres || base.tyres;
+  if (base.tyres && tw && (tw[0] !== base.tyres[0] || tw[1] !== base.tyres[1])) sz = sz.map((z, j) => { const W = Math.round(z.W * tw[j] / base.tyres[j] / 5) * 5; return W === z.W ? z : tz(W + '/' + Math.round(z.AR * 100) + '-' + z.rim, Math.round(z.rw * W / z.W * 2) / 2); });
+  return { kind, sz, era: E, mousse: own.mousse != null ? own.mousse : !!E.mousse };
+}
+// a studded tyre's studs, as its era's rules had them, on a tyre D across (m): [studs, how far each stands out (m)]
+// (where the rule was a spacing round the tread, as many as its circumference takes; else the era's count, or today's)
+const tyreStudsOf = (E, k, D) => { const s = E.studs[k], B0 = TYRE_BUILD[k === 'sn' ? 'snow' : 'stud']; if (!s) return [B0.studs || 0, B0.sh || 0]; return [s[2] ? Math.round(s[0] * Math.PI * D) : s[0], s[1]]; };
+// ---- a tyre's data sheet ----
+// From its size, its build and its compound, as a tyre's maker measures it on the rig (at its working pressure pD, hot,
+// on a flat track): (lengths in m, forces in N, stiffnesses in N/m unless said)
+//   dim, D, R0, H, sec, tw, rw: its size, overall diameter, unloaded radius, sidewall height (the rim's edge to the
+//     tread), section and tread widths, rim width (in);
+//   mass, mRim, I: the tyre's mass and its rim's (kg), and the wheel's inertia about its axle with them (kg m2; the hub
+//     and the brake disc's share as a rally car's, 0.12);
+//   td, tb, pos: the tread's depth new and the rubber under its grooves (m), its net-to-gross (the share of its face
+//     that meets the road);
+//   shore, E: the tread rubber's hardness (Shore A, 20 C) and its Young's modulus (MPa);
+//   kz: its radial stiffness at the working pressure (the air's share ~ p sqrt(W D), from a ring under pressure, and the
+//     sidewalls' own, the stiffer the shorter and the more reinforced they are; set against a measured 205/60-15 road
+//     tyre's 237 kN/m at 2.2 bar and the game's gravel rally tyre's 230 kN/m at 2.0), Fz1/d1, Fz2/d2: the load at two
+//     deflections (d1: under Fz0, about half its rated load; d2: twice as far, about its rated load), the curve between
+//     a little progressive (cvQ: the stiffness rising a twentieth for each d1 further it is pressed, as a radial tyre's
+//     does as its patch spreads), rimDist: how far it goes before the rim's flange crushes it on the road;
+//   clat, clong: the whole tyre standing, the rim pushed 1 mm across and along against its patch held (the brake on), as
+//     the rig measures them: its carcass (clatC, clongC: the belt pushed across against the rim, and along it, four
+//     times as stiff - a belt is far stiffer along than across) and its tread's own give (ktr: its blocks stuck, all
+//     sheared together over the patch, len its length) in series;
+//   crr: its rolling resistance at 20 m/s on a smooth drum; ext: how much its rolling circumference grows at 200 km/h
+//     (%: its belt's stretch under the spin's pull; the 1970s' radials, without the nylon cap ply over the belt that
+//     high-speed tyres have had since the 1980s, about twice today's); dynK, vDyn: how much stiffer it is radially
+//     rolling fast than standing (its rubber, cycled as it rolls through the patch, stiffening as rubber does when
+//     worked quickly) and the speed (m/s) at which half of that has come;
+//   LI: its rated load (N) at its working pressure, from the section's volume (about what a tyre of its size is rated
+//     for), Fz0: the load its grip and stiffness figures are quoted at
+const _tyreSh = new Map();
+function tyreSheet(S, k, j) {
+  const F = tyreFitOf(S, k); if (!F) return null;
+  const z = F.sz[j], C = tyreCompound(S, k), E = F.era, fam = C.fam, B0 = TYRE_BUILD[fam] || TYRE_BUILD.gravel;
+  const id = E.k + ':' + k + ':' + z.s + ':' + z.rw + ':' + z.D + ':' + z.sec + ':' + z.tw + ':' + (F.mousse ? 1 : 0); let X = _tyreSh.get(id); if (X) return X;
+  const rimD = z.rim * 0.0254, D = (z.D || z.rim * 25.4 + 2 * z.AR * z.W) / 1000, H = (D - rimD) / 2, W = z.W / 1000, pD = tyrePopt(C);
+  const sec = (z.sec || z.W) / 1000;
+  const twR = { gravel: 0.88, tarmac: 0.94, snow: 0.8, winter: 0.86, stud: 0.86 }[fam] || 0.88, tw = (z.tw || twR * z.W) / 1000;
+  const td = (C.tread) || (E.tread && E.tread[fam]) || B0.tread, vd = C.void != null ? C.void : E.void && E.void[fam] != null ? E.void[fam] : B0.void;
+  // (mass: a tyre of rally build, for its section and diameter, a tall gravel or snow tyre heavier for its size; the
+  // mousse about 2.5 kg)
+  const mk = { gravel: 9.4e-5, snow: 9.4e-5, tarmac: 7.2e-5, winter: 8.2e-5, stud: 8.2e-5 }[fam] || 8.5e-5;
+  const mass = mk * z.W * D * 1000 * E.mass + (F.mousse ? 2.5 : 0), mRim = (3 + 0.3 * z.rim) * Math.sqrt(z.rw / 7) * E.rim;
+  const R0 = D / 2, I = mass * (0.88 * R0) * (0.88 * R0) * 0.92 + mRim * (0.85 * rimD / 2) * (0.85 * rimD / 2) + 0.12;
+  // (radial: the air's share and the sidewalls', reinforced as each kind of rally tyre is)
+  const rf = ({ gravel: 1.5, snow: 1.4, tarmac: 1.3, winter: 1.2, stud: 1.2 }[fam] || 1.3) * E.reinf;
+  const kz = (255.1 * pD * Math.sqrt(z.W * D * 1000) + 35500 * rf * (z.W / 205) * (0.123 / H)) * (F.mousse ? 1.04 : 1);
+  const LI = 9.81 * 455 * Math.pow(W / 0.205, 1.2) * Math.pow(H / 0.127, 0.75) * Math.pow(D / 0.63, 0.5), Fz0 = 2600 * W / 0.225;
+  const rimDist = clamp(0.52 * H, 0.04, 0.09), d1 = Fz0 / kz, d2 = 2 * d1;
+  const shore = C.shore != null ? C.shore : TYRE_SHORE[k], Ey = 218300 * Math.pow(1.0482792, shore) / 1e6;
+  const blk = B0.blk, ps = B0.ps * E.reinf;
+  const Cc0 = 120000 * Math.pow(W / 0.205, 1.5) * Math.sqrt(0.13 / H) * E.Cc, Ky0 = 115000 * Math.pow(W / 0.205, 0.6) * Math.pow(0.13 / H, 1.6) * E.Ky;
+  // (standing: the carcass at its working pressure as the brush has it (tyreStiff's kcy), and the tread's blocks over the
+  // patch at Fz0 (tyreStiff's length, and its width)
+  const kcy = Ky0 * Math.exp(0.7 * Math.log((pD + ps) / 2.5)), pa = R0 * (0.67 * Math.sqrt(d1 / R0) + 0.73 * d1 / R0), ktr = C.G * 1e6 * (1 - vd) * blk / (td + 0.003) * 2 * pa * tw;
+  const ser = (x, y) => x * y / (x + y), cvQ = 0.05, Fz2 = kz * Math.min(2 * d1, rimDist) * (1 + cvQ * (Math.min(2 * d1, rimDist) / d1 - 1)) + (2 * d1 > rimDist ? 3 * kz * (2 * d1 - rimDist) : 0);
+  const kindR = { gravel: 1.1, snow: 1.15, tarmac: 1, winter: 1.05, stud: 1.1 }[fam] || 1, crr = 0.014 * kindR * E.crr * (F.mousse ? 1.08 : 1) * (k === 'tW' ? 1.05 : 1);
+  const studs = fam === 'snow' || fam === 'stud' ? tyreStudsOf(E, k, D) : [0, 0];
+  X = { key: k, era: E.k, eraY: E.y, dim: z.W + '/' + Math.round(z.AR * 100) + ' R' + z.rim, rimIn: z.rim, rw: z.rw, D, R0, H, W, sec, tw, mass, mRim, I, mousse: F.mousse,
+    td, tb: 0.003, pos: 1 - vd, void: vd, shore, E: Ey, G: C.G, Topt: C.Topt, win: C.win, pD, kz, Fz0, LI, d1, d2, Fz1: Fz0, Fz2, cvQ, rimDist,
+    clat: ser(kcy, ktr), clong: ser(4 * kcy, ktr), clatC: kcy, clongC: 4 * kcy, ktr, len: 2 * pa, Cc0, Ky0, blk, ps, crr, ext: E.k === 'G4' ? 1.6 : E.k === 'B' ? 1.2 : 0.8, dynK: 0.1, vDyn: 60 / 3.6,
+    studs: studs[0], sh: studs[1], EI: E.EI, EIy: E.EIy, GJ: E.GJ, rK: E.r, vdK: E.vd };
+  _tyreSh.set(id, X); return X;
+}
+// the wheel a car runs on with a compound's tyres: its radius (the two axles' mean: the rig and the body take one), its
+// inertia, each corner's unsprung mass (the tyre and rim against the game's own wheel's, 20 kg), its tyres' radial
+// stiffness (their mean, and each axle's against it, ktAx)
+function tyreWheelFor(S, k) {
+  const a = tyreSheet(S, k, 0), b = tyreSheet(S, k, 1); if (!a || !b) return null;
+  const kt = (a.kz + b.kz) / 2, mu = WHEEL.mu + (a.mass + a.mRim - 20), muR = (S.muR != null ? S.muR : WHEEL.mu) + (b.mass + b.mRim - 20);
+  return { wheel: { R: Math.round((a.R0 + b.R0) / 2 * 10000) / 10000, I: (a.I + b.I) / 2, kt, mu, muR }, ktAx: [a.kz / kt, b.kz / kt], sh: [a, b] };
+}
+// the era's grip on a kind of surface against today's, for the pace the drivers plan on
+// (studded: their studs' bite against today's too, which on snow and ice is most of the grip; on a tyre of a rally
+// car's gravel size, 645 mm across)
+const tyreEraMu = (S, fam) => { const E = tyreEraOf(S); if (!E || !fam) return 1; let f = E.mu[fam] || 1; const B0 = TYRE_BUILD[fam], k = fam === 'snow' ? 'sn' : fam === 'stud' ? 'tSt' : null;
+  if (k && B0 && B0.studs) { const s = tyreStudsOf(E, k, 0.645); f *= 0.5 + 0.5 * Math.min(1.15, s[0] * s[1] / (B0.studs * B0.sh)); } return f; };
+// the sizes a compound comes in on a car (front / rear where they differ) and the years its build is of, for the setup screen
+function tyreFitLine(S, k) { const a = tyreSheet(S, k, 0), b = tyreSheet(S, k, 1); if (!a || !b) return ''; return (a.dim === b.dim ? a.dim : a.dim + ' / ' + b.dim) + ' (' + a.eraY + ')'; }
 // the tyre's patch and stiffness at a load Fz (N), running at a pressure p (bar; pD: the pressure it is built to run at)
 // on a wheel of radius R whose tyre's vertical stiffness is kt (N/m), its tread at Tt (°C, its compound's best Topt), worn
 // w (0-1), into P:
@@ -5763,11 +5982,11 @@ function tyreSurf(P, TB, fam, MX, wetC, iceR, iceS, slF, w, Wk) {
     if (Tk.z > 0) { zA += wj * Tk.z; pkA += wj * Tk.z * Tk.pk; sgA += wj * Tk.z * Tk.sig; }
     if (TB.studs) { const sk = wj * Tk.st * (1 - wl) * (k === 'ice' ? iceS : 1); stA += sk; rsA += sk * Tk.rs; svA += sk * Tk.sv; }
     camB += wj * Tk.cam; crrB += wj * Tk.crr; htB += wj * (TYRE_HEAT[k] || 0.2); abB += wj * (TYRE_ABR[k] || 0.5); pvB += wj * Tk.pav; }
-  P.hw = hw; P.rub = hw > 0 ? rub / hw : 0; P.r = hw > 0 ? rB / hw - 0.15 * wetW * wetC * pvB : 1; P.vd = hw > 0 ? vdB / hw * (1 - 0.4 * wetW * wetC * pvB) : 1;
+  P.hw = hw; P.rub = hw > 0 ? rub / hw : 0; P.r = hw > 0 ? Math.min(0.97, rB / hw + (TB.rK || 0)) - 0.15 * wetW * wetC * pvB : 1; P.vd = hw > 0 ? vdB / hw * (TB.vdK || 1) * (1 - 0.4 * wetW * wetC * pvB) : 1;
   P.lw = lw; P.lrub = lw > 0 ? lrub / lw : 0; P.lphi = lw > 0 ? lphi / lw : 0; P.K = lw > 0 ? Kw / lw * (1 + 0.8 * (1 - Math.sqrt(1 - 0.75 * w))) : 0.005;
   P.z0 = zA; P.pk = zA > 0 ? pkA / zA : 0; P.sig = zA > 0 ? sgA / zA : 0;
   P.st = stA; P.rs = stA > 0 ? rsA / stA : 1; P.sv = stA > 0 ? svA / stA : 0;
-  P.cam = camB; P.crr = crrB; P.heat = htB; P.abr = abB; P.pav = pvB; return P;
+  P.cam = camB; P.crr = crrB + (TB.crr0 ? TB.crr0 - 0.014 : 0); P.heat = htB; P.abr = abB; P.pav = pvB; return P;
 }
 // the patch's forces (P: tyreSurf's and tyreStiff's figures, and the load (Fz), the slips (sx, sy: theoretical, per
 // unit of rolling speed), the contact's speed along and across the wheel (vx, vy), its slip speed along it (slipV), the
@@ -5909,7 +6128,8 @@ const topSpeed = (S, fd) => S.redline * Math.PI / 30 * wheelOf(S).R / (S.gears[S
 // (L: the stage's layers, their shares along the line, if known: a winter tarmac stage with much ice or packed snow
 // takes studs, with snow or slush a winter tyre; a mixed stage takes the tyres of the surface it has most of)
 // (S: a vehicle with its own tyres, S.tyreSet { all, snow }: those, its winter ones on snow or a wintry road)
-function tyreFor(env, S) {
+function tyreFor(env, S) { return tyreEraKey(S, tyreFor0(env, S)); }
+function tyreFor0(env, S) {
   const a = env.air != null ? env.air : 15, w = env.wet || 0, L = env.lay;
   if (S && S.tyreSet) { const Q = S.tyreSet; return Q.snow && (env.surface === 'snow' || (env.surface === 'tarmac' && L && L.snow + L.slush + L.ice > 0.08) || (a < 3 && env.surface !== 'gravel')) ? Q.snow : Q.all; }
   if (env.surface === 'snow') return 'sn';
@@ -5919,9 +6139,9 @@ function tyreFor(env, S) {
   return a >= 22 && w < 0.3 ? 'gH' : 'gS';
 }
 // the cold pressure that brings a compound to its working pressure at its working temperature (bar, to 0.05)
-const coldFor = (k, air) => { const C = TYRE_C[k], L = tyrePlim(C); return clamp(Math.round(((tyrePopt(C) + P_ATM) * ((air != null ? air : 15) + 273.15) / (C.Topt + 273.15) - P_ATM) * 20) / 20, L[0], L[1]); };
+const coldFor = (k, air, S) => { const C = S ? tyreCompound(S, k) : TYRE_C[k], L = tyrePlim(C); return clamp(Math.round(((tyrePopt(C) + P_ATM) * ((air != null ? air : 15) + 273.15) / (C.Topt + 273.15) - P_ATM) * 20) / 20, L[0], L[1]); };
 // the tyres on offer for a surface: the rally compounds, or a special vehicle's own
-const tyresFor = (S, surface) => S && S.tyreSet ? [...new Set([S.tyreSet.all, S.tyreSet.snow].filter(Boolean))] : TYRE_FOR[surface];
+const tyresFor = (S, surface) => S && S.tyreSet ? [...new Set([S.tyreSet.all, S.tyreSet.snow].filter(Boolean))] : tyreEraKeys(S, TYRE_FOR[surface]);
 // the setup an engineer would start from on this surface in this weather: the car's own for gravel; for tarmac lower
 // and stiffer (springs about twice as stiff, as crews fit 50-60 N/mm on tarmac against 22-30 on gravel, about 2.0-2.2 Hz;
 // the dampers to match, stiffer bars, more negative camber, a little more front brake, a longer final drive); for snow a
@@ -5944,7 +6164,7 @@ function setupRec(S, env) {
   if (f === 'tarmac' && env.lay && env.lay.snow + env.lay.ice + env.lay.slush > 0.1) { su.kF = b.kF * 1.5; su.kR = b.kR * 1.5; su.rhF = -10; su.rhR = -10; su.aF = b.aF * 1.3; su.aR = b.aR * 1.3; su.bias = b.bias; }
   if (env.safari && f === 'gravel') { su.rhF = 35; su.rhR = 35; su.kF = b.kF * 0.9; su.kR = b.kR * 0.9; su.fbF = su.fbR = CLICK_MID - 2; su.snk = 1; }
   for (const a in su.diff) if (su.diff[a].k === 'lockable') su.diff[a].lock = a === 'c' ? (f === 'tarmac' ? 0 : 1) : f === 'snow' ? 1 : 0;
-  su.c = tyreFor(env, S); su.pF = su.pR = coldFor(su.c, env.air);
+  su.c = tyreFor(env, S); su.pF = su.pR = coldFor(su.c, env.air, S);
   return su;
 }
 // a setup made into the car the physics drives: a copy of the car's figures with the setup's own in place, its tyres'
@@ -5954,12 +6174,14 @@ function setupSpec(S, su, env) {
   Object.assign(susp, { kF: su.kF * 1000, kR: su.kR * 1000, cbF: W0[0].cb * ck(su.bF), cbR: W0[2].cb * ck(su.bR), cfF: W0[0].cb * DAMP_FAST[0] * ck(su.fbF), cfR: W0[2].cb * DAMP_FAST[0] * ck(su.fbR), crF: W0[0].cr * ck(su.rF), crR: W0[2].cr * ck(su.rR),
     karbF: su.aF * 1000, karbR: su.aR * 1000, camF: su.camF, camR: su.camR, toeF: su.toeF, toeR: su.toeR, rhF: su.rhF / 1000, rhR: su.rhR / 1000, bias: su.bias / 100, brake: K0.sp.brake * su.bp / 100 });
   const diff = {}; for (const a in b.diff) diff[a] = diffOf(K0.df[a] || {}, (su.diff && su.diff[a]) || b.diff[a]);
-  const E = Object.create(S), key = TYRE_C[su.c] && tyresFor(S, env.surface).includes(su.c) ? su.c : tyreFor(env, S), C = TYRE_C[key];
+  const E = Object.create(S), key = TYRE_C[su.c] && tyresFor(S, env.surface).includes(su.c) ? su.c : tyreFor(env, S), C = tyreCompound(S, key);
   Object.assign(E, { _sp: null, _el: null, susp, diff, final: su.fd || S.final, hbT: (S.hbT || 1700) * su.hb / 100, bpK: su.bp / 100, lock: (su.lock || S.lock * 180 / Math.PI) * Math.PI / 180, setup: su, base: S, snorkel: !!su.snk });
   const dcg = (su.rhF * S.wf + su.rhR * (1 - S.wf)) / 1000;
   if (dcg) { const h = S.hull || {}; E.hull = Object.assign({}, h, { floor: (h.floor != null ? h.floor : 0.26) + dcg, belt: (h.belt || 0.95) + dcg, roof: (h.roof || 1.32) + dcg }); }
   // the tyres: their compound, cold pressures and the temperature they were set at; how readily they puncture (lower
   // pressure and a softer compound cut more easily on stones)
+  const TW = tyreWheelFor(S, key);
+  if (TW) Object.assign(E, { tyWheel: TW.wheel, _wh: null, _tb: null, ktAx: TW.ktAx, tySh: TW.sh, tyres: TW.sh.map(h => Math.round(h.W * 1000)), rollR: S.rollR || WHEEL.R, mousse: TW.sh[0].mousse });
   E.tyreKey = key; E.tyreC = C; E.pCold = [su.pF, su.pF, su.pR, su.pR]; E.pSet = env.air != null ? env.air : 15; E.pOpt = tyrePopt(C);
   E.punct = E.pCold.map(p => clamp(Math.pow(1.75 / p, 2.5), 0.5, 2.5) * C.cut);
   return E;
@@ -6143,8 +6365,8 @@ const FT_RC = { tarmac: 1.4, gravel: 1.1, snow: 1.1, winter: 1.1, stud: 1.1, xc:
 function ftParams(TB, WH, pD) {
   const R = WH.R, bt = TB.bt, tr = TB.h0 + 0.003, fam = TB.fam;
   return { R, bt, B: TB.B, H: TB.H, pD, ps: TB.ps, fam,
-    rhoA: bt * (tr * (1 - 0.5 * TB.void) * 1150 + 6), tr, // (the belt and tread's mass per metre: rubber, and the belt's steel)
-    EA: 2e7, EI: 3, EIy: 1.2e4, GJ: 5, nc: 3, kr: 6.5e5, kt: 6.5e5, ky: 6e4, kbK: 0.5, kk: 2e5, cKp: 0.0008, es: 1, // see ftAt; GJ: the belt's own torsion (a thin band of cords in rubber twists easily: N m2); nc: how short a wave of it lives about the flattened patch (see ftModal); es: how far the belt goes in before its sidewalls fold and hold it out no harder (m, fitted)
+    rhoA: TB.mBelt ? TB.mBelt / (2 * Math.PI * R) : bt * (tr * (1 - 0.5 * TB.void) * 1150 + 6), tr, // (the belt and tread's mass per metre: rubber, and the belt's steel)
+    EA: 2e7, Sd: TB.sheet ? TB.sheet.dynK : 0, Td: TB.sheet ? R / (3 * TB.sheet.vDyn) : 0, EI: 3 * (TB.EIk || 1), EIy: 1.2e4 * (TB.EIyk || 1), GJ: 5 * (TB.GJk || 1), nc: 3, kr: 6.5e5, kt: 6.5e5, ky: 6e4, kbK: 0.5, kk: 2e5, cKp: 0.0008, es: 1, // see ftAt; GJ: the belt's own torsion (a thin band of cords in rubber twists easily: N m2); nc: how short a wave of it lives about the flattened patch (see ftModal); es: how far the belt goes in before its sidewalls fold and hold it out no harder (m, fitted)
     gs: 0.08, gb: 0.08, gt: 0.12, cv: 1e-4, kc: 3, ktf: 1, kxf: 1.15, // hysteresis: sidewalls, belt, tread; viscous (s); tread's radial / shear stiffness; its shear stiffness against tyreStiff's, and along the wheel against across
     ec: (bt / 2) * (bt / 2) / (2 * (FT_RC[fam] || 1)), gap: Math.max(0.035, 0.48 * TB.H), kfl: 6e6, // the crown's drop at the tread's edge; the rim flange: how far the belt goes in before the sidewall is crushed between it and the road, and how stiff it is then (N/m per metre)
     mc: new Map(), kcache: new Map(), cal: 0 };
@@ -6185,7 +6407,10 @@ function ftModal(F, p, Om) {
   for (let n = -M; n <= M; n++) {
     const j = (n + M) * 8, n2 = n * n, sg = Math.tanh(n * Oq / 0.4), hs = F.gs * sg, hb = F.gb * sg, vi = n * Oq * F.cv;
     if (n === 0) { inv(ip, j, s.kr + EAR + s.EI / R4 - rA * O2, 0, 0, 0, 0, 0, s.kt, 0); continue; }
-    const eb = s.EI * (n2 - 1) * (n2 - 1) / R4, ar = s.kr + eb + EAR + s.T0 * (n2 - 1) / R2 - rA * O2, ai = s.kr * (hs + vi) + eb * hb;
+    // (its sidewalls' rubber stiffening as it is worked faster: a spring and a damper in series alongside them, Sd of their
+    // stiffness with time constant Td (from a data sheet: dynK, and vDyn the speed half of it has come at), at each wave's own
+    // frequency as the belt rolls through the patch, n Om: nothing standing, all of Sd at speed)
+    const eb = s.EI * (n2 - 1) * (n2 - 1) / R4, xd = n * Oq * F.Td, dd = F.Sd * s.kr / (1 + xd * xd), ar = s.kr + dd * xd * xd + eb + EAR + s.T0 * (n2 - 1) / R2 - rA * O2, ai = s.kr * (hs + vi) + dd * xd + eb * hb;
     const br = -n * EAR + n * rA * O2, dr = s.kt + n2 * EAR - n2 * rA * O2, di = s.kt * (hs + vi);
     inv(ip, j, ar, ai, br, 0, br, 0, dr, di);
   }
@@ -6715,11 +6940,11 @@ function ftRigRun(F, P, ft, o, n) { // (a test rig: the tyre on a level road at 
   return O;
 }
 function ftCal(F, TB, WH, pD) {
-  const R = WH.R, Fz0 = TB.Fz0, T = {}; tyreStiff(TB, Fz0, pD, pD, R, WH.kt, TB.Topt, 0, T); const Cy = T.Cy * (WH.ca || 1);
+  const R = WH.R, Fz0 = TB.Fz0, T = {}; tyreStiff(TB, Fz0, pD, pD, R, TB.kt || WH.kt, TB.Topt, 0, T); const Cy = T.Cy * (WH.ca || 1);
   // (the brush on a hard road, its friction as the rig's: across at half a degree, along at half a per cent either way)
   const B = Object.assign({}, T, { hw: 1, lw: 0, Fst: 0, z: 0, mu0: 1, r: 0.8, vd: 7, muL: 0, R, Fz: Fz0, Cy, rub: 1, lrub: 0, lphi: 0, K: 0.005, st: 0, pk: 0, sig: 0, b: T.b });
   const br = (al, kap) => { B.vx = 20 * Math.cos(al); B.vy = 20 * Math.sin(al); B.slipV = kap * B.vx; B.sx = kap / (1 + kap); B.sy = Math.tan(al) / (1 + kap); return tyreForce(B); };
-  const tFy = -br(0.5 * Math.PI / 180, 0).fy, tCx = (br(0, 0.005).fx - br(0, -0.005).fx) / 0.01, tPen = Fz0 / WH.kt, tLen = 2 * T.a, tKy = T.kcy, tCrr = 0.014 * (1 + 0.15 * (20 / 27.8) * (20 / 27.8));
+  const tFy = -br(0.5 * Math.PI / 180, 0).fy, tCx = (br(0, 0.005).fx - br(0, -0.005).fx) / 0.01, tPen = Fz0 / (TB.kt || WH.kt), tLen = 2 * T.a, tKy = TB.sheet ? TB.sheet.clat : T.kcy, tCrr = (TB.crr0 || 0.014) * (1 + 0.15 * (20 / 27.8) * (20 / 27.8));
   const P = ftFricNew(FTY), ct = TB.G * 1e6 * (1 - TB.void) * TB.blk / (TB.h0 + 0.003); P.ct.fill(ct); P.mu0 = 1; P.r = 0.8; P.vd = 7; P.pref = Fz0 / (2 * T.a * T.b);
   const ft = ftNew(FTX, FTY), o = { p: pD, V: 0, om: 0, al: 0, y: R - tPen }, bump = () => { F.cal++; ftClear(ft, null); };
   const press = () => { // (the load Fz0: how far squashed, and the patch's length)
@@ -6736,14 +6961,30 @@ function ftCal(F, TB, WH, pD) {
   const at = pn => { bump(); o.V = 0; o.om = 0; o.al = 0; o.x = 0; o.y = R - pn; return ftRigRun(F, P, ft, o, 10).F[1]; };
   const refit = () => { for (let it = 0, k0 = F.kr, e0 = Math.log(press()[0] / tPen); it < 5; it++) { if (Math.abs(e0) < 0.004) break; const k1 = k0 * Math.exp(1.6 * e0); F.kt *= k1 / F.kr; F.kr = k1;
       const e1 = Math.log(press()[0] / tPen), sl = (e1 - e0) / Math.log(k1 / k0 || 1.0001); const k2 = k1 * Math.exp(-e1 / clamp(sl, -2, -0.1)); F.kt *= k2 / F.kr; F.kr = k2; k0 = k2; e0 = Math.log(press()[0] / tPen); } };
-  const prog = () => at(3 * tPen) / (3.3 * Fz0);
+  // 1a. (from a data sheet) the belt's stretch: grown ext per cent round at 200 km/h by the spin's pull (EA, from the
+  // ring's own breathing: its growth is rA Om^2 R over its stiffness, the sidewalls' kr and the belt's EA / R^2 less the
+  // spin's own), first - it sets how progressive the ring is under load
+  const SH = TB.sheet, grow = () => { const Om = 200 / 3.6 / R, s = ftAt(F, pD); F.EA = clamp((F.rhoA * Om * Om * R / (SH.ext / 100 * R) - s.kr - F.EI / (R * R * R * R) + F.rhoA * Om * Om) * R * R, 2e5, 5e7); F.cal++; };
+  // (with a data sheet the sidewalls round the rim, kt, are fitted on their own - against its clong, below - and the radial
+  // support (kr) alone again after: they share the load through the belt, a softer kt leaving more of it to kr)
+  // (along: the rim moved 1 mm along, the brake on, against the sheet's clong - the sidewalls round the rim, kt)
+  const along = () => { bump(); o.V = 0; o.om = 0; o.al = 0; o.x = 0; o.dx = 0; ftRigRun(F, P, ft, o, 6); o.V = 0.048; ftRigRun(F, P, ft, o, 5); o.V = 0; return -ftRigRun(F, P, ft, o, 3).F[2] / 0.001; };
+  const fitKt = () => { for (let it = 0, k0 = F.kt, s0 = along(); it < 6; it++) { const e = Math.log(s0 / SH.clong); if (Math.abs(e) < 0.01) break; const k1 = clamp(k0 * Math.exp(-e * 1.2), 0.05 * F.kr, 5 * F.kr); F.kt = k1; const s1 = along();
+    const sl = Math.log(s1 / s0) / Math.log(k1 / k0 || 1.0001); F.kt = clamp(k0 * Math.exp(-Math.log(s0 / SH.clong) / clamp(sl, 0.1, 2)), 0.05 * F.kr, 5 * F.kr); k0 = F.kt; s0 = along(); } };
+  const refitR = () => { for (let it = 0, k0 = F.kr, e0 = Math.log(press()[0] / tPen); it < 6; it++) { if (Math.abs(e0) < 0.004) break; const k1 = k0 * Math.exp(1.6 * e0); F.kr = k1;
+      const e1 = Math.log(press()[0] / tPen), sl = (e1 - e0) / Math.log(k1 / k0 || 1.0001); const k2 = k1 * Math.exp(-e1 / clamp(sl, -2, -0.1)); F.kr = k2; k0 = k2; e0 = Math.log(press()[0] / tPen); } };
+  const prog = SH ? () => at(SH.d2) / SH.Fz2 : () => at(3 * tPen) / (3.3 * Fz0); // (a data sheet's second point (d2, Fz2); else as round 22 set it)
+  if (SH) { grow(); refitR(); grow(); for (let r = 0; r < 3; r++) { o.y = R - press()[0]; fitKt(); refitR(); grow(); } }
+  const rf = SH ? refitR : refit;
   { let best = 1, bv = Infinity; const kr0 = F.kr, kt0 = F.kt; // (a scan: the fit is not monotonic where the sidewalls fold early)
-    for (const es of [0.003, 0.005, 0.008, 0.013, 0.021, 0.034, 0.055, 0.09, 1]) { F.es = es; F.kr = kr0; F.kt = kt0; refit(); const g = Math.abs(Math.log(prog())); if (g < bv) { bv = g; best = es; } if (g < 0.015) break; }
-    F.es = best; F.kr = kr0; F.kt = kt0; refit(); }
+    for (const es of [0.003, 0.005, 0.008, 0.013, 0.021, 0.034, 0.055, 0.09, 1]) { F.es = es; F.kr = kr0; F.kt = kt0; rf(); const g = Math.abs(Math.log(prog())); if (g < bv) { bv = g; best = es; } if (g < 0.015) break; }
+    F.es = best; F.kr = kr0; F.kt = kt0; rf(); }
+  if (SH) { grow(); o.y = R - press()[0]; fitKt(); refitR(); grow(); }
   const [pen] = press(); o.y = R - pen;
   // 2. the sidewalls sideways: the rim pushed 1 mm across, the patch held, against tKy
   const side = () => { bump(); o.V = 0; o.om = 0; o.al = 0; o.x = 0; o.dx = 0; ftRigRun(F, P, ft, o, 6); o.dx = 0.0002; ftRigRun(F, P, ft, o, 5); o.dx = 0; return -ftRigRun(F, P, ft, o, 3).F[0] / 0.001; };
-  for (let it = 0, k0 = F.ky, s0 = side(); it < 5; it++) { const e = Math.log(s0 / tKy); if (Math.abs(e) < 0.01) break; const k1 = k0 * Math.exp(-e * 1.1); F.ky = k1; const s1 = side(); const sl = Math.log(s1 / s0) / Math.log(k1 / k0 || 1.0001); F.ky = k0 * Math.exp(-Math.log(s0 / tKy) / clamp(sl, 0.2, 2)); k0 = F.ky; s0 = side(); }
+  const fitKy = () => { for (let it = 0, k0 = F.ky, s0 = side(); it < 5; it++) { const e = Math.log(s0 / tKy); if (Math.abs(e) < 0.01) break; const k1 = k0 * Math.exp(-e * 1.1); F.ky = k1; const s1 = side(); const sl = Math.log(s1 / s0) / Math.log(k1 / k0 || 1.0001); F.ky = k0 * Math.exp(-Math.log(s0 / tKy) / clamp(sl, 0.2, 2)); k0 = F.ky; s0 = side(); } };
+  if (!SH) fitKy();
   // 3. its blocks across: the force at half a degree, freely rolling, against the brush's; 4. and along: braking and driving
   // stiffness about free rolling; 5. the rubber's losses: free rolling at 20 m/s (no torque on the wheel), its drag against
   // tCrr. Twice round, as each moves the others a little
@@ -6755,6 +6996,7 @@ function ftCal(F, TB, WH, pD) {
       a0 = a1 * Math.exp(-Math.log(y1 / want) / clamp(sl, 0.1, 3)); set(a0); y0 = get(); } };
   let kf = free()[0];
   for (let pass = 0; pass < 2; pass++) {
+    if (SH) { o.y = R - pen; fitKy(); fitKt(); }
     fit(() => -roll(kf, 0.5 * Math.PI / 180, 40).F[0], v => { F.ktf = v; }, F.ktf, tFy, 1.3);
     fit(() => (roll(kf + 0.005, 0, 40).F[2] - roll(kf - 0.005, 0, 40).F[2]) / 0.01, v => { F.kxf = v; }, F.kxf, tCx, 1.3);
     const g0 = F.gs, b0 = F.gb, t0 = F.gt, c0 = F.cv; let lf = 1;
@@ -6772,11 +7014,11 @@ function ftCal(F, TB, WH, pD) {
 // (kept between visits where the page gives it somewhere to keep them, FT_STORE: get(key), set(key, fit); FT_FITV says
 // which ring the fits are of - another ring, and they are found again)
 let FT_STORE = null;
-const FT_FITV = 'r22.1';
-const FT_FITK = ['kr', 'kt', 'ky', 'es', 'ktf', 'kxf', 'gs', 'gb', 'gt', 'cv'];
+const FT_FITV = 'r23.1';
+const FT_FITK = ['kr', 'kt', 'ky', 'es', 'ktf', 'kxf', 'gs', 'gb', 'gt', 'cv', 'EA'];
 const FT_FITS_CL = ['tPen', 'tLen', 'tKy', 'tFy', 'tCx', 'tCrr', 'kf', 'pref', 'pkA', 'pkK'];
 function ftRing(TB, WH, pD) {
-  const key = TB.fam + '|' + TB.B + '|' + TB.H + '|' + TB.ps + '|' + pD + '|' + WH.R + '|' + WH.kt + '|' + (WH.ca || 1) + '|' + TB.Fz0 + '|' + TB.G + '|' + TB.void + '|' + TB.h0 + '|' + TB.blk + '|' + FTX + 'x' + FTY;
+  const key = TB.fam + '|' + TB.B + '|' + TB.H + '|' + TB.ps + '|' + pD + '|' + WH.R + '|' + (TB.kt || WH.kt) + '|' + (WH.ca || 1) + '|' + TB.Fz0 + '|' + TB.G + '|' + TB.void + '|' + TB.h0 + '|' + TB.blk + '|' + (TB.crr0 || '') + '|' + (TB.EIk || '') + '|' + (TB.EIyk || '') + '|' + (TB.GJk || '') + '|' + (TB.mBelt ? TB.mBelt.toFixed(3) : '') + '|' + (TB.sheet ? [TB.sheet.clat, TB.sheet.clong, TB.sheet.Fz2].map(v => v.toFixed(0)).join(',') + ',' + TB.sheet.ext + ',' + TB.sheet.dynK + ',' + TB.sheet.vDyn.toFixed(2) + ',' + TB.sheet.cvQ : '') + '|' + FTX + 'x' + FTY;
   let F = FT_CAL.get(key); if (F) return F;
   F = ftParams(TB, WH, pD);
   // (the game's own tyres were fitted when it was built, FT_FITS; another, as this browser kept it; else fitted now, and kept)
@@ -6934,84 +7176,271 @@ const FTK = { gravel: { gravel: 1.0461, tarmac: 1.2298, stone: 1.2149, snow: 1.0
   xc: { gravel: 0.992, tarmac: 1.0404, stone: 0.9975, snow: 0.942, grass: 0.9377, snowbank: 0.8406, ice: 0.982, snowlayer: 0.9072, slush: 0.9093, dirt: 1.0042, loose: 0.9528, hard: 0.9959, powder: 0.9061, paint: 0.9775, concrete: 1.0058, moss: 0.9714, steel: 0.9735 },
   mt: { gravel: 1.0057, tarmac: 1.108, stone: 1.0948, snow: 0.9704, grass: 0.9746, snowbank: 0.8913, ice: 0.9995, snowlayer: 0.946, slush: 0.9498, dirt: 1.0597, loose: 0.9738, hard: 1.0308, powder: 0.9429, paint: 1.0826, concrete: 1.101, moss: 1.0798, steel: 1.0228 },
   road: { gravel: 1.0631, tarmac: 1.2302, stone: 1.2275, snow: 1.068, grass: 1.0662, snowbank: 1.0033, ice: 1.1605, snowlayer: 1.0443, slush: 1.0911, dirt: 1.1473, loose: 1.0279, hard: 1.1046, powder: 1.0108, paint: 1.2275, concrete: 1.2328, moss: 1.2036, steel: 1.1921 } };
-// the rings fitted to every tyre the game builds (each car's, on each surface, of each compound), when the game was built
-// (harness: ftfits gen.js): its key (see ftRing), then kr, kt, ky, es, ktf, kxf, gs, gb, gt, cv, then the fit's tPen, tLen, tKy, tFy, tCx, tCrr, kf, pref, pkA, pkK
-const FT_FITS = { v: "r22.1", f: {
-  "gravel|0.235|0.15275|0.5|2|0.31|230000|1|2715.5555555555557|1.8|0.4|0.013|0.85|10x5": [869875, 869875, 83742.5, 0.005, 0.862634, 1.18296, 0.170679, 0.170679, 0.256018, 0.000213349, 0.0118068, 0.0983062, 96433, 336.813, 54795, 0.0150869, 0.0027649, 133576, 1.69176, 1.61538],
-  "gravel|0.235|0.15275|0.5|2|0.31|230000|1|2715.5555555555557|2.4|0.4|0.013|0.85|10x5": [756360, 756360, 82158.6, 0.008, 0.887184, 1.19808, 0.188808, 0.188808, 0.283211, 0.000236009, 0.0118068, 0.0983062, 96433, 404.835, 69145.3, 0.0150869, 0.00260626, 133576, 1.47647, 1.5],
-  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|1.7|0.12|0.007|1|10x5": [681125, 681125, 251530, 0.003, 1.16831, 1.36914, 0.220042, 0.220042, 0.330063, 0.000275053, 0.0118068, 0.0983062, 221303, 679.828, 126473, 0.0150869, 0.00224066, 125050, 1.11165, 1.09091],
-  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|1.4|0.12|0.007|1|10x5": [623533, 623533, 257819, 0.005, 1.20225, 1.32224, 0.222194, 0.222194, 0.333292, 0.000277743, 0.0118068, 0.0983062, 221303, 615.808, 110272, 0.0150869, 0.00239757, 125050, 1.40343, 1.38462],
-  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|2.1|0.12|0.007|1|10x5": [673503, 673503, 254512, 0.003, 1.0957, 1.40813, 0.22534, 0.22534, 0.33801, 0.000281675, 0.0118068, 0.0983062, 221303, 748.938, 145434, 0.0150869, 0.00190717, 125050, 1.7559, 2],
-  "tarmac|0.235|0.094|0.4|2.3|0.31|230000|1|2715.5555555555557|1.6|0.3|0.008|1|10x5": [644325, 644325, 274082, 0.005, 1.15935, 1.29631, 0.216901, 0.216901, 0.325352, 0.000271127, 0.0118068, 0.0983062, 221303, 553.689, 95670.8, 0.0150869, 0.00248978, 125050, 1.27517, 1.2],
-  "winter|0.235|0.10575|0.3|2.1|0.31|230000|1|2715.5555555555557|1.4|0.35|0.009|0.6|10x5": [873719, 873719, 212841, 0.005, 0.850004, 1.19048, 0.163213, 0.163213, 0.24482, 0.000204017, 0.0118068, 0.0983062, 168786, 291.513, 44831.2, 0.0150869, 0.0029146, 136682, 1.44572, 1.5],
-  "stud|0.235|0.10575|0.3|2.1|0.31|230000|1|2715.5555555555557|1.45|0.35|0.009|0.6|10x5": [868070, 868070, 211146, 0.005, 0.850658, 1.17507, 0.164676, 0.164676, 0.247014, 0.000205845, 0.0118068, 0.0983062, 168786, 299.264, 46229, 0.0150869, 0.00286621, 136682, 1.51962, 1.54839],
-  "snow|0.235|0.15275|0.4|2|0.31|230000|1|2715.5555555555557|1.9|0.45|0.014|0.6|10x5": [868852, 868852, 86298.1, 0.008, 0.796523, 1.17328, 0.159168, 0.159168, 0.238752, 0.00019896, 0.0118068, 0.0983062, 93716.4, 239.309, 36627.6, 0.0150869, 0.00299999, 136682, 1.37906, 1.38462],
-  "gravel|0.205|0.13325|0.5|2|0.31|230000|1|2368.8888888888887|1.8|0.4|0.013|0.85|10x5": [969231, 969231, 112338, 0.005, 0.816903, 1.19935, 0.169491, 0.169491, 0.254237, 0.000211864, 0.0102995, 0.0907544, 110545, 263.145, 41784.8, 0.0150869, 0.00202365, 144691, 1.30932, 1.4],
-  "gravel|0.205|0.13325|0.5|2|0.31|230000|1|2368.8888888888887|2.4|0.4|0.013|0.85|10x5": [933041, 933041, 107269, 0.005, 0.838728, 1.21706, 0.176991, 0.176991, 0.265487, 0.000221239, 0.0102995, 0.0907544, 110545, 319.594, 53088.8, 0.0150869, 0.0019054, 144691, 1.30063, 1.56522],
-  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|1.7|0.12|0.007|1|10x5": [773379, 773379, 342855, 0.003, 1.06289, 1.37671, 0.209264, 0.209264, 0.313896, 0.00026158, 0.0102995, 0.0907544, 253689, 547.041, 98609.5, 0.0150869, 0.00167047, 135455, 1.40343, 1.5],
-  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|1.4|0.12|0.007|1|10x5": [784195, 784195, 353586, 0.003, 1.00971, 1.27043, 0.204681, 0.204681, 0.307021, 0.000255851, 0.0102995, 0.0907544, 253689, 491.666, 85432.8, 0.0150869, 0.00169506, 135455, 1.64489, 1.71429],
-  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|2.1|0.12|0.007|1|10x5": [760940, 760940, 341236, 0.003, 1.09826, 1.4049, 0.225063, 0.225063, 0.337594, 0.000281328, 0.0102995, 0.0907544, 253689, 607.816, 114252, 0.0150869, 0.00164888, 135455, 1.56013, 1.8],
-  "tarmac|0.205|0.082|0.4|2.3|0.31|230000|1|2368.8888888888887|1.6|0.3|0.008|1|10x5": [797258, 797258, 365501, 0.003, 1.00844, 1.22234, 0.198913, 0.198913, 0.29837, 0.000248642, 0.0102995, 0.0907544, 253689, 438.759, 73702, 0.0150869, 0.00167961, 135455, 1.50693, 1.41176],
-  "winter|0.205|0.09225|0.3|2.1|0.31|230000|1|2368.8888888888887|1.4|0.35|0.009|0.6|10x5": [983594, 983594, 320410, 0.005, 0.80774, 1.16813, 0.166758, 0.166758, 0.250137, 0.000208448, 0.0102995, 0.0907544, 193487, 225.002, 33947.7, 0.0150869, 0.00201952, 148056, 1.31701, 1.45946],
-  "stud|0.205|0.09225|0.3|2.1|0.31|230000|1|2368.8888888888887|1.45|0.35|0.009|0.6|10x5": [976071, 976071, 314959, 0.005, 0.822737, 1.1724, 0.168507, 0.168507, 0.252761, 0.000210634, 0.0102995, 0.0907544, 193487, 231.22, 35026.6, 0.0150869, 0.00199104, 148056, 1.31701, 1.33333],
-  "snow|0.205|0.13325|0.4|2|0.31|230000|1|2368.8888888888887|1.9|0.45|0.014|0.6|10x5": [1078400, 1078400, 118335, 0.005, 0.731067, 1.17915, 0.154532, 0.154532, 0.231797, 0.000193164, 0.0102995, 0.0907544, 107431, 184.432, 27706.2, 0.0150869, 0.00244204, 148056, 1.53959, 1.17391],
-  "gravel|0.215|0.13975|0.5|2|0.31|230000|1|2484.4444444444443|1.8|0.4|0.013|0.85|10x5": [933028, 933028, 101131, 0.005, 0.862217, 1.2046, 0.179471, 0.179471, 0.269207, 0.000224339, 0.0108019, 0.0933127, 105404, 286.947, 45939.4, 0.0150869, 0.00213014, 140724, 1.37961, 1.28571],
-  "gravel|0.215|0.13975|0.5|2|0.31|230000|1|2484.4444444444443|2.4|0.4|0.013|0.85|10x5": [899771, 899771, 97011.2, 0.005, 0.853551, 1.21451, 0.177892, 0.177892, 0.266838, 0.000222365, 0.0108019, 0.0933127, 105404, 347.266, 58233.8, 0.0150869, 0.0021095, 140724, 1.38309, 1.36364],
-  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|1.7|0.12|0.007|1|10x5": [740102, 740102, 306793, 0.003, 1.06162, 1.33952, 0.212248, 0.212248, 0.318372, 0.00026531, 0.0108019, 0.0933127, 241890, 590.499, 107605, 0.0150869, 0.00179089, 131741, 1.40343, 1.5],
-  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|1.4|0.12|0.007|1|10x5": [749537, 749537, 313894, 0.003, 1.02555, 1.26737, 0.206364, 0.206364, 0.309545, 0.000257955, 0.0108019, 0.0933127, 241890, 532.164, 93427.6, 0.0150869, 0.00179409, 131741, 1.64489, 1.71429],
-  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|2.1|0.12|0.007|1|10x5": [730509, 730509, 306113, 0.003, 1.07666, 1.37861, 0.225528, 0.225528, 0.338293, 0.000281911, 0.0108019, 0.0933127, 241890, 654.154, 124355, 0.0150869, 0.00180063, 131741, 1.56013, 1.8],
-  "tarmac|0.215|0.08600000000000001|0.4|2.3|0.31|230000|1|2484.4444444444443|1.6|0.3|0.008|1|10x5": [761139, 761139, 326053, 0.003, 1.02388, 1.25787, 0.199942, 0.199942, 0.299914, 0.000249928, 0.0108019, 0.0933127, 241890, 476.132, 80753.3, 0.0150869, 0.00193337, 131741, 1.84941, 1.5],
-  "winter|0.215|0.09675|0.3|2.1|0.31|230000|1|2484.4444444444443|1.4|0.35|0.009|0.6|10x5": [944041, 944041, 278381, 0.005, 0.819761, 1.21627, 0.163069, 0.163069, 0.244603, 0.000203836, 0.0108019, 0.0933127, 184487, 246.368, 37410.8, 0.0150869, 0.00243317, 143996, 1.77141, 1.54286],
-  "stud|0.215|0.09675|0.3|2.1|0.31|230000|1|2484.4444444444443|1.45|0.35|0.009|0.6|10x5": [936968, 936968, 275398, 0.005, 0.822998, 1.2211, 0.164138, 0.164138, 0.246207, 0.000205172, 0.0108019, 0.0933127, 184487, 253.09, 38592.2, 0.0150869, 0.00237372, 143996, 1.77141, 1.41176],
-  "snow|0.215|0.13975|0.4|2|0.31|230000|1|2484.4444444444443|1.9|0.45|0.014|0.6|10x5": [1032610, 1032610, 105683, 0.005, 0.74665, 1.16985, 0.155275, 0.155275, 0.232913, 0.000194094, 0.0108019, 0.0933127, 102434, 202.048, 30543.4, 0.0150869, 0.0027061, 143996, 1.43423, 1.39535],
-  "gravel|0.225|0.14625000000000002|0.5|2|0.31|230000|1|2600|1.8|0.4|0.013|0.85|10x5": [899899, 899899, 91736.9, 0.005, 0.845918, 1.21573, 0.170502, 0.170502, 0.255753, 0.000213127, 0.0113043, 0.095829, 100719, 311.513, 50277, 0.0150869, 0.00244307, 137029, 1.37961, 1.55556],
-  "gravel|0.225|0.14625000000000002|0.5|2|0.31|230000|1|2600|2.4|0.4|0.013|0.85|10x5": [869281, 869281, 88356.7, 0.005, 0.902212, 1.25182, 0.195569, 0.195569, 0.293354, 0.000244461, 0.0113043, 0.095829, 100719, 375.692, 63587.4, 0.0150869, 0.00222417, 137029, 1.38309, 1.42857],
-  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|1.7|0.12|0.007|1|10x5": [709400, 709400, 276966, 0.003, 1.0743, 1.36203, 0.213663, 0.213663, 0.320494, 0.000267078, 0.0113043, 0.095829, 231139, 634.78, 116897, 0.0150869, 0.00183622, 128282, 1.56013, 1.63636],
-  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|1.4|0.12|0.007|1|10x5": [717461, 717461, 282354, 0.003, 1.02697, 1.31332, 0.207313, 0.207313, 0.310969, 0.000259141, 0.0113043, 0.095829, 231139, 573.564, 101710, 0.0150869, 0.00207031, 128282, 1.81034, 2.76923],
-  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|2.1|0.12|0.007|1|10x5": [700824, 700824, 275301, 0.003, 1.0903, 1.37467, 0.225408, 0.225408, 0.338113, 0.000281761, 0.0113043, 0.095829, 231139, 701.214, 134753, 0.0150869, 0.0017691, 128282, 1.56013, 1.2],
-  "tarmac|0.225|0.09000000000000001|0.4|2.3|0.31|230000|1|2600|1.6|0.3|0.008|1|10x5": [728385, 728385, 292241, 0.003, 1.14973, 1.2766, 0.210053, 0.210053, 0.315079, 0.000262566, 0.0113043, 0.095829, 231139, 514.459, 88078.5, 0.0150869, 0.00216347, 128282, 1.16822, 1.2],
-  "winter|0.225|0.10125|0.3|2.1|0.31|230000|1|2600|1.4|0.35|0.009|0.6|10x5": [907730, 907730, 242242, 0.005, 0.840291, 1.20248, 0.163957, 0.163957, 0.245935, 0.000204946, 0.0113043, 0.095829, 176288, 268.546, 41039, 0.0150869, 0.0027445, 140215, 1.44572, 1.45455],
-  "stud|0.225|0.10125|0.3|2.1|0.31|230000|1|2600|1.45|0.35|0.009|0.6|10x5": [901620, 901620, 240772, 0.005, 0.8465, 1.20869, 0.16496, 0.16496, 0.24744, 0.0002062, 0.0113043, 0.095829, 176288, 275.778, 42326.8, 0.0150869, 0.0026811, 140215, 1.44572, 1.5],
-  "snow|0.225|0.14625000000000002|0.4|2|0.31|230000|1|2600|1.9|0.45|0.014|0.6|10x5": [991440, 991440, 95181.4, 0.005, 0.769438, 1.18437, 0.152206, 0.152206, 0.228308, 0.000190257, 0.0113043, 0.095829, 97881.6, 220.346, 33517.4, 0.0150869, 0.00271681, 140215, 1.32427, 1.46341],
-  "gravel|0.195|0.12675|0.5|2|0.31|230000|1|2253.3333333333335|1.8|0.4|0.013|0.85|10x5": [1004620, 1004620, 128589, 0.005, 0.798004, 1.23067, 0.170368, 0.170368, 0.255553, 0.00021296, 0.0097971, 0.088151, 116214, 240.137, 37815.6, 0.0150869, 0.00179325, 148964, 1.44572, 1.35484],
-  "gravel|0.195|0.12675|0.5|2|0.31|230000|1|2253.3333333333335|2.4|0.4|0.013|0.85|10x5": [962242, 962242, 120880, 0.005, 0.844627, 1.19288, 0.17775, 0.17775, 0.266625, 0.000222188, 0.0097971, 0.088151, 116214, 292.716, 48157, 0.0150869, 0.00165683, 148964, 1.30063, 1.5],
-  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|1.7|0.12|0.007|1|10x5": [800737, 800737, 386152, 0.003, 1.01602, 1.31317, 0.209214, 0.209214, 0.313822, 0.000261518, 0.0097971, 0.088151, 266699, 504.47, 89921.5, 0.0150869, 0.00143321, 139455, 1.40343, 1.38462],
-  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|1.4|0.12|0.007|1|10x5": [812445, 812445, 398007, 0.003, 1.00792, 1.25172, 0.204396, 0.204396, 0.306595, 0.000255495, 0.0097971, 0.088151, 266699, 452.126, 77735, 0.0150869, 0.00140512, 139455, 2.01872, 1.6],
-  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|2.1|0.12|0.007|1|10x5": [615747, 615747, 386222, 0.013, 1.12602, 1.41184, 0.241497, 0.241497, 0.362246, 0.000301872, 0.0097971, 0.088151, 266699, 562.263, 104460, 0.0150869, 0.00158394, 139455, 1.56013, 1.63636],
-  "tarmac|0.195|0.07800000000000001|0.4|2.3|0.31|230000|1|2253.3333333333335|1.6|0.3|0.008|1|10x5": [827306, 827306, 418378, 0.003, 0.992477, 1.27972, 0.198143, 0.198143, 0.297214, 0.000247679, 0.0097971, 0.088151, 266699, 402.394, 66931.2, 0.0150869, 0.00160281, 139455, 1.39012, 1.41176],
-  "winter|0.195|0.08775000000000001|0.3|2.1|0.31|230000|1|2253.3333333333335|1.4|0.35|0.009|0.6|10x5": [1027330, 1027330, 370004, 0.005, 0.785002, 1.19298, 0.163682, 0.163682, 0.245523, 0.000204602, 0.0097971, 0.088151, 203409, 204.468, 30650.7, 0.0150869, 0.00212506, 152428, 1.2606, 1.53846],
-  "stud|0.195|0.08775000000000001|0.3|2.1|0.31|230000|1|2253.3333333333335|1.45|0.35|0.009|0.6|10x5": [1019060, 1019060, 366459, 0.005, 0.794793, 1.19986, 0.164594, 0.164594, 0.246891, 0.000205742, 0.0097971, 0.088151, 203409, 210.192, 31630.9, 0.0150869, 0.00207007, 152428, 1.2606, 1.57895],
-  "snow|0.195|0.12675|0.4|2|0.31|230000|1|2253.3333333333335|1.9|0.45|0.014|0.6|10x5": [1129850, 1129850, 136181, 0.005, 0.708226, 1.19266, 0.152087, 0.152087, 0.228131, 0.000190109, 0.0097971, 0.088151, 112940, 167.515, 25006.5, 0.0150869, 0.00206127, 152428, 1.48429, 1.125],
-  "gravel|0.165|0.10725000000000001|0.5|2|0.31|230000|1|1906.6666666666665|1.8|0.4|0.013|0.85|10x5": [1332100, 1332100, 196655, 0.003, 0.717487, 1.24158, 0.158328, 0.158328, 0.237491, 0.000197909, 0.00828986, 0.0800328, 137344, 176.197, 27044.7, 0.0150869, 0.00117175, 164074, 1.43835, 1.62162],
-  "gravel|0.185|0.12025|0.5|2|0.31|230000|1|2137.777777777778|1.8|0.4|0.013|0.85|10x5": [1048660, 1048660, 145632, 0.005, 0.778866, 1.22303, 0.169841, 0.169841, 0.254761, 0.000212301, 0.00929469, 0.0854991, 122496, 217.954, 34034.3, 0.0150869, 0.00162052, 153584, 1.37848, 1.45455],
-  "gravel|0.165|0.10725000000000001|0.5|2|0.31|230000|1|1906.6666666666665|2.4|0.4|0.013|0.85|10x5": [1254710, 1254710, 182073, 0.003, 0.799687, 1.24434, 0.171073, 0.171073, 0.25661, 0.000213841, 0.00828986, 0.0800328, 137344, 217.264, 34683.2, 0.0150869, 0.0012646, 164074, 1.51962, 1.44828],
-  "gravel|0.185|0.12025|0.5|2|0.31|230000|1|2137.777777777778|2.4|0.4|0.013|0.85|10x5": [1001860, 1001860, 138238, 0.005, 0.826494, 1.19443, 0.17675, 0.17675, 0.265124, 0.000220937, 0.00929469, 0.0854991, 122496, 266.672, 43442.5, 0.0150869, 0.00147342, 153584, 1.22727, 1.38462],
-  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|1.7|0.12|0.007|1|10x5": [746863, 746863, 598247, 0.008, 1.02378, 1.33124, 0.223824, 0.223824, 0.335735, 0.00027978, 0.00828986, 0.0800328, 315189, 382.777, 65822.5, 0.0150869, 0.00109104, 153601, 1.64489, 1.2],
-  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|1.7|0.12|0.007|1|10x5": [653457, 653457, 446749, 0.013, 1.06942, 1.34121, 0.231755, 0.231755, 0.347633, 0.000289694, 0.00929469, 0.0854991, 281115, 462.853, 81552.9, 0.0150869, 0.00149311, 143781, 1.64489, 1.38462],
-  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|1.4|0.12|0.007|1|10x5": [762871, 762871, 630788, 0.008, 0.97348, 1.24765, 0.217107, 0.217107, 0.325661, 0.000271384, 0.00828986, 0.0800328, 315189, 339.924, 56515.8, 0.0150869, 0.00112122, 153601, 1.39012, 1.41176],
-  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|1.4|0.12|0.007|1|10x5": [853439, 853439, 452152, 0.003, 0.983794, 1.23476, 0.202597, 0.202597, 0.303896, 0.000253247, 0.00929469, 0.0854991, 281115, 413.61, 70343.3, 0.0150869, 0.00128651, 143781, 1.50693, 1.5],
-  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|2.1|0.12|0.007|1|10x5": [703254, 703254, 564383, 0.013, 1.04481, 1.29756, 0.236116, 0.236116, 0.354174, 0.000295145, 0.00828986, 0.0800328, 315189, 431.029, 77097.4, 0.0150869, 0.000984258, 153601, 1.81034, 1.38462],
-  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|2.1|0.12|0.007|1|10x5": [644214, 644214, 436812, 0.013, 1.1152, 1.42654, 0.24075, 0.24075, 0.361125, 0.000300937, 0.00929469, 0.0854991, 281115, 517.562, 94993.6, 0.0150869, 0.00136684, 143781, 1.40343, 1.63636],
-  "tarmac|0.165|0.066|0.4|2.3|0.31|230000|1|1906.6666666666665|1.6|0.3|0.008|1|10x5": [785523, 785523, 670425, 0.008, 0.935333, 1.24872, 0.21021, 0.21021, 0.315315, 0.000262763, 0.00828986, 0.0800328, 315189, 299.934, 48371.8, 0.0150869, 0.00114682, 153601, 1.5831, 1.5],
-  "tarmac|0.185|0.074|0.4|2.3|0.31|230000|1|2137.777777777778|1.6|0.3|0.008|1|10x5": [869959, 869959, 483485, 0.003, 0.963944, 1.2653, 0.197463, 0.197463, 0.296195, 0.000246829, 0.00929469, 0.0854991, 281115, 367.094, 60448.1, 0.0150869, 0.00132124, 143781, 1.70605, 1.33333],
-  "winter|0.165|0.07425000000000001|0.3|2.1|0.31|230000|1|1906.6666666666665|1.4|0.35|0.009|0.6|10x5": [1195970, 1195970, 684204, 0.005, 0.717914, 1.20775, 0.162697, 0.162697, 0.244045, 0.000203371, 0.00828986, 0.0800328, 240392, 148.08, 21765.5, 0.0150869, 0.00145298, 167890, 1.53959, 1.2766],
-  "winter|0.185|0.08325|0.3|2.1|0.31|230000|1|2137.777777777778|1.4|0.35|0.009|0.6|10x5": [1077440, 1077440, 443545, 0.005, 0.76697, 1.20511, 0.163218, 0.163218, 0.244827, 0.000204023, 0.00929469, 0.0854991, 214404, 184.788, 27520.8, 0.0150869, 0.00187355, 157156, 1.37906, 1.46341],
-  "stud|0.165|0.07425000000000001|0.3|2.1|0.31|230000|1|1906.6666666666665|1.45|0.35|0.009|0.6|10x5": [1183840, 1183840, 663811, 0.005, 0.723012, 1.2132, 0.163661, 0.163661, 0.245492, 0.000204577, 0.00828986, 0.0800328, 240392, 152.39, 22474.7, 0.0150869, 0.00142249, 167890, 1.43423, 1.33333],
-  "stud|0.185|0.08325|0.3|2.1|0.31|230000|1|2137.777777777778|1.45|0.35|0.009|0.6|10x5": [1067470, 1067470, 435710, 0.005, 0.76841, 1.22906, 0.16387, 0.16387, 0.245804, 0.000204837, 0.00929469, 0.0854991, 214404, 190.029, 28406.4, 0.0150869, 0.00180461, 157156, 1.37906, 1.5],
-  "snow|0.165|0.10725000000000001|0.4|2|0.31|230000|1|1906.6666666666665|1.9|0.45|0.014|0.6|10x5": [1328220, 1328220, 224282, 0.005, 0.647323, 1.17675, 0.154454, 0.154454, 0.231681, 0.000193067, 0.00828986, 0.0800328, 133475, 121.127, 17738.7, 0.0150869, 0.00168641, 167890, 1.2959, 1.01695],
-  "snow|0.185|0.12025|0.4|2|0.31|230000|1|2137.777777777778|1.9|0.45|0.014|0.6|10x5": [1187080, 1187080, 159145, 0.005, 0.680823, 1.16427, 0.155863, 0.155863, 0.233794, 0.000194828, 0.00929469, 0.0854991, 119045, 151.313, 22445, 0.0150869, 0.00207773, 157156, 1.28505, 1.17647],
-  "gravel|0.175|0.11374999999999999|0.5|2|0.31|230000|1|2022.222222222222|1.8|0.4|0.013|0.85|10x5": [1097500, 1097500, 167879, 0.005, 0.758038, 1.227, 0.168969, 0.168969, 0.253454, 0.000211211, 0.00879227, 0.0827945, 129496, 196.63, 30443.3, 0.0150869, 0.00144638, 158601, 1.31701, 1.37143],
-  "gravel|0.175|0.11374999999999999|0.5|2|0.31|230000|1|2022.222222222222|2.4|0.4|0.013|0.85|10x5": [1217220, 1217220, 156690, 0.003, 0.78892, 1.20108, 0.163711, 0.163711, 0.245566, 0.000204638, 0.00879227, 0.0827945, 129496, 241.506, 38949.8, 0.0150869, 0.0012282, 158601, 1.37961, 1.33333],
-  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|1.7|0.12|0.007|1|10x5": [719389, 719389, 509756, 0.008, 1.04067, 1.35819, 0.224813, 0.224813, 0.337219, 0.000281016, 0.00879227, 0.0827945, 297179, 422.262, 73515.8, 0.0150869, 0.00128589, 148478, 1.27517, 1.28571],
-  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|1.4|0.12|0.007|1|10x5": [730257, 730257, 536481, 0.008, 1.00097, 1.23793, 0.218479, 0.218479, 0.327719, 0.000273099, 0.00879227, 0.0827945, 297179, 376.185, 63267.1, 0.0150869, 0.00127388, 148478, 1.50693, 1.5],
-  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|2.1|0.12|0.007|1|10x5": [668174, 668174, 489794, 0.013, 1.10555, 1.43355, 0.243379, 0.243379, 0.365068, 0.000304223, 0.00879227, 0.0827945, 297179, 473.79, 85867.3, 0.0150869, 0.00115557, 148478, 1.81034, 1.5],
-  "tarmac|0.175|0.06999999999999999|0.4|2.3|0.31|230000|1|2022.222222222222|1.6|0.3|0.008|1|10x5": [744993, 744993, 568781, 0.008, 0.967369, 1.24503, 0.211962, 0.211962, 0.317943, 0.000264952, 0.00879227, 0.0827945, 297179, 332.919, 54259.3, 0.0150869, 0.0013073, 148478, 1.28994, 1.57895],
-  "winter|0.175|0.07875|0.3|2.1|0.31|230000|1|2022.222222222222|1.4|0.35|0.009|0.6|10x5": [1132650, 1132650, 545952, 0.005, 0.742419, 1.21413, 0.163271, 0.163271, 0.244906, 0.000204089, 0.00879227, 0.0827945, 226656, 165.985, 24558.8, 0.0150869, 0.00160743, 162290, 1.32427, 1.22727],
-  "stud|0.175|0.07875|0.3|2.1|0.31|230000|1|2022.222222222222|1.45|0.35|0.009|0.6|10x5": [1121590, 1121590, 530051, 0.005, 0.747787, 1.20801, 0.164297, 0.164297, 0.246446, 0.000205372, 0.00879227, 0.0827945, 226656, 170.754, 25354.1, 0.0150869, 0.00157425, 162290, 1.49145, 1.28571],
-  "snow|0.175|0.11374999999999999|0.4|2|0.31|230000|1|2022.222222222222|1.9|0.45|0.014|0.6|10x5": [1252330, 1252330, 185289, 0.005, 0.660913, 1.17305, 0.155163, 0.155163, 0.232744, 0.000193953, 0.00879227, 0.0827945, 125848, 135.845, 20022.2, 0.0150869, 0.00187377, 162290, 1.33869, 1.09091],
-  "mt|0.318|0.2385|0.8|2.8|0.47|600000|0.8|15264|2.3|0.45|0.015|0.65|10x5": [1914490, 1914490, 58140.4, 0.013, 0.38597, 1.70704, 0.136281, 0.136281, 0.204421, 0.000170351, 0.02544, 0.183668, 116376, 749.038, 174192, 0.0150869, 0.0019034, 307461, 1, 1.2766],
-  "road|0.215|0.129|0.25|4|0.354|300000|0.9|6688.888888888889|2|0.3|0.0085|0.8|10x5": [556424, 556424, 119251, 0.008, 0.834381, 1.54054, 0.17645, 0.17645, 0.264675, 0.000220563, 0.0222963, 0.151601, 151701, 763.145, 162754, 0.0150869, 0.000433966, 238625, 1.30932, 1.42857],
-  "winter|0.215|0.09675|0.3|4|0.354|300000|0.9|6688.888888888889|1.45|0.35|0.009|0.6|10x5": [556870, 556870, 75639.4, 0.013, 0.912661, 1.31523, 0.143825, 0.143825, 0.215738, 0.000179782, 0.0222963, 0.151601, 104716, 533.389, 96302.1, 0.0150869, 0.00125387, 238625, 1.27346, 1.45946] } };
+// the rings fitted to every tyre the game builds (each car's, on each surface, of each compound its era had, each axle), when
+// the game was built (harness: t23 gen23.js): its key (see ftRing), then kr, kt, ky, es, ktf, kxf, gs, gb, gt, cv, EA, then the fit's tPen, tLen, tKy, tFy, tCx, tCrr, kf, pref, pkA, pkK
+const FT_FITS = { v: "r23.1", f: {
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3315|251974.36886736186|1|2715.5555555555557|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|93356,310395,5703,1.2,0.1,16.67,0.05|10x5": [1271100, 307394, 74695.8, 0.008, 0.765227, 1.30037, 0.223734, 0.223734, 0.3356, 0.000279667, 925473, 0.0107771, 0.0958282, 93355.6, 361.17, 60866.1, 0.0182551, 0.00130715, 137030, 1.54478, 1.56522],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3315|251974.36886736186|1|2715.5555555555557|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|94954,328802,5703,1.2,0.1,16.67,0.05|10x5": [1223260, 319543, 78006, 0.008, 0.776907, 1.28581, 0.242073, 0.242073, 0.36311, 0.000302591, 930730, 0.0107771, 0.0958282, 94954.4, 427.676, 75984, 0.0182551, 0.00115629, 137030, 1.5831, 1.66667],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3305|293578.3003090709|1|2946.6666666666665|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.063|125924,451760,6188,1.2,0.1,16.67,0.05|10x5": [1242130, 474682, 99758.8, 0.008, 0.87737, 1.41519, 0.2557, 0.2557, 0.383551, 0.000319626, 749618, 0.0100371, 0.0918322, 125924, 626.933, 118469, 0.0165956, 0.00174462, 142611, 1.27517, 1.38462],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3305|293578.3003090709|1|2946.6666666666665|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.063|124876,438562,6188,1.2,0.1,16.67,0.05|10x5": [1286120, 468376, 102138, 0.008, 0.866059, 1.39173, 0.241365, 0.241365, 0.362048, 0.000301706, 744813, 0.0100371, 0.0918322, 124876, 567.965, 103109, 0.0165956, 0.00173091, 142611, 1.50693, 1.2],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3305|293578.3003090709|1|2946.6666666666665|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.063|126853,463948,6188,1.2,0.1,16.67,0.05|10x5": [1233910, 481699, 103097, 0.008, 0.833157, 1.52893, 0.260148, 0.260148, 0.390222, 0.000325185, 750516, 0.0100371, 0.0918322, 126853, 689.356, 136155, 0.0165956, 0.00170143, 142611, 1.40343, 1.63636],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3305|293578.3003090709|1|2946.6666666666665|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|7.063|123914,426921,6188,1.2,0.1,16.67,0.05|10x5": [1316700, 474604, 100848, 0.008, 0.812022, 1.43614, 0.235899, 0.235899, 0.353849, 0.000294874, 741472, 0.0100371, 0.0918322, 123914, 522.1, 91971, 0.0174254, 0.00167788, 142611, 1.39012, 1.41176],
+  "winter|0.235|0.14100000000000001|0.285|2.1|0.3315|251926.21231072998|1|2715.5555555555557|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|7.436|88643,278205,5703,1.2,0.1,16.67,0.05|10x5": [1315530, 303340, 73075.6, 0.008, 0.730471, 1.2309, 0.196632, 0.196632, 0.294948, 0.00024579, 784610, 0.0107792, 0.0958388, 88642.6, 283.321, 45295.2, 0.0174254, 0.00153977, 140201, 1.44572, 1.74194],
+  "stud|0.235|0.14100000000000001|0.285|2.1|0.3315|251926.21231072998|1|2715.5555555555557|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|7.436|88913,280890,5703,1.2,0.1,16.67,0.05|10x5": [1305500, 300621, 72847.6, 0.008, 0.738314, 1.23093, 0.208092, 0.208092, 0.312138, 0.000260115, 785712, 0.0107792, 0.0958388, 88913.4, 290.068, 46611, 0.0182551, 0.00147089, 140201, 1.44572, 1.8],
+  "snow|0.235|0.14100000000000001|0.38|2|0.3315|248601.86886736186|1|2715.5555555555557|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|8.524|86013,254579,5703,1.2,0.1,16.67,0.05|10x5": [1416050, 309917, 77653.2, 0.008, 0.692022, 1.15437, 0.189621, 0.189621, 0.284432, 0.000237026, 909544, 0.0109233, 0.0965831, 86013.1, 232.875, 35876.1, 0.0190849, 0.00120376, 149555, 1.55316, 1.5],
+  "gravel|0.205|0.13324999999999998|0.475|2|0.3276|232578.1258324118|1|2368.8888888888887|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|7.262|92855,299137,4975,1.2,0.1,16.67,0.05|10x5": [1143520, 346462, 83458, 0.008, 0.749397, 1.24268, 0.20476, 0.20476, 0.30714, 0.00025595, 795532, 0.0101853, 0.0922748, 92854.5, 296.543, 49652.1, 0.0182551, 0.000829121, 142307, 1.45764, 1.68],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3276|251974.36886736186|1|2715.5555555555557|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|93356,310395,5703,1.2,0.1,16.67,0.05|10x5": [1287950, 313742, 74063.7, 0.008, 0.767975, 1.28831, 0.220527, 0.220527, 0.330791, 0.000275659, 939613, 0.0107771, 0.0953556, 93355.6, 358.941, 60386.1, 0.0182551, 0.00141136, 137709, 1.54478, 1.56522],
+  "gravel|0.205|0.13324999999999998|0.475|2|0.3276|232578.1258324118|1|2368.8888888888887|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|7.262|94753,319779,4975,1.2,0.1,16.67,0.05|10x5": [1094750, 348195, 84827.9, 0.008, 0.730688, 1.4102, 0.212968, 0.212968, 0.319452, 0.00026621, 800765, 0.0101853, 0.0922748, 94753.1, 352.142, 62119.2, 0.0182551, 0.000698018, 142307, 1.47647, 1.5],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3276|251974.36886736186|1|2715.5555555555557|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|94954,328802,5703,1.2,0.1,16.67,0.05|10x5": [1230070, 324282, 78740, 0.008, 0.780226, 1.29206, 0.238777, 0.238777, 0.358166, 0.000298472, 945824, 0.0107771, 0.0953556, 94954.4, 425.327, 75422.1, 0.0182551, 0.00123467, 137709, 1.47647, 1.57895],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3133|277170.77371691604|1|2715.5555555555557|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.859|155767,536443,5703,1.2,0.1,16.67,0.05|10x5": [1025560, 811993, 148036, 0.008, 0.818208, 1.45696, 0.235842, 0.235842, 0.353764, 0.000294803, 674045, 0.00979741, 0.0885447, 155767, 572.42, 105877, 0.0165956, 0.00170771, 146042, 1.27517, 3.23077],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3133|332988.3719231149|1|3640|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|8.685|146407,532095,7644,1.2,0.1,16.67,0.05|10x5": [1563020, 563160, 111967, 0.008, 0.821284, 1.41751, 0.235942, 0.235942, 0.353912, 0.000294927, 994986, 0.0109313, 0.0943787, 146407, 845.004, 158739, 0.0165956, 0.00328502, 135326, 1.81034, 4],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3133|277170.77371691604|1|2715.5555555555557|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.859|153953,515524,5703,1.2,0.1,16.67,0.05|10x5": [1072860, 818755, 151495, 0.008, 0.924685, 1.34373, 0.240587, 0.240587, 0.36088, 0.000300733, 669403, 0.00979741, 0.0885447, 153953, 516.038, 91790, 0.0165956, 0.00177622, 146042, 1.84941, 1.6],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3133|332988.3719231149|1|3640|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|8.685|145340,518269,7644,1.2,0.1,16.67,0.05|10x5": [1901300, 540448, 110829, 0.005, 0.829006, 1.3978, 0.212464, 0.212464, 0.318696, 0.00026558, 961782, 0.0109313, 0.0943787, 145340, 765.05, 138142, 0.0165956, 0.00349795, 135326, 1.64489, 3.23077],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3133|277170.77371691604|1|2715.5555555555557|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.859|157386,556144,5703,1.2,0.1,16.67,0.05|10x5": [998925, 823491, 154938, 0.008, 0.847551, 1.5135, 0.242801, 0.242801, 0.364201, 0.000303501, 676660, 0.00979741, 0.0885447, 157386, 632.712, 122235, 0.0165956, 0.00141711, 146042, 1.40343, 1.63636],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3133|332988.3719231149|1|3640|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|8.685|147351,544784,7644,1.2,0.1,16.67,0.05|10x5": [1547800, 568468, 111676, 0.008, 0.78821, 1.48734, 0.242072, 0.242072, 0.363107, 0.000302589, 996481, 0.0109313, 0.0943787, 147351, 929.73, 182453, 0.0165956, 0.00321069, 135326, 2.46984, 4.8],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3133|277170.77371691604|1|2715.5555555555557|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|5.859|152298,497421,5703,1.2,0.1,16.67,0.05|10x5": [1310460, 724762, 146803, 0.005, 0.869737, 1.37351, 0.21899, 0.21899, 0.328484, 0.000273737, 646080, 0.00979741, 0.0885447, 152298, 472.564, 81644.1, 0.0174254, 0.00172311, 146042, 1.39012, 1.41176],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3133|332988.3719231149|1|3640|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|8.685|144358,505997,7644,1.2,0.1,16.67,0.05|10x5": [1941370, 534782, 110997, 0.005, 0.848188, 1.34834, 0.219899, 0.219899, 0.329848, 0.000274873, 957849, 0.0109313, 0.0943787, 144358, 702.921, 123207, 0.0174254, 0.00363219, 135326, 1.50693, 2.4],
+  "winter|0.205|0.13324999999999998|0.285|2.1|0.3276|232532.99366249397|1|2368.8888888888887|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|6.335|87741,264866,4975,1.2,0.1,16.67,0.05|10x5": [1196880, 340194, 82733.7, 0.008, 0.711685, 1.26292, 0.18603, 0.18603, 0.279045, 0.000232537, 672577, 0.0101873, 0.0922852, 87741.1, 231.926, 36873.2, 0.0174254, 0.00106574, 145600, 1.37848, 1.58824],
+  "winter|0.235|0.14100000000000001|0.285|2.1|0.3276|251926.21231072998|1|2715.5555555555557|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|7.436|88643,278205,5703,1.2,0.1,16.67,0.05|10x5": [1334200, 310366, 73882.3, 0.008, 0.719233, 1.26053, 0.18482, 0.18482, 0.277231, 0.000231025, 797049, 0.0107792, 0.0953662, 88642.6, 281.368, 44916.8, 0.0174254, 0.00180066, 140896, 1.44572, 1.5],
+  "stud|0.205|0.13324999999999998|0.285|2.1|0.3276|232532.99366249397|1|2368.8888888888887|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|6.335|88059,267782,4975,1.2,0.1,16.67,0.05|10x5": [1186270, 339443, 82521.1, 0.008, 0.712616, 1.26794, 0.196857, 0.196857, 0.295286, 0.000246072, 673716, 0.0101873, 0.0922852, 88058.8, 237.518, 37951.5, 0.0182551, 0.00100274, 145600, 1.37848, 1.45455],
+  "stud|0.235|0.14100000000000001|0.285|2.1|0.3276|251926.21231072998|1|2715.5555555555557|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|7.436|88913,280890,5703,1.2,0.1,16.67,0.05|10x5": [1325310, 307264, 73597.7, 0.008, 0.735394, 1.2291, 0.205904, 0.205904, 0.308856, 0.00025738, 798003, 0.0107792, 0.0953662, 88913.4, 288.089, 46223.6, 0.0182551, 0.00152739, 140896, 1.44572, 1.54839],
+  "snow|0.205|0.13324999999999998|0.38|2|0.3276|229465.04890933487|1|2368.8888888888887|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|7.262|84698,239587,4975,1.2,0.1,16.67,0.05|10x5": [1312990, 336144, 87959.9, 0.008, 0.665796, 1.19012, 0.185796, 0.185796, 0.278695, 0.000232246, 777343, 0.0103235, 0.0929999, 84697.5, 190.215, 29165, 0.0190849, 0.000240046, 155317, 1.59891, 1.39535],
+  "snow|0.235|0.14100000000000001|0.38|2|0.3276|248601.86886736186|1|2715.5555555555557|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|8.524|86013,254579,5703,1.2,0.1,16.67,0.05|10x5": [1428880, 310481, 77518.4, 0.008, 0.680416, 1.19868, 0.182123, 0.182123, 0.273184, 0.000227654, 924487, 0.0109233, 0.0961073, 86013.1, 231.149, 35565.6, 0.0190849, 0.00102988, 150295, 1.49145, 1.35],
+  "gravel|0.215|0.13974999999999999|0.475|2|0.3303|238959.3223426186|1|2484.4444444444443|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|7.769|89321,293534,5217,1.2,0.1,16.67,0.05|10x5": [1189930, 311781, 75222.4, 0.008, 0.744128, 1.25494, 0.206421, 0.206421, 0.309632, 0.000258027, 844537, 0.0103969, 0.0937052, 89320.7, 317.108, 53379.1, 0.0182551, 0.00097641, 140134, 1.45764, 1.75],
+  "gravel|0.215|0.13974999999999999|0.475|2|0.3303|238959.3223426186|1|2484.4444444444443|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|7.769|90959,311999,5217,1.2,0.1,16.67,0.05|10x5": [1142510, 310740, 75254.6, 0.008, 0.729569, 1.42378, 0.214262, 0.214262, 0.321393, 0.000267828, 849710, 0.0103969, 0.0937052, 90958.7, 375.763, 66680.7, 0.0182551, 0.000805209, 140134, 1.47647, 1.57895],
+  "tarmac|0.235|0.1175|0.38|2.3|0.3207|280402.0746950461|1|2715.5555555555557|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|6.316|135571,479750,5703,1.2,0.1,16.67,0.05|10x5": [1128770, 584443, 116766, 0.008, 0.879176, 1.46122, 0.255681, 0.255681, 0.383522, 0.000319602, 699766, 0.00968451, 0.0888174, 135571, 576.608, 108899, 0.0165956, 0.00185234, 138409, 1.27517, 1.38462],
+  "tarmac|0.235|0.1175|0.38|2.3|0.3207|280402.0746950461|1|2715.5555555555557|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|6.316|134294,464130,5703,1.2,0.1,16.67,0.05|10x5": [1146770, 579667, 119021, 0.008, 0.893482, 1.38083, 0.249804, 0.249804, 0.374706, 0.000312255, 697915, 0.00968451, 0.0888174, 134294, 522.301, 94768, 0.0165956, 0.00187354, 138409, 1.50693, 1.6],
+  "tarmac|0.235|0.1175|0.38|2.3|0.3207|280402.0746950461|1|2715.5555555555557|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|6.316|136706,494273,5703,1.2,0.1,16.67,0.05|10x5": [1096810, 606427, 120058, 0.008, 0.843984, 1.54642, 0.262425, 0.262425, 0.393637, 0.000328031, 703053, 0.00968451, 0.0888174, 136706, 634.115, 125174, 0.0165956, 0.00178224, 138409, 1.40343, 1.63636],
+  "tarmac|0.235|0.1175|0.38|2.3|0.3207|280402.0746950461|1|2715.5555555555557|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|6.316|133123,450441,5703,1.2,0.1,16.67,0.05|10x5": [1186050, 576885, 120282, 0.008, 0.842052, 1.41041, 0.243191, 0.243191, 0.364787, 0.000303989, 693874, 0.00968451, 0.0888174, 133123, 480.07, 84523.6, 0.0174254, 0.00183064, 138409, 1.39012, 1.41176],
+  "winter|0.215|0.13974999999999999|0.285|2.1|0.3303|239233.2499982111|1|2484.4444444444443|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|6.777|84655,261831,5217,1.2,0.1,16.67,0.05|10x5": [1241420, 310308, 74439.4, 0.008, 0.742312, 1.23438, 0.192034, 0.192034, 0.288051, 0.000240043, 714531, 0.010385, 0.0936429, 84654.6, 248.294, 39645.9, 0.0174254, 0.00108718, 143489, 1.37848, 1.45455],
+  "stud|0.215|0.13974999999999999|0.285|2.1|0.3303|239233.2499982111|1|2484.4444444444443|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|6.777|84931,264494,5217,1.2,0.1,16.67,0.05|10x5": [1231950, 308834, 74265.5, 0.008, 0.751294, 1.24186, 0.203556, 0.203556, 0.305333, 0.000254445, 715564, 0.010385, 0.0936429, 84931, 254.227, 40800, 0.0182551, 0.00102335, 143489, 1.37848, 1.5],
+  "snow|0.215|0.13974999999999999|0.38|2|0.3303|235846.24541954166|1|2484.4444444444443|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|7.769|81991,238589,5217,1.2,0.1,16.67,0.05|10x5": [1348980, 302213, 78769.3, 0.008, 0.666572, 1.19853, 0.187745, 0.187745, 0.281617, 0.000234681, 827184, 0.0105342, 0.0944221, 81990.7, 204.131, 31418.1, 0.0190849, 0.000352235, 152977, 1.6627, 1.42857],
+  "gravel|0.225|0.135|0.475|2|0.3255|245851.51168418105|1|2600|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.013|96775,316263,5460,1.2,0.1,16.67,0.05|10x5": [1237350, 349495, 80997.7, 0.008, 0.77421, 1.29909, 0.218163, 0.218163, 0.327244, 0.000272703, 888732, 0.0105755, 0.0940598, 96775.2, 337.785, 56558.6, 0.0182551, 0.00114575, 139606, 1.30063, 1.5],
+  "gravel|0.225|0.135|0.475|2|0.3255|245851.51168418105|1|2600|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.013|98607,336700,5460,1.2,0.1,16.67,0.05|10x5": [1179560, 366563, 84923.5, 0.008, 0.782735, 1.28964, 0.237682, 0.237682, 0.356523, 0.000297103, 894855, 0.0105755, 0.0940598, 98606.6, 401.016, 70737.4, 0.0182551, 0.000998986, 139606, 1.47647, 1.57895],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3298|293578.3003090709|1|2946.6666666666665|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.063|125924,451760,6188,1.2,0.1,16.67,0.05|10x5": [1243080, 475974, 99891.4, 0.008, 0.878793, 1.41332, 0.255304, 0.255304, 0.382957, 0.000319131, 751968, 0.0100371, 0.0917504, 125924, 626.403, 118326, 0.0165956, 0.00175514, 142738, 1.27517, 1.38462],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3298|332988.3719231149|1|3640|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|8.685|146407,532095,7644,1.2,0.1,16.67,0.05|10x5": [2336960, 469500, 104120, 0.003, 0.83163, 1.63106, 0.207281, 0.207281, 0.310922, 0.000259102, 836767, 0.0109313, 0.0964172, 146407, 862.215, 163391, 0.0165956, 0.00355391, 132465, 1.40343, 1.63636],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3298|293578.3003090709|1|2946.6666666666665|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.063|124876,438562,6188,1.2,0.1,16.67,0.05|10x5": [1287880, 470057, 102395, 0.008, 0.864868, 1.39458, 0.24047, 0.24047, 0.360705, 0.000300588, 747095, 0.0100371, 0.0917504, 124876, 567.435, 102976, 0.0165956, 0.00173986, 142738, 1.50693, 1.2],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3298|332988.3719231149|1|3640|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|8.685|145340,518269,7644,1.2,0.1,16.67,0.05|10x5": [1840910, 498884, 106486, 0.005, 0.799677, 1.38796, 0.227583, 0.227583, 0.341374, 0.000284479, 890722, 0.0109313, 0.0964172, 145340, 782.302, 142450, 0.0165956, 0.00306045, 132465, 1.64489, 4.15385],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3298|293578.3003090709|1|2946.6666666666665|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.063|126853,463948,6188,1.2,0.1,16.67,0.05|10x5": [1221370, 485281, 102326, 0.008, 0.835188, 1.52516, 0.260721, 0.260721, 0.391082, 0.000325902, 754329, 0.0100371, 0.0917504, 126853, 688.838, 136002, 0.0165956, 0.00171634, 142738, 1.40343, 1.63636],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3298|332988.3719231149|1|3640|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|8.685|147351,544784,7644,1.2,0.1,16.67,0.05|10x5": [2294180, 479014, 104050, 0.003, 0.863436, 1.69933, 0.20667, 0.20667, 0.310006, 0.000258338, 841420, 0.0109313, 0.0964172, 147351, 946.524, 187406, 0.0165956, 0.00349276, 132465, 1.11165, 1.2],
+  "tarmac|0.255|0.12730000000000002|0.38|2.3|0.3298|293578.3003090709|1|2946.6666666666665|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|7.063|123914,426921,6188,1.2,0.1,16.67,0.05|10x5": [1318550, 475682, 101034, 0.008, 0.810765, 1.43884, 0.235132, 0.235132, 0.352698, 0.000293915, 743759, 0.0100371, 0.0917504, 123914, 521.576, 91847.7, 0.0174254, 0.00168445, 142738, 1.39012, 1.41176],
+  "tarmac|0.315|0.12580000000000002|0.38|2.3|0.3298|332988.3719231149|1|3640|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|8.685|144358,505997,7644,1.2,0.1,16.67,0.05|10x5": [1579580, 523063, 108399, 0.008, 0.851078, 1.29071, 0.257894, 0.257894, 0.386841, 0.000322367, 919146, 0.0109313, 0.0964172, 144358, 719.966, 127217, 0.0174254, 0.00315503, 132465, 1.50693, 3.2],
+  "winter|0.225|0.135|0.285|2.1|0.3255|245497.21226839014|1|2600|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|6.990|91655,281628,5460,1.2,0.1,16.67,0.05|10x5": [1285280, 341068, 80842.4, 0.008, 0.730297, 1.23189, 0.191857, 0.191857, 0.287786, 0.000239822, 753460, 0.0105908, 0.0941388, 91655, 264.529, 42067.8, 0.0174254, 0.00142502, 142733, 1.37848, 1.875],
+  "stud|0.225|0.135|0.285|2.1|0.3255|245497.21226839014|1|2600|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|6.990|91963,284556,5460,1.2,0.1,16.67,0.05|10x5": [1276230, 337066, 80509.4, 0.008, 0.745437, 1.22401, 0.203552, 0.203552, 0.305328, 0.00025444, 754419, 0.0105908, 0.0941388, 91963, 270.898, 43296.6, 0.0182551, 0.00135711, 142733, 1.44572, 1.54839],
+  "snow|0.225|0.135|0.38|2|0.3255|242479.01168418105|1|2600|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|8.013|88681,256026,5460,1.2,0.1,16.67,0.05|10x5": [1388880, 344463, 86431.9, 0.008, 0.694086, 1.17899, 0.187167, 0.187167, 0.28075, 0.000233958, 872677, 0.0107226, 0.0948194, 88681.1, 216.841, 33251.3, 0.0190849, 0.00113347, 152336, 1.49145, 1.46341],
+  "gravel|0.225|0.135|0.475|2|0.3285|245851.51168418105|1|2600|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.013|96775,316263,5460,1.2,0.1,16.67,0.05|10x5": [1224730, 347910, 82416.7, 0.008, 0.771691, 1.30121, 0.221317, 0.221317, 0.331975, 0.000276646, 878353, 0.0105755, 0.0944212, 96775.2, 339.429, 56909.1, 0.0182551, 0.00108198, 139072, 1.54478, 1.5],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3285|251974.36886736186|1|2715.5555555555557|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|93356,310395,5703,1.2,0.1,16.67,0.05|10x5": [1286290, 312397, 75173.3, 0.008, 0.766834, 1.29095, 0.221239, 0.221239, 0.331858, 0.000276548, 936078, 0.0107771, 0.0954649, 93355.6, 359.457, 60497, 0.0182551, 0.00139301, 137551, 1.54478, 1.56522],
+  "gravel|0.225|0.135|0.475|2|0.3285|245851.51168418105|1|2600|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.013|98607,336700,5460,1.2,0.1,16.67,0.05|10x5": [1177780, 348182, 82200.2, 0.008, 0.737873, 1.40185, 0.215236, 0.215236, 0.322854, 0.000269045, 883419, 0.0105755, 0.0944212, 98606.6, 402.755, 71148.9, 0.0182551, 0.00110513, 139072, 1.47647, 1.57895],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3285|251974.36886736186|1|2715.5555555555557|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|94954,328802,5703,1.2,0.1,16.67,0.05|10x5": [1227310, 323061, 78574.2, 0.008, 0.779524, 1.29069, 0.239598, 0.239598, 0.359397, 0.000299497, 942442, 0.0107771, 0.0954649, 94954.4, 425.871, 75552, 0.0182551, 0.00121673, 137551, 1.47647, 1.57895],
+  "winter|0.225|0.135|0.285|2.1|0.3285|245497.21226839014|1|2600|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|6.990|91655,281628,5460,1.2,0.1,16.67,0.05|10x5": [1267600, 346503, 80777.5, 0.008, 0.73788, 1.22564, 0.193814, 0.193814, 0.290722, 0.000242268, 744721, 0.0105908, 0.0945005, 91655, 265.964, 42343.6, 0.0174254, 0.00139152, 142186, 1.37848, 1.5],
+  "winter|0.235|0.14100000000000001|0.285|2.1|0.3285|251926.21231072998|1|2715.5555555555557|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|7.436|88643,278205,5703,1.2,0.1,16.67,0.05|10x5": [1332200, 308774, 73692.5, 0.008, 0.719682, 1.26126, 0.190754, 0.190754, 0.286131, 0.000238442, 793902, 0.0107792, 0.0954756, 88642.6, 281.82, 45004.3, 0.0174254, 0.00161172, 140734, 1.44572, 1.5],
+  "stud|0.225|0.135|0.285|2.1|0.3285|245497.21226839014|1|2600|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|6.990|91963,284556,5460,1.2,0.1,16.67,0.05|10x5": [1257670, 344888, 80758.3, 0.008, 0.747646, 1.22811, 0.205613, 0.205613, 0.30842, 0.000257017, 745793, 0.0105908, 0.0945005, 91963, 272.353, 43579, 0.0182551, 0.00132671, 142186, 1.44572, 1.54839],
+  "stud|0.235|0.14100000000000001|0.285|2.1|0.3285|251926.21231072998|1|2715.5555555555557|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|7.436|88913,280890,5703,1.2,0.1,16.67,0.05|10x5": [1323310, 305669, 73413.2, 0.008, 0.735846, 1.22961, 0.20621, 0.20621, 0.309315, 0.000257762, 794861, 0.0107792, 0.0954756, 88913.4, 288.547, 46313.2, 0.0182551, 0.00151455, 140734, 1.44572, 1.54839],
+  "snow|0.225|0.135|0.38|2|0.3285|242479.01168418105|1|2600|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|8.013|88681,256026,5460,1.2,0.1,16.67,0.05|10x5": [1380180, 345985, 86518.2, 0.008, 0.6937, 1.18405, 0.188281, 0.188281, 0.282422, 0.000235351, 861578, 0.0107226, 0.0951833, 88681.1, 218.105, 33477, 0.0190849, 0.00108268, 151754, 1.49145, 1.31707],
+  "snow|0.235|0.14100000000000001|0.38|2|0.3285|248601.86886736186|1|2715.5555555555557|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|8.524|86013,254579,5703,1.2,0.1,16.67,0.05|10x5": [1426120, 309840, 77471.8, 0.008, 0.680105, 1.19665, 0.182507, 0.182507, 0.27376, 0.000228133, 920989, 0.0109233, 0.0962174, 86013.1, 231.548, 35637.3, 0.0190849, 0.00101232, 150123, 1.55316, 1.5],
+  "tarmac|0.225|0.11249999999999999|0.38|2.3|0.3165|273758.4023764206|1|2600|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.953|140919,492696,5460,1.2,0.1,16.67,0.05|10x5": [1068910, 645941, 126893, 0.008, 0.893491, 1.44741, 0.254512, 0.254512, 0.381768, 0.00031814, 672089, 0.00949743, 0.0873336, 140919, 543.232, 101887, 0.0165956, 0.00170102, 140761, 1.27517, 1.38462],
+  "tarmac|0.285|0.11399999999999999|0.38|2.3|0.3165|315247.5278387436|1|3293.3333333333326|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.576|160211,571110,6916,1.2,0.1,16.67,0.05|10x5": [2060280, 598174, 127148, 0.003, 0.848386, 1.60889, 0.209696, 0.209696, 0.314544, 0.00026212, 785255, 0.0104468, 0.0923043, 160211, 761.988, 142984, 0.0165956, 0.00322302, 133181, 1.40343, 1.5],
+  "tarmac|0.225|0.11249999999999999|0.38|2.3|0.3165|273758.4023764206|1|2600|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.953|139454,475230,5460,1.2,0.1,16.67,0.05|10x5": [1083160, 631479, 129893, 0.008, 0.898624, 1.39027, 0.246814, 0.246814, 0.370221, 0.000308517, 670662, 0.00949743, 0.0873336, 139454, 491.242, 88541.8, 0.0165956, 0.00173491, 140761, 1.50693, 1.6],
+  "tarmac|0.285|0.11399999999999999|0.38|2.3|0.3165|315247.5278387436|1|3293.3333333333326|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.576|158796,553530,6916,1.2,0.1,16.67,0.05|10x5": [2110740, 593536, 127071, 0.003, 0.818528, 1.4068, 0.21953, 0.21953, 0.329294, 0.000274412, 780200, 0.0104468, 0.0923043, 158796, 689.696, 124402, 0.0165956, 0.0033946, 133181, 1.64489, 1.28571],
+  "tarmac|0.225|0.11249999999999999|0.38|2.3|0.3165|273758.4023764206|1|2600|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.953|142225,509028,5460,1.2,0.1,16.67,0.05|10x5": [1034300, 690970, 133131, 0.008, 0.853344, 1.53892, 0.260015, 0.260015, 0.390023, 0.000325019, 675556, 0.00949743, 0.0873336, 142225, 598.477, 117306, 0.0165956, 0.00163587, 140761, 1.40343, 1.63636],
+  "tarmac|0.285|0.11399999999999999|0.38|2.3|0.3165|315247.5278387436|1|3293.3333333333326|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.576|161467,587396,6916,1.2,0.1,16.67,0.05|10x5": [2018900, 590945, 126900, 0.003, 0.887146, 1.70137, 0.207176, 0.207176, 0.310764, 0.00025897, 789400, 0.0104468, 0.0923043, 161467, 838.638, 164391, 0.0165956, 0.00310664, 133181, 1.11165, 1.2],
+  "tarmac|0.225|0.11249999999999999|0.38|2.3|0.3165|273758.4023764206|1|2600|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|5.953|138113,460010,5460,1.2,0.1,16.67,0.05|10x5": [1102900, 628681, 129220, 0.008, 0.853469, 1.41583, 0.24074, 0.24074, 0.36111, 0.000300925, 668684, 0.00949743, 0.0873336, 138113, 450.935, 78890.3, 0.0174254, 0.00172308, 140761, 1.39012, 1.41176],
+  "tarmac|0.285|0.11399999999999999|0.38|2.3|0.3165|315247.5278387436|1|3293.3333333333326|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|7.576|157498,538072,6916,1.2,0.1,16.67,0.05|10x5": [2156870, 607780, 127680, 0.003, 0.820328, 1.33415, 0.228713, 0.228713, 0.343069, 0.000285891, 775579, 0.0104468, 0.0923043, 157498, 633.548, 110934, 0.0174254, 0.00333424, 133181, 1.50693, 2.4],
+  "gravel|0.195|0.12674999999999997|0.475|2|0.3244|226158.59590325947|1|2253.3333333333335|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|6.769|96613,304294,4732,1.2,0.1,16.67,0.05|10x5": [1099660, 388359, 93522.3, 0.008, 0.747651, 1.23537, 0.207188, 0.207188, 0.310783, 0.000258986, 748645, 0.00996351, 0.0907286, 96612.7, 276.053, 45955.2, 0.0182551, 0.000628692, 144732, 1.45764, 1.38462],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3244|251974.36886736186|1|2715.5555555555557|1.981|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|93356,310395,5703,1.2,0.1,16.67,0.05|10x5": [1294590, 321212, 74641, 0.008, 0.771354, 1.25248, 0.218686, 0.218686, 0.328029, 0.000273357, 952232, 0.0107771, 0.0949658, 93355.6, 357.097, 59990.5, 0.0182551, 0.00145067, 138274, 1.30063, 1.5],
+  "gravel|0.195|0.12674999999999997|0.475|2|0.3244|226158.59590325947|1|2253.3333333333335|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|6.769|98825,327379,4732,1.2,0.1,16.67,0.05|10x5": [1058480, 401905, 93574.6, 0.008, 0.752736, 1.26934, 0.214153, 0.214153, 0.321229, 0.000267691, 752978, 0.00996351, 0.0907286, 98825.2, 328.571, 57588.3, 0.0182551, 0.000601086, 144732, 1.64271, 1.8],
+  "gravel|0.235|0.14100000000000001|0.475|2|0.3244|251974.36886736186|1|2715.5555555555557|2.637|0.38|0.012|0.85|0.016940000000000004|0.85|0.8|0.9|8.524|94954,328802,5703,1.2,0.1,16.67,0.05|10x5": [1237890, 338158, 78978.2, 0.008, 0.78067, 1.27467, 0.235882, 0.235882, 0.353823, 0.000294853, 958200, 0.0107771, 0.0949658, 94954.4, 423.382, 74958.6, 0.0182551, 0.00129053, 138274, 1.47647, 1.57895],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3013|277170.77371691604|1|2715.5555555555557|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.859|155767,536443,5703,1.2,0.1,16.67,0.05|10x5": [1058360, 807409, 150417, 0.008, 0.936948, 1.39186, 0.238628, 0.238628, 0.357942, 0.000298285, 709485, 0.00979741, 0.087109, 155767, 563.083, 103467, 0.0165956, 0.00173822, 148449, 1.27517, 1.38462],
+  "tarmac|0.285|0.11449999999999999|0.38|2.3|0.3013|310115.54349944036|1|3293.3333333333326|1.871|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.285|158898,564656,6916,1.2,0.1,16.67,0.05|10x5": [1555760, 697421, 136127, 0.005, 0.875201, 1.27235, 0.229108, 0.229108, 0.343661, 0.000286384, 860363, 0.0106197, 0.0913032, 158898, 742.41, 137917, 0.0165956, 0.00277434, 138732, 1.81034, 2.5],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3013|277170.77371691604|1|2715.5555555555557|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.859|153953,515524,5703,1.2,0.1,16.67,0.05|10x5": [1078280, 789687, 150090, 0.008, 0.921929, 1.37283, 0.227507, 0.227507, 0.341261, 0.000284384, 707677, 0.00979741, 0.087109, 153953, 506.796, 89583.1, 0.0165956, 0.00178756, 148449, 1.50693, 1.5],
+  "tarmac|0.285|0.11449999999999999|0.38|2.3|0.3013|310115.54349944036|1|3293.3333333333326|1.535|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.285|157455,546844,6916,1.2,0.1,16.67,0.05|10x5": [1599420, 701763, 136244, 0.005, 0.876723, 1.36738, 0.214492, 0.214492, 0.321738, 0.000268115, 856400, 0.0106197, 0.0913032, 157455, 670.301, 119743, 0.0165956, 0.00255258, 138732, 1.64489, 2.14286],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3013|277170.77371691604|1|2715.5555555555557|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|5.859|157386,556144,5703,1.2,0.1,16.67,0.05|10x5": [1015640, 868678, 155774, 0.008, 0.817247, 1.56162, 0.232867, 0.232867, 0.349301, 0.000291084, 713363, 0.00979741, 0.087109, 157386, 623.478, 119636, 0.0165956, 0.00165899, 148449, 1.40343, 1.5],
+  "tarmac|0.285|0.11449999999999999|0.38|2.3|0.3013|310115.54349944036|1|3293.3333333333326|2.313|0.15|0.007|1|0.015400000000000002|0.85|0.8|0.9|7.285|160180,581183,6916,1.2,0.1,16.67,0.05|10x5": [1278150, 748449, 138229, 0.008, 0.90894, 1.61566, 0.2426, 0.2426, 0.363901, 0.000303251, 885565, 0.0106197, 0.0913032, 160180, 819.265, 158950, 0.0165956, 0.00317183, 138732, 1.56013, 3],
+  "tarmac|0.235|0.10699999999999998|0.38|2.3|0.3013|277170.77371691604|1|2715.5555555555557|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|5.859|152298,497421,5703,1.2,0.1,16.67,0.05|10x5": [1117680, 771113, 153383, 0.008, 0.871375, 1.39728, 0.221842, 0.221842, 0.332764, 0.000277303, 704100, 0.00979741, 0.087109, 152298, 463.52, 79606.2, 0.0174254, 0.00177461, 148449, 1.70605, 1.33333],
+  "tarmac|0.285|0.11449999999999999|0.38|2.3|0.3013|310115.54349944036|1|3293.3333333333326|1.756|0.3|0.008|1|0.016170000000000004|0.85|0.8|0.9|7.285|156131,531204,6916,1.2,0.1,16.67,0.05|10x5": [1642170, 704419, 137775, 0.005, 0.875162, 1.34366, 0.216899, 0.216899, 0.325348, 0.000271123, 852518, 0.0106197, 0.0913032, 156131, 614.545, 106618, 0.0174254, 0.00292966, 138732, 1.50693, 1.5],
+  "winter|0.195|0.12674999999999997|0.285|2.1|0.3244|225792.48723688402|1|2253.3333333333335|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|5.905|90978,267256,4732,1.2,0.1,16.67,0.05|10x5": [1151980, 384168, 92394, 0.008, 0.727207, 1.21695, 0.185198, 0.185198, 0.277797, 0.000231497, 632790, 0.00997966, 0.0908139, 90978.4, 215.631, 34123.2, 0.0174254, 0.00108057, 147959, 1.50271, 1.71429],
+  "winter|0.235|0.14100000000000001|0.285|2.1|0.3244|251926.21231072998|1|2715.5555555555557|1.539|0.35|0.009|0.6|0.016170000000000004|0.85|0.8|0.9|7.436|88643,278205,5703,1.2,0.1,16.67,0.05|10x5": [1341240, 314539, 74614.5, 0.008, 0.723447, 1.24567, 0.184099, 0.184099, 0.276148, 0.000230124, 808367, 0.0107792, 0.0949764, 88642.6, 279.755, 44605.2, 0.0174254, 0.00187745, 141474, 1.64958, 1.875],
+  "stud|0.195|0.12674999999999997|0.285|2.1|0.3244|225792.48723688402|1|2253.3333333333335|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|5.905|91345,270444,4732,1.2,0.1,16.67,0.05|10x5": [1142760, 383911, 92061.9, 0.008, 0.730383, 1.22582, 0.196247, 0.196247, 0.294371, 0.000245309, 633761, 0.00997966, 0.0908139, 91345.1, 220.88, 35125.8, 0.0182551, 0.00095873, 147959, 1.57285, 1.76471],
+  "stud|0.235|0.14100000000000001|0.285|2.1|0.3244|251926.21231072998|1|2715.5555555555557|1.592|0.35|0.009|0.6|0.016940000000000004|0.85|0.8|0.9|7.436|88913,280890,5703,1.2,0.1,16.67,0.05|10x5": [1332430, 314758, 74438.7, 0.008, 0.724405, 1.2483, 0.19512, 0.19512, 0.292681, 0.000243901, 809293, 0.0107792, 0.0949764, 88913.4, 286.455, 45904.6, 0.0182551, 0.00178476, 141474, 1.64958, 1.54839],
+  "snow|0.195|0.12674999999999997|0.38|2|0.3244|223045.51898018253|1|2253.3333333333335|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|6.769|87487,239821,4732,1.2,0.1,16.67,0.05|10x5": [1279280, 379412, 97502.1, 0.008, 0.661667, 1.1652, 0.183232, 0.183232, 0.274847, 0.000229039, 729742, 0.0101026, 0.0914614, 87486.7, 176.391, 26934.4, 0.0190849, 0.000130464, 157929, 1.53959, 1.33333],
+  "snow|0.235|0.14100000000000001|0.38|2|0.3244|248601.86886736186|1|2715.5555555555557|2.083|0.45|0.014|0.6|0.01771|0.85|0.8|0.9|8.524|86013,254579,5703,1.2,0.1,16.67,0.05|10x5": [1438880, 317112, 77969.3, 0.008, 0.681016, 1.18386, 0.180488, 0.180488, 0.270732, 0.00022561, 937048, 0.0109233, 0.0957149, 86013.1, 229.726, 35310.1, 0.0190849, 0.00107631, 150911, 1.49145, 1.46341],
+  "gravel|0.205|0.13324999999999998|0.5|2|0.3238|235035.81814010412|1|2368.8888888888887|1.889|0.4|0.013|0.85|0.016170000000000004|0.95|0.92|0.95|7.486|95861,297217,4975,0.8,0.1,16.67,0.05|10x5": [1178340, 360424, 90569.9, 0.008, 0.765616, 1.2302, 0.191241, 0.191241, 0.286861, 0.000239051, 1307430, 0.0100788, 0.0912657, 95860.8, 271.347, 43722.2, 0.0174254, 0.00123933, 143880, 1.6012, 1.71429],
+  "gravel|0.205|0.13324999999999998|0.5|2|0.3238|235035.81814010412|1|2368.8888888888887|2.515|0.4|0.013|0.85|0.016170000000000004|0.95|0.92|0.95|7.486|98225,321187,4975,0.8,0.1,16.67,0.05|10x5": [1121660, 363722, 88869, 0.008, 0.792286, 1.21482, 0.199376, 0.199376, 0.299064, 0.00024922, 1313380, 0.0100788, 0.0912657, 98225.1, 327.259, 55274.2, 0.0174254, 0.00113388, 143880, 1.38309, 1.63636],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|293110.2030267719|1|2715.5555555555557|1.785|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|6.294|198439,665297,5703,0.8,0.1,16.67,0.05|10x5": [1502030, 977765, 195408, 0.003, 0.928671, 1.39782, 0.220299, 0.220299, 0.330448, 0.000275373, 1112310, 0.00926462, 0.0853388, 198439, 606.181, 109386, 0.0158412, 0.00270024, 138352, 1.40343, 1.38462],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|293110.2030267719|1|2715.5555555555557|1.465|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|6.294|195688,635350,5703,0.8,0.1,16.67,0.05|10x5": [1570110, 959165, 195885, 0.003, 0.934805, 1.30887, 0.216348, 0.216348, 0.324523, 0.000270435, 1105770, 0.00926462, 0.0853388, 195688, 543.736, 94508.3, 0.0158412, 0.0026593, 138352, 1.50693, 1.6],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|293110.2030267719|1|2715.5555555555557|2.206|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|6.294|200907,693871,5703,0.8,0.1,16.67,0.05|10x5": [1460530, 1002480, 198386, 0.003, 0.914379, 1.45728, 0.22337, 0.22337, 0.335055, 0.000279212, 1116300, 0.00926462, 0.0853388, 200907, 673.701, 126805, 0.0158412, 0.00264568, 138352, 1.56013, 1.63636],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|293110.2030267719|1|2715.5555555555557|1.675|0.3|0.008|1|0.015435000000000003|0.95|0.92|0.95|6.294|192569,603602,5703,0.8,0.1,16.67,0.05|10x5": [1652320, 969243, 198288, 0.003, 0.875706, 1.30318, 0.2047, 0.2047, 0.307051, 0.000255875, 1097870, 0.00926462, 0.0853388, 192569, 485.268, 81537.9, 0.0166333, 0.00251731, 138352, 1.39012, 1.41176],
+  "winter|0.205|0.11275000000000002|0.3|2.1|0.316|239283.30749723662|1|2368.8888888888887|1.469|0.35|0.009|0.6|0.015435000000000003|0.95|0.92|0.95|6.373|114273,314023,4975,0.8,0.1,16.67,0.05|10x5": [1227010, 556085, 133359, 0.008, 0.74814, 1.18721, 0.173711, 0.173711, 0.260567, 0.000217139, 1125770, 0.00989993, 0.0894027, 114273, 221.82, 34069.7, 0.0166333, 0.00142425, 150294, 1.31701, 1.45946],
+  "stud|0.205|0.11275000000000002|0.3|2.1|0.316|239283.30749723662|1|2368.8888888888887|1.518|0.35|0.009|0.6|0.016170000000000004|0.95|0.92|0.95|6.373|114836,318311,4975,0.8,0.1,16.67,0.05|10x5": [1214090, 557244, 133542, 0.008, 0.761492, 1.19011, 0.184617, 0.184617, 0.276926, 0.000230772, 1127060, 0.00989993, 0.0894027, 114836, 227.362, 35066.2, 0.0174254, 0.00135863, 150294, 1.31701, 1.5],
+  "snow|0.205|0.13324999999999998|0.4|2|0.3238|231758.89506318106|1|2368.8888888888887|1.987|0.45|0.014|0.6|0.016905|0.95|0.92|0.95|7.486|87609,241416,4975,0.8,0.1,16.67,0.05|10x5": [1345980, 351840, 94996.2, 0.008, 0.678496, 1.16432, 0.173563, 0.173563, 0.260345, 0.000216954, 1289860, 0.0102214, 0.092013, 87609.1, 183.027, 27613.5, 0.0182174, 0.000716436, 156983, 1.53959, 1.30435],
+  "gravel|0.205|0.13324999999999998|0.5|2|0.3238|244437.2508657083|1|2368.8888888888887|1.889|0.4|0.013|0.85|0.017463600000000006|0.95|0.92|0.95|7.486|95648,295181,4975,0.8,0.1,16.67,0.05|10x5": [1311900, 348289, 89756.5, 0.008, 0.742993, 1.22005, 0.207734, 0.207734, 0.311601, 0.000259667, 1293430, 0.00969119, 0.0892132, 95648, 262.945, 42077.4, 0.0188194, 0.00116826, 147190, 1.73388, 1.65517],
+  "gravel|0.205|0.13324999999999998|0.5|2|0.3238|244437.2508657083|1|2368.8888888888887|2.515|0.4|0.013|0.85|0.017463600000000006|0.95|0.92|0.95|7.486|98057,319399,4975,0.8,0.1,16.67,0.05|10x5": [1250190, 351132, 87961.1, 0.008, 0.771988, 1.21072, 0.216297, 0.216297, 0.324446, 0.000270371, 1299900, 0.00969119, 0.0892132, 98057.2, 318.057, 53296.9, 0.0188194, 0.00108655, 147190, 1.54478, 1.82609],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|304834.6111478428|1|2715.5555555555557|1.785|0.12|0.007|1|0.015876|0.95|0.92|0.95|6.294|198147,662018,5703,0.8,0.1,16.67,0.05|10x5": [1773220, 916135, 194445, 0.003, 0.899609, 1.37909, 0.235062, 0.235062, 0.352594, 0.000293828, 1086250, 0.00890829, 0.083424, 198147, 591.741, 105845, 0.0171085, 0.0026198, 141527, 1.64489, 1.38462],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|304834.6111478428|1|2715.5555555555557|1.465|0.12|0.007|1|0.015876|0.95|0.92|0.95|6.294|195341,631710,5703,0.8,0.1,16.67,0.05|10x5": [1838620, 902569, 190563, 0.003, 0.902873, 1.29772, 0.229173, 0.229173, 0.343759, 0.000286466, 1079970, 0.00890829, 0.083424, 195341, 529.597, 91290.5, 0.0171085, 0.00256732, 141527, 1.50693, 1.6],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|304834.6111478428|1|2715.5555555555557|2.206|0.12|0.007|1|0.015876|0.95|0.92|0.95|6.294|200664,690983,5703,0.8,0.1,16.67,0.05|10x5": [1713340, 941622, 195005, 0.003, 0.889758, 1.44211, 0.23861, 0.23861, 0.357915, 0.000298263, 1092010, 0.00890829, 0.083424, 200664, 659.253, 122953, 0.0171085, 0.00258061, 141527, 1.40343, 1.63636],
+  "tarmac|0.235|0.09410000000000002|0.4|2.3|0.31|304834.6111478428|1|2715.5555555555557|1.675|0.3|0.008|1|0.016669800000000002|0.95|0.92|0.95|6.294|192163,599631,5703,0.8,0.1,16.67,0.05|10x5": [1924680, 894511, 195012, 0.003, 0.851663, 1.28799, 0.218963, 0.218963, 0.328444, 0.000273703, 1071700, 0.00890829, 0.083424, 192163, 471.664, 78643.2, 0.017964, 0.00242359, 141527, 1.70605, 1.66667],
+  "winter|0.205|0.11275000000000002|0.3|2.1|0.316|248854.6397971261|1|2368.8888888888887|1.469|0.35|0.009|0.6|0.016669800000000005|0.95|0.92|0.95|6.373|113875,311036,4975,0.8,0.1,16.67,0.05|10x5": [1383830, 533200, 132182, 0.008, 0.721088, 1.20221, 0.187703, 0.187703, 0.281555, 0.000234629, 1110110, 0.00951917, 0.0873913, 113875, 214.286, 32728.2, 0.017964, 0.00173715, 153753, 1.80594, 1.57895],
+  "stud|0.205|0.11275000000000002|0.3|2.1|0.316|248854.6397971261|1|2368.8888888888887|1.518|0.35|0.009|0.6|0.017463600000000006|0.95|0.92|0.95|6.373|114447,315340,4975,0.8,0.1,16.67,0.05|10x5": [1368190, 530421, 131997, 0.008, 0.731299, 1.20018, 0.198332, 0.198332, 0.297498, 0.000247915, 1111670, 0.00951917, 0.0873913, 114447, 219.7, 33690.7, 0.0188194, 0.00165121, 153753, 1.80594, 1.62162],
+  "snow|0.205|0.13324999999999998|0.4|2|0.3238|241029.2508657083|1|2368.8888888888887|1.987|0.45|0.014|0.6|0.0182574|0.95|0.92|0.95|7.486|87306,239132,4975,0.8,0.1,16.67,0.05|10x5": [1489590, 346447, 94073.6, 0.008, 0.66728, 1.17464, 0.186511, 0.186511, 0.279767, 0.000233139, 1274800, 0.00982822, 0.089942, 87306.5, 176.588, 26506.6, 0.0196748, 0.00082592, 160597, 1.48429, 1.25],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|1.785|0.12|0.007|1|0.015876|0.95|0.92|0.95|6.194|205291,670627,5460,0.8,0.1,16.67,0.05|10x5": [1738530, 962448, 210880, 0.003, 0.880387, 1.36753, 0.235403, 0.235403, 0.353104, 0.000294254, 1026710, 0.00857969, 0.0825853, 205291, 548.285, 96934.6, 0.0171085, 0.00183069, 148854, 1.64489, 1.28571],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|1.465|0.12|0.007|1|0.015876|0.95|0.92|0.95|6.194|201989,636637,5460,0.8,0.1,16.67,0.05|10x5": [1803910, 921238, 206642, 0.003, 0.892083, 1.29928, 0.227743, 0.227743, 0.341615, 0.000284679, 1020080, 0.00857969, 0.0825853, 201989, 489.241, 83415.3, 0.0171085, 0.00185537, 148854, 1.50693, 1.5],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|2.206|0.12|0.007|1|0.015876|0.95|0.92|0.95|6.194|208265,703441,5460,0.8,0.1,16.67,0.05|10x5": [1641190, 1066750, 218193, 0.003, 0.862528, 1.43534, 0.239846, 0.239846, 0.359769, 0.000299807, 1036590, 0.00857969, 0.0825853, 208265, 612.834, 112905, 0.0171085, 0.00178207, 148854, 1.40343, 1.5],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|1.675|0.3|0.008|1|0.016669800000000002|0.95|0.92|0.95|6.194|198264,601040,5460,0.8,0.1,16.67,0.05|10x5": [1891200, 972834, 218463, 0.003, 0.838409, 1.29862, 0.215198, 0.215198, 0.322797, 0.000268997, 1011220, 0.00857969, 0.0825853, 198264, 434.517, 71718.4, 0.017964, 0.00183903, 148854, 1.5831, 1.57895],
+  "gravel|0.195|0.12674999999999997|0.5|2|0.3172|228616.28821095178|1|2253.3333333333335|1.889|0.4|0.013|0.85|0.016170000000000004|0.95|0.92|0.95|6.978|99533,300809,4732,0.8,0.1,16.67,0.05|10x5": [1138790, 410836, 102419, 0.008, 0.767739, 1.24478, 0.188339, 0.188339, 0.282509, 0.000235424, 1247020, 0.0098564, 0.089316, 99533.4, 250.52, 40102.9, 0.0174254, 0.0010225, 147021, 1.51962, 1.44828],
+  "gravel|0.195|0.12674999999999997|0.5|2|0.3172|228616.28821095178|1|2253.3333333333335|2.515|0.4|0.013|0.85|0.016170000000000004|0.95|0.92|0.95|6.978|102279,327368,4732,0.8,0.1,16.67,0.05|10x5": [1092420, 410696, 100658, 0.008, 0.802285, 1.2188, 0.194937, 0.194937, 0.292406, 0.000243672, 1251680, 0.0098564, 0.089316, 102279, 302.983, 50791, 0.0174254, 0.000914652, 147021, 1.30063, 1.56522],
+  "tarmac|0.225|0.11249999999999999|0.4|2.3|0.3157|276527.4023764206|1|2600|1.785|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|6.137|147331,510950,5460,0.8,0.1,16.67,0.05|10x5": [1216710, 630385, 133411, 0.005, 0.924487, 1.41634, 0.228688, 0.228688, 0.343032, 0.00028586, 1081920, 0.00940232, 0.0867336, 147331, 552.675, 101692, 0.0158412, 0.00179691, 141735, 1.27517, 1.38462],
+  "tarmac|0.225|0.11249999999999999|0.4|2.3|0.3157|276527.4023764206|1|2600|1.465|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|6.137|145704,491898,5460,0.8,0.1,16.67,0.05|10x5": [1245800, 618669, 131324, 0.005, 0.94963, 1.32964, 0.224833, 0.224833, 0.33725, 0.000281041, 1079020, 0.00940232, 0.0867336, 145704, 497.78, 88113.6, 0.0158412, 0.00185785, 141735, 1.50693, 1.6],
+  "tarmac|0.225|0.11249999999999999|0.4|2.3|0.3157|276527.4023764206|1|2600|2.206|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|6.137|148783,528847,5460,0.8,0.1,16.67,0.05|10x5": [1176760, 674696, 139775, 0.005, 0.8945, 1.48151, 0.232294, 0.232294, 0.348441, 0.000290368, 1085900, 0.00940232, 0.0867336, 148783, 611.54, 117493, 0.0158412, 0.00170437, 141735, 1.40343, 1.63636],
+  "tarmac|0.225|0.11249999999999999|0.4|2.3|0.3157|276527.4023764206|1|2600|1.675|0.3|0.008|1|0.015435000000000003|0.95|0.92|0.95|6.137|143847,471360,5460,0.8,0.1,16.67,0.05|10x5": [1677090, 579354, 133510, 0.003, 0.841708, 1.39046, 0.187881, 0.187881, 0.281822, 0.000234851, 1036030, 0.00940232, 0.0867336, 143847, 445.976, 76212.6, 0.0166333, 0.00174106, 141735, 1.70605, 1.33333],
+  "tarmac|0.205|0.10249999999999998|0.4|2.3|0.3057|263099.8222794524|1|2368.8888888888887|1.785|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|5.415|159647,536804,4975,0.8,0.1,16.67,0.05|10x5": [1066540, 874812, 168071, 0.005, 0.84806, 1.36389, 0.210826, 0.210826, 0.316239, 0.000263533, 996558, 0.00900376, 0.083447, 159647, 483.93, 87685.5, 0.0158412, 0.00145156, 147317, 2.01872, 2.57143],
+  "tarmac|0.205|0.10249999999999998|0.4|2.3|0.3057|263099.8222794524|1|2368.8888888888887|1.465|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|5.415|157473,512990,4975,0.8,0.1,16.67,0.05|10x5": [1104930, 839298, 163628, 0.005, 0.938727, 1.34548, 0.215054, 0.215054, 0.322581, 0.000268818, 992970, 0.00900376, 0.083447, 157473, 434.199, 75747, 0.0158412, 0.00145569, 147317, 1.70605, 1.5],
+  "tarmac|0.205|0.10249999999999998|0.4|2.3|0.3057|263099.8222794524|1|2368.8888888888887|2.206|0.12|0.007|1|0.014700000000000001|0.95|0.92|0.95|5.415|161597,559496,4975,0.8,0.1,16.67,0.05|10x5": [1025190, 881366, 169509, 0.005, 0.869256, 1.49197, 0.215709, 0.215709, 0.323564, 0.000269636, 1000420, 0.00900376, 0.083447, 161597, 537.685, 101672, 0.0158412, 0.00125784, 147317, 2.63884, 1.5],
+  "tarmac|0.205|0.10249999999999998|0.4|2.3|0.3057|263099.8222794524|1|2368.8888888888887|1.675|0.3|0.008|1|0.015435000000000003|0.95|0.92|0.95|5.415|155007,487709,4975,0.8,0.1,16.67,0.05|10x5": [1144990, 784546, 168722, 0.005, 0.871106, 1.38534, 0.203261, 0.203261, 0.304892, 0.000254077, 989227, 0.00900376, 0.083447, 155007, 387.617, 65343.5, 0.0166333, 0.00148872, 147317, 1.5831, 1.26316],
+  "gravel|0.195|0.126|0.5|2|0.3165|237844.47914374186|1|2253.3333333333335|1.845|0.4|0.013|0.85|0.01713096|0.98|0.96|0.98|6.962|101440,299853,4732,0.8,0.1,16.67,0.05|10x5": [1279900, 417338, 107535, 0.008, 0.751879, 1.22973, 0.196798, 0.196798, 0.295196, 0.000245997, 1233170, 0.00947398, 0.0872087, 101440, 236.054, 37163.3, 0.0184609, 0.000922714, 153800, 1.44572, 1.6875],
+  "gravel|0.195|0.126|0.5|2|0.3165|237844.47914374186|1|2253.3333333333335|2.457|0.4|0.013|0.85|0.01713096|0.98|0.96|0.98|6.962|104505,328313,4732,0.8,0.1,16.67,0.05|10x5": [1211870, 414731, 105915, 0.008, 0.786138, 1.20879, 0.2035, 0.2035, 0.30525, 0.000254375, 1239990, 0.00947398, 0.0872087, 104505, 287.564, 47287.1, 0.0184609, 0.000780473, 153800, 1.22727, 1.68],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|1.743|0.12|0.007|1|0.015573600000000002|0.98|0.96|0.98|6.194|208858,677080,5460,0.8,0.1,16.67,0.05|10x5": [1716300, 995278, 218142, 0.003, 0.891892, 1.3601, 0.230069, 0.230069, 0.345103, 0.000287586, 1028970, 0.00857969, 0.0825853, 208858, 545.142, 95597.3, 0.0167827, 0.00187017, 148854, 1.64489, 1.28571],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|1.431|0.12|0.007|1|0.015573600000000002|0.98|0.96|0.98|6.194|205367,641720,5460,0.8,0.1,16.67,0.05|10x5": [1787320, 952519, 215466, 0.003, 0.900287, 1.29218, 0.222093, 0.222093, 0.333139, 0.000277616, 1021760, 0.00857969, 0.0825853, 205367, 485.578, 82170.5, 0.0167827, 0.00189637, 148854, 1.50693, 1.5],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|2.155|0.12|0.007|1|0.015573600000000002|0.98|0.96|0.98|6.194|212017,711455,5460,0.8,0.1,16.67,0.05|10x5": [1616970, 1106950, 224940, 0.003, 0.875172, 1.42807, 0.234758, 0.234758, 0.352137, 0.000293447, 1039050, 0.00857969, 0.0825853, 212017, 610.765, 111566, 0.0167827, 0.00181999, 148854, 1.40343, 1.5],
+  "tarmac|0.225|0.09000000000000005|0.4|2.3|0.3186|303041.23551666515|1|2600|1.636|0.3|0.008|1|0.016352280000000004|0.98|0.96|0.98|6.194|201425,604744,5460,0.8,0.1,16.67,0.05|10x5": [1872710, 1008170, 225580, 0.003, 0.837382, 1.29954, 0.209448, 0.209448, 0.314172, 0.00026181, 1013090, 0.00857969, 0.0825853, 201425, 430.465, 70559.1, 0.0176218, 0.00188073, 148854, 1.5831, 1.57895],
+  "winter|0.205|0.10249999999999998|0.3|2.1|0.3057|250408.31819927134|1|2368.8888888888887|1.434|0.35|0.009|0.6|0.016352280000000004|0.98|0.96|0.98|6.167|130558,335815,4975,0.8,0.1,16.67,0.05|10x5": [1623150, 695040, 168081, 0.005, 0.681192, 1.22623, 0.162682, 0.162682, 0.244022, 0.000203352, 1096800, 0.0094601, 0.0858728, 130558, 207.438, 31230.9, 0.0176218, 0.0016322, 156472, 1.55316, 1.5],
+  "stud|0.205|0.10249999999999998|0.3|2.1|0.3057|250408.31819927134|1|2368.8888888888887|1.483|0.35|0.009|0.6|0.01713096|0.98|0.96|0.98|6.167|131361,341180,4975,0.8,0.1,16.67,0.05|10x5": [1602690, 689590, 167974, 0.005, 0.691547, 1.21598, 0.172289, 0.172289, 0.258434, 0.000215361, 1098710, 0.0094601, 0.0858728, 131361, 212.956, 32183.8, 0.0184609, 0.00155301, 156472, 1.61993, 1.53846],
+  "snow|0.195|0.126|0.4|2|0.3165|234416.19342945615|1|2253.3333333333335|1.941|0.45|0.014|0.6|0.01790964|0.98|0.96|0.98|6.962|91229,235334,4732,0.8,0.1,16.67,0.05|10x5": [1509320, 409870, 116794, 0.008, 0.666389, 1.18407, 0.174475, 0.174475, 0.261712, 0.000218093, 1210190, 0.00961253, 0.0879456, 91228.9, 154.747, 22913.5, 0.0193001, 0.000513285, 170813, 1.38417, 1.13208],
+  "gravel|0.205|0.132|0.5|2|0.3225|244547.78152068463|1|2368.8888888888887|1.802|0.4|0.013|0.85|0.016632000000000004|1|1|1|7.457|99784,299523,4975,0.8,0.1,16.67,0.05|10x5": [1321240, 385742, 98961.4, 0.008, 0.743073, 1.23961, 0.191574, 0.191574, 0.28736, 0.000239467, 1293780, 0.00968681, 0.089039, 99783.9, 252.099, 39655, 0.0179232, 0.0011019, 151165, 1.44572, 1.54839],
+  "gravel|0.205|0.132|0.5|2|0.3225|244547.78152068463|1|2368.8888888888887|2.399|0.4|0.013|0.85|0.016632000000000004|1|1|1|7.457|102615,326566,4975,0.8,0.1,16.67,0.05|10x5": [1254220, 385133, 96816.6, 0.008, 0.783292, 1.19305, 0.200145, 0.200145, 0.300217, 0.000250181, 1300750, 0.00968681, 0.089039, 102615, 307.132, 50450.2, 0.0179232, 0.000903492, 151165, 1.54478, 1.75],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|300570.63745110005|1|2600|1.702|0.12|0.007|1|0.015120000000000001|1|1|1|6.318|191278,622584,5460,0.8,0.1,16.67,0.05|10x5": [1417360, 980382, 202084, 0.005, 0.816179, 1.34492, 0.219819, 0.219819, 0.329728, 0.000274774, 1053470, 0.00865021, 0.0836786, 191278, 526.208, 91593, 0.0162939, 0.00153754, 155356, 2.39766, 1.6],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|300570.63745110005|1|2600|1.397|0.12|0.007|1|0.015120000000000001|1|1|1|6.318|188143,590560,5460,0.8,0.1,16.67,0.05|10x5": [1465120, 938837, 201210, 0.005, 0.910699, 1.25226, 0.22755, 0.22755, 0.341325, 0.000284437, 1048430, 0.00865021, 0.0836786, 188143, 467.697, 78593, 0.0162939, 0.00150903, 155356, 1.70605, 1.41176],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|300570.63745110005|1|2600|2.105|0.12|0.007|1|0.015120000000000001|1|1|1|6.318|194114,653667,5460,0.8,0.1,16.67,0.05|10x5": [1359100, 988195, 202574, 0.005, 0.848456, 1.42227, 0.225988, 0.225988, 0.338982, 0.000282485, 1059630, 0.00865021, 0.0836786, 194114, 590.975, 107115, 0.0162939, 0.00128652, 155356, 2.22178, 1.5],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|300570.63745110005|1|2600|1.598|0.3|0.008|1|0.015876|1|1|1|6.318|184616,557149,5460,0.8,0.1,16.67,0.05|10x5": [1520150, 860788, 202314, 0.005, 0.832717, 1.31131, 0.217257, 0.217257, 0.325886, 0.000271572, 1042620, 0.00865021, 0.0836786, 184616, 413.988, 67428.3, 0.0171085, 0.00152923, 155356, 1.5831, 1.5],
+  "winter|0.215|0.09640000000000001|0.3|2.1|0.325|267562.363968083|1|2484.4444444444443|1.401|0.35|0.009|0.6|0.015876|1|1|1|6.876|148110,369016,5217,0.8,0.1,16.67,0.05|10x5": [1760480, 810337, 198292, 0.005, 0.685043, 1.18753, 0.173538, 0.173538, 0.260307, 0.000216922, 1123440, 0.00928548, 0.0871688, 148110, 221.671, 33145.7, 0.0171085, 0.00212577, 154146, 1.43835, 1.5],
+  "stud|0.215|0.09640000000000001|0.3|2.1|0.325|267562.363968083|1|2484.4444444444443|1.449|0.35|0.009|0.6|0.016632000000000004|1|1|1|6.876|149107,375267,5217,0.8,0.1,16.67,0.05|10x5": [1741470, 801293, 197800, 0.005, 0.694679, 1.1887, 0.183378, 0.183378, 0.275067, 0.000229223, 1125450, 0.00928548, 0.0871688, 149107, 227.656, 34165.2, 0.0179232, 0.00204143, 154146, 1.43835, 1.57895],
+  "snow|0.205|0.133|0.4|2|0.3235|241044.28079622902|1|2368.8888888888887|1.896|0.45|0.014|0.6|0.017388|1|1|1|7.481|88534,230687,4975,0.8,0.1,16.67,0.05|10x5": [1576290, 359258, 106945, 0.008, 0.666857, 1.1602, 0.168693, 0.168693, 0.25304, 0.000210867, 1266240, 0.00982761, 0.0899038, 88533.5, 159.3, 23479.7, 0.0187379, 0.000471415, 175661, 1.33869, 1.09091],
+  "gravel|0.205|0.132|0.5|2|0.3225|235142.0976160429|1|2368.8888888888887|1.802|0.4|0.013|0.85|0.015400000000000002|1|1|1|7.457|100033,301782,4975,0.8,0.1,16.67,0.05|10x5": [1184560, 399527, 100219, 0.008, 0.764475, 1.22425, 0.174619, 0.174619, 0.261929, 0.000218274, 1308000, 0.0100743, 0.091088, 100033, 260.442, 41232.3, 0.0165956, 0.00111985, 147765, 1.51962, 1.6],
+  "gravel|0.205|0.132|0.5|2|0.3225|235142.0976160429|1|2368.8888888888887|2.399|0.4|0.013|0.85|0.015400000000000002|1|1|1|7.457|102813,328580,4975,0.8,0.1,16.67,0.05|10x5": [1135630, 395998, 97716.2, 0.008, 0.805509, 1.20121, 0.184308, 0.184308, 0.276463, 0.000230386, 1313090, 0.0100743, 0.091088, 102813, 316.403, 52363.7, 0.0165956, 0.000956827, 147765, 1.54478, 1.5],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|289010.2283183654|1|2600|1.702|0.12|0.007|1|0.014|1|1|1|6.318|191604,626058,5460,0.8,0.1,16.67,0.05|10x5": [1225360, 1014790, 204528, 0.005, 0.838204, 1.31324, 0.206412, 0.206412, 0.309618, 0.000258015, 1073750, 0.00899622, 0.0855908, 191604, 539.868, 94763.4, 0.0150869, 0.00158569, 151885, 2.39766, 1.71429],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|289010.2283183654|1|2600|1.397|0.12|0.007|1|0.014|1|1|1|6.318|188528,594371,5460,0.8,0.1,16.67,0.05|10x5": [1271950, 966503, 197707, 0.005, 0.933595, 1.27643, 0.212018, 0.212018, 0.318027, 0.000265023, 1068830, 0.00899622, 0.0855908, 188528, 480.885, 81443.9, 0.0150869, 0.0015825, 151885, 1.84941, 1.5],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|289010.2283183654|1|2600|2.105|0.12|0.007|1|0.014|1|1|1|6.318|194385,656761,5460,0.8,0.1,16.67,0.05|10x5": [1509220, 956655, 197456, 0.003, 0.820386, 1.49196, 0.187575, 0.187575, 0.281362, 0.000234469, 1043770, 0.00899622, 0.0855908, 194385, 604.856, 110610, 0.0150869, 0.00139518, 151885, 1.40343, 2],
+  "tarmac|0.225|0.09640000000000001|0.4|2.3|0.325|289010.2283183654|1|2600|1.598|0.3|0.008|1|0.014700000000000001|1|1|1|6.318|185065,561254,5460,0.8,0.1,16.67,0.05|10x5": [1323140, 925947, 205015, 0.005, 0.851805, 1.32593, 0.199588, 0.199588, 0.299383, 0.000249486, 1063430, 0.00899622, 0.0855908, 185065, 426.514, 69970.1, 0.0158412, 0.00162023, 151885, 1.5831, 1.57895],
+  "winter|0.215|0.09640000000000001|0.3|2.1|0.325|257271.5038154644|1|2484.4444444444443|1.401|0.35|0.009|0.6|0.014700000000000001|1|1|1|6.876|148784,373225,5217,0.8,0.1,16.67,0.05|10x5": [1565860, 833206, 199038, 0.005, 0.705084, 1.14153, 0.159946, 0.159946, 0.239918, 0.000199932, 1144000, 0.0096569, 0.0891689, 148784, 229.759, 34525.2, 0.0158412, 0.00215877, 150688, 1.43835, 1.57895],
+  "stud|0.215|0.09640000000000001|0.3|2.1|0.325|257271.5038154644|1|2484.4444444444443|1.449|0.35|0.009|0.6|0.015400000000000002|1|1|1|6.876|149767,379475,5217,0.8,0.1,16.67,0.05|10x5": [1545460, 825232, 198325, 0.005, 0.715516, 1.19028, 0.169169, 0.169169, 0.253754, 0.000211461, 1146150, 0.0096569, 0.0891689, 149767, 235.901, 35582, 0.0165956, 0.00211145, 150688, 1.50271, 1.62162],
+  "snow|0.205|0.133|0.4|2|0.3235|231773.34691945097|1|2368.8888888888887|1.896|0.45|0.014|0.6|0.0161|1|1|1|7.481|88890,233126,4975,0.8,0.1,16.67,0.05|10x5": [1427040, 394913, 111833, 0.008, 0.655662, 1.12894, 0.158418, 0.158418, 0.237626, 0.000198022, 1281860, 0.0102207, 0.091974, 88890.4, 165.318, 24476.4, 0.0173499, 0.000674989, 171707, 1.38417, 1.15385],
+  "gravel|0.205|0.1335|0.5|2|0.324|235015.524990528|1|2368.8888888888887|1.802|0.4|0.013|0.85|0.015092000000000001|1|1|1|7.492|100744,307252,4975,0.8,0.1,16.67,0.05|10x5": [1159430, 396492, 96838.9, 0.008, 0.773365, 1.22688, 0.179125, 0.179125, 0.268687, 0.000223906, 1309490, 0.0100797, 0.0912939, 100744, 271.618, 43258.9, 0.0162637, 0.00153591, 140259, 1.6012, 1.65517],
+  "gravel|0.205|0.1335|0.5|2|0.324|235015.524990528|1|2368.8888888888887|2.399|0.4|0.013|0.85|0.015092000000000001|1|1|1|7.492|103417,333541,4975,0.8,0.1,16.67,0.05|10x5": [1110300, 397351, 94790.8, 0.008, 0.806851, 1.20996, 0.186146, 0.186146, 0.279219, 0.000232682, 1314640, 0.0100797, 0.0912939, 103417, 329.103, 54841.5, 0.0162637, 0.00142559, 140259, 1.38309, 1.63636],
+  "tarmac|0.235|0.09640000000000001|0.4|2.3|0.325|296814.6764228991|1|2715.5555555555557|1.702|0.12|0.007|1|0.01372|1|1|1|6.599|200791,657472,5703,0.8,0.1,16.67,0.05|10x5": [1598640, 907624, 202459, 0.003, 0.93384, 1.32326, 0.20002, 0.20002, 0.300031, 0.000250025, 1087800, 0.00914899, 0.0864265, 200791, 580.362, 101598, 0.0147852, 0.00180731, 149621, 1.27517, 1.28571],
+  "tarmac|0.235|0.09640000000000001|0.4|2.3|0.325|296814.6764228991|1|2715.5555555555557|1.397|0.12|0.007|1|0.01372|1|1|1|6.599|197604,624496,5703,0.8,0.1,16.67,0.05|10x5": [1655790, 883614, 198505, 0.003, 0.940642, 1.26755, 0.186913, 0.186913, 0.28037, 0.000233641, 1081770, 0.00914899, 0.0864265, 197604, 516.736, 87302, 0.0147852, 0.00184417, 149621, 1.50693, 1.5],
+  "tarmac|0.235|0.09640000000000001|0.4|2.3|0.325|296814.6764228991|1|2715.5555555555557|2.105|0.12|0.007|1|0.01372|1|1|1|6.599|203671,689394,5703,0.8,0.1,16.67,0.05|10x5": [1540060, 971703, 207432, 0.003, 0.903938, 1.41188, 0.202754, 0.202754, 0.304131, 0.000253443, 1093990, 0.00914899, 0.0864265, 203671, 650.522, 118610, 0.0147852, 0.00175073, 149621, 1.40343, 1.5],
+  "tarmac|0.235|0.09640000000000001|0.4|2.3|0.325|296814.6764228991|1|2715.5555555555557|1.598|0.3|0.008|1|0.014406|1|1|1|6.599|194014,589996,5703,0.8,0.1,16.67,0.05|10x5": [1769930, 941753, 212526, 0.003, 0.826206, 1.33086, 0.172319, 0.172319, 0.258479, 0.000215399, 1069710, 0.00914899, 0.0864265, 194014, 458.129, 74991, 0.0155244, 0.00182463, 149621, 1.5831, 1.57895],
+  "winter|0.235|0.09590000000000001|0.3|2.1|0.3245|271845.72478003707|1|2715.5555555555557|1.401|0.35|0.009|0.6|0.014406|1|1|1|7.504|157522,381269,5703,0.8,0.1,16.67,0.05|10x5": [1545970, 927451, 229912, 0.008, 0.689153, 1.18808, 0.150322, 0.150322, 0.225482, 0.000187902, 1268410, 0.00998933, 0.0908766, 157522, 233.354, 34457.8, 0.0155244, 0.00154451, 170753, 1.55316, 1.42857],
+  "stud|0.235|0.09590000000000001|0.3|2.1|0.3245|271845.72478003707|1|2715.5555555555557|1.449|0.35|0.009|0.6|0.015092000000000001|1|1|1|7.504|158665,388037,5703,0.8,0.1,16.67,0.05|10x5": [1522780, 994012, 225735, 0.008, 0.689521, 1.18911, 0.15883, 0.15883, 0.238244, 0.000198537, 1270850, 0.00998933, 0.0908766, 158665, 239.806, 35529.2, 0.0162637, 0.00148288, 170753, 1.55316, 1.5],
+  "snow|0.205|0.1345|0.4|2|0.325|231691.0294039402|1|2368.8888888888887|1.896|0.45|0.014|0.6|0.015778|1|1|1|7.515|88526,229951,4975,0.8,0.1,16.67,0.05|10x5": [1453460, 454063, 114601, 0.008, 0.642139, 1.126, 0.153761, 0.153761, 0.230642, 0.000192202, 1277680, 0.0102243, 0.0921714, 88526, 161.751, 23847.1, 0.0170029, 0.000471581, 177248, 1.38417, 1.11111],
+  "gravel|0.205|0.13324999999999998|0.425|2|0.3246|227662.74121702721|1|2368.8888888888887|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.112|86126,289259,4975,1.6,0.1,16.67,0.05|10x5": [1108340, 322581, 74593.9, 0.008, 0.703302, 1.28457, 0.231627, 0.231627, 0.34744, 0.000289533, 566634, 0.0104053, 0.093068, 86125.5, 312.274, 55175.3, 0.0199147, 0.000352133, 141094, 1.54478, 1.63636],
+  "gravel|0.225|0.135|0.425|2|0.3246|240526.51168418105|1|2600|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.848|89644,304718,5460,1.6,0.1,16.67,0.05|10x5": [1192160, 320108, 73453.6, 0.008, 0.726598, 1.32745, 0.244831, 0.244831, 0.367246, 0.000306038, 628533, 0.0108096, 0.0951571, 89643.6, 356.933, 63134.6, 0.0199147, 0.000656261, 137996, 1.38309, 1.42857],
+  "gravel|0.205|0.13324999999999998|0.425|2|0.3246|227662.74121702721|1|2368.8888888888887|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.112|87512,305518,4975,1.6,0.1,16.67,0.05|10x5": [1080740, 323287, 75432.7, 0.008, 0.679584, 1.4736, 0.23909, 0.23909, 0.358635, 0.000298863, 569542, 0.0104053, 0.093068, 87512.3, 363.565, 68051.8, 0.0199147, 0.00021973, 141094, 1.47647, 1.66667],
+  "gravel|0.225|0.135|0.425|2|0.3246|240526.51168418105|1|2600|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.848|90978,320705,5460,1.6,0.1,16.67,0.05|10x5": [1154750, 334213, 75575.6, 0.008, 0.72083, 1.32253, 0.263364, 0.263364, 0.395046, 0.000329205, 632475, 0.0108096, 0.0951571, 90977.7, 415.288, 77816.6, 0.0199147, 0.00057284, 137996, 1.5831, 1.76471],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3037|263757.89445377304|1|2600|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.587|130051,457299,5460,1.6,0.1,16.67,0.05|10x5": [1043640, 637010, 118541, 0.008, 0.840595, 1.47769, 0.267551, 0.267551, 0.401327, 0.000334439, 477504, 0.00985752, 0.0877101, 130051, 505.761, 96760, 0.0181043, 0.0015488, 140157, 1.50693, 1.28571],
+  "tarmac|0.285|0.11449999999999999|0.34|2.3|0.3037|303223.27275708225|1|3293.3333333333326|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|7.135|145824,523287,6916,1.6,0.1,16.67,0.05|10x5": [1299760, 672715, 122427, 0.008, 0.819642, 1.44213, 0.265126, 0.265126, 0.397689, 0.000331407, 612897, 0.0108611, 0.092817, 145824, 709.294, 135924, 0.0181043, 0.00275837, 132445, 1.64489, 2.5],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3037|263757.89445377304|1|2600|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.587|131202,471856,5460,1.6,0.1,16.67,0.05|10x5": [1014900, 674317, 125465, 0.008, 0.796202, 1.59407, 0.274085, 0.274085, 0.411127, 0.000342606, 480154, 0.00985752, 0.0877101, 131202, 554.964, 111057, 0.0181043, 0.00150223, 140157, 1.27517, 1.5],
+  "tarmac|0.285|0.11449999999999999|0.34|2.3|0.3037|303223.27275708225|1|3293.3333333333326|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|7.135|146899,537392,6916,1.6,0.1,16.67,0.05|10x5": [1268680, 676384, 122162, 0.008, 0.780324, 1.38801, 0.284782, 0.284782, 0.427173, 0.000355977, 615763, 0.0108611, 0.092817, 146899, 777.367, 155764, 0.0181043, 0.00302176, 132445, 1.81034, 3.27273],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3037|263757.89445377304|1|2600|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|5.587|128245,435717,5460,1.6,0.1,16.67,0.05|10x5": [1079540, 618892, 119851, 0.008, 0.822787, 1.45315, 0.25876, 0.25876, 0.38814, 0.00032345, 474193, 0.00985752, 0.0877101, 128245, 442.692, 80170.6, 0.0190095, 0.00155478, 140157, 1.39012, 1.41176],
+  "tarmac|0.285|0.11449999999999999|0.34|2.3|0.3037|303223.27275708225|1|3293.3333333333326|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|7.135|144132,502128,6916,1.6,0.1,16.67,0.05|10x5": [1603730, 641824, 121326, 0.005, 0.818029, 1.42449, 0.24445, 0.24445, 0.366675, 0.000305563, 584861, 0.0108611, 0.092817, 144132, 621.779, 112820, 0.0190095, 0.00304957, 132445, 1.50693, 2],
+  "winter|0.205|0.13324999999999998|0.255|2.1|0.3246|228600.68597018626|1|2368.8888888888887|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.204|82095,259185,4975,1.6,0.1,16.67,0.05|10x5": [1163240, 322351, 74153.6, 0.008, 0.728747, 1.25108, 0.212243, 0.212243, 0.318364, 0.000265304, 473602, 0.0103626, 0.0928457, 82095, 244.782, 40503.7, 0.0190095, 0.00054014, 144721, 1.44572, 1.54839],
+  "winter|0.225|0.135|0.255|2.1|0.3246|241237.21226839014|1|2600|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.846|85626,274572,5460,1.6,0.1,16.67,0.05|10x5": [1244640, 312346, 72306.1, 0.008, 0.716844, 1.23554, 0.216038, 0.216038, 0.324057, 0.000270048, 526727, 0.0107778, 0.0949936, 85625.9, 280.263, 46431.5, 0.0190095, 0.000961518, 141448, 1.44572, 1.86207],
+  "stud|0.205|0.13324999999999998|0.255|2.1|0.3246|228600.68597018626|1|2368.8888888888887|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.204|82336,261607,4975,1.6,0.1,16.67,0.05|10x5": [1155810, 321124, 74001.7, 0.008, 0.683567, 1.28663, 0.220527, 0.220527, 0.33079, 0.000275659, 474385, 0.0103626, 0.0928457, 82336.5, 250.171, 41630, 0.0199147, 0.000561731, 144721, 1.44572, 1.6],
+  "stud|0.225|0.135|0.255|2.1|0.3246|241237.21226839014|1|2600|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.846|85859,276986,5460,1.6,0.1,16.67,0.05|10x5": [1236990, 309502, 72098.6, 0.008, 0.723398, 1.23931, 0.228907, 0.228907, 0.343361, 0.000286134, 527534, 0.0107778, 0.0949936, 85859.2, 286.41, 47719.6, 0.0199147, 0.000895005, 141448, 1.30932, 2.14286],
+  "snow|0.205|0.13324999999999998|0.34|2|0.3246|224877.3566016426|1|2368.8888888888887|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|7.112|80438,245585,4975,1.6,0.1,16.67,0.05|10x5": [1222140, 325495, 77792.8, 0.008, 0.679888, 1.18163, 0.212968, 0.212968, 0.319452, 0.00026621, 554643, 0.0105341, 0.093737, 80437.7, 219.423, 35407.5, 0.0208199, -0.00035551, 154095, 1.2606, 1.71429],
+  "snow|0.225|0.135|0.34|2|0.3246|237509.01168418105|1|2600|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|7.848|83991,260867,5460,1.6,0.1,16.67,0.05|10x5": [1290920, 315618, 76663.7, 0.008, 0.70797, 1.21488, 0.221151, 0.221151, 0.331726, 0.000276438, 618127, 0.010947, 0.0958603, 83990.7, 251.155, 40568.8, 0.0208199, 0.00051039, 150682, 1.50271, 1.76471],
+  "gravel|0.165|0.13200000000000003|0.425|2|0.2959|193699.77479753105|1|1906.6666666666665|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.253|75862,247963,4004,1.6,0.1,16.67,0.05|10x5": [855532, 339108, 79469.5, 0.013, 0.734014, 1.30503, 0.217707, 0.217707, 0.326561, 0.000272134, 478830, 0.00984341, 0.08669, 75861.7, 222.673, 39032.9, 0.0199147, -0.000315215, 151474, 1.6012, 1.44],
+  "gravel|0.185|0.12950000000000003|0.425|2|0.2959|207241.25920769357|1|2137.777777777778|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.840|84016,276410,4489,1.6,0.1,16.67,0.05|10x5": [908515, 378497, 84902.6, 0.013, 0.748406, 1.30094, 0.220246, 0.220246, 0.330369, 0.000275307, 536090, 0.0103154, 0.0890927, 84016, 264.285, 46237.9, 0.0199147, 0.000106436, 147389, 1.45764, 1.5],
+  "gravel|0.165|0.13200000000000003|0.425|2|0.2959|193699.77479753105|1|1906.6666666666665|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.253|77297,263983,4004,1.6,0.1,16.67,0.05|10x5": [815420, 342347, 79455.9, 0.013, 0.759826, 1.41296, 0.23428, 0.23428, 0.35142, 0.00029285, 482342, 0.00984341, 0.08669, 77296.7, 260.166, 48292.9, 0.0199147, -0.00019278, 151474, 1.54478, 1.8],
+  "gravel|0.185|0.12950000000000003|0.425|2|0.2959|207241.25920769357|1|2137.777777777778|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.840|85548,293714,4489,1.6,0.1,16.67,0.05|10x5": [856373, 397336, 84799.5, 0.013, 0.733946, 1.35931, 0.230732, 0.230732, 0.346098, 0.000288415, 540655, 0.0103154, 0.0890927, 85547.9, 308.892, 57209.5, 0.0199147, 0.000121624, 147389, 1.38309, 1.57895],
+  "tarmac|0.175|0.10590000000000002|0.34|2.3|0.2688|219593.62654828213|1|2022.222222222222|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|3.893|120578,409216,4247,1.6,0.1,16.67,0.05|10x5": [784380, 813306, 141772, 0.008, 0.828856, 1.41741, 0.226738, 0.226738, 0.340106, 0.000283422, 395012, 0.00920893, 0.080114, 120578, 345.114, 64858.7, 0.0181043, 0.00093574, 153446, 2.0263, 2.25],
+  "tarmac|0.225|0.10140000000000002|0.34|2.3|0.2688|255411.67029041215|1|2600|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|4.922|151004,518374,5460,1.6,0.1,16.67,0.05|10x5": [1366480, 930403, 157391, 0.003, 0.827592, 1.4222, 0.216234, 0.216234, 0.324351, 0.000270292, 472370, 0.0101796, 0.0849571, 151004, 501.756, 93779, 0.0181043, 0.00212716, 144698, 1.50693, 1.71429],
+  "tarmac|0.175|0.10590000000000002|0.34|2.3|0.2688|219593.62654828213|1|2022.222222222222|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|3.893|121967,425674,4247,1.6,0.1,16.67,0.05|10x5": [759470, 837207, 141411, 0.008, 0.801062, 1.42345, 0.233518, 0.233518, 0.350277, 0.000291898, 396811, 0.00920893, 0.080114, 121967, 380.636, 74818.8, 0.0181043, 0.000911282, 153446, 1.50693, 2.57143],
+  "tarmac|0.225|0.10140000000000002|0.34|2.3|0.2688|255411.67029041215|1|2600|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|4.922|152612,537828,5460,1.6,0.1,16.67,0.05|10x5": [1312920, 947338, 159962, 0.003, 0.820822, 1.44413, 0.228655, 0.228655, 0.342982, 0.000285819, 476240, 0.0101796, 0.0849571, 152612, 553.664, 108168, 0.0181043, 0.00214989, 144698, 1.27517, 1.5],
+  "tarmac|0.175|0.10590000000000002|0.34|2.3|0.2688|219593.62654828213|1|2022.222222222222|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|3.893|118412,385298,4247,1.6,0.1,16.67,0.05|10x5": [816154, 779055, 142645, 0.008, 0.856375, 1.40939, 0.2291, 0.2291, 0.343649, 0.000286375, 392716, 0.00920893, 0.080114, 118412, 300.117, 53429.6, 0.0190095, 0.00114443, 153446, 1.75362, 1.5],
+  "tarmac|0.225|0.10140000000000002|0.34|2.3|0.2688|255411.67029041215|1|2600|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|4.922|148491,489921,5460,1.6,0.1,16.67,0.05|10x5": [1458190, 838644, 155623, 0.003, 0.84587, 1.39386, 0.211611, 0.211611, 0.317416, 0.000264513, 465744, 0.0101796, 0.0849571, 148491, 436.059, 77260.7, 0.0190095, 0.00206873, 144698, 1.28994, 1.41176],
+  "winter|0.165|0.13200000000000003|0.255|2.1|0.2959|194898.04478740762|1|1906.6666666666665|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|4.583|71968,219469,4004,1.6,0.1,16.67,0.05|10x5": [940376, 324562, 78735.3, 0.013, 0.718878, 1.29699, 0.195758, 0.195758, 0.293637, 0.000244698, 400709, 0.00978289, 0.086379, 71968.3, 173.514, 28500.1, 0.0190095, -0.00000710426, 155555, 1.80594, 1.37143],
+  "winter|0.185|0.12950000000000003|0.255|2.1|0.2959|207904.2150252211|1|2137.777777777778|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|5.095|79808,245470,4489,1.6,0.1,16.67,0.05|10x5": [1066590, 361442, 82274.1, 0.008, 0.733288, 1.25384, 0.190634, 0.190634, 0.285951, 0.000238292, 443654, 0.0102825, 0.0889265, 79807.7, 206.335, 33857, 0.0190095, 0.000279853, 151099, 1.31701, 1.45455],
+  "stud|0.165|0.13200000000000003|0.255|2.1|0.2959|194898.04478740762|1|1906.6666666666665|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|4.583|72216,221785,4004,1.6,0.1,16.67,0.05|10x5": [932075, 323346, 78534.2, 0.013, 0.724863, 1.29266, 0.206914, 0.206914, 0.310371, 0.000258643, 401436, 0.00978289, 0.086379, 72215.6, 177.403, 29300.9, 0.0199147, -0.0000771704, 155555, 1.2606, 1.41176],
+  "stud|0.185|0.12950000000000003|0.255|2.1|0.2959|207904.2150252211|1|2137.777777777778|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|5.095|80072,247988,4489,1.6,0.1,16.67,0.05|10x5": [1047940, 356384, 82249.6, 0.008, 0.748504, 1.2493, 0.202398, 0.202398, 0.303598, 0.000252998, 445287, 0.0102825, 0.0889265, 80072, 210.963, 34808, 0.0199147, 0.000204181, 151099, 1.37848, 1.5],
+  "snow|0.165|0.13200000000000003|0.34|2|0.2959|191436.64979753105|1|1906.6666666666665|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|5.253|70337,206746,4004,1.6,0.1,16.67,0.05|10x5": [1077540, 320900, 82693.9, 0.008, 0.666365, 1.2268, 0.19051, 0.19051, 0.285765, 0.000238137, 459392, 0.00995978, 0.0872861, 70337, 155.457, 24921, 0.0208199, -0.000964603, 165484, 1.27346, 1.46341],
+  "snow|0.185|0.12950000000000003|0.34|2|0.2959|204654.830636265|1|2137.777777777778|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|5.840|78039,231485,4489,1.6,0.1,16.67,0.05|10x5": [1124150, 373756, 89784.9, 0.008, 0.709492, 1.21253, 0.19622, 0.19622, 0.29433, 0.000245275, 517209, 0.0104458, 0.0897493, 78038.7, 184.533, 29544.4, 0.0208199, -0.000174038, 160942, 1.55316, 1.57895],
+  "gravel|0.205|0.123|0.425|2|0.3135|228178.2723691426|1|2368.8888888888887|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|6.887|96945,318331,4975,1.6,0.1,16.67,0.05|10x5": [1121230, 406453, 91197.4, 0.008, 0.746324, 1.35007, 0.234524, 0.234524, 0.351785, 0.000293155, 575011, 0.0103817, 0.0916041, 96945.4, 311.303, 54268.4, 0.0199147, 0.000246845, 143349, 1.30063, 1.30435],
+  "gravel|0.205|0.123|0.425|2|0.3135|228178.2723691426|1|2368.8888888888887|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|6.887|98733,338448,4975,1.6,0.1,16.67,0.05|10x5": [1056410, 409923, 91928.6, 0.008, 0.698897, 1.42676, 0.235822, 0.235822, 0.353733, 0.000294777, 581381, 0.0103817, 0.0916041, 98732.7, 364.17, 67173.1, 0.0199147, 0.000426629, 143349, 1.47647, 1.66667],
+  "tarmac|0.235|0.10699999999999998|0.34|2.3|0.3013|271089.3251187852|1|2715.5555555555557|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.738|142891,496213,5703,1.6,0.1,16.67,0.05|10x5": [1072500, 733828, 139940, 0.008, 0.871975, 1.43705, 0.258268, 0.258268, 0.387402, 0.000322835, 496689, 0.0100172, 0.088242, 142891, 529.335, 99552.5, 0.0181043, 0.00157182, 146543, 1.50693, 1.28571],
+  "tarmac|0.285|0.11449999999999999|0.34|2.3|0.3013|303223.27275708225|1|3293.3333333333326|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|7.135|145655,521116,6916,1.6,0.1,16.67,0.05|10x5": [1310600, 681040, 124825, 0.008, 0.829723, 1.45179, 0.269249, 0.269249, 0.403873, 0.000336561, 619636, 0.0108611, 0.0925123, 145655, 697.419, 132639, 0.0181043, 0.00227309, 136919, 1.64489, 2.30769],
+  "tarmac|0.235|0.10699999999999998|0.34|2.3|0.3013|271089.3251187852|1|2715.5555555555557|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.738|144289,513484,5703,1.6,0.1,16.67,0.05|10x5": [1045580, 759707, 140780, 0.008, 0.838251, 1.50491, 0.271429, 0.271429, 0.407143, 0.000339286, 499133, 0.0100172, 0.088242, 144289, 583.179, 114667, 0.0181043, 0.00155769, 146543, 1.27517, 1.5],
+  "tarmac|0.285|0.11449999999999999|0.34|2.3|0.3013|303223.27275708225|1|3293.3333333333326|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|7.135|146760,535539,6916,1.6,0.1,16.67,0.05|10x5": [1280180, 683050, 124636, 0.008, 0.804502, 1.35487, 0.279383, 0.279383, 0.419075, 0.000349229, 622398, 0.0108611, 0.0925123, 146760, 765.822, 152274, 0.0181043, 0.00251671, 136919, 1.40343, 2.72727],
+  "tarmac|0.235|0.10699999999999998|0.34|2.3|0.3013|271089.3251187852|1|2715.5555555555557|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|5.738|140703,470790,5703,1.6,0.1,16.67,0.05|10x5": [1110320, 719447, 137672, 0.008, 0.803055, 1.45546, 0.245478, 0.245478, 0.368217, 0.000306847, 493256, 0.0100172, 0.088242, 140703, 460.945, 82148.4, 0.0190095, 0.0015977, 146543, 1.70605, 1.41176],
+  "tarmac|0.285|0.11449999999999999|0.34|2.3|0.3013|303223.27275708225|1|3293.3333333333326|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|7.135|143916,499516,6916,1.6,0.1,16.67,0.05|10x5": [1624070, 645208, 124678, 0.005, 0.829339, 1.40609, 0.23949, 0.23949, 0.359235, 0.000299362, 591179, 0.0108611, 0.0925123, 143916, 609.866, 109863, 0.0190095, 0.00278019, 136919, 1.50693, 1.6],
+  "winter|0.205|0.123|0.255|2.1|0.3135|228271.56098759975|1|2368.8888888888887|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.008|92074,282604,4975,1.6,0.1,16.67,0.05|10x5": [1160070, 391528, 89893.7, 0.008, 0.722374, 1.26309, 0.205275, 0.205275, 0.307912, 0.000256593, 483717, 0.0103775, 0.0915822, 92074, 243.323, 39828.4, 0.0190095, 0.000626232, 146717, 1.18771, 1.54839],
+  "stud|0.205|0.123|0.255|2.1|0.3135|228271.56098759975|1|2368.8888888888887|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.008|92382,285523,4975,1.6,0.1,16.67,0.05|10x5": [1151390, 394201, 90269.2, 0.008, 0.735045, 1.25973, 0.217854, 0.217854, 0.32678, 0.000272317, 484570, 0.0103775, 0.0915822, 92381.8, 248.798, 40948.1, 0.0199147, 0.000564234, 146717, 1.24565, 1.4],
+  "snow|0.205|0.123|0.34|2|0.3135|225160.7723691426|1|2368.8888888888887|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|6.887|90006,266293,4975,1.6,0.1,16.67,0.05|10x5": [1225110, 416252, 97405.4, 0.008, 0.674862, 1.21392, 0.206854, 0.206854, 0.310282, 0.000258568, 564801, 0.0105209, 0.0923177, 90005.8, 217.172, 34680.2, 0.0208199, -0.000297939, 156464, 1.61993, 1.66667],
+  "gravel|0.185|0.12950000000000003|0.425|2|0.2946|207241.25920769357|1|2137.777777777778|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.840|84016,276410,4489,1.6,0.1,16.67,0.05|10x5": [910816, 378213, 84757.5, 0.013, 0.75059, 1.30096, 0.219545, 0.219545, 0.329318, 0.000274432, 539304, 0.0103154, 0.0889299, 84016, 263.725, 46107.7, 0.0199147, 0.000127135, 147659, 1.45764, 1.5],
+  "gravel|0.185|0.12950000000000003|0.425|2|0.2946|207241.25920769357|1|2137.777777777778|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.840|85548,293714,4489,1.6,0.1,16.67,0.05|10x5": [857953, 397939, 85013.5, 0.013, 0.736981, 1.3562, 0.229917, 0.229917, 0.344875, 0.000287396, 543892, 0.0103154, 0.0889299, 85547.9, 308.316, 57059.9, 0.0199147, 0.000138893, 147659, 1.38309, 1.57895],
+  "tarmac|0.225|0.10140000000000002|0.34|2.3|0.2665|255411.67029041215|1|2600|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|4.922|150740,515285,5460,1.6,0.1,16.67,0.05|10x5": [1411380, 916902, 158630, 0.003, 0.831434, 1.41462, 0.206798, 0.206798, 0.310197, 0.000258497, 475793, 0.0101796, 0.0846565, 150740, 492.332, 91299.2, 0.0181043, 0.00185734, 149816, 1.50693, 1.6],
+  "tarmac|0.225|0.10140000000000002|0.34|2.3|0.2665|255411.67029041215|1|2600|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|4.922|152394,535137,5460,1.6,0.1,16.67,0.05|10x5": [1355050, 950461, 163528, 0.003, 0.822801, 1.42623, 0.216498, 0.216498, 0.324747, 0.000270623, 479793, 0.0101796, 0.0846565, 152394, 544.374, 105498, 0.0181043, 0.00188574, 149816, 1.27517, 1.38462],
+  "tarmac|0.225|0.10140000000000002|0.34|2.3|0.2665|255411.67029041215|1|2600|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|4.922|148159,486320,5460,1.6,0.1,16.67,0.05|10x5": [1137780, 939686, 161824, 0.005, 0.872806, 1.3694, 0.224742, 0.224742, 0.337114, 0.000280928, 495224, 0.0101796, 0.0846565, 148159, 426.771, 75062.9, 0.0190095, 0.00190591, 149816, 1.28994, 1.33333],
+  "winter|0.185|0.12950000000000003|0.255|2.1|0.2946|207904.2150252211|1|2137.777777777778|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|5.095|79808,245470,4489,1.6,0.1,16.67,0.05|10x5": [1069110, 364218, 82626.2, 0.008, 0.732824, 1.25249, 0.189932, 0.189932, 0.284898, 0.000237415, 446624, 0.0102825, 0.088764, 79807.7, 205.833, 33754.4, 0.0190095, 0.000300276, 151376, 1.50271, 1.45455],
+  "stud|0.185|0.12950000000000003|0.255|2.1|0.2946|207904.2150252211|1|2137.777777777778|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|5.095|80072,247988,4489,1.6,0.1,16.67,0.05|10x5": [1050510, 358715, 82530.2, 0.008, 0.748205, 1.24625, 0.201619, 0.201619, 0.302429, 0.000252024, 448238, 0.0102825, 0.088764, 80072, 210.455, 34703.1, 0.0199147, 0.000223279, 151376, 1.37848, 1.5],
+  "snow|0.185|0.12950000000000003|0.34|2|0.2946|204654.830636265|1|2137.777777777778|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|5.840|78039,231485,4489,1.6,0.1,16.67,0.05|10x5": [1127420, 371802, 90005.1, 0.008, 0.708865, 1.20809, 0.194976, 0.194976, 0.292464, 0.00024372, 520505, 0.0104458, 0.0895855, 78038.7, 184.061, 29452.8, 0.0208199, -0.000157135, 161236, 1.37906, 1.57895],
+  "gravel|0.185|0.1295|0.425|2|0.3228|214352.6826212345|1|2137.777777777778|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|6.344|84105,277379,4489,1.6,0.1,16.67,0.05|10x5": [1044310, 339649, 78927.5, 0.008, 0.691947, 1.2879, 0.225646, 0.225646, 0.338469, 0.000282057, 504176, 0.00997318, 0.0905914, 84105.3, 269.416, 47437.6, 0.0199147, -0.000198009, 144951, 1.45764, 1.82609],
+  "gravel|0.225|0.135|0.425|2|0.3228|240526.51168418105|1|2600|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.848|89644,304718,5460,1.6,0.1,16.67,0.05|10x5": [1196330, 320702, 75281.1, 0.008, 0.724271, 1.33512, 0.241195, 0.241195, 0.361793, 0.000301494, 633693, 0.0108096, 0.0949368, 89643.6, 355.999, 62912.8, 0.0199147, 0.000503297, 138316, 1.30063, 1.42857],
+  "gravel|0.185|0.1295|0.425|2|0.3228|214352.6826212345|1|2137.777777777778|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|6.344|85617,294534,4489,1.6,0.1,16.67,0.05|10x5": [897059, 349549, 79870.9, 0.013, 0.720197, 1.35787, 0.261312, 0.261312, 0.391968, 0.00032664, 519519, 0.00997318, 0.0905914, 85617.4, 314.14, 58585.5, 0.0199147, -0.0000110865, 144951, 1.75362, 1.57895],
+  "gravel|0.225|0.135|0.425|2|0.3228|240526.51168418105|1|2600|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.848|90978,320705,5460,1.6,0.1,16.67,0.05|10x5": [1159060, 336047, 77383.4, 0.008, 0.715911, 1.33872, 0.258583, 0.258583, 0.387874, 0.000323228, 637577, 0.0108096, 0.0949368, 90977.7, 414.338, 77563.7, 0.0199147, 0.000396705, 138316, 1.5831, 1.41176],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3067|263757.89445377304|1|2600|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.587|130051,457299,5460,1.6,0.1,16.67,0.05|10x5": [1039910, 659969, 118473, 0.008, 0.829311, 1.45556, 0.269912, 0.269912, 0.404868, 0.00033739, 470331, 0.00985752, 0.0880713, 130051, 507.688, 97296.2, 0.0181043, 0.00151365, 139582, 1.50693, 1.71429],
+  "tarmac|0.275|0.1205|0.34|2.3|0.3067|296374.920842909|1|3177.7777777777783|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|7.020|131864,476295,6673,1.6,0.1,16.67,0.05|10x5": [1519620, 539440, 105839, 0.005, 0.772422, 1.48429, 0.266286, 0.266286, 0.399429, 0.000332858, 570981, 0.0107222, 0.0924971, 131864, 668.583, 129084, 0.0181043, 0.00277195, 132903, 1.64489, 1.38462],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3067|263757.89445377304|1|2600|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.587|131202,471856,5460,1.6,0.1,16.67,0.05|10x5": [1009820, 681426, 124598, 0.008, 0.709231, 1.71386, 0.267285, 0.267285, 0.400927, 0.000334106, 473162, 0.00985752, 0.0880713, 131202, 556.837, 111628, 0.0181043, 0.0013673, 139582, 1.64489, 1.5],
+  "tarmac|0.275|0.1205|0.34|2.3|0.3067|296374.920842909|1|3177.7777777777783|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|7.020|132773,488380,6673,1.6,0.1,16.67,0.05|10x5": [1253930, 575439, 107431, 0.008, 0.785792, 1.69469, 0.276691, 0.276691, 0.415037, 0.000345864, 595973, 0.0107222, 0.0924971, 132773, 731.62, 147736, 0.0181043, 0.00270931, 132903, 1.40343, 1.09091],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3067|263757.89445377304|1|2600|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|5.587|128245,435717,5460,1.6,0.1,16.67,0.05|10x5": [1075310, 617303, 117142, 0.008, 0.825282, 1.41758, 0.263062, 0.263062, 0.394593, 0.000328827, 467002, 0.00985752, 0.0880713, 128245, 444.624, 80652.5, 0.0190095, 0.00149886, 139582, 1.39012, 1.41176],
+  "tarmac|0.275|0.1205|0.34|2.3|0.3067|296374.920842909|1|3177.7777777777783|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|7.020|130429,458096,6673,1.6,0.1,16.67,0.05|10x5": [1573080, 545738, 106864, 0.005, 0.770542, 1.46162, 0.241143, 0.241143, 0.361715, 0.000301429, 565952, 0.0107222, 0.0924971, 130429, 587.263, 107304, 0.0190095, 0.00216683, 132903, 1.84941, 2],
+  "winter|0.185|0.1295|0.255|2.1|0.3228|215371.20960943913|1|2137.777777777778|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|5.534|79919,246524,4489,1.6,0.1,16.67,0.05|10x5": [1096690, 333625, 77937.1, 0.008, 0.676718, 1.29248, 0.204836, 0.204836, 0.307254, 0.000256045, 420462, 0.00992601, 0.0903426, 79918.8, 210.697, 34753.2, 0.0190095, 0.0000778125, 148730, 1.57285, 1.6875],
+  "winter|0.225|0.135|0.255|2.1|0.3228|241237.21226839014|1|2600|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.846|85626,274572,5460,1.6,0.1,16.67,0.05|10x5": [1248370, 315654, 72790.2, 0.008, 0.70894, 1.24719, 0.213126, 0.213126, 0.319688, 0.000266407, 531458, 0.0107778, 0.0947736, 85625.9, 279.417, 46255.3, 0.0190095, 0.00076977, 141777, 1.44572, 1.86207],
+  "stud|0.185|0.1295|0.255|2.1|0.3228|215371.20960943913|1|2137.777777777778|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|5.534|80180,249028,4489,1.6,0.1,16.67,0.05|10x5": [1088440, 334625, 77762.2, 0.008, 0.675755, 1.29781, 0.215279, 0.215279, 0.322919, 0.000269099, 421321, 0.00992601, 0.0903426, 80180.1, 215.371, 35723.8, 0.0199147, 0.0000176697, 148730, 1.57285, 1.74194],
+  "stud|0.225|0.135|0.255|2.1|0.3228|241237.21226839014|1|2600|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.846|85859,276986,5460,1.6,0.1,16.67,0.05|10x5": [1240630, 312708, 72565.4, 0.008, 0.715795, 1.24821, 0.225807, 0.225807, 0.33871, 0.000282258, 532263, 0.0107778, 0.0947736, 85859.2, 285.556, 47539.6, 0.0199147, 0.00070132, 141777, 1.30932, 1.86207],
+  "snow|0.185|0.1295|0.34|2|0.3228|211766.25404980592|1|2137.777777777778|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|6.344|78170,232644,4489,1.6,0.1,16.67,0.05|10x5": [1156840, 332197, 83229.7, 0.008, 0.680346, 1.18293, 0.208258, 0.208258, 0.312387, 0.000260323, 492450, 0.010095, 0.0912322, 78170, 188.792, 30377.2, 0.0208199, -0.000857463, 158326, 1.55316, 1.62162],
+  "snow|0.225|0.135|0.34|2|0.3228|237509.01168418105|1|2600|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|7.848|83991,260867,5460,1.6,0.1,16.67,0.05|10x5": [1295180, 318990, 77086.8, 0.008, 0.702901, 1.22213, 0.220723, 0.220723, 0.331084, 0.000275903, 623393, 0.010947, 0.0956385, 83990.7, 250.357, 40411, 0.0208199, 0.000320128, 151032, 1.31701, 1.76471],
+  "gravel|0.205|0.13324999999999998|0.425|2|0.3238|227662.74121702721|1|2368.8888888888887|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.112|86126,289259,4975,1.6,0.1,16.67,0.05|10x5": [1109720, 323421, 74727.7, 0.008, 0.704534, 1.28282, 0.231216, 0.231216, 0.346824, 0.00028902, 568752, 0.0104053, 0.092972, 86125.5, 311.909, 55088.7, 0.0199147, 0.000360395, 141239, 1.54478, 1.63636],
+  "gravel|0.205|0.13324999999999998|0.425|2|0.3238|227662.74121702721|1|2368.8888888888887|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.112|87512,305518,4975,1.6,0.1,16.67,0.05|10x5": [1081700, 323589, 74054.1, 0.008, 0.680731, 1.46762, 0.238673, 0.238673, 0.35801, 0.000298342, 571691, 0.0104053, 0.092972, 87512.3, 363.193, 67952.9, 0.0199147, 0.00023786, 141239, 1.47647, 1.66667],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3025|263757.89445377304|1|2600|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.587|130051,457299,5460,1.6,0.1,16.67,0.05|10x5": [1045230, 647986, 118668, 0.008, 0.843546, 1.47234, 0.266889, 0.266889, 0.400333, 0.000333611, 480393, 0.00985752, 0.0875651, 130051, 504.985, 96544.6, 0.0181043, 0.00158293, 140389, 1.50693, 1.28571],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3025|263757.89445377304|1|2600|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.587|131202,471856,5460,1.6,0.1,16.67,0.05|10x5": [1015580, 677047, 125832, 0.008, 0.799259, 1.59177, 0.273353, 0.273353, 0.41003, 0.000341692, 483107, 0.00985752, 0.0875651, 131202, 554.209, 110828, 0.0181043, 0.00152913, 140389, 1.27517, 1.5],
+  "tarmac|0.225|0.11199999999999999|0.34|2.3|0.3025|263757.89445377304|1|2600|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|5.587|128245,435717,5460,1.6,0.1,16.67,0.05|10x5": [1081150, 620540, 120146, 0.008, 0.821637, 1.45792, 0.257075, 0.257075, 0.385613, 0.000321344, 477106, 0.00985752, 0.0875651, 128245, 441.914, 79977.1, 0.0190095, 0.00157477, 140389, 1.39012, 1.41176],
+  "winter|0.205|0.13324999999999998|0.255|2.1|0.3238|228600.68597018626|1|2368.8888888888887|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.204|82095,259185,4975,1.6,0.1,16.67,0.05|10x5": [1164910, 323321, 74297.6, 0.008, 0.72866, 1.24954, 0.211803, 0.211803, 0.317704, 0.000264754, 475504, 0.0103626, 0.0927499, 82095, 244.452, 40435, 0.0190095, 0.000552038, 144870, 1.44572, 1.54839],
+  "stud|0.205|0.13324999999999998|0.255|2.1|0.3238|228600.68597018626|1|2368.8888888888887|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.204|82336,261607,4975,1.6,0.1,16.67,0.05|10x5": [1157260, 322061, 74145.1, 0.008, 0.733277, 1.26042, 0.224539, 0.224539, 0.336808, 0.000280674, 476306, 0.0103626, 0.0927499, 82336.5, 249.838, 41559.8, 0.0199147, 0.000487218, 144870, 1.24565, 1.6],
+  "snow|0.205|0.13324999999999998|0.34|2|0.3238|224877.3566016426|1|2368.8888888888887|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|7.112|80438,245585,4975,1.6,0.1,16.67,0.05|10x5": [1223930, 326520, 77987.1, 0.008, 0.679348, 1.18281, 0.212582, 0.212582, 0.318872, 0.000265727, 556778, 0.0105341, 0.0936404, 80437.7, 219.111, 35346, 0.0208199, -0.000344939, 154254, 1.2606, 1.71429],
+  "gravel|0.185|0.1295|0.425|2|0.3198|214352.6826212345|1|2137.777777777778|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|6.344|84105,277379,4489,1.6,0.1,16.67,0.05|10x5": [1048970, 338763, 79498.3, 0.008, 0.698684, 1.30069, 0.224016, 0.224016, 0.336024, 0.00028002, 511463, 0.00997318, 0.0902373, 84105.3, 268.209, 47154, 0.0199147, -0.000143095, 145520, 1.45764, 1.75],
+  "gravel|0.215|0.129|0.425|2|0.3198|234370.59219967292|1|2484.4444444444443|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.361|93174,311630,5217,1.6,0.1,16.67,0.05|10x5": [1160000, 362685, 81187.2, 0.008, 0.733117, 1.3596, 0.238701, 0.238701, 0.358051, 0.000298376, 599324, 0.0106005, 0.0934969, 93174.3, 334.305, 58733, 0.0199147, 0.000333179, 140446, 1.30063, 1.36364],
+  "gravel|0.185|0.1295|0.425|2|0.3198|214352.6826212345|1|2137.777777777778|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|6.344|85617,294534,4489,1.6,0.1,16.67,0.05|10x5": [901766, 349109, 80020.5, 0.013, 0.726279, 1.38163, 0.254022, 0.254022, 0.381034, 0.000317528, 526518, 0.00997318, 0.0902373, 85617.4, 312.908, 58260.8, 0.0199147, 0.0000841849, 145520, 1.64271, 1.57895],
+  "gravel|0.215|0.129|0.425|2|0.3198|234370.59219967292|1|2484.4444444444443|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.361|94714,329551,5217,1.6,0.1,16.67,0.05|10x5": [1104540, 361761, 82781.9, 0.008, 0.723841, 1.3581, 0.256934, 0.256934, 0.3854, 0.000321167, 604996, 0.0106005, 0.0934969, 94714.3, 389.94, 72535.1, 0.0199147, 0.000218415, 140446, 1.47647, 1.66667],
+  "winter|0.185|0.1295|0.255|2.1|0.3198|215371.20960943913|1|2137.777777777778|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|5.534|79919,246524,4489,1.6,0.1,16.67,0.05|10x5": [1102250, 331945, 78519.9, 0.008, 0.68074, 1.31272, 0.203524, 0.203524, 0.305286, 0.000254405, 427023, 0.00992601, 0.0899893, 79918.8, 209.611, 34529.2, 0.0190095, 0.000130802, 149314, 1.37848, 1.6875],
+  "winter|0.215|0.129|0.255|2.1|0.3198|234773.4968096566|1|2484.4444444444443|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.421|88763,278822,5217,1.6,0.1,16.67,0.05|10x5": [1201010, 344710, 80226.7, 0.008, 0.71993, 1.26229, 0.210788, 0.210788, 0.316183, 0.000263486, 503473, 0.0105823, 0.0934034, 88762.6, 261.947, 43153.9, 0.0190095, 0.000666662, 143857, 1.44572, 1.8],
+  "stud|0.185|0.1295|0.255|2.1|0.3198|215371.20960943913|1|2137.777777777778|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|5.534|80180,249028,4489,1.6,0.1,16.67,0.05|10x5": [1094160, 332249, 78333.7, 0.008, 0.680026, 1.31803, 0.215215, 0.215215, 0.322823, 0.000269019, 427850, 0.00992601, 0.0899893, 80180.1, 214.274, 35494.9, 0.0199147, 0.0000643305, 149314, 1.57285, 1.5],
+  "stud|0.215|0.129|0.255|2.1|0.3198|234773.4968096566|1|2484.4444444444443|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.421|89030,281477,5217,1.6,0.1,16.67,0.05|10x5": [1193150, 341938, 79958.8, 0.008, 0.727157, 1.26642, 0.223406, 0.223406, 0.335109, 0.000279257, 504277, 0.0105823, 0.0934034, 89030, 267.762, 44358.6, 0.0199147, 0.000599484, 143857, 1.24565, 1.44828],
+  "snow|0.185|0.1295|0.34|2|0.3198|211766.25404980592|1|2137.777777777778|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|6.344|78170,232644,4489,1.6,0.1,16.67,0.05|10x5": [1163450, 329827, 83834, 0.008, 0.68456, 1.19542, 0.20684, 0.20684, 0.31026, 0.00025855, 499755, 0.010095, 0.0908759, 78170, 187.77, 30176.7, 0.0208199, -0.000802949, 158947, 1.55316, 1.62162],
+  "snow|0.215|0.129|0.34|2|0.3198|231353.09219967292|1|2484.4444444444443|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|7.361|86928,263866,5217,1.6,0.1,16.67,0.05|10x5": [1258920, 365080, 86242.1, 0.008, 0.703388, 1.23563, 0.210471, 0.210471, 0.315706, 0.000263088, 589208, 0.0107388, 0.0942059, 86928.5, 234.296, 37643.6, 0.0208199, 0.00018806, 153328, 1.50271, 1.71429],
+  "gravel|0.205|0.1435|0.425|2|0.3213|223973.72766967115|1|2368.8888888888887|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.058|77072,263532,4975,1.6,0.1,16.67,0.05|10x5": [1110750, 271136, 65329.4, 0.008, 0.700059, 1.32418, 0.226405, 0.226405, 0.339608, 0.000283006, 570541, 0.0105766, 0.0935568, 77071.7, 309.591, 55199.1, 0.0199147, 0.000119977, 140357, 1.54478, 1.90909],
+  "gravel|0.205|0.1435|0.425|2|0.3213|223973.72766967115|1|2368.8888888888887|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|7.058|78173,276872,4975,1.6,0.1,16.67,0.05|10x5": [953966, 275311, 66449.3, 0.013, 0.68612, 1.50406, 0.250625, 0.250625, 0.375938, 0.000313282, 586727, 0.0105766, 0.0935568, 78173.2, 359.326, 67922.8, 0.0199147, 0.0000628516, 140357, 1.47647, 1.66667],
+  "winter|0.205|0.1435|0.255|2.1|0.3213|225473.3069102976|1|2368.8888888888887|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|6.157|73677,237967,4975,1.6,0.1,16.67,0.05|10x5": [1160530, 261394, 62529.4, 0.008, 0.721582, 1.28425, 0.20735, 0.20735, 0.311026, 0.000259188, 477926, 0.0105063, 0.0931939, 73677, 243.122, 40523.5, 0.0190095, 0.000307154, 144180, 1.37848, 1.54839],
+  "stud|0.205|0.1435|0.255|2.1|0.3213|225473.3069102976|1|2368.8888888888887|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|6.157|73870,239997,4975,1.6,0.1,16.67,0.05|10x5": [1153560, 261471, 62428.6, 0.008, 0.727628, 1.29243, 0.219772, 0.219772, 0.329658, 0.000274715, 478646, 0.0105063, 0.0931939, 73870.4, 248.397, 41642.2, 0.0199147, 0.000243333, 144180, 1.44572, 1.6],
+  "snow|0.205|0.1435|0.34|2|0.3213|221387.29909824257|1|2368.8888888888887|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|7.058|72319,226495,4975,1.6,0.1,16.67,0.05|10x5": [1096850, 276923, 66820.8, 0.013, 0.680388, 1.22746, 0.217174, 0.217174, 0.325761, 0.000271467, 571977, 0.0107002, 0.0941922, 72319, 218.568, 35520.3, 0.0208199, -0.000510074, 153351, 1.2606, 1.71429],
+  "gravel|0.175|0.1225|0.425|2|0.313|207664.15071512305|1|2022.222222222222|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.870|88014,283689,4247,1.6,0.1,16.67,0.05|10x5": [911226, 386336, 91479.2, 0.013, 0.745621, 1.30628, 0.24081, 0.24081, 0.361216, 0.000301013, 495658, 0.00973795, 0.0881968, 88013.8, 247.072, 43061, 0.0199147, 0.000239684, 148887, 1.22727, 1.75],
+  "gravel|0.175|0.1225|0.425|2|0.313|207664.15071512305|1|2022.222222222222|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.870|89810,303232,4247,1.6,0.1,16.67,0.05|10x5": [863414, 406696, 92068.6, 0.013, 0.731113, 1.38443, 0.252837, 0.252837, 0.379256, 0.000316047, 500342, 0.00973795, 0.0881968, 89809.6, 289.188, 53337.6, 0.0199147, 0.0000268174, 148887, 1.64271, 1.8],
+  "tarmac|0.215|0.11549999999999999|0.34|2.3|0.306|256642.7238967138|1|2484.4444444444443|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.400|120610,425330,5217,1.6,0.1,16.67,0.05|10x5": [1022870, 588846, 112849, 0.008, 0.734241, 1.50424, 0.254945, 0.254945, 0.382417, 0.000318681, 454658, 0.00968056, 0.0870652, 120610, 471.515, 90640.7, 0.0181043, 0.00116207, 141195, 1.50693, 1.71429],
+  "tarmac|0.215|0.11549999999999999|0.34|2.3|0.306|256642.7238967138|1|2484.4444444444443|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|5.400|121652,438575,5217,1.6,0.1,16.67,0.05|10x5": [1005360, 595674, 110124, 0.008, 0.728804, 1.64025, 0.261679, 0.261679, 0.392519, 0.000327099, 456299, 0.00968056, 0.0870652, 121652, 516.902, 103958, 0.0181043, 0.000948102, 141195, 1.64489, 5],
+  "tarmac|0.215|0.11549999999999999|0.34|2.3|0.306|256642.7238967138|1|2484.4444444444443|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|5.400|118974,405660,5217,1.6,0.1,16.67,0.05|10x5": [1058600, 586041, 113494, 0.008, 0.796552, 1.46992, 0.258076, 0.258076, 0.387114, 0.000322595, 451313, 0.00968056, 0.0870652, 118974, 413.215, 75164.8, 0.0190095, 0.00118177, 141195, 1.5831, 1.41176],
+  "winter|0.175|0.1225|0.255|2.1|0.313|208348.2511080221|1|2022.222222222222|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|5.120|83309,249734,4247,1.6,0.1,16.67,0.05|10x5": [1065200, 384442, 90096, 0.008, 0.689277, 1.30448, 0.200481, 0.200481, 0.300721, 0.000250601, 405899, 0.00970597, 0.0880285, 83309.3, 192.554, 31491.5, 0.0190095, 0.000138008, 152640, 1.88675, 1.76471],
+  "stud|0.175|0.1225|0.255|2.1|0.313|208348.2511080221|1|2022.222222222222|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|5.120|83616,252515,4247,1.6,0.1,16.67,0.05|10x5": [1055960, 384432, 89856.4, 0.008, 0.688782, 1.30995, 0.212051, 0.212051, 0.318077, 0.000265064, 406804, 0.00970597, 0.0880285, 83616.4, 196.902, 32379.2, 0.0199147, 0.0000697489, 152640, 1.88675, 1.63636],
+  "snow|0.175|0.1225|0.34|2|0.313|205077.72214369447|1|2022.222222222222|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|5.870|81299,234459,4247,1.6,0.1,16.67,0.05|10x5": [1134610, 381650, 96497.6, 0.008, 0.677879, 1.19484, 0.204335, 0.204335, 0.306502, 0.000255419, 473773, 0.00986076, 0.0888411, 81299.5, 172.083, 27467.5, 0.0208199, -0.000645595, 162587, 1.6627, 1.38462],
+  "gravel|0.175|0.12249999999999997|0.425|2|0.2876|200667.37922780792|1|2022.222222222222|2.076|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.393|87905,282557,4247,1.6,0.1,16.67,0.05|10x5": [967512, 426645, 97178.8, 0.008, 0.74261, 1.3139, 0.204874, 0.204874, 0.307311, 0.000256093, 504899, 0.0100775, 0.086853, 87904.6, 242.644, 42045.8, 0.0199147, -0.000148375, 151190, 1.82697, 1.44],
+  "gravel|0.175|0.12249999999999997|0.425|2|0.2876|200667.37922780792|1|2022.222222222222|2.764|0.36|0.011|0.85|0.018480000000000003|0.7|0.6|0.8|5.393|89724,302260,4247,1.6,0.1,16.67,0.05|10x5": [817244, 476066, 97781.4, 0.013, 0.748768, 1.32764, 0.22388, 0.22388, 0.33582, 0.00027985, 517328, 0.0100775, 0.086853, 89724.2, 284.624, 52166.5, 0.0199147, -0.0000785015, 151190, 1.38309, 1.5],
+  "tarmac|0.175|0.10590000000000002|0.34|2.3|0.271|219593.62654828213|1|2022.222222222222|1.961|0.18|0.0075|1|0.0168|0.7|0.6|0.8|3.893|120578,409216,4247,1.6,0.1,16.67,0.05|10x5": [783667, 805589, 141114, 0.008, 0.825162, 1.41007, 0.228362, 0.228362, 0.342543, 0.000285453, 390466, 0.00920893, 0.0803863, 120578, 346.257, 65165.4, 0.0181043, 0.000881787, 152926, 1.70605, 2.625],
+  "tarmac|0.175|0.10590000000000002|0.34|2.3|0.271|219593.62654828213|1|2022.222222222222|2.425|0.18|0.0075|1|0.0168|0.7|0.6|0.8|3.893|121967,425674,4247,1.6,0.1,16.67,0.05|10x5": [759196, 829253, 141252, 0.008, 0.793977, 1.42127, 0.233369, 0.233369, 0.350054, 0.000291712, 392263, 0.00920893, 0.0803863, 121967, 381.759, 75148.5, 0.0181043, 0.000893722, 152926, 1.50693, 3],
+  "tarmac|0.175|0.10590000000000002|0.34|2.3|0.271|219593.62654828213|1|2022.222222222222|1.841|0.3|0.008|1|0.01764|0.7|0.6|0.8|3.893|118412,385298,4247,1.6,0.1,16.67,0.05|10x5": [815824, 772240, 141817, 0.008, 0.849727, 1.41293, 0.230355, 0.230355, 0.345533, 0.000287944, 388104, 0.00920893, 0.0803863, 118412, 301.247, 53702, 0.0190095, 0.00109273, 152926, 1.75362, 1.57895],
+  "winter|0.175|0.12249999999999997|0.255|2.1|0.2876|201001.64104634122|1|2022.222222222222|1.614|0.33|0.0085|0.6|0.01764|0.7|0.6|0.8|4.705|83175,248529,4247,1.6,0.1,16.67,0.05|10x5": [1018670, 434736, 95347.2, 0.008, 0.730791, 1.23308, 0.184336, 0.184336, 0.276504, 0.00023042, 425993, 0.0100607, 0.0867685, 83174.7, 188.851, 30743.3, 0.0190095, 0.0000954685, 154857, 1.50271, 1.71429],
+  "stud|0.175|0.12249999999999997|0.255|2.1|0.2876|201001.64104634122|1|2022.222222222222|1.669|0.33|0.0085|0.6|0.018480000000000003|0.7|0.6|0.8|4.705|83485,251322,4247,1.6,0.1,16.67,0.05|10x5": [1009410, 417864, 94803.9, 0.008, 0.746362, 1.23456, 0.195339, 0.195339, 0.293009, 0.000244174, 426759, 0.0100607, 0.0867685, 83485.3, 193.157, 31614.2, 0.0199147, 0.0000150933, 154857, 1.69242, 1.58824],
+  "snow|0.175|0.12249999999999997|0.34|2|0.2876|198080.95065637934|1|2022.222222222222|2.184|0.42|0.012|0.6|0.01932|0.7|0.6|0.8|5.393|81141,233144,4247,1.6,0.1,16.67,0.05|10x5": [1106180, 434510, 105054, 0.008, 0.697963, 1.19646, 0.190924, 0.190924, 0.286386, 0.000238655, 493429, 0.0102091, 0.0875146, 81140.8, 168.461, 26770.1, 0.0208199, -0.000398384, 165052, 1.32427, 1.5],
+  "mt|0.318|0.2385|0.8|2.8|0.47|600000|0.8|15264|2.3|0.45|0.015|0.65|||||||10x5": [1914490, 1914490, 58140.4, 0.013, 0.38597, 1.70704, 0.136281, 0.136281, 0.204421, 0.000170351, 20000000, 0.02544, 0.183668, 116376, 749.038, 174192, 0.0150869, 0.0019034, 307461, 1, 1.2766],
+  "road|0.215|0.129|0.25|4|0.354|300000|0.9|6688.888888888889|2|0.3|0.0085|0.8|||||||10x5": [556424, 556424, 119251, 0.008, 0.834381, 1.54054, 0.17645, 0.17645, 0.264675, 0.000220563, 20000000, 0.0222963, 0.151601, 151701, 763.145, 162754, 0.0150869, 0.000433966, 238625, 1.30932, 1.42857],
+  "winter|0.215|0.09675|0.3|4|0.354|300000|0.9|6688.888888888889|1.45|0.35|0.009|0.6|||||||10x5": [556870, 556870, 75639.4, 0.013, 0.912661, 1.31523, 0.143825, 0.143825, 0.215738, 0.000179782, 20000000, 0.0222963, 0.151601, 104716, 533.389, 96302.1, 0.0150869, 0.00125387, 238625, 1.27346, 1.45946] } };
 // ---- the car's motion ----
 // One rigid body, the car, carried on four wheels. Each wheel hangs on a strut that slides along the body's own up (on a
 // bank, or with the body leaning, the spring pushes along the car, not straight up), with the wheel's own mass on it;
@@ -7133,7 +7562,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const awx = Lx * cl * cd - Ex * sl - Fx0 * cl * sd, awy = Ly * cl * cd - Ey * sl - Fy0 * cl * sd, awz = Lz * cl * cd - Ez * sl - Fz0 * cl * sd;
     const uwx = Lx * sl * cd + Ex * cl - Fx0 * sl * sd, uwy = Ly * sl * cd + Ey * cl - Fy0 * sl * sd, uwz = Lz * sl * cd + Ez * cl - Fz0 * sl * sd;
     // the tyre's radius (a punctured tyre sits lower; a lost wheel leaves its hub) and the round of its shoulder
-    const Rw = DR ? (DR.w[i].off ? (S.wheel ? 0.42 * R0 : 0.13) : DR.w[i].flat ? R0 - (S.wheel ? 0.21 * R0 : 0.065) : R0) : R0, rt = Math.min(0.1, Rw * 0.5);
+    const Rw = DR ? (DR.w[i].off ? (S.wheel ? 0.42 * R0 : 0.13) : DR.w[i].flat ? R0 - (S.wheel ? 0.21 * R0 : S.mousse ? 0.02 : 0.065) : R0) : R0, rt = Math.min(0.1, Rw * 0.5);
     // where the tread comes nearest the ground: down the wheel's plane toward the ground and round the shoulder
     const touch = (n, o) => { const na = n[0] * awx + n[1] * awy + n[2] * awz; let dx = -n[0] + na * awx, dy = -n[1] + na * awy, dz = -n[2] + na * awz; const dl = Math.hypot(dx, dy, dz);
       if (dl > 1e-3) { dx /= dl; dy /= dl; dz /= dl; } else { dx = 0; dy = 0; dz = 0; } o[0] = Cx + (Rw - rt) * dx - rt * n[0]; o[1] = Cy + (Rw - rt) * dy - rt * n[1]; o[2] = Cz + (Rw - rt) * dz - rt * n[2]; return o; };
@@ -7192,15 +7621,18 @@ function stepCar(c, S, inp, dt, T, opts) {
     // tyre: an elastic sidewall, then (past about 7 cm, five times the static load) the rim crushing the tyre against
     // the ground, which is stiff on the way in and gives almost nothing back on the way out
     const prate = clamp((pen - (wh.penP != null ? wh.penP : pen)) / dt, -20, 20); wh.penP = pen;
-    const kt = ty ? WH.kt * clamp(0.55 + 0.45 * ty[i].p / S.pOpt, 0.75, 1.25) : WH.kt; wh.ktK = kt / WH.kt; // (softer at a lower running pressure)
+    const shx = S.tySh ? S.tySh[G.front ? 0 : 1] : null, udy = shx ? au / shx.vDyn : 0, ktA = WH.kt * (S.ktAx ? S.ktAx[G.front ? 0 : 1] : 1) * (shx ? 1 + shx.dynK * udy * udy / (1 + udy * udy) : 1), kt = ty ? ktA * clamp(0.55 + 0.45 * ty[i].p / S.pOpt, 0.75, 1.25) : ktA; wh.ktK = kt / WH.kt;
+    // (a tyre with a data sheet: its own radial stiffness, a little stiffer rolling fast (dynK: its rubber worked quickly), its
+    // rim's flange (rimDist) and its curve's rise (cvQ, against its deflection under its nominal load, kd1)
+    const knee = shx ? shx.rimDist : 0.07, kq = shx ? shx.cvQ : 0, kd1 = shx ? shx.Fz0 / kt : 1; // (softer at a lower running pressure)
     // a tyre squashed to its rim has been through a heavy hit: as it comes back out, its sidewall returns well under
     // half of what it took (the rubber and the air warm up), so a big landing is not handed straight back as a bounce.
     // It comes back out along a line from the deepest it was squashed (pm) to a quarter of the way back, and goes back
     // in along the same line; after the hit it recovers (pm closes on where it is now). The loop follows how far the
     // tyre is squashed, not which way it moves this instant: a load held steady stays steady, step after step.
     let pm = wh.pm || 0; if (pen > pm) pm = pen; else pm -= (pm - Math.max(pen, 0)) * Math.min(1, dt / 0.15);
-    if (pm <= 0.07 || pen < 0.015) pm = 0; wh.pm = pm;
-    let Fz = tyreLoad(kt, Math.max(0, pen)); if (pm > 0) { const p0 = 0.75 * pm; Fz = Math.min(Fz, tyreLoad(kt, pm) * clamp((pen - p0) / (pm - p0), 0, 1)); }
+    if (pm <= knee || pen < 0.015) pm = 0; wh.pm = pm;
+    let Fz = tyreLoad(kt, Math.max(0, pen), knee, kq, kd1); if (pm > 0) { const p0 = 0.75 * pm; Fz = Math.min(Fz, tyreLoad(kt, pm, knee, kq, kd1) * clamp((pen - p0) / (pm - p0), 0, 1)); }
     Fz += WH.ct * prate; const dl = bog && TD.dual ? 2 : 1; if (dl > 1) Fz *= dl; // (twin tyres: two of them pressed as far)
     // (a bogie's other tyre: as much again while its beam swings freely; at the beam's stop the lower tyre carries less, or
     // nothing. bS: the front tyre's share, for the tyre forces)
@@ -7255,7 +7687,7 @@ function stepCar(c, S, inp, dt, T, opts) {
       const X = FT_X; X.c = c; X.T = T; X.info = info; X.wh = wh; X.i = i; X.TB = TB; X.TP = TP; X.tw = tw; X.TC = TC; X.WH = WH; X.pD = tyrePoptOf(TC); X.pOpt = S.pOpt || pR; X.fam = fam; X.km = km; X.R0 = R0; X.dt = dt;
       X.V = V; X.Wv = Wv; X.cx = c.x; X.cy = c.yb; X.cz = c.z; X.Ex = Ex; X.Ey = Ey; X.Ez = Ez; X.hx = wh.hx; X.hz = wh.hz; X.pen = wh.pen; X.vx = vx; X.vy = vy; X.slipV = slipV; X.heat = TY.heat;
       X.wearK = tw ? TY.abr * TC.wear / (WH.tk ? TYRE_LIFE * WH.tk[0] * K.NT[i] : TYRE_LIFE) : 0; X.Topt = TC ? TC.Topt : 40; ftWheel(X);
-      wh.ftFz = wh.Fz; if (wh.Fz > 0) anyContact = true; Fzsum += wh.Fz; if (wh.rho > maxRho) maxRho = wh.rho; wh.ux *= 0.8; wh.uy *= 0.8;
+      wh.ftFz = wh.Fz; wh.crr0 = TB.crr0 || 0.014; if (wh.Fz > 0) anyContact = true; Fzsum += wh.Fz; if (wh.rho > maxRho) maxRho = wh.rho; wh.ux *= 0.8; wh.uy *= 0.8;
       wh.Mk = G.front && wh.Fz > 0 ? wh.Mz - wh.Fy * R0 * Math.tan(SP.caster * Math.PI / 180) - G.side * (wh.Fx * (SP.scrub || 0) + (wh.Td || 0) * ((SP.kpo || 0) - (SP.scrub || 0)) / R0) : 0;
       const gx = wh.Fx * tl[0] + wh.Fy * tt[0], gy = wh.Fx * tl[1] + wh.Fy * tt[1], gz = wh.Fx * tl[2] + wh.Fy * tt[2];
       wh.fF = gx * Fx0 + gy * Fy0 + gz * Fz0; wh.fL = gx * Lx + gy * Ly + gz * Lz; continue;
@@ -7280,7 +7712,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     TY.r = TP.r; TY.vd = TP.vd; TY.cam = TP.cam; TY.crr = TP.crr * (1 + 0.15 * (au / 27.8) * (au / 27.8)) + Math.min(0.15, MX.pool * (0.02 + 0.0005 * au * au)) + (wh.bankH ? 0.3 * Math.min(1.4, wh.bankH / 0.45) : 0); TY.heat = TP.heat; TY.abr = TP.abr; TY.pav = TP.pav; // (water's drag held under the grip it leaves)
     // the grip there, less in standing water, on a punctured or lost tyre, and on its sidewall (a wheel far over); a car
     // prepared better or worse than it was built (gripK: a rival's, see tunedSpec)
-    const km = (S.gripK || 1) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (Dw ? (Dw.off ? 0.4 : Dw.flat ? 0.5 : 1) : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
+    const km = (S.gripK || 1) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (Dw ? (Dw.off ? 0.4 : Dw.flat ? (S.mousse ? 0.85 : 0.5) : 1) : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
     // each of the corner's patches (a bogie's two tyres, each with its share of the load: see beamGround), its own slip and
     // its own load; their forces summed, and their lateral forces' turn about the pivot added to the aligning torque.
     // A patch of twin tyres (nd): each of the pair works with half its load, the pair giving twice one's force
@@ -7404,7 +7836,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const mu = ax ? (padT ? PAD_MU.tarmac * (0.72 + 0.28 * smooth(40, 300, tB)) : PAD_MU.gravel * (0.9 + 0.1 * smooth(40, 180, tB))) * brakeFade(tB) : 0;
     const bwI = inp.bw ? inp.bw[i] || 0 : 0; // (a stability system's pressure at this caliper alone: see escHelp)
     const Tp = ax ? Math.max(G.front ? pF : pR, bwI * BRK_P * (S.bpK || 1)) * ax.tq * mu : (bT * (AB ? (G.front ? AB.kF : AB.kR) : G.front || inp.kR == null ? 1 : inp.kR) + bwI * m * g * SP.brake * R0) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(tB);
-    let Tb = Tp + ((wh.ty ? (wh.ftOn ? Math.max(0, wh.ty.crr - 0.014 * (1 + 0.15 * (au / 27.8) * (au / 27.8)) * smooth(0.02, 0.5, au)) : wh.ty.crr) : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? 0.16 : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
+    let Tb = Tp + ((wh.ty ? (wh.ftOn ? Math.max(0, wh.ty.crr - (wh.crr0 || 0.014) * (1 + 0.15 * (au / 27.8) * (au / 27.8)) * smooth(0.02, 0.5, au)) : wh.ty.crr) : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? (S.mousse ? 0.05 : 0.16) : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
     // (the hydraulic handbrake: its own master cylinder on the rear calipers, its pads as hot as the discs)
     const Th = G.front ? 0 : ax ? (S.hbT || 1700) * pH * mu / (padT ? PAD_MU.tarmac : PAD_MU.gravel) : (AB ? AB.kP > 0 : hb) ? (S.hbT || 1700) * (AB ? AB.kP : 1) : 0; Tb += Th;
     const w0 = Math.abs(wh.omega), d = Tb * dt / IW[i]; if (w0 <= d) wh.omega = 0; else wh.omega -= Math.sign(wh.omega) * d;
@@ -9225,7 +9657,7 @@ function stagePace(T, S, wet, tyre) {
   const mu = new Float64Array(n), muB = new Float64Array(n), crr = new Float64Array(n), vmax = new Float64Array(n), v = new Float64Array(n);
   for (let k = 0; k < n; k++) {
     const p = P[a0 + k], surf = p.surf || T.surface, TY = TYRE[surf] || TYRE.gravel, dist = (a0 + k) * STEP;
-    const muT = (T.lay ? (layMu(p, dist, L.o[k] - LAY_TRK) + layMu(p, dist, L.o[k] + LAY_TRK)) / 2 : TY.mu * (1 - wet * (1 - (WET_GRIP[surf] || 1)))) * (S.gripK || 1); // (gripK: see tunedSpec)
+    const muT = (T.lay ? (layMu(p, dist, L.o[k] - LAY_TRK) + layMu(p, dist, L.o[k] + LAY_TRK)) / 2 : TY.mu * (1 - wet * (1 - (WET_GRIP[surf] || 1)))) * (S.gripK || 1) * tyreEraMu(S, fam || TY.home); // (gripK: see tunedSpec; the era's rubber, tyreEraMu)
     mu[k] = muT * paceGrip(muT); muB[k] = Math.min(1.3, 0.97 * muT); crr[k] = TY.crr;
     // (a tall, heavy vehicle: driven to keep it on its wheels, well short of where it would roll over, and its brakes
     // stopping it no harder than they can)
@@ -10142,7 +10574,7 @@ function driveHelp(c, S, I, H, dt, A, T) {
       // (a turbo without anti-lag drops off its boost once the revs fall to the road speed, and the car bogs; with one of
       // those it goes on trimming the clutch in first gear, as when pulling away, until first alone holds the engine at
       // the top of the turbo's spool)
-      const vb = c.gear === 1 && S.boost === 'turbo' && !S.als && S.spool ? S.spool[1] * Math.PI / 30 * WHEEL.R / (S.gears[0] * (S.final || 1) * gearK(S)) : 0;
+      const vb = c.gear === 1 && S.boost === 'turbo' && !S.als && S.spool ? S.spool[1] * Math.PI / 30 * wheelOf(S).R / (S.gears[0] * (S.final || 1) * gearK(S)) : 0;
       const cut = smooth(0, 1, ex), launch = S.tc ? 0 : 1 - smooth(Math.max(3, 0.75 * vb), Math.max(5, vb), au);
       // (the clutch held to the torque the driven tyres can take - each one's grip at its peak, from the load on it and
       // the surface under it, back through the gearing - trimmed slowly by how far past what is allowed they slip, H.lg,
@@ -10795,7 +11227,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '6E2C';
+const SR86_BUILD = '3C9D';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -21264,7 +21696,18 @@ function fitSnorkel(rig) {
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.04, 10), mat); foot.position.copy(pts[0]).add(new THREE.Vector3(0, -0.03, 0)); g.add(foot);
   rig.body.add(g); rig.snorkel = g;
 }
-function buildCarMesh(S, ghost, night) { const r = factoryFor(S.id).buildCar(S.id, { ghost, num: S.num, night: !!night }), rig = r.isObject3D ? r.rig : r; rig.root.userData.carRoot = true; if (S.cu) cuStrip(rig, S); return Object.assign({}, rig); }
+function buildCarMesh(S, ghost, night) { const r = factoryFor(S.id).buildCar(S.id, { ghost, num: S.num, night: !!night }), rig = r.isObject3D ? r.rig : r; rig.root.userData.carRoot = true; if (S.cu) cuStrip(rig, S); rig.tyres0 = S.tyres ? S.tyres.slice() : null; return Object.assign({}, rig); }
+// a car's wheels drawn at the size of the tyres it runs (P: the car as it runs, with its tyres' data sheets, tySh): a
+// model's wheels are drawn on the rally wheel (wheelR) at its own tyres' widths (tyres0), so each is scaled to the
+// wheel's radius, and across to its axle's tyre's width (within a quarter either way: the arches were drawn for its own).
+// sc0: the scale, which a wheel refitted after it was lost is given back (wheelSc)
+function tyreMeshFit(m, P) {
+  if (!m || !m.wheels || !P || !P.tySh || !m.tyres0) return m;
+  const s = wheelOf(P).R / (m.wheelR || WHEEL.R);
+  m.wheels.forEach((w, i) => { if (!w || !w.w || w.w2) return; const j = i < 2 ? 0 : 1, sx = clamp(P.tyres[j] / (m.tyres0[j] || P.tyres[j]), 0.8, 1.25); w.sc0 = [sx, s, s]; if (!(m.dv && m.dv.lost && m.dv.lost[i])) w.w.scale.set(sx, s, s); });
+  return m;
+}
+const wheelSc = w => { const c = w.sc0; if (c) w.w.scale.set(c[0], c[1], c[2]); else w.w.scale.setScalar(1); if (w.w2) w.w2.scale.setScalar(1); };
 // a stage run in the dark (from dusk to dawn) gets the night kit: the lamp pods the crews fitted for night stages
 const NIGHT_TIMES = ['dusk', 'evening', 'night', 'midnight', 'dawn'], nightKit = T => !!T && NIGHT_TIMES.includes(stageCond(T).time);
 // throw a car model away: out of whichever scene holds it (the driven car sits in the cockpit scene while you look from
@@ -23271,7 +23714,7 @@ const Snd = {
       if (live && on && E.g[i] != null && Math.abs(gw - E.g[i]) < 0.5) { const vg = (gw - E.g[i]) / dt, d = Math.abs(vg - E.vg[i]); E.vg[i] = vg; rs += Math.min(1.5, d / 5); nr++; if (d > 3.2 && sp > 4) ev.push(['knock', { i, v: Math.min(1.5, (d - 2) / 8) }]); }
       else E.vg[i] = 0;
       E.g[i] = gw;
-      w.push({ on: on ? 1 : 0, s: sc, ld: wh.Fz / (m * 9.81 / 4), vr: fl === 2 ? sp : Math.abs(wh.omega) * WHEEL.R, vs: Math.hypot(wh.slipL || 0, wh.slipT || 0), rho: wh.rho || 0, dv: rate, fl, pan, gl: Math.sqrt((1 + pan) / 2), gr: Math.sqrt((1 - pan) / 2), ga });
+      w.push({ on: on ? 1 : 0, s: sc, ld: wh.Fz / (m * 9.81 / 4), vr: fl === 2 ? sp : Math.abs(wh.omega) * wheelOf(S).R, vs: Math.hypot(wh.slipL || 0, wh.slipT || 0), rho: wh.rho || 0, dv: rate, fl, pan, gl: Math.sqrt((1 + pan) / 2), gr: Math.sqrt((1 - pan) / 2), ga });
     }
     // how rough the going is: the surface's own texture (a second pass over gravel or snow is cut up more), and the
     // road's shape changing under the wheels
@@ -24776,7 +25219,10 @@ function drawMap(cv, live) {
 // as measured roads of their kind, with potholes and washboard), so the same seed is another road and boards start again
 // version 11: the roadsides built as each country builds them (deeper ditches, concrete and paved gutters, table drains,
 // hedge banks), hedges that give and fences and signs that break, so the same seed is another road and boards start again
-const STAGE_VER = 11, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag() + (typeof Tyres !== 'undefined' ? Tyres.tag() : ''); // (~fr: on the flexible-ring tyres, a board of their own)
+// version 12: every rally car on its real counterpart's tyres - the sizes it ran on each surface, built and compounded
+// as its era built them, studded as its era's rules allowed - so the same seed is driven at other speeds and boards
+// start again
+const STAGE_VER = 12, recKey = seed => (STAGE_VER > 1 ? seed + '~' + STAGE_VER : String(seed)) + regTag() + condTag() + (typeof Tyres !== 'undefined' ? Tyres.tag() : ''); // (~fr: on the flexible-ring tyres, a board of their own)
 // a stage's times are kept under the stage's own key; each time keeps the assists preset it was driven on (lv)
 const runKey = seed => recKey(seed);
 // (a stage laid out in a country other than its seed's own is a stage of its own, with a board of its own)
@@ -25011,7 +25457,7 @@ function startRun() {
   { const env = stageEnv(G.T); G.phys = setupSpec(G.spec, G.rally ? Rally.setupNow(G.spec, env) : setupFor(G.spec, env), env); }
   G.ftOn = Tyres.ring() && !G.phys.tandem; if (G.ftOn) { try { ftPrep(G.phys); } catch (e) { G.ftOn = false; } } // (the flexible-ring tyres, see Tyres)
   Snd.init(); Snd.mute(false); Snd.setCar(G.phys); Snd.stage(G.T); Snd.engineOn(true); G.demo = null; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); G.state = 'countdown'; G.cd = 5.999; G.cdLast = 6; G.time = 0; G.penalty = 0; G.finished = false; G.finShown = false; G.finT = 0; G.crewMood = null; G.orbitAt = null; G.orbitOff = false; G.orbitWas = false; orbitOff();
-  dropCarMesh(G.mesh); G.mesh = buildCarMesh(G.spec, false, nightKit(G.T)); if (G.phys.snorkel) fitSnorkel(G.mesh); scene.add(G.mesh.root);
+  dropCarMesh(G.mesh); G.mesh = buildCarMesh(G.spec, false, nightKit(G.T)); tyreMeshFit(G.mesh, G.phys); if (G.phys.snorkel) fitSnorkel(G.mesh); scene.add(G.mesh.root);
   if (G.ghostMesh) { dropCarMesh(G.ghostMesh); G.ghostMesh = null; }
   // the assists this stage is driven with (see Ctl): in Hardcore none, and the driver's own view (see Hard)
   G.hard = Hard.current();
@@ -25019,7 +25465,7 @@ function startRun() {
   G.run = G.hard ? { lv: 'hardcore', dev: Ctl.dev, as: assistFor(PRESETS.advanced.as) } : { lv: Ctl.level(), dev: Ctl.dev, as: runAssist() };
   Coach.start();
   G.ghost = G.rally || MP.phase === 'race' ? null : lsGet('sr86.ghost.' + runKey(G.T.seed), null); G.mpMenu = false;
-  if (G.ghost && G.ghost.f && G.ghost.f.length && !(G.T.sss && SSS_KINDS[G.T.sss.kind].duel)) { G.ghostMesh = buildCarMesh(carById(G.ghost.car) || G.spec, true); scene.add(G.ghostMesh.root); }
+  if (G.ghost && G.ghost.f && G.ghost.f.length && !(G.T.sss && SSS_KINDS[G.T.sss.kind].duel)) { G.ghostMesh = buildCarMesh(carById(G.ghost.car) || G.spec, true); if (G.ghost.car === G.spec.id) tyreMeshFit(G.ghostMesh, G.phys); scene.add(G.ghostMesh.root); }
   // (a super special: the crew on the other lane - the rally's pairing, else a quick crew in a car of your class)
   Duel.drop(); SSFlags.reset(); if (G.T.sss) { const dz = G.rally && Rally.cur && Rally.cur.duel; if (dz) Duel.init(G.T, dz.S, dz.t, dz.inc, dz.name);
     else { const cls = rivalCls(G.spec), pool = stockOf(cls).filter(S => S !== G.spec), S = pool[strHash('duel:' + G.T.seed) % Math.max(1, pool.length)] || G.spec;
@@ -25070,7 +25516,7 @@ function stageFixes(c, X) {
   const D = c.dmg, real = D.mode === 'real', H = X.H, E = X.E, L = [], add = (k, t, s, at, on, fix) => L.push({ k, t, s: Math.round(s), at, on, fix });
   const hot = real && D.temp > 102 ? 20 : 0, sp = X.spares; let spN = sp; // (a boiling radiator left to cool a little before its cap comes off)
   const strap = w => { w.arm = 0.25; w.toe *= 0.35; w.cam *= 0.4; }, fit = (i, w) => { w.flat = 0; w.rim = 0; D.spUsed = (D.spUsed || 0) + 1;
-    if (w.off) { w.off = 0; const m = G.mesh, Hm = m && m.dv; if (Hm && Hm.lost) { Hm.lost[i] = 0; const wm = m.wheels[i]; if (wm) { wm.w.scale.setScalar(1); if (wm.w2) wm.w2.scale.setScalar(1); } } } };
+    if (w.off) { w.off = 0; const m = G.mesh, Hm = m && m.dv; if (Hm && Hm.lost) { Hm.lost[i] = 0; const wm = m.wheels[i]; if (wm) wheelSc(wm); } } };
   if (real) for (let i = 0; i < 4; i++) { const w = D.w[i], nm = CORNER[i], br = w.arm <= 0, tyre = w.flat || w.rim > 0.15 || w.off;
     if (br) { if (tyre && spN > 0) { spN--; add('w' + i, `Strap up the broken ${nm} corner and fit the spare`, w.off ? 80 : 70, i, true, () => { strap(w); fit(i, w); }); }
       else if (!w.off) add('s' + i, `Strap up the broken ${nm} corner with the ratchet straps and wire`, 50, i, true, () => strap(w)); }
@@ -25108,11 +25554,11 @@ function stageNoFix(D) { if (D.mode !== 'real') return []; const L = [];
 function fixPose(m, rp, KW) {
   if (!m || !m.tilt) return; const U = m.tilt.userData; if (U.y0 == null) U.y0 = m.tilt.position.y;
   const i = rp && rp[1] > 0 ? rp[0] : -1, prev = m.fixW;
-  if (prev != null && prev !== i) { const w = m.wheels[prev], lost = m.dv && m.dv.lost && m.dv.lost[prev]; if (w && !lost) { w.w.scale.setScalar(1); if (w.w2) w.w2.scale.setScalar(1); } m.fixW = null; }
+  if (prev != null && prev !== i) { const w = m.wheels[prev], lost = m.dv && m.dv.lost && m.dv.lost[prev]; if (w && !lost) wheelSc(w); m.fixW = null; }
   if (i < 0 || !KW || !KW[i]) { if (m.tilt.position.y !== U.y0) m.tilt.position.y = U.y0; return; }
   const h = 0.12, lx = Math.abs(KW[i].lx) > 0.2 ? KW[i].lx : 0.75, lz = Math.abs(KW[i].lz) > 0.2 ? KW[i].lz : 1.2;
   m.tilt.rotation.set(-h / (4 * lz), 0, h / (4 * lx)); m.tilt.position.y = U.y0 + h / 2;
-  const w = m.wheels[i]; if (!w) return; const off = rp[1] === 2 || (m.dv && m.dv.lost && m.dv.lost[i]); w.piv.position.y += h * 0.8; w.w.scale.setScalar(off ? 1e-3 : 1); if (w.w2) w.w2.scale.setScalar(off ? 1e-3 : 1); m.fixW = i;
+  const w = m.wheels[i]; if (!w) return; const off = rp[1] === 2 || (m.dv && m.dv.lost && m.dv.lost[i]); w.piv.position.y += h * 0.8; if (off) { w.w.scale.setScalar(1e-3); if (w.w2) w.w2.scale.setScalar(1e-3); } else wheelSc(w); m.fixW = i;
 }
 const Fix = {
   open: false, busy: null, list: [], f: 0, used: new Set(), still: 0, hintT: 0, hasJobs: false, rp: null, pp: {},
@@ -26765,7 +27211,7 @@ function savedSetup(S, surf) { const su = SETUPS[setupKey(S, surf)]; return su &
 function fixSetup(S, su, env) {
   const rec = setupRec(S, env), out = Object.assign({}, rec, JSON.parse(JSON.stringify(su))); out.diff = Object.assign({}, rec.diff); out.dv = 2;
   for (const a in rec.diff) if (su.dv === 2 && su.diff && su.diff[a] && su.diff[a].k === rec.diff[a].k) out.diff[a] = Object.assign({}, rec.diff[a], su.diff[a]);
-  if (!TYRE_FOR[env.surface].includes(out.c)) { out.c = rec.c; out.pF = rec.pF; out.pR = rec.pR; }
+  if (!tyresFor(S, env.surface).includes(out.c)) { out.c = rec.c; out.pF = rec.pF; out.pR = rec.pR; }
   if (!finalDrives(S).includes(out.fd)) out.fd = rec.fd;
   return out;
 }
@@ -26864,9 +27310,9 @@ const SetupUI = {
     // tyres
     head('Tyres', false);
     const ty = el('div', { class: 'tyres', role: 'radiogroup', 'aria-label': 'Tyre compound' });
-    for (const k of TYRE_FOR[env.surface]) { const C = TYRE_C[k], bt = el('button', { type: 'button', role: 'radio', 'aria-checked': su.c === k ? 'true' : 'false', 'aria-pressed': su.c === k ? 'true' : 'false' }, C.name, el('small', { text: C.note }), ...(k === R.c ? [el('span', { class: 'rec', text: 'Recommended' })] : []));
-      bt.addEventListener('click', () => { if (su.c !== k) { su.c = k; su.pF = su.pR = coldFor(k, env.air); this.render(); } }); ty.append(bt); }
-    body.append(ty);
+    for (const k of tyresFor(S, env.surface)) { const C = TYRE_C[k], bt = el('button', { type: 'button', role: 'radio', 'aria-checked': su.c === k ? 'true' : 'false', 'aria-pressed': su.c === k ? 'true' : 'false' }, C.name, el('small', { text: C.note }), ...(k === R.c ? [el('span', { class: 'rec', text: 'Recommended' })] : []));
+      bt.addEventListener('click', () => { if (su.c !== k) { su.c = k; su.pF = su.pR = coldFor(k, env.air, S); this.render(); } }); ty.append(bt); }
+    body.append(ty); { const t = tyreFitLine(S, su.c); if (t) body.append(el('p', { class: 'small tysz', text: t })); }
     head('', true);
     pair('Tyre pressure, set cold', 'Lower grips better on loose roads but responds slower and cuts more easily on stones; it rises as the tyres warm.', 'pF', 'pR', 0.05, 1.3, 2.8, v => v.toFixed(2) + ' bar');
     // springs and ride height
@@ -32375,7 +32821,7 @@ const MP = {
   // a rival's car as its own page has built it: the night's lamp pods or not, a snorkel or not; ready for damage, which
   // it takes only as its own page sends it (see dmApply)
   meshFor(r, kit) {
-    const S = r.S, k = kit || [G.T && nightKit(G.T) ? 1 : 0, 0], mesh = buildCarMesh(S, r.ghost, !!k[0]); if (k[1] && !r.ghost) fitSnorkel(mesh);
+    const S = r.S, k = kit || [G.T && nightKit(G.T) ? 1 : 0, 0], mesh = buildCarMesh(S, r.ghost, !!k[0]); tyreMeshFit(mesh, S); if (k[1] && !r.ghost) fitSnorkel(mesh);
     mesh.root.visible = false; scene.add(mesh.root); r.kit = k;
     try { if (!r.ghost && (window.__mpDmg || 'real') !== 'off') { CarDmg.prep(mesh, S); if (mesh.dv) mesh.dv.slave = true; } } catch (e) { }
     return mesh;
@@ -33303,7 +33749,7 @@ const Replay = {
   // ---- the car of the replay, built afresh: as it left the start (a rally car with what earlier stages left on it) ----
   build() {
     if (this.rig) { if (this.rigOwn) { this.rigOwn = false; this.ownDirty = true; this.was.mesh.root.visible = false; } else { if (ScreenFx.rig === this.rig) ScreenFx.rig = null; dropCarMesh(this.rig); } } // (a flashback's start on the run's own car: that is left as it is, and hidden)
-    const m = buildCarMesh(Rec.spec, false, Rec.night); if (this.S && this.S.snorkel) fitSnorkel(m); scene.add(m.root);
+    const m = buildCarMesh(Rec.spec, false, Rec.night); tyreMeshFit(m, this.S); if (this.S && this.S.snorkel) fitSnorkel(m); scene.add(m.root);
     G.mesh = m; this.rig = m; CarDmg.prep(m, this.S); m.dv.defN = 0;
     this.dmap = new Map(); this.D = { dents: this.dentList(Rec.dents0 || []), ver: 1, mode: Rec.dmgMode };
     if (Rec.cv0 || this.D.dents.length) CarDmg.restore(m, Rec.cv0, this.D, true);
@@ -33353,7 +33799,7 @@ const Replay = {
     const E = Rec.ev; let tb = null;
     for (let k = E.length - 1; k >= 0 && E[k][0] > this.t0; k--) { const e = E[k]; if (e[1] === 'd' && Object.keys(e[2]).some(q => q !== 'dents')) { tb = e[0]; break; } }
     if (tb == null) return; const cur = this.rigState(), mesh = G.mesh;
-    const m = buildCarMesh(Rec.spec, false, Rec.night); if (this.S && this.S.snorkel) fitSnorkel(m); scene.add(m.root); CarDmg.prep(m, this.S); m.dv.defN = 0;
+    const m = buildCarMesh(Rec.spec, false, Rec.night); tyreMeshFit(m, this.S); if (this.S && this.S.snorkel) fitSnorkel(m); scene.add(m.root); CarDmg.prep(m, this.S); m.dv.defN = 0;
     this.rig = m; this.rigOwn = false; this.dmap = new Map(); this.D = { dents: this.dentList(Rec.dents0 || []), ver: 1, mode: Rec.dmgMode }; this.dmgT = -1; this.ek = 0;
     if (Rec.cv0 || this.D.dents.length) CarDmg.restore(m, Rec.cv0, this.D, true);
     this.batch = true; this.defer = false; while (this.ek < E.length && E[this.ek][0] < tb - 1e-6) { const e = E[this.ek++]; if (e[1] === 'd') { this.dmg(e[2], true); this.dmgT = e[0]; } }
@@ -33894,7 +34340,7 @@ const Flash = {
     if (was && was.dv) {
       let m = cand && cand.dv && strip(CarDmg.save(cand)) === want ? cand : strip(CarDmg.save(was)) === want ? was : null, fresh = false;
       if (cand && m !== cand) dropCarMesh(cand);
-      if (!m) { fresh = true; m = buildCarMesh(G.spec, false, nightKit(T)); if (G.phys.snorkel) fitSnorkel(m); scene.add(m.root); CarDmg.prep(m, G.phys); if (s.vis || (c.dmg && c.dmg.dents.length)) CarDmg.restore(m, s.vis, c.dmg, true); }
+      if (!m) { fresh = true; m = buildCarMesh(G.spec, false, nightKit(T)); tyreMeshFit(m, G.phys); if (G.phys.snorkel) fitSnorkel(m); scene.add(m.root); CarDmg.prep(m, G.phys); if (s.vis || (c.dmg && c.dmg.dents.length)) CarDmg.restore(m, s.vis, c.dmg, true); }
       if (m !== was) { m.root.visible = true; dropCarMesh(was); G.mesh = m; Snd.exhaustOpen(!!(m.dv && m.dv.exhOff)); }
       if (ScreenFx.dTex && ScreenFx.rig !== m) ScreenFx.attach(m);
       if (!fresh && c.dmg && c.dmg.mode !== 'off') { CarDmg.deform(m, c.dmg, true); CarDmg.frameCheck(m, c.dmg, true); m.dv.fver = c.dmg.ver; }
@@ -36825,7 +37271,7 @@ const RivalGhosts = {
     this.todo = [...new Set(ord.filter(i => i).map(i => st.field[i - 1].car))]; // (a car of each kind in the field made during the countdown, not as one comes near)
   },
   stop() { for (const g of this.M) dropCarMesh(g.mesh); for (const k in this.spare) for (const m of this.spare[k]) dropCarMesh(m); this.M = []; this.spare = {}; this.todo = []; this.live = null; this.off = null; this.dots = []; },
-  take(car) { const L = this.spare[car]; if (L && L.length) return L.pop(); const m = buildCarMesh(carById(car) || CARS[0], true); scene.add(m.root); return m; },
+  take(car) { const L = this.spare[car]; if (L && L.length) return L.pop(); const E = carById(car) || CARS[0], m = buildCarMesh(E, true); if (G.T) { try { const env = stageEnv(G.T); tyreMeshFit(m, setupSpec(E, setupRec(E, env), env)); } catch (e) { } } scene.add(m.root); return m; },
   give(car, m) { m.root.visible = false; (this.spare[car] || (this.spare[car] = [])).push(m); },
   // (crew i's car at its own stage clock t: x, y, z and its turn, between the frames of its run; null before its start,
   // or once it is through the finish)
@@ -37458,7 +37904,8 @@ function rxSpeeds(T, L, S) {
   const muAt = (sf, mi, lat) => { const p = P[mi], dist = mi * STEP; if (!T.lay) { const TY = TYRE[sf] || TYRE.gravel; return TY.mu * (1 - wet * (1 - (WET_GRIP[sf] || 1))); } let m2 = 0;
     for (const dl of [-LAY_TRK, LAY_TRK]) { surfMix(T, sf, true, dist, lat + dl, p.w, MX, p.x + Math.cos(p.h) * (lat + dl), p.z - Math.sin(p.h) * (lat + dl)); let m = 0; for (let j = 0; j < MX.n; j++) { const k = MX.k[j], f = fam ? TYRE_FAM[fam][k] : 1; m += MX.w[j] * TYRE[k].mu * (f != null ? f : 1) * (1 - MX.wet * (1 - (WET_GRIP[k] || 1))) * (k === 'ice' ? iceK : 1); } m2 += m * (1 - 0.4 * MX.pool) / 2; }
     return m2; };
-  for (let i = 0; i < n; i++) { const sf = L.surf[i], ln = L.lane && L.lane[i], TY = TYRE[sf] || TYRE.gravel, mt = ln ? TY.mu * (1 - wet * (1 - (WET_GRIP[sf] || 1))) * (sf === 'gravel' || sf === 'snow' ? 0.76 : 0.86) : muAt(sf, clamp(Math.round(L.lp[i]), 0, P.length - 2), L.tl[i]), mg = mt * (S.gripK || 1); mu[i] = Math.min(rollG, mg * paceGrip(mg)); // (on a lane of its own - the joker's, the start's - its own surface, loose as the cars leave it: not the track's swept line level with it)
+  const eraK = tyreEraMu(S, fam || (TYRE[T.surface] || TYRE.gravel).home); // (the era's rubber, as a stage's pace has it: see tyreEraMu)
+  for (let i = 0; i < n; i++) { const sf = L.surf[i], ln = L.lane && L.lane[i], TY = TYRE[sf] || TYRE.gravel, mt = ln ? TY.mu * (1 - wet * (1 - (WET_GRIP[sf] || 1))) * (sf === 'gravel' || sf === 'snow' ? 0.76 : 0.86) : muAt(sf, clamp(Math.round(L.lp[i]), 0, P.length - 2), L.tl[i]), mg = mt * (S.gripK || 1) * eraK; mu[i] = Math.min(rollG, mg * paceGrip(mg)); // (on a lane of its own - the joker's, the start's - its own surface, loose as the cars leave it: not the track's swept line level with it)
     const kk = Math.max(Math.abs(L.k[i]), 1 / 600), muD = mu[i] * down / m; v[i] = kk > muD + 1e-7 ? Math.min(vTop, Math.sqrt(mu[i] * g / (kk - muD))) : vTop;
     const p = P[clamp(Math.round(L.lp[i]), 0, P.length - 1)]; if (p.tag === 'ford') v[i] = Math.min(v[i], 17); if (p.tag === 'jump') v[i] = Math.min(v[i], 27); }
   // (an S on a lane's ramps - a bend one way straight into one the other: a margin kept on the grip there, for the moment
