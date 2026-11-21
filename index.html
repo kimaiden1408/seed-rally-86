@@ -411,7 +411,7 @@ html.usc #workshop{transform:scale(var(--us));transform-origin:100% 0;height:cal
   --gm:calc((var(--sl) + 168px * var(--t) + 100% - var(--sr) - 180px * var(--t) - 64px) / 2)}
 #hud.tswap{--gm:calc((var(--sl) + 180px * var(--t) + 64px + 100% - var(--sr) - 168px * var(--t)) / 2)}
 #hud[data-ped=up]{--ov:calc(var(--sb) + 2 * var(--row))}
-html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width:calc(100vw / var(--hs));height:calc(100vh / var(--hs));height:calc(100dvh / var(--hs));transform:scale(var(--hs));transform-origin:0 0}
+html.hsc #hud,html.hsc #replay,html.hsc #reel,html.hsc #flashback{inset:auto;left:0;top:0;width:calc(100vw / var(--hs));height:calc(100vh / var(--hs));height:calc(100dvh / var(--hs));transform:scale(var(--hs));transform-origin:0 0}
 /* (things centred across the screen: centred whatever their width, and never wider than it) */
 #split,#msg,#count,.notes,.mpreveal,.mpwait,.mpbanner,.mpwatch,.mpreact,#dmgDead{position:absolute;left:0;right:0;margin-left:auto;margin-right:auto;width:max-content;max-width:calc(100% - 24px)}
 
@@ -797,6 +797,87 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
 @media (max-width:520px){ #replay .rpRow{flex-wrap:wrap} #replay input[type=range]{order:-1;flex:1 1 100%;margin:4px 2px} #replay .rpExit{margin-left:auto} }
 @media (pointer:coarse){ #replay .rpKeys{display:none} }
 @media (prefers-reduced-motion:reduce){ #replay .rpDot{animation:none} #replay .rpBar{transition:none} }
+/* the highlights (see Replay.reelStart): a programme's graphics over the pictures, the bar along the bottom */
+#reel{position:fixed;inset:0;pointer-events:none;color:#fbfbf8;overflow:hidden;font-family:var(--cond)}
+#reel .hlFade{position:absolute;inset:0;background:#000;opacity:0}
+#reel .hlFlash{position:absolute;inset:0;background:#fbfbf8;opacity:0}
+#reel .hlBug{position:absolute;top:max(14px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:8px;background:rgba(10,14,12,.62);border-radius:3px;padding:5px 11px 5px 7px;font-size:14px}
+#reel .hlBug i{width:30px;height:9px;background:linear-gradient(90deg,var(--livery) 0 33%,var(--marshal) 33% 66%,#fbfbf8 66%)}
+#reel .hlBug b{font-family:var(--stencil);font-weight:400;font-size:18px;letter-spacing:.04em;line-height:1}
+#reel .hlBug span{font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.92}
+#reel .hlRp{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:9px;background:var(--livery);padding:6px 14px;border-radius:3px;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+#reel .hlRp i{width:9px;height:9px;border-radius:50%;background:#fbfbf8;animation:rpBlink 1.6s steps(2,start) infinite}
+#reel .hlRp b{font-size:19px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;line-height:1}
+#reel .hlRp small{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.92}
+#reel .hlRp small:empty{display:none}
+#reel .hlTime{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));background:rgba(10,14,12,.66);border-radius:3px;border-top:3px solid var(--marshal);padding:4px 12px 6px;text-align:right;font-variant-numeric:tabular-nums;min-width:118px}
+#reel .hlTime span{display:block;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.86;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#reel .hlTime b{display:block;font-size:25px;font-weight:800;line-height:1.1}
+#reel .hlTime small{font-size:13.5px;font-weight:700;opacity:.82}
+#reel .hlTitle{position:absolute;left:max(30px,env(safe-area-inset-left,0px));top:24%;max-width:min(680px,84%);transform:translateX(-130%);opacity:0;transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .4s;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+#reel .hlTitle.on{transform:none;opacity:1}
+#reel .hlTitle small{display:inline-block;background:var(--livery);padding:4px 11px;font-size:15px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;text-shadow:none}
+#reel .hlTitle h2{font-family:var(--stencil);font-weight:400;font-size:clamp(32px,7vw,66px);line-height:1;margin:10px 0 8px}
+#reel .hlTitle p{margin:2px 0;font-size:19px;font-weight:700}
+#reel .hlTitle p+p{font-size:17px;font-weight:600;opacity:.92}
+#reel .hlTitle p:empty{display:none}
+#reel .hlLt{position:absolute;left:max(18px,env(safe-area-inset-left,0px));bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 112px);display:flex;align-items:stretch;max-width:calc(100% - 36px);transform:translateX(calc(-100% - 40px));transition:transform .45s cubic-bezier(.2,.8,.2,1),bottom .45s;filter:drop-shadow(0 3px 7px rgba(0,0,0,.4))}
+#reel.idle .hlLt{bottom:calc(max(12px,env(safe-area-inset-bottom,0px)) + 22px)}
+#reel .hlLt.on{transform:none}
+#reel .hlLt>b{flex:none;display:flex;align-items:center;background:var(--marshal);color:#121212;font-family:var(--stencil);font-weight:400;font-size:31px;line-height:1;padding:10px 26px 8px 14px;text-transform:uppercase;clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+#reel .hlLt>div{min-width:0;display:flex;flex-direction:column;justify-content:center;background:rgba(14,19,16,.9);padding:6px 22px 6px 26px;margin-left:-16px;clip-path:polygon(16px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+#reel .hlLt span{font-size:18px;font-weight:800;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#reel .hlLt small{font-size:15.5px;font-weight:600;opacity:.9;font-variant-numeric:tabular-nums}
+#reel .sep{font-style:normal;margin:0 .38em;opacity:.7}
+#reel .hlEnd{position:absolute;right:max(24px,env(safe-area-inset-right,0px));top:44%;transform:translate(calc(100% + 40px),-50%);transition:transform .55s cubic-bezier(.2,.8,.2,1);background:rgba(14,19,16,.9);border-left:6px solid var(--marshal);padding:14px 18px 14px;width:min(340px,calc(100% - 48px));box-sizing:border-box;pointer-events:auto}
+#reel .hlEnd.on{transform:translate(0,-50%)}
+#reel .hlEnd h3{margin:0 0 8px;font-family:var(--stencil);font-weight:400;font-size:26px;line-height:1.05}
+#reel .hlEnd table{border-collapse:collapse;width:100%;font-size:16px}
+#reel .hlEnd td{padding:3px 0;white-space:nowrap}
+#reel .hlEnd td:first-child{overflow:hidden;text-overflow:ellipsis;max-width:170px}
+#reel .hlEnd td+td{text-align:right;font-weight:800;padding-left:14px;font-variant-numeric:tabular-nums}
+#reel .hlAw{list-style:none;margin:10px 0 0;padding:8px 0 0;border-top:1px solid rgba(255,255,255,.16);font-size:14.5px;display:grid;gap:3px}
+#reel .hlAw b{color:var(--marshal)}
+#reel .hlAw small{opacity:.8}
+#reel .hlEndB{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+#reel .hlGo{flex:1 1 auto;border:0;border-radius:4px;background:var(--marshal);color:#121212;padding:8px 11px;font-size:15px;font-weight:800}
+#reel .hlGhost{flex:none;border:0;background:rgba(255,255,255,.14);color:#fbfbf8;border-radius:4px;padding:8px 11px;font-size:14.5px;font-weight:700}
+#reel .hlGhost:hover{background:rgba(255,255,255,.26)}
+#reel .hlRx{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:26%;display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:60%}
+#reel .hlRx div{background:rgba(14,19,16,.88);border-radius:18px;padding:5px 13px;font-size:16px;font-weight:700;animation:hlRxIn .3s ease-out}
+#reel .hlRx b{color:var(--marshal)}
+@keyframes hlRxIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+#reel .hlWait{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);background:rgba(14,19,16,.88);border-top:4px solid var(--marshal);padding:12px 22px;border-radius:4px;font-size:22px;font-weight:800;text-align:center}
+#reel .hlWipe{position:absolute;top:0;bottom:0;left:0;width:200%;display:flex;align-items:center;justify-content:center;will-change:transform}
+#reel .hlWipe i{flex:1 1 0;height:100%;transform:skewX(-16deg);margin:0 -2px}
+#reel .hlWipe i:nth-child(1){background:var(--livery)}
+#reel .hlWipe i:nth-child(2){background:var(--marshal)}
+#reel .hlWipe i:nth-child(3){background:#17201a}
+#reel .hlWipe b{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) skewX(-8deg);font-family:var(--stencil);font-weight:400;font-size:min(34vh,220px);line-height:1;color:#fbfbf8;text-shadow:0 6px 0 rgba(0,0,0,.3)}
+#reel .hlBar{position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(920px,calc(100% - 24px));box-sizing:border-box;pointer-events:auto;background:rgba(14,19,16,.84);border-radius:6px;padding:8px 12px 6px;display:flex;flex-direction:column;gap:7px;transition:opacity .45s}
+#reel.idle .hlBar{opacity:0;pointer-events:none}
+#reel .hlCh{display:flex;gap:3px;height:14px}
+#reel .hlCh button{flex:1 1 0;min-width:5px;border:0;padding:0;border-radius:2px;background:rgba(255,255,255,.18);position:relative;overflow:hidden;cursor:pointer}
+#reel .hlCh button.m{background:rgba(255,255,255,.3)}
+#reel .hlCh button:hover{background:rgba(255,255,255,.45)}
+#reel .hlCh button i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--marshal)}
+#reel .hlCh button[data-k="crash"] i{background:#ff5a3c}
+#reel .hlRow{display:flex;align-items:center;gap:8px;min-width:0}
+#reel .hlBtn{flex:none;width:46px;height:40px;border-radius:4px;border:0;background:var(--marshal);color:#121212;font-size:16px;font-weight:900;line-height:1;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#reel .hlBtn.sm{width:38px;background:rgba(255,255,255,.14);color:#fbfbf8;font-size:15px}
+#reel .hlPos{flex:none;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#reel .hlNow{flex:1 1 auto;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.92}
+#reel .hlReact{display:flex;gap:4px;flex:none}
+#reel .hlReact button{border:0;border-radius:14px;background:rgba(255,255,255,.14);color:#fbfbf8;padding:6px 9px;font-size:13.5px;font-weight:700}
+#reel .hlReact button:hover{background:rgba(255,255,255,.28)}
+#reel .hlExit{flex:none;border:2px solid rgba(255,255,255,.8);background:transparent;color:#fbfbf8;border-radius:4px;padding:7px 12px;font-size:15px;font-weight:800}
+#reel .hlExit:hover{background:#fbfbf8;color:#121212}
+#reel .hlKeys{margin:0;font-size:12.5px;opacity:.62;text-align:center}
+@media (max-width:760px){ #reel .hlReact{display:none} }
+@media (max-width:640px){ #reel .hlLt>b{font-size:22px;padding:8px 20px 6px 10px} #reel .hlLt span{font-size:15px} #reel .hlLt small{font-size:13px} #reel .hlLt{left:10px;max-width:calc(100% - 20px)} #reel .hlPos{display:none} #reel .hlTitle{left:18px} #reel .hlTitle p{font-size:15px} #reel .hlTitle p+p{font-size:14px} #reel .hlBug span{display:none} #reel .hlTime b{font-size:20px} #reel .hlTime{min-width:90px} #reel .hlEnd{top:38%} }
+@media (max-width:420px){ #reel .hlGhost{padding:8px 8px;font-size:13.5px} #reel .hlNow{display:none} }
+@media (pointer:coarse){ #reel .hlKeys{display:none} #reel .hlBtn{height:44px} #reel .hlCh{height:18px} #reel .hlExit{min-height:44px} }
+@media (prefers-reduced-motion:reduce){ #reel .hlLt,#reel .hlTitle,#reel .hlEnd{transition:none} #reel .hlRp i{animation:none} #reel .hlBar{transition:none} #reel .hlRx div{animation:none} }
 #flashback{position:fixed;inset:0;pointer-events:none;color:#fbfbf8}
 #flashback .fbTint{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(30,60,96,0) 52%,rgba(22,44,74,.5) 100%)}
 #flashback.rew .fbTint{background:radial-gradient(ellipse at 50% 45%,rgba(30,60,96,.06) 40%,rgba(22,44,74,.62) 100%)}
@@ -1104,7 +1185,7 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     <div id="finTime">0:00.00</div>
     <p id="finLines"></p>
     <p id="finOnline"></p>
-    <div class="btns"><button id="finAgain" class="go" type="button">Run it again</button><button id="finReplay" class="ghostbtn" type="button" hidden>Watch replay</button><button id="finMenu" class="ghostbtn" type="button">Main menu</button><button id="finCopy" class="ghostbtn" type="button">Copy challenge link</button></div>
+    <div class="btns"><button id="finAgain" class="go" type="button">Run it again</button><button id="finHigh" class="ghostbtn" type="button" hidden>Highlights</button><button id="finReplay" class="ghostbtn" type="button" hidden>Watch replay</button><button id="finMenu" class="ghostbtn" type="button">Main menu</button><button id="finCopy" class="ghostbtn" type="button">Copy challenge link</button></div>
   </div>
 </div>
 
@@ -1116,7 +1197,7 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     <ul id="mpResAw" class="mpaw" aria-label="Awards" hidden></ul>
     <div id="mpResSer" class="mpseries" hidden></div>
     <p class="rnote" id="mpResNote"></p>
-    <div class="btns"><button id="mpResWatch" class="ghostbtn" type="button" hidden>Watch the race</button><button id="mpResLobby" class="go" type="button">Gather everyone at the start</button><button id="mpResLeave" class="ghostbtn" type="button">Back to the room</button></div>
+    <div class="btns"><button id="mpResJoin" class="go" type="button" hidden>Watch together</button><button id="mpResHigh" class="ghostbtn" type="button" hidden>Highlights</button><button id="mpResTog" class="ghostbtn" type="button" hidden>Watch together</button><button id="mpResWatch" class="ghostbtn" type="button" hidden>Watch the race</button><button id="mpResLobby" class="go" type="button">Gather everyone at the start</button><button id="mpResLeave" class="ghostbtn" type="button">Back to the room</button></div>
   </div>
 </div>
 
@@ -1126,7 +1207,7 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     <p class="sub" id="rxResSub"></p>
     <table class="rt" id="rxResT" aria-label="Race results"></table>
     <p class="rnote" id="rxResNote"></p>
-    <div class="btns"><button id="rxResNext" class="go" type="button">Race again</button><button id="rxResWatch" class="ghostbtn" type="button">Watch replay</button><button id="rxResMenu" class="ghostbtn" type="button">Menu</button></div>
+    <div class="btns"><button id="rxResNext" class="go" type="button">Race again</button><button id="rxResHigh" class="ghostbtn" type="button">Highlights</button><button id="rxResWatch" class="ghostbtn" type="button">Watch replay</button><button id="rxResMenu" class="ghostbtn" type="button">Menu</button></div>
   </div>
 </div>
 
@@ -1143,6 +1224,31 @@ html.hsc #hud,html.hsc #replay,html.hsc #flashback{inset:auto;left:0;top:0;width
     </div>
     <div id="rpCams" class="rpCams" role="group" aria-label="Camera"></div>
     <p class="rpKeys">Space pause · ← → skip 5 s · ↑ ↓ speed · C or 1–0 camera · paused, drag to look round · Esc exit</p>
+  </div>
+</div>
+
+<div id="reel" hidden>
+  <div class="hlFade" id="hlFade" aria-hidden="true"></div>
+  <div class="hlBug" aria-hidden="true"><i></i><b>SR86</b><span>Highlights</span></div>
+  <div class="hlRp" id="hlRp" hidden><i aria-hidden="true"></i><b>Replay</b><small id="hlRpS"></small></div>
+  <div class="hlTime" id="hlTime" hidden aria-hidden="true"><span id="hlTWho"></span><b id="hlTClock">0.00</b><small id="hlTSpd"></small></div>
+  <div class="hlTitle" id="hlTitle"><small id="hlTiEv">Stage highlights</small><h2 id="hlTiH"></h2><p id="hlTiSub"></p><p id="hlTiCar"></p></div>
+  <div class="hlLt" id="hlLt" aria-live="polite"><b id="hlLtK"></b><div><span id="hlLtWho"></span><small id="hlLtV"></small></div></div>
+  <div class="hlEnd" id="hlEnd" role="group" aria-labelledby="hlEndH"><h3 id="hlEndH">Stage highlights</h3><table id="hlEndT"></table><ul id="hlEndAw" class="hlAw" hidden></ul>
+    <div class="hlEndB"><button id="hlAgain" type="button" class="hlGo">Watch again</button><button id="hlEndFull" type="button" class="hlGhost">Full replay</button><button id="hlDone" type="button" class="hlGhost">Done</button></div></div>
+  <div class="hlRx" id="hlRx" aria-live="polite"></div>
+  <div class="hlWait" id="hlWait" hidden></div>
+  <div class="hlFlash" id="hlFlash" aria-hidden="true"></div>
+  <div class="hlWipe" id="hlWipe" hidden aria-hidden="true"><i></i><i></i><i></i><b>86</b></div>
+  <div class="hlBar" role="group" aria-label="Highlights controls">
+    <div class="hlCh" id="hlCh" role="group" aria-label="Moments"></div>
+    <div class="hlRow">
+      <button id="hlPrev" type="button" class="hlBtn sm" aria-label="Previous moment">&#9198;&#xFE0E;</button><button id="hlPlay" type="button" class="hlBtn" aria-label="Pause">&#10074;&#10074;</button><button id="hlNext" type="button" class="hlBtn sm" aria-label="Next moment">&#9197;&#xFE0E;</button>
+      <span id="hlPos" class="hlPos">0:00 / 0:00</span><span id="hlNow" class="hlNow" aria-live="polite"></span>
+      <div id="hlReact" class="hlReact" hidden role="group" aria-label="Quick reactions"></div>
+      <button id="hlSync" type="button" class="hlGhost" hidden>Back in sync</button><button id="hlFull" type="button" class="hlGhost">Full replay</button><button id="hlExit" type="button" class="hlExit">Exit</button>
+    </div>
+    <p class="hlKeys">Space pause &middot; &larr; &rarr; moments &middot; F full replay &middot; Esc exit</p>
   </div>
 </div>
 
@@ -11067,6 +11173,14 @@ I18N_MORE.zh.push(...["轮胎模型", "柔性环", "经典", "柔性环轮胎", 
 I18N_MORE.es.push(...["Modelo de neumático", "Anillo flexible", "Clásico", "Neumáticos de anillo flexible", "El neumático de anillo flexible si este dispositivo lo mueve con fluidez; si no, el clásico.", "Cada neumático, una banda sobre sus flancos con sus tacos tocando la carretera uno a uno: cómo se aplasta, se tuerce y agarra, taco a taco.", "El más detallado, y el más pesado de calcular.", "El neumático de cepillo: el mismo agarre, calculado para toda la huella de una vez.", "Más ligero de calcular.", "En este dispositivo: el anillo flexible.", "En este dispositivo: el neumático clásico.", "Los tiempos de cada uno van a tablas propias."]);
 I18N_MORE.fr.push(...["Modèle de pneu", "Anneau flexible", "Classique", "Pneus à anneau flexible", "Le pneu à anneau flexible si cet appareil le fait tourner sans à-coups, sinon le classique.", "Chaque pneu, une ceinture sur ses flancs dont les pains touchent la route un à un : comment il s'écrase, se tord et accroche, pain par pain.", "Le plus détaillé, et le plus lourd à calculer.", "Le pneu à brosse : la même adhérence, calculée pour toute l'empreinte d'un coup.", "Plus léger à calculer.", "Sur cet appareil : l'anneau flexible.", "Sur cet appareil : le pneu classique.", "Les temps de chacun vont dans leurs propres classements."]);
 I18N_MORE.de.push(...["Reifenmodell", "Flexibler Ring", "Klassisch", "Reifen mit flexiblem Ring", "Der Reifen mit flexiblem Ring, wenn dieses Gerät ihn flüssig rechnet, sonst der klassische.", "Jeder Reifen ein Gürtel auf seinen Flanken, dessen Profilblöcke die Straße einer nach dem anderen berühren: wie er sich staucht, verdreht und greift, Block für Block.", "Am genauesten, und am aufwendigsten zu rechnen.", "Der Bürstenreifen: derselbe Grip, für die ganze Aufstandsfläche auf einmal gerechnet.", "Leichter zu rechnen.", "Auf diesem Gerät: der flexible Ring.", "Auf diesem Gerät: der klassische Reifen.", "Die Zeiten beider kommen in eigene Bestenlisten."]);
+// (the highlights: see HL)
+I18N_MORE.k.push(...["Highlights", "Stage highlights", "Race highlights", "SS{0} highlights", "Watch again", "Full replay", "Back in sync", "Exit", "Highlights controls", "Moments", "Previous moment", "Next moment", "Watch together", "Watch with {0}", "Space pause · ← → moments · F full replay · Esc exit", "Stage time", "Crashes", "Big air", "Massive air", "Sideways", "Full lock", "Flat out", "Crash", "Big hit", "Barrel roll", "Onto its side", "What a save!", "Water splash", "Overtake", "{0}° at {1} km/h", "{0} s sideways", "Into a tree at {0} km/h", "Into a wall at {0} km/h", "Into the bank at {0} km/h", "Into the rocks at {0} km/h", "Through a post at {0} km/h", "Into a pole at {0} km/h", "Into another car at {0} km/h", "Into the barrier at {0} km/h", "Through the bales at {0} km/h", "Into a concrete block at {0} km/h", "Over a traffic island at {0} km/h", "Into a bridge pier at {0} km/h", "{0} km/h impact", "Rolled at {0} km/h", "Over at {0} km/h", "rolled {0} times", "rolled over", "{0} parts off", "a part off", "{0}° sideways at {1} km/h", "A tank-slapper at {0} km/h", "On two wheels at {0} km/h", "Off the road at {0} km/h, and back on", "{0} km/h through the water", "Past {0} at {1} km/h", "a rival", "top speed {0} km/h", "slow motion", "Starting in {0}", "{0} started the highlights: watch them together from the results", "FPV drone", "Ground", "FPV drone camera"]);
+I18N_MORE.ko.push(...["하이라이트", "스테이지 하이라이트", "레이스 하이라이트", "SS{0} 하이라이트", "다시 보기", "전체 리플레이", "다시 함께 보기", "나가기", "하이라이트 조작", "명장면", "이전 장면", "다음 장면", "함께 보기", "{0}님과 함께 보기", "Space 일시정지 · ← → 장면 이동 · F 전체 리플레이 · Esc 종료", "스테이지 기록", "충돌", "큰 점프", "초대형 점프", "드리프트", "풀 카운터", "풀 스로틀", "충돌", "큰 충격", "연속 전복", "옆으로 넘어짐", "기막힌 세이브!", "물 건너기", "추월", "{1} km/h에서 {0}°", "{0}초 동안 옆으로", "{0} km/h로 나무에 충돌", "{0} km/h로 벽에 충돌", "{0} km/h로 둑에 충돌", "{0} km/h로 바위에 충돌", "{0} km/h로 기둥을 들이받음", "{0} km/h로 전봇대에 충돌", "{0} km/h로 다른 차와 충돌", "{0} km/h로 가드레일에 충돌", "{0} km/h로 건초 더미를 들이받음", "{0} km/h로 콘크리트 블록에 충돌", "{0} km/h로 교통섬을 넘음", "{0} km/h로 교각에 충돌", "{0} km/h 충격", "{0} km/h에서 전복", "{0} km/h에서 넘어짐", "{0}번 전복", "전복", "부품 {0}개 떨어짐", "부품 하나 떨어짐", "{1} km/h에서 {0}° 옆으로", "{0} km/h에서 좌우로 크게 흔들림", "{0} km/h에서 두 바퀴로", "{0} km/h로 코스를 벗어났다가 복귀", "{0} km/h로 물을 가르며", "{1} km/h로 {0} 추월", "라이벌", "최고 속도 {0} km/h", "슬로 모션", "{0}초 뒤 시작", "{0}님이 하이라이트를 시작했습니다: 결과 화면에서 함께 보세요", "FPV 드론", "지면", "FPV 드론 카메라"]);
+I18N_MORE.ja.push(...["ハイライト", "ステージのハイライト", "レースのハイライト", "SS{0}のハイライト", "もう一度見る", "リプレイ全体", "みんなと同期", "終了", "ハイライトの操作", "見どころ", "前の見どころ", "次の見どころ", "みんなで見る", "{0}さんと見る", "Space 一時停止 · ← → 見どころ移動 · F リプレイ全体 · Esc 終了", "ステージタイム", "クラッシュ", "ビッグジャンプ", "特大ジャンプ", "ドリフト", "フルカウンター", "全開", "クラッシュ", "強打", "連続横転", "横倒し", "見事なリカバリー！", "渡河", "オーバーテイク", "{1} km/hで{0}°", "{0}秒間の横滑り", "{0} km/hで木に激突", "{0} km/hで壁に激突", "{0} km/hで土手に激突", "{0} km/hで岩に激突", "{0} km/hで杭をなぎ倒す", "{0} km/hで電柱に激突", "{0} km/hで他車に激突", "{0} km/hでガードレールに激突", "{0} km/hで干し草ロールに突っ込む", "{0} km/hでコンクリートブロックに激突", "{0} km/hで交通島に乗り上げる", "{0} km/hで橋脚に激突", "{0} km/hの衝撃", "{0} km/hで横転", "{0} km/hで転倒", "{0}回横転", "横転", "部品{0}個脱落", "部品が1つ脱落", "{1} km/hで{0}°の横滑り", "{0} km/hで左右に大きく振られる", "{0} km/hで二輪走行", "{0} km/hでコースアウトし、復帰", "{0} km/hで水をかき分ける", "{1} km/hで{0}を抜く", "ライバル", "最高速度{0} km/h", "スローモーション", "{0}秒後に開始", "{0}さんがハイライトを始めました：結果画面から一緒に見られます", "FPVドローン", "地面", "FPVドローンカメラ"]);
+I18N_MORE.zh.push(...["集锦", "赛段集锦", "比赛集锦", "SS{0}集锦", "再看一遍", "完整回放", "回到同步", "退出", "集锦控制", "精彩瞬间", "上一个瞬间", "下一个瞬间", "一起观看", "与{0}一起看", "Space 暂停 · ← → 切换瞬间 · F 完整回放 · Esc 退出", "赛段用时", "撞车次数", "大飞跳", "超级飞跳", "侧滑", "满舵反打", "全油门", "撞车", "猛烈撞击", "连续翻滚", "侧翻", "漂亮的挽救！", "涉水", "超车", "{1} km/h时{0}°", "侧滑{0}秒", "以{0} km/h撞上树", "以{0} km/h撞上墙", "以{0} km/h撞上土坡", "以{0} km/h撞上岩石", "以{0} km/h撞断桩子", "以{0} km/h撞上电线杆", "以{0} km/h撞上另一辆车", "以{0} km/h撞上护栏", "以{0} km/h冲进草捆", "以{0} km/h撞上水泥墩", "以{0} km/h冲上交通岛", "以{0} km/h撞上桥墩", "{0} km/h的撞击", "以{0} km/h翻车", "以{0} km/h侧翻", "翻滚{0}次", "翻车", "掉了{0}个部件", "掉了一个部件", "以{1} km/h侧滑{0}°", "以{0} km/h剧烈甩尾", "以{0} km/h两轮着地", "以{0} km/h冲出路面，又回到路上", "以{0} km/h涉水而过", "以{1} km/h超过{0}", "对手", "最高速度{0} km/h", "慢动作", "{0}秒后开始", "{0}开始播放集锦：在成绩页一起观看", "FPV无人机", "地面", "FPV无人机镜头"]);
+I18N_MORE.es.push(...["Lo mejor", "Lo mejor del tramo", "Lo mejor de la carrera", "Lo mejor del SS{0}", "Volver a ver", "Repetición completa", "Volver a sincronizar", "Salir", "Controles de lo mejor", "Momentos", "Momento anterior", "Momento siguiente", "Ver juntos", "Ver con {0}", "Espacio pausa · ← → momentos · F repetición completa · Esc salir", "Tiempo del tramo", "Accidentes", "Gran salto", "Salto enorme", "De lado", "Contravolante a tope", "A fondo", "Accidente", "Golpe fuerte", "Vueltas de campana", "Sobre un costado", "¡Qué salvada!", "Vadeo", "Adelantamiento", "{0}° a {1} km/h", "{0} s de lado", "Contra un árbol a {0} km/h", "Contra un muro a {0} km/h", "Contra el talud a {0} km/h", "Contra las rocas a {0} km/h", "Llevándose un poste a {0} km/h", "Contra un poste de la luz a {0} km/h", "Contra otro coche a {0} km/h", "Contra el guardarraíl a {0} km/h", "Contra las balas de paja a {0} km/h", "Contra un bloque de hormigón a {0} km/h", "Sobre una isleta a {0} km/h", "Contra una pila del puente a {0} km/h", "Impacto a {0} km/h", "Vuelco a {0} km/h", "Sobre un costado a {0} km/h", "{0} vueltas de campana", "una vuelta de campana", "{0} piezas fuera", "una pieza fuera", "{0}° de lado a {1} km/h", "Un latigazo a {0} km/h", "Sobre dos ruedas a {0} km/h", "Fuera de la pista a {0} km/h, y de vuelta", "{0} km/h atravesando el agua", "Adelanta a {0} a {1} km/h", "un rival", "velocidad punta {0} km/h", "cámara lenta", "Empieza en {0}", "{0} ha empezado lo mejor: míralo con todos desde los resultados", "Dron FPV", "Suelo", "Cámara dron FPV"]);
+I18N_MORE.fr.push(...["Temps forts", "Temps forts de la spéciale", "Temps forts de la course", "Temps forts de la SS{0}", "Revoir", "Replay complet", "Revenir en synchro", "Quitter", "Commandes des temps forts", "Moments", "Moment précédent", "Moment suivant", "Regarder ensemble", "Regarder avec {0}", "Espace pause · ← → moments · F replay complet · Échap quitter", "Temps de la spéciale", "Accidents", "Gros saut", "Saut énorme", "En glisse", "Contrebraquage à fond", "À fond", "Accident", "Gros choc", "Tonneaux en série", "Sur le flanc", "Quel sauvetage !", "Passage à gué", "Dépassement", "{0}° à {1} km/h", "{0} s en glisse", "Dans un arbre à {0} km/h", "Dans un mur à {0} km/h", "Dans le talus à {0} km/h", "Dans les rochers à {0} km/h", "À travers un piquet à {0} km/h", "Dans un poteau à {0} km/h", "Dans une autre voiture à {0} km/h", "Dans la glissière à {0} km/h", "Dans les bottes de paille à {0} km/h", "Dans un bloc de béton à {0} km/h", "Sur un îlot à {0} km/h", "Dans une pile de pont à {0} km/h", "Choc à {0} km/h", "Tonneau à {0} km/h", "Sur le flanc à {0} km/h", "{0} tonneaux", "un tonneau", "{0} pièces arrachées", "une pièce arrachée", "{0}° en glisse à {1} km/h", "Des embardées à {0} km/h", "Sur deux roues à {0} km/h", "Hors de la route à {0} km/h, et de retour", "{0} km/h dans l’eau", "Passe {0} à {1} km/h", "un rival", "vitesse de pointe {0} km/h", "ralenti", "Début dans {0}", "{0} a lancé les temps forts : regardez-les ensemble depuis les résultats", "Drone FPV", "Sol", "Caméra drone FPV"]);
+I18N_MORE.de.push(...["Highlights", "Highlights der Prüfung", "Highlights des Rennens", "Highlights SS{0}", "Noch einmal ansehen", "Ganze Wiederholung", "Wieder synchron", "Beenden", "Highlight-Steuerung", "Momente", "Vorheriger Moment", "Nächster Moment", "Zusammen ansehen", "Mit {0} ansehen", "Leertaste Pause · ← → Momente · F ganze Wiederholung · Esc beenden", "Prüfungszeit", "Unfälle", "Großer Sprung", "Riesensprung", "Quer", "Volles Gegenlenken", "Vollgas", "Unfall", "Harter Einschlag", "Mehrfacher Überschlag", "Auf der Seite", "Was für ein Rettungsmanöver!", "Wasserdurchfahrt", "Überholmanöver", "{0}° bei {1} km/h", "{0} s quer", "Mit {0} km/h in einen Baum", "Mit {0} km/h in eine Mauer", "Mit {0} km/h in die Böschung", "Mit {0} km/h in die Felsen", "Mit {0} km/h durch einen Pfosten", "Mit {0} km/h gegen einen Mast", "Mit {0} km/h in ein anderes Auto", "Mit {0} km/h in die Leitplanke", "Mit {0} km/h durch die Strohballen", "Mit {0} km/h gegen einen Betonblock", "Mit {0} km/h über eine Verkehrsinsel", "Mit {0} km/h gegen einen Brückenpfeiler", "Einschlag mit {0} km/h", "Überschlag bei {0} km/h", "Umgekippt bei {0} km/h", "{0}-mal überschlagen", "überschlagen", "{0} Teile ab", "ein Teil ab", "{0}° quer bei {1} km/h", "Wildes Pendeln bei {0} km/h", "Auf zwei Rädern bei {0} km/h", "Mit {0} km/h von der Straße, und wieder drauf", "Mit {0} km/h durchs Wasser", "Mit {1} km/h an {0} vorbei", "einem Rivalen", "Höchstgeschwindigkeit {0} km/h", "Zeitlupe", "Start in {0}", "{0} hat die Highlights gestartet: Seht sie euch gemeinsam in den Ergebnissen an", "FPV-Drohne", "Boden", "FPV-Drohnenkamera"]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -11227,7 +11341,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '3C9D';
+const SR86_BUILD = 'B5E2';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -23565,7 +23679,7 @@ const Snd = {
     this.mg = 0.62; const master = C.createGain(); master.gain.value = this.mg; const comp = C.createDynamicsCompressor(); comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 2; comp.attack.value = 0.01; comp.release.value = 0.2;
     const lim = C.createDynamicsCompressor(); lim.threshold.value = -1.5; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.08; // brick-wall for crashes
     // (the whole mix pulled down a little while the co-driver speaks: this.duck)
-    const duck = C.createGain(); master.connect(duck); duck.connect(comp); comp.connect(lim); lim.connect(C.destination); this.master = master; this.duck = duck; this.out = lim;
+    const duck = C.createGain(), slo = C.createBiquadFilter(); slo.type = 'lowpass'; slo.frequency.value = 20000; slo.Q.value = 0.9; master.connect(slo); slo.connect(duck); duck.connect(comp); comp.connect(lim); lim.connect(C.destination); this.master = master; this.duck = duck; this.out = lim; this.slo = slo;
     const nb = C.createBuffer(1, C.sampleRate * 2, C.sampleRate); const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; this.nb = nb;
     this.curve = k => { const n = 2048, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(k * x) / Math.tanh(k); } return c; };
     // cabin filter: wide open outside, muffled exhaust inside
@@ -24238,7 +24352,17 @@ const Snd = {
   hydro(sev) { if (this.CH && this.CH.on) { this.chs('hydro', { sev }); return; } this.burst(0.25, 160, 0.7, 0.9, 'lowpass'); if (sev >= 2) this.burst(0.15, 2200, 0.8, 0.8, 'bandpass'); },
   radio() { if (!this.on) return; this.burst(0.05, 2400, 4, 0.18, 'bandpass'); },
   beep(f, d) { if (!this.on) return; const C = this.ctx, t = C.currentTime; const o = C.createOscillator(); o.type = 'square'; o.frequency.value = f; const g = C.createGain(); g.gain.setValueAtTime(0.12, t); g.gain.setValueAtTime(0.12, t + d - 0.02); g.gain.linearRampToValueAtTime(0, t + d); o.connect(g).connect(this.master); o.start(t); o.stop(t + d); },
-  mute(m) { if (this.master) this.master.gain.value = m ? 0 : this.mg; }
+  mute(m) { if (this.master) this.master.gain.value = m ? 0 : this.mg; },
+  // the highlights' slow motion: the whole mix muffled as k goes to 1 (its corner down from 20 kHz to about 1 kHz)
+  slowmo(k) { const f = this.slo; if (!f || !this.ctx) return; k = Math.round(k * 50) / 50; if (this.sloK === k) return; this.sloK = k; f.frequency.setTargetAtTime(20000 * Math.pow(0.055, k), this.ctx.currentTime, 0.07); },
+  // the sweep with the highlights' stinger: a breath of noise rising through a band-pass and falling away, left to right
+  whoosh() {
+    const C = this.ctx; if (!C || !this.on || !this.master || !(this.master.gain.value > 0)) return; const t = C.currentTime;
+    try { const s = C.createBufferSource(), bp = C.createBiquadFilter(), g = C.createGain(), pn = C.createStereoPanner ? C.createStereoPanner() : null; s.buffer = this.nb;
+      bp.type = 'bandpass'; bp.Q.value = 1.3; bp.frequency.setValueAtTime(240, t); bp.frequency.exponentialRampToValueAtTime(3400, t + 0.3); bp.frequency.exponentialRampToValueAtTime(700, t + 0.62);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + 0.2); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.64);
+      if (pn) { pn.pan.setValueAtTime(-0.8, t); pn.pan.linearRampToValueAtTime(0.8, t + 0.6); } s.connect(bp).connect(g); (pn ? g.connect(pn) : g).connect(this.duck); s.start(t, Math.random()); s.stop(t + 0.7); } catch (e) { }
+  }
 };
 
 // ---------- the co-driver ----------
@@ -25698,7 +25822,7 @@ function duelLine(total) { const d = total - Duel.total, nm = Duel.name, mid = n
 function toMenu() { Coach.hide(); if (Replay.on) Replay.exit(); Rec.clear(); Duel.drop(); RivalGhosts.stop(); RX.end(); RXUI.hide(); orbitOff(); G.rally = null; G.paused = false; G.mpMenu = false; MP.onMenu(); Snd.mute(true); Snd.engineOn(false); Snd.envOff(); Voice.stop(); CoDriver.unlock(); G.state = 'menu'; if (G.mesh) G.mesh.root.visible = false; if (G.ghostMesh) G.ghostMesh.root.visible = false; G.lead = null; showScreen('menu'); if (Rally.mode === 'rally') Rally.renderMenu(); else if (Rally.mode === 'mp') { MP.enterMenu(); } else { renderBoard(); renderFacts(); } renderSetupLine(); }
 // (the results at the finish leave the driving instruments off the screen, for the view round the car: see Orbit; the
 // replay has its own bar: see Replay)
-function showScreen(which) { $('#menu').hidden = which !== 'menu'; $('#hud').hidden = which !== 'hud'; $('#finish').hidden = which !== 'finish'; $('#pause').hidden = true; $('#rally').hidden = which !== 'rally' && which !== 'result'; const rp = $('#replay'); if (rp) rp.hidden = which !== 'replay'; document.body.dataset.mode = which; }
+function showScreen(which) { $('#menu').hidden = which !== 'menu'; $('#hud').hidden = which !== 'hud'; $('#finish').hidden = which !== 'finish'; $('#pause').hidden = true; $('#rally').hidden = which !== 'rally' && which !== 'result'; const rp = $('#replay'); if (rp) rp.hidden = which !== 'replay'; const rl = $('#reel'); if (rl) rl.hidden = which !== 'reel'; document.body.dataset.mode = which; }
 let flashT = 0; function flash(t) { const m = $('#msg'); m.textContent = t; m.classList.add('on'); clearTimeout(flashT); flashT = setTimeout(() => m.classList.remove('on'), 1800); }
 
 // (the first builds with the assists presets had Casual steer the car along the racing line by itself: a time set that
@@ -26918,7 +27042,7 @@ function updateRun(dt) {
   if (G.finished && !Orbit.on && G.orbitAt == null && !G.orbitOff && (sp < 4 || sinceFin > 2.5) && !(MP.game && MP.watchCar && MP.watchCar())) { orbitBegin(Orbit, c, G.camMode < 2); G.orbitAt = G.time; $('#hud').classList.add('fin'); } // (the instruments off the screen, the finish being the view's: a race's own panels stay)
   const orbitNew = Orbit.on && G.orbitAt != null && G.time - G.orbitAt < 2.6;
   if (G.finished && !G.finShown && !orbitNew && ((sp < 0.6 && sinceFin > 1.5) || sinceFin > (MP.phase === 'done' ? 2 : 14))) { // (in a race against friends the results come up as the car slows: the race room follows soon after the last car is in)
-  G.finShown = true; if (G.rally) Rally.showResult(); else if (MP.phase === 'done') MP.results(); else if (RX.on) RXUI.results(); else { $('#finReplay').hidden = !Replay.can(); showScreen('finish'); } }
+  G.finShown = true; if (G.rally) Rally.showResult(); else if (MP.phase === 'done') MP.results(); else if (RX.on) RXUI.results(); else { $('#finReplay').hidden = !Replay.can(); $('#finHigh').hidden = !Replay.can(); showScreen('finish'); } }
   crewJolt(G.physDt); updateCamera(dt); updateHud(sp); Coach.step(dt); CoDriver.feel(dt);
   Rec.frame(c, m, G.wpos, !!inp.handbrake && !G.finished); // (the run as it went, for its replay)
   Flash.take(); // (and the last seconds of it as it was, for a flashback)
@@ -27764,7 +27888,7 @@ function init() {
   $('#setupBtn').addEventListener('click', () => { if (G.T && G.state === 'menu') { Inspect.close(); SetupUI.open(G.spec, stageEnv(G.T)); } });
   $('#finCopy').addEventListener('click', e => copyChallenge(e.currentTarget));
   $('#finAgain').addEventListener('click', () => startRun());
-  $('#finReplay').addEventListener('click', () => Replay.open());
+  $('#finReplay').addEventListener('click', () => Replay.open()); $('#finHigh').addEventListener('click', () => Replay.openReel());
   $('#finMenu').addEventListener('click', () => toMenu());
   $('#pResume').addEventListener('click', () => togglePause());
   $('#pFlash').addEventListener('click', () => { if (G.paused) togglePause(); Flash.open(); });
@@ -32656,7 +32780,7 @@ const MP = {
     // the car: the one the host drew for this place, or the driver's own (kept, to be theirs again after the race)
     if (!this.ownSpec) this.ownSpec = G.spec; const drawn = c.cs && c.cs[this.slot] ? carById(c.cs[this.slot]) : null; G.spec = drawn || this.ownSpec;
     this.raced[this.code] = c.rd; this.stage(); this.phase = 'race'; this.myFin = null; this.dmVer = -1; this.shown = false;
-    this.sp = []; this.watch = null; this.watchOn = false; this.resHidden = false; this.koAt = -1; this.koWatchAt = 0; this.horn = 0; this.feed = []; this.statsReset();
+    this.sp = []; this.watch = null; this.watchOn = false; this.resHidden = false; this.koAt = -1; this.koWatchAt = 0; this.horn = 0; this.feed = []; this.statsReset(); this.hmSeen = new Map(); this.hlInv = null; this.hlCap = 0;
     this.bl = []; this.blAcc.clear(); this.hitAt.clear(); this.crashAt.clear(); this.aV = null; this.dmLast = ''; this.dmT = 0;
     for (const p of this.peers) if (!p.sameTab && this.gr.includes(p.peer)) this.rivalFor(p);
     if (typeof SetupUI !== 'undefined' && SetupUI.close) try { SetupUI.close(); } catch (e) { }
@@ -32667,7 +32791,7 @@ const MP = {
     // countdown for a page that heard of the start late; a car away later (a rally start, a handicap) that much later
     this.goT = c.go + this.startDelay(c, this.slot) * 1000; this.goPeer = this.hostPeer; this.goMin = Date.now() + 1200; this.goAt = Math.max(this.goMin, this.goT + this.offset(this.goPeer));
     G.cd = this.countdown(); G.cdLast = Math.ceil(G.cd) + 1;
-    this.rdy = 0; this.pub({ ph: 'grid', rr: c.rd, rdy: 0, ft: null, s: this.pack(G.car), p: 0, et: 0, ck: Date.now(), as: G.run ? G.run.lv : null, car: G.spec.id, sp: [], aw: null, hn: 0, rx: null, dm: null, bl: null, kt: [nightKit(G.T) ? 1 : 0, G.mesh && G.mesh.snorkel ? 1 : 0] }); // (kt: how its car is built, see meshFor) // (as: the assists preset driven with, shown with the results)
+    this.rdy = 0; this.pub({ ph: 'grid', rr: c.rd, rdy: 0, ft: null, s: this.pack(G.car), p: 0, et: 0, ck: Date.now(), as: G.run ? G.run.lv : null, car: G.spec.id, sp: [], aw: null, hn: 0, rx: null, dm: null, bl: null, hm: null, hs: null, hw: 0, kt: [nightKit(G.T) ? 1 : 0, G.mesh && G.mesh.snorkel ? 1 : 0] }); // (kt: how its car is built, see meshFor) // (as: the assists preset driven with, shown with the results)
     this.reveal(c, drawn);
   },
   // the splits: in a knockout, one for each car to go out (N-2 of them, spread evenly, so the last two race for the
@@ -32695,14 +32819,15 @@ const MP = {
     const keep = this.phase === 'watch' ? this.rdy : 0;
     this.phase = 'lobby'; this.clearRivals(); this.gr = []; this.slot = -1; this.ownCar(); this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true;
     if (G.state !== 'menu') toMenu();
-    this.rdy = keep; this.pub({ ph: 'lobby', rdy: keep, s: null, ft: null, p: 0, car: G.spec.id, sp: null, hn: 0, rx: null, dm: null, bl: null }); this.stageSoon(); this.render();
+    this.rdy = keep; this.pub({ ph: 'lobby', rdy: keep, s: null, ft: null, p: 0, car: G.spec.id, sp: null, hn: 0, rx: null, dm: null, bl: null, hm: null, hs: null, hw: 0 }); this.stageSoon(); this.render();
   },
   // the driver's own car again, after a race in one drawn for them
   ownCar() { if (this.ownSpec) { G.spec = this.ownSpec; this.ownSpec = null; this.lastCar = ''; } },
+  hlPub() { const hm = this.hlOut(); if (!hm) return {}; this.mine.hm = hm; const c = G.car, o = this.dmOut(c); if (!o) return { hm }; this.dmLast = JSON.stringify(o); return { hm, dm: this.fit(o, c) }; },
   // this driver's race over (finished, retired or gone back to the menu)
-  onFinish(total) { this.phase = 'done'; this.myFin = total; this.hornOff(); this.pub({ ph: 'fin', ft: Math.round(total * 1000) / 1000, s: this.pack(G.car), ck: Date.now(), as: G.run ? G.run.lv : null, aw: this.statsOut(true) }); speak('Stop, stop.'); this.results(); },
+  onFinish(total) { this.phase = 'done'; this.myFin = total; this.hornOff(); this.pub(Object.assign({ ph: 'fin', ft: Math.round(total * 1000) / 1000, s: this.pack(G.car), ck: Date.now(), as: G.run ? G.run.lv : null, aw: this.statsOut(true) }, this.hlPub())); speak('Stop, stop.'); this.results(); },
   retire() { if (this.phase !== 'race') return; this.phase = 'done'; this.myFin = null; this.hornOff(); this.pub({ ph: 'out', ft: null, aw: this.statsOut(false) }); },
-  onMenu() { if (this.phase === 'race' || this.phase === 'done') { if (this.phase === 'race') this.retire(); this.phase = 'lobby'; this.clearRivals(); this.rdy = 0; this.ownCar(); this.pub({ ph: 'lobby', s: null, rdy: 0, car: G.spec.id, hn: 0, rx: null, dm: null, bl: null }); } this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true; this.render(); },
+  onMenu() { if (this.phase === 'race' || this.phase === 'done') { if (this.phase === 'race') this.retire(); this.phase = 'lobby'; this.clearRivals(); this.rdy = 0; this.ownCar(); this.pub({ ph: 'lobby', s: null, rdy: 0, car: G.spec.id, hn: 0, rx: null, dm: null, bl: null, hm: null, hs: null, hw: 0 }); } this.raceUI(false); const r = $('#mpRes'); if (r) r.hidden = true; this.render(); },
 
   // ---- the car's state, packed for the others: where (centre of gravity), turned (quaternion), moving (velocity and spin,
   // in the world), the front wheels' steer, the four struts' lengths, the lamps (brake, side, dipped, main, fog,
@@ -32855,11 +32980,11 @@ const MP = {
     const carId = this.carOf(p);
     if (carId && carId !== r.carId && carById(carId)) { this.dropRival(p.peer); this.rivalFor(p); return; }
     const ck = mpNum(P.ck, 0, 1e15), st = ck !== r.ck || !r.st ? this.unpack(P.s) : null;
-    if (st) { r.st = st; r.ck = ck; r.hc = mpNum(P.hc, -1e13, 1e13); r.at = p.updatedAt || Date.now(); if (!r.pose) r.pose = { x: st.x, yb: st.yb, z: st.z, Q: st.Q.slice() }; }
+    if (st) { r.st = st; r.ck = ck; r.hc = mpNum(P.hc, -1e13, 1e13); r.at = p.updatedAt || Date.now(); if (!r.pose) r.pose = { x: st.x, yb: st.yb, z: st.z, Q: st.Q.slice() }; this.hlRec(r, st, P); }
     r.ph = ['grid', 'run', 'fin', 'out', 'lobby'].includes(P.ph) ? P.ph : r.ph; r.gh = P.gh === 1; r.p = mpNum(P.p, 0, 1e5) || 0; r.et = mpNum(P.et, 0, 1e6); r.ft = mpNum(P.ft, 0, 1e6); r.by = p.by;
     // its car as its page built it (the night's lamp pods, a snorkel), and its damage as its page has it (this race's)
     { const kt = this.kitOf(P); if (kt && r.kit && !r.ghost && (kt[0] !== r.kit[0] || kt[1] !== r.kit[1])) this.remesh(r, kt); }
-    { const dm = P.dm && typeof P.dm === 'object' && !Array.isArray(P.dm) && P.dm.r === this.round ? P.dm : null, k = dm ? JSON.stringify(dm) : ''; if (k !== r.dmKey) { r.dmKey = k; r.dmIn = dm ? this.dmCheck(dm) : null; r.dmDirty = true; } }
+    { const dm = P.dm && typeof P.dm === 'object' && !Array.isArray(P.dm) && P.dm.r === this.round ? P.dm : null, k = dm ? JSON.stringify(dm) : ''; if (k !== r.dmKey) { r.dmKey = k; const o = dm ? this.dmCheck(dm) : null; r.dmLive = o; this.hlDm(r, o, P); if (r.hdAt === undefined) { r.dmIn = o; r.dmDirty = true; } } } // (in a replay its damage is the replay's: see replayAt)
     // the blows its page says it gave: one at this car taken, one between two others heard (see blowIn)
     if (Array.isArray(P.bl)) this.blowsIn(r, P.bl); else if (r.blN === undefined) r.blN = -1; if (Array.isArray(P.ek)) RaceEvents.knocksIn(P.ek);
     // its times at the splits, its horn, the figures of its run, and a reaction (each shown once, by its number)
@@ -32869,6 +32994,9 @@ const MP = {
       if (r.rxN === undefined) r.rxN = P.rx[0]; // (one sent before this page heard of the car: not shown now)
       else if (P.rx[0] !== r.rxN) { r.rxN = P.rx[0]; this.heard(r, P.rx[1]); } }
     else if (r.rxN === undefined) r.rxN = 0;
+    // its moments, for the race's highlights (kept should it leave), and the highlights started for everyone
+    { const hm = this.hmIn(P.hm); if (hm && hm.length) (this.hmSeen || (this.hmSeen = new Map())).set(p.peer, { hm });
+      if (Array.isArray(P.hs) && P.hs.length === 3 && P.hs.every(v => typeof v === 'number' && isFinite(v))) { const n = P.hs[0] | 0; if (r.hsN !== n) { r.hsN = n; this.hlHeard(r, P.hs); } } }
   },
   // the car a driver races in: the one drawn for its place on this race's grid, else the one it says it has
   carOf(p) { const c = this.rc, k = this.gr.indexOf(p.peer); if (c && c.cs && k >= 0 && (this.phase === 'race' || this.phase === 'done') && c.cs[k]) return c.cs[k];
@@ -32893,13 +33021,13 @@ const MP = {
     catch (e) { r.vx = null; } return r.vx;
   },
   voiceDrop(r) { const v = r.vx, C = Snd.ctx; r.vx = null; if (!v || !C) return; try { v.g.gain.setTargetAtTime(0, C.currentTime, 0.04); v.o1.stop(C.currentTime + 0.3); v.o2.stop(C.currentTime + 0.3); } catch (e) { } },
-  voice(r, s, show) {
-    const v = this.voiceFor(r); if (!v) return; const C = Snd.ctx, t = C.currentTime, w = this._w || (this._w = new THREE.Vector3());
+  voice(r, s, show, k, P) {
+    const v = this.voiceFor(r); if (!v) return; const C = Snd.ctx, t = C.currentTime, w = this._w || (this._w = new THREE.Vector3()), Ps = P || r.pose;
     if (!show) { v.g.gain.setTargetAtTime(0, t, 0.08); return; }
-    w.set(r.pose.x, r.pose.yb, r.pose.z).applyMatrix4(camera.matrixWorldInverse); const d = Math.max(1, w.length()), att = d > 240 ? 0 : Math.min(1, Math.pow(9 / d, 1.15));
+    w.set(Ps.x, Ps.yb, Ps.z).applyMatrix4(camera.matrixWorldInverse); const d = Math.max(1, w.length()), att = d > 240 ? 0 : Math.min(1, Math.pow(9 / d, 1.15));
     const f = clamp(s.rpm || 900, 500, 12000) / 60 * (r.S.cyl || 4) / 2;
     v.o1.frequency.setTargetAtTime(f, t, 0.03); v.o2.frequency.setTargetAtTime(f / 2, t, 0.03); v.lp.frequency.setTargetAtTime(Math.min(9000, 260 + 2400 * s.thr + f * 1.6), t, 0.05);
-    v.g.gain.setTargetAtTime(att * (0.03 + 0.06 * s.thr), t, 0.06); if (v.pn) v.pn.pan.setTargetAtTime(clamp(w.x / d, -1, 1) * 0.85, t, 0.06);
+    v.g.gain.setTargetAtTime(att * (0.03 + 0.06 * s.thr) * (k || 1), t, 0.06); if (v.pn) v.pn.pan.setTargetAtTime(clamp(w.x / d, -1, 1) * 0.85, t, 0.06);
   },
   clearRivals() { for (const k of [...this.rivals.keys()]) this.dropRival(k); if (G.car) G.car.rivals = null; const t = $('#mpTags'); if (t) t.textContent = ''; const s = $('#mpStand'); if (s) s.hidden = true; },
   // where a car is t seconds on from a state of it (s): as the racing games do it, carried on along the curve it was
@@ -33057,24 +33185,29 @@ const MP = {
       // (in a rally start a car waiting for its start is not drawn: they all wait on the line)
       const m = r.mesh, s = r.st; if (!s || !r.pose || r.ph === 'lobby' || r.ph === 'out' || (r.ghost && r.ph === 'grid')) { m.root.visible = false; if (r.vx) this.voice(r, s, false); this.hornAt(r, false); continue; }
       this.voice(r, s, G.state === 'run' || G.state === 'countdown'); this.hornAt(r, r.hn === 1 && (G.state === 'run' || G.state === 'countdown'));
-      const K = carSetup(r.S), KW = K.W, hc = K.sp.hcg, rideY = K.dcg || 0, Q = r.pose.Q;
+      this.drawRival(r, dt, s, r.pose, false);
+    }
+  },
+  // one rival drawn: s its state, P where it is and how it is turned (rp: in a replay, as it was then)
+  drawRival(r, dt, s, P, rp) {
+    { const m = r.mesh, K = carSetup(r.S), KW = K.W, hc = K.sp.hcg, rideY = K.dcg || 0, Q = P.Q;
       for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (w.x0 == null) { w.x0 = w.piv.position.x - KW[i].lx; w.z0 = w.piv.position.z - KW[i].lz; } }
-      const off = qRot(Q, [0, hc - rideY, 0]); m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(r.pose.x - off[0], r.pose.yb - off[1], r.pose.z - off[2]); m.tilt.rotation.set(0, 0, 0);
+      const off = qRot(Q, [0, hc - rideY, 0]); m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(P.x - off[0], P.yb - off[1], P.z - off[2]); m.tilt.rotation.set(0, 0, 0);
       const fw = qRot(Q, [0, 0, 1]), om = (s.V[0] * fw[0] + s.V[1] * fw[1] + s.V[2] * fw[2]) / wheelOf(r.S).R;
       // (each wheel as its page has it: steered, leaning (a bent corner's toe and camber with it), and turning at its own
       // pace - spinning up or locked)
       for (let i = 0; i < 4; i++) { const w = m.wheels[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - s.L[i], w.z0 + KW[i].lz); w.piv.rotation.set(0, s.dw ? s.dw[i] : i < 2 ? s.steer : 0, -(s.lb ? s.lb[i] : 0)); kpShift(w, w.piv.rotation.y); w.a = (w.a || 0) + (s.om ? s.om[i] : om) * dt; w.w.rotation.x = w.a; }
-      ckBogies(m, null); fixPose(m, r.rp, KW); // (its crew at work on a corner)
+      ckBogies(m, null); fixPose(m, rp ? null : r.rp, KW); // (its crew at work on a corner)
       // (a panel swinging loose, at the angle its page has it)
-      if (s.pn && s.pn.length && m.dv && m.dv.panels) for (const [j, th] of s.pn) { const P = m.dv.panels[j]; if (P && P.g && P.st === 'loose') { P.th = th; CarDmg.panelPose(P); } }
+      if (s.pn && s.pn.length && m.dv && m.dv.panels) for (const [j, th] of s.pn) { const Pn = m.dv.panels[j]; if (Pn && Pn.g && Pn.st === 'loose') { Pn.th = th; CarDmg.panelPose(Pn); } }
       // (past the haze a rival is not drawn at all, and from a little way off without its cabin: the seats, cage and crew
       // are lost behind the glass by then)
-      const dc = camera.position.distanceTo(m.root.position); if (dc > (scene.fog ? scene.fog.far : 1e9) + 10) { m.root.visible = false; continue; }
+      const dc = camera.position.distanceTo(m.root.position); if (dc > (scene.fog ? scene.fog.far : 1e9) + 10) { m.root.visible = false; return; }
       if (r.cab === undefined) r.cab = m.root.getObjectByName('InteriorMesh') || null; if (r.cab) r.cab.visible = dc < 45;
       m.root.visible = true; m.sync();
       // see-through while it is a ghost to this car and near it: one of the two waiting for its start while the other is
       // away, or put back on the road a moment ago (they pass through each other)
-      { const c = G.car, wait = !this.away(r, this.raceMs()), meWait = G.state === 'countdown', d = c ? Math.hypot(r.pose.x - c.x, r.pose.z - c.z) : 99; this.ghostLook(r, !r.ghost && c && (r.gh || c.ghost || wait !== meWait) && d < (r.gl ? 20 : 16)); }
+      if (rp) this.ghostLook(r, false); else { const c = G.car, wait = !this.away(r, this.raceMs()), meWait = G.state === 'countdown', d = c ? Math.hypot(P.x - c.x, P.z - c.z) : 99; this.ghostLook(r, !r.ghost && c && (r.gh || c.ghost || wait !== meWait) && d < (r.gl ? 20 : 16)); }
       if (r.fx && (r.fx[0] > 0.01 || r.fx[1] > 0.01) && dc < 160) this.fumes(r, m, dt);
       // (its crew at work, from close by: see crew.js)
       crewFrame(m, r.S, dt, dc * dc, () => crewRival(m, r, s));
@@ -33092,7 +33225,7 @@ const MP = {
     // (sent on after the finish too, while the car pulls up at the stop line, so the others see it stop)
     // (and the blows it has given the others since the last send: see sendBlows)
     if ((this.phase === 'race' || this.phase === 'done') && c && this.sendT >= 1 / MP_HZ) { this.sendT = 0; const T = G.T, rnow = this.raceMs(), bl = rnow != null ? this.sendBlows(rnow) : undefined;
-      const o = { s: this.pack(c), ck: now, hc: this.hcMe == null ? null : Math.round(this.hcMe), ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : G.state === 'countdown' ? 'grid' : 'run', p: Math.max(0, G.prog - T.startIdx), et: Math.round((G.time + G.penalty) * 100) / 100, gh: c.ghost ? 1 : 0 };
+      const o = { s: this.pack(c), ck: now, rt: rnow == null ? null : Math.round(rnow), hc: this.hcMe == null ? null : Math.round(this.hcMe), ph: this.phase === 'done' ? (this.myFin != null ? 'fin' : 'out') : G.state === 'countdown' ? 'grid' : 'run', p: Math.max(0, G.prog - T.startIdx), et: Math.round((G.time + G.penalty) * 100) / 100, gh: c.ghost ? 1 : 0 };
       if (bl !== undefined) o.bl = bl.length ? bl : null; this.pub(o); }
     // its damage, whenever it has changed (looked at five times a second)
     this.dmT -= dt; if ((this.phase === 'race' || this.phase === 'done') && c && this.dmT <= 0) { this.dmT = 0.2; const o = this.dmOut(c), k = o ? JSON.stringify(o) : ''; if (k !== this.dmLast) { this.dmLast = k; this.pub({ dm: this.fit(o, c) }); } }
@@ -33121,7 +33254,7 @@ const MP = {
     const e = c.ko.find(x => x[0] === this.my || x[0] === this.meIn); if (!e) return;
     this.koAt = e[1]; this.phase = 'done'; this.myFin = null; this.hornOff();
     G.finished = true; G.finT = G.time + G.penalty; G.koStop = true;
-    this.pub({ ph: 'out', ft: null, aw: this.statsOut(false) });
+    this.pub(Object.assign({ ph: 'out', ft: null, aw: this.statsOut(false) }, this.hlPub()));
     this.banner(`Knocked out at split ${e[1] + 1} of ${this.splitAt.length}`, 4500); speak('Knocked out.');
     this.resHidden = true; this.koWatchAt = Date.now() + 2500; // (watching the rest of the race from a moment on: see raceUI)
   },
@@ -33176,7 +33309,7 @@ const MP = {
     this.rxN = (this.rxN + 1) % 1e6; this.pub({ rx: [this.rxN, id] }); this.feedAdd('You', MP_REACT[id], true);
   },
   heard(r, id) { const p = this.peers.find(q => q.peer === r.peer), nm = p ? this.nameOf(p, this.gr.indexOf(r.peer)) : 'Driver'; r.rxShow = { t: MP_REACT[id], until: Date.now() + 2600 }; this.feedAdd(nm, MP_REACT[id], false); },
-  feedAdd(who, txt, me) { this.feed.push({ who, txt, me, at: Date.now() }); if (this.feed.length > 4) this.feed.shift(); this.feedDraw(); },
+  feedAdd(who, txt, me) { this.feed.push({ who, txt, me, at: Date.now() }); if (this.feed.length > 4) this.feed.shift(); this.feedDraw(); if (typeof Replay !== 'undefined' && Replay.reel) Replay.reelRx(who, txt); },
   feedDraw() { const box = $('#mpFeed'); if (!box) return; const now = Date.now(); this.feed = this.feed.filter(f => now - f.at < 5000); box.textContent = '';
     for (const f of this.feed) box.append(mel('div', { class: 'mpfl' + (f.me ? ' me' : '') }, mel('b', { text: f.who }), mel('span', { text: f.txt }))); box.hidden = !this.feed.length; },
   // ---- watching the others: after the finish, once knocked out, and while waiting for a start a while off ----
@@ -33253,7 +33386,7 @@ const MP = {
       if (c.fm === 'ko') this.knockouts(c);
       const now = Date.now(), D = this.drivers().filter(p => c.gr.includes(p.peer) || (p.sameTab && this.phase === 'race'));
       const on = D.some(p => p.sameTab ? this.phase === 'race' && t - this.frameAt < 20000 : (now - (this.carAt.get(p.peer) || 0) < 20000 || now - this.wokeAt < 5000) && (p.presence.ph === 'grid' || p.presence.ph === 'run') && p.presence.rr === c.rd);
-      if (on || now < c.go + 10000) this.endAt = 0;
+      if (on || now < c.go + 10000 || this.hlHold(now)) this.endAt = 0; // (held while anyone watches the highlights, four minutes at most)
       else if (!this.endAt) this.endAt = now + (D.some(p => p.sameTab ? this.myFin != null : p.presence.ph === 'fin') ? 10000 : 2000);
       else if (now >= this.endAt) { this.endAt = 0; this.endRace(); }
     } else this.endAt = 0;
@@ -33394,6 +33527,8 @@ const MP = {
     $('#mpResH').textContent = this.myFin != null ? `You finished ${ordinal(F.findIndex(f => f.me) + 1)}` : this.koAt >= 0 ? `Knocked out at split ${this.koAt + 1}` : 'Out of the race';
     $('#mpResSub').textContent = [G.T.type ? G.T.type.name : 'Stage', `Stage ${G.T.seed}`, MP_FMT_NAME[rc.fm || 'side'], mine && mine.pts ? `+${mine.pts} points` : '', all ? 'Everyone is in' : 'The rest are still on the stage'].filter(Boolean).join(' · ');
     const wb = $('#mpResWatch'); if (wb) wb.hidden = all || !this.watchList().length;
+    { const can = Replay.can(), hb = $('#mpResHigh'), tg = $('#mpResTog'), jn = $('#mpResJoin'), iv = this.hlInv, now = this.raceMs(); if (hb) hb.hidden = !can; if (tg) tg.hidden = !can || this.gr.length < 2;
+      if (jn) { const on = !!(can && iv && now != null && now < iv.at + 180000); jn.hidden = !on; if (on) setText(jn, `Watch with ${iv.name}`); } }
     $('#mpResLobby').hidden = !this.host; $('#mpResNote').textContent = this.host ? 'Gather everyone at the start now, or it happens a few seconds after the last car is in.' : 'Everyone goes back to the start a few seconds after the last car is in.';
   },
 
@@ -33425,6 +33560,7 @@ const MP = {
     for (const v of [1, 3, 5]) on('#mp_sr' + v, 'click', () => { if (this.cfg && this.cfg.sr !== v) this.setRule({ sr: v, sn: 1, pt: {}, tp: [0, 0], sx: 0, lr: null, pl: {} }); });
     // the results, watching the others, the horn and the reactions
     on('#mpResWatch', 'click', () => { this.resHidden = true; $('#mpRes').hidden = true; this.watchStart(); });
+    on('#mpResHigh', 'click', () => Replay.openReel({})); on('#mpResTog', 'click', () => this.hlTogether()); on('#mpResJoin', 'click', () => this.hlJoin());
     on('#mpWatchPrev', 'click', () => this.watchStep(-1)); on('#mpWatchNext', 'click', () => this.watchStep(1));
     on('#mpWatchRes', 'click', () => { this.resHidden = false; this.watchStop(); this.results(); });
     const hb = $('#tHorn'); if (hb) { const dn = e => { e.preventDefault(); touch.horn = true; hb.classList.add('down'); }, up = e => { e.preventDefault(); touch.horn = false; hb.classList.remove('down'); };
@@ -33595,16 +33731,16 @@ const RLIGHT = ['off', 'side', 'dip', 'main', 'auto'], RFOG = ['auto', 'on', 'of
 
 const Rec = {
   on: false, n: 0, ch: [], t: 0, last: -1, ev: [], str: [], six: new Map(), jump: false, ds: null, go: null, fin: null, mood: null,
-  clear() { this.on = false; this.n = 0; this.ch = []; this.ev = []; this.str = []; this.six = new Map(); this.ds = null; this.go = this.fin = null; this.mood = null; this.T = null; this.cv0 = null; this.dents0 = null; },
+  clear() { this.on = false; this.n = 0; this.ch = []; this.ev = []; this.str = []; this.six = new Map(); this.ds = null; this.go = this.fin = null; this.mood = null; this.T = null; this.cv0 = null; this.dents0 = null; this.rcv = []; },
   // a new run (after the car is on the grid, with what damage it carries from earlier stages of a rally); none in a race
-  // against friends, which has no replay
+  // against friends too (with the others' cars as they came, see MP.hlRec; no flashbacks in one)
   start() {
-    this.clear(); const c = G.car, m = G.mesh; if (!c || !m || !G.T || MP.game) return;
+    this.clear(); const c = G.car, m = G.mesh; if (!c || !m || !G.T) return;
     Object.assign(this, { on: true, t: 0, last: -1, jump: false, T: G.T, spec: G.spec, phys: G.phys, night: nightKit(G.T), dmgMode: c.dmg ? c.dmg.mode : 'off', rally: !!G.rally });
     this.cv0 = m.dv ? CarDmg.save(m) : null; this.dents0 = c.dmg ? c.dmg.dents.map(d => [d.x, d.y, d.z, d.nx, d.ny, d.nz, d.d, d.r, d.s]) : [];
   },
   stop() { this.on = false; },
-  ok() { return this.n > REC_HZ * 2 && !!this.T && this.T === G.T && !MP.game; },
+  ok() { return this.n > REC_HZ * 2 && !!this.T && this.T === G.T && (!MP.game || MP.phase === 'done'); },
   sid(s) { if (s == null || s === '') return -1; let i = this.six.get(s); if (i === undefined) { i = this.str.length; this.str.push(s); this.six.set(s, i); } return i; },
   tick(dt) { if (this.on) this.t += dt; },
   // this frame's events (before they are spent): blows, landings, gears, the engine's troubles
@@ -33636,6 +33772,7 @@ const Rec = {
       F[b] = w.L; F[b + 1] = w.delta || 0; F[b + 2] = w.lb || 0; F[b + 3] = w.omega || 0; F[b + 4] = w.Fz || 0; F[b + 5] = w.slipL || 0; F[b + 6] = w.slipT || 0; F[b + 7] = this.sid(w.surf); F[b + 8] = w.onRock ? 1 : 0;
       F[b + 9] = w.comp || 0; F[b + 10] = w.g || 0; F[b + 11] = w.gRaw != null ? w.gRaw : w.g || 0; F[b + 12] = w.x; F[b + 13] = w.z; F[b + 14] = w.rho || 0; F[b + 15] = mx ? mx.pool : 0; F[b + 16] = mx ? mx.wet : -1; F[b + 17] = w.vyw || 0; }
     const P = m && m.dv && m.dv.panels; for (let j = 0; j < RP; j++) F[o + RP0 + j] = P && P[j] ? P[j].th || 0 : 0;
+    if (MP.game) this.rcv[this.n - 1] = MP.raceMs(); // (in a race against friends: the race's clock then, ms)
   },
   // what the damage changed on the car since the last frame, as one event: the dents (all of them, each time the body is
   // reshaped), panels sprung, jammed or torn off, fittings torn off, windows and lamps broken, the windscreen's cracks,
@@ -33671,18 +33808,20 @@ const RCAM = {
   heli: { name: 'Helicopter', snd: 'far', mode: 1, far: true },
   track: { name: 'Trackside', snd: 'far', mode: 1, far: true },
   fan: { name: 'Spectator', snd: 'far', mode: 1, far: true },
+  fpv: { name: 'FPV drone', snd: 'chase', mode: 0 },
+  ground: { name: 'Ground', snd: 'far', mode: 1, far: true },
   orbit: { name: 'Finish', snd: 'chase', mode: 0, far: true },
   look: { name: 'Look round', snd: 'chase', mode: 0, far: true }
 };
-const RCAM_LIST = ['auto', 'onboard', 'bonnet', 'wheel', 'crew', 'chase', 'drone', 'heli', 'track', 'fan'];
+const RCAM_LIST = ['auto', 'onboard', 'bonnet', 'wheel', 'crew', 'chase', 'drone', 'heli', 'track', 'fan', 'fpv'];
 // how long the director holds each (s of the run: least and most), and how often it turns to each when nothing is
 // about to happen
-const RSHOT = { onboard: [7, 11], bonnet: [5, 7.5], wheel: [3.2, 4.6], crew: [3, 4], chase: [4.5, 7], drone: [5, 8], heli: [6, 9], track: [3, 9], fan: [3, 8], orbit: [1e9, 1e9] };
-const RWEIGHT = { onboard: 3, bonnet: 1.4, chase: 1.3, drone: 1.3, heli: 1.1, track: 2.2, fan: 1.1, wheel: 0.8, crew: 0.6 };
+const RSHOT = { onboard: [7, 11], bonnet: [5, 7.5], wheel: [3.2, 4.6], crew: [3, 4], chase: [4.5, 7], drone: [5, 8], heli: [6, 9], track: [3, 9], fan: [3, 8], fpv: [4, 6.5], ground: [3, 5], orbit: [1e9, 1e9] };
+const RWEIGHT = { onboard: 3, bonnet: 1.4, chase: 1.3, drone: 1.3, heli: 1.1, track: 2.2, fan: 1.1, wheel: 0.8, crew: 0.6, fpv: 1 };
 // what suits each kind of moment, best first
 // (a crash or a roll, as it is mostly seen: from the roadside, a broadcast camera's or a spectator's, which stand where they
 // see it all, or from the helicopter; a camera following the car would be in the trees with it)
-const RFOR = { jump: ['track', 'heli', 'fan'], crash: ['track', 'fan', 'heli'], roll: ['track', 'fan', 'heli'], splash: ['track', 'fan', 'chase'], slide: ['heli', 'track', 'fan', 'drone'] };
+const RFOR = { jump: ['track', 'heli', 'fan'], crash: ['track', 'fan', 'heli'], roll: ['track', 'fan', 'heli'], splash: ['track', 'fan', 'chase'], slide: ['heli', 'track', 'fan', 'drone', 'fpv'] };
 const _rq = new THREE.Quaternion(), _re = new THREE.Euler(0, 0, 0, 'YXZ'), _rv = new THREE.Vector3(), _rv2 = new THREE.Vector3();
 // a damped follow (a camera operator's, or a camera's mount): the value x and its rate v toward the target, at w rad/s
 // (vt: the target's own rate, carried: a camera flying with the car, an operator panning with it, keeps up)
@@ -33700,26 +33839,27 @@ const Replay = {
   // ---- going in and out ----
   // (fb: a flashback - the last seconds of a run under way, rewinding from now, the moment to drive on from picked
   // there: see Flash)
-  open(fb) {
+  open(fb, ro) {
     if (this.on || (fb ? !Flash.can() : !this.can())) return false; Rec.stop();
     // what the run's car, camera and settings were, to go back to
     this.was = { car: G.car, mesh: G.mesh, state: G.state, time: G.time, wt: Atmos.wt, cam: G.camMode, shake: G.shake, lights: CarLights.mode, fog: CarLights.fogMode, wip: [Wipers.pos, Wipers.prev], frame: G.frameN,
       orbit: { a: Orbit.a, r: Orbit.r, h: Orbit.h, fov: Orbit.fov, cx: Orbit.cx, cy: Orbit.cy, cz: Orbit.cz, g: Orbit.g, t: Orbit.t, dir: Orbit.dir, zoom: Orbit.zoom, lift: Orbit.lift, on: Orbit.on, fw: Orbit.fw, fh: Orbit.fh }, finS: !$('#finish').hidden, rlyS: !$('#rally').hidden, rxS: !!RXUI.shown };
+    { const mr = $('#mpRes'); if (mr) mr.hidden = true; } // (a race's results: back to them after, see exit)
     if (RXUI.shown) RXUI.hide(); // (a rallycross race's results: back to them after)
     this.on = true; this.fb = !!fb; this.rew = false; this.rigOwn = false; this.ownDirty = false; this.going = false; this.keepRig = false; this.panWas = null; this.spare = null; G.state = 'replay'; G.mesh.root.visible = false; if (G.ghostMesh) G.ghostMesh.root.visible = false; RaceLine.hide(); Voice.stop();
     if (camera.view && camera.view.enabled) camera.clearViewOffset(); Orbit.ox = Orbit.oy = 0; Orbit.fw = Orbit.fh = 1; Orbit.ptrs.clear(); // (the whole screen is the replay's)
     this.car = this.shadow(this.was.car); G.car = this.car; this.S = Rec.phys || G.phys;
     this.waterWas = 0; this.hl = this.highlights(); this.used = []; this.stopT = this.stopAt(); this.mood = G.crewMood || 'ok';
     this.t1 = Rec.at(Rec.n - 1)[((Rec.n - 1) & (REC_CH - 1)) * RN];
-    this.t0 = fb ? Math.min(this.t1, Math.max(Flash.buf[0].rt, Rec.go != null ? Rec.go : 0)) : Math.max(0, (Rec.go != null ? Rec.go : 0) - 2.6);
+    this.t0 = fb ? Math.min(this.t1, Math.max(Flash.buf[0].rt, Rec.go != null ? Rec.go : 0)) : Math.max(0, (Rec.go != null ? Rec.go : 0) - (ro ? 6 : 2.6)); // (the highlights open over the grid)
     this.rate = 1; this.play = !fb; this.end = false; this.shot = null; Orbit.user = false;
-    if (fb) { this.kindWas = this.kind; this.kind = FB_CAM[G.camMode] || 'chase'; showScreen('replay'); this.stopUI(); this.fbUI(true); } else { this.kind = this.kind || 'auto'; this.startUI(); showScreen('replay'); }
+    this.reel = null; if (fb) { this.kindWas = this.kind; this.kind = FB_CAM[G.camMode] || 'chase'; showScreen('replay'); this.stopUI(); this.fbUI(true); } else if (ro && this.reelStart(ro)) { this.stopUI(); showScreen('reel'); } else { this.kind = this.kind || 'auto'; this.startUI(); showScreen('replay'); }
     Skids.off = true; Snd.mute(!!fb); Snd.engineOn(true);
     if (fb) { this.own(); this.seek(this.t1); this.spareFor(); this.rew = true; this.fbShow(); } else this.seek(this.t0, true);
     return true;
   },
   exit() {
-    if (!this.on) return; const W = this.was; this.on = false;
+    if (!this.on) return; const W = this.was; this.on = false; if (this.reel) this.reelEnd(); MP.replayEnd();
     Snd.dist = null; Snd.farG = null; Voice.stop(); Skids.off = false; Particles.clear();
     if (this.rig) { if (!this.rigOwn && !this.keepRig) { if (ScreenFx.rig === this.rig) ScreenFx.attach(W.mesh); dropCarMesh(this.rig); } this.rig = null; this.rigOwn = false; } // (a car built for a flashback driven on from is handed on: see fbGo)
     if (this.fb && !this.going) this.ownBack(); // (a flashback let go: the run's own car as it stood)
@@ -33731,6 +33871,7 @@ const Replay = {
     this.stopUI();
     // (out of a flashback: back to the run as it stood, its recording going on; see fbGo for going back in it)
     if (this.fb) { this.fb = false; this.rew = false; this.fbUI(false); this.kind = this.kindWas || 'auto'; for (const d of Debris.list) d.mesh.visible = true; Rec.on = true; showScreen('hud'); return; }
+    if (MP.game && MP.phase === 'done' && G.finShown) { showScreen('hud'); MP.results(); return; } // (a race against friends: its results again)
     if (W.rxS) { RXUI.show(); return; }
     if (G.rally && W.rlyS) { showScreen('result'); $('#rally').hidden = false; } else if (W.finS || !G.rally) showScreen('finish'); else showScreen('hud');
     const f = document.querySelector(G.rally ? '#rally .btns .ghostbtn' : '#finReplay'); if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
@@ -33850,7 +33991,7 @@ const Replay = {
     return i;
   },
   // where the car is at t (for the cameras' planning): x, the body's height, z, heading, speed, its point on the road
-  peek(t) { this.pk = this.sample(clamp(t, this.frameT(0), this.t1), this.Y, this.pk); const Y = this.Y; return { t, x: Y[RI.x], y: Y[RI.yb], z: Y[RI.z], h: Y[RI.psi], vx: Y[RI.vx], vz: Y[RI.vz], sp: Math.hypot(Y[RI.u], Y[RI.v]), i: Math.round(Y[RI.hint]) }; },
+  peek(t) { const L = this.reel; if (L && L.fc) return L.fc.peek(t); this.pk = this.sample(clamp(L && L.mp ? HL.tOf(t) : t, this.frameT(0), this.t1), this.Y, this.pk); const Y = this.Y; return { t, x: Y[RI.x], y: Y[RI.yb], z: Y[RI.z], h: Y[RI.psi], vx: Y[RI.vx], vz: Y[RI.vz], sp: Math.hypot(Y[RI.u], Y[RI.v]), i: Math.round(Y[RI.hint]) }; },
   // the frame into the replay's car
   toCar(X, c) {
     c.x = X[RI.x]; c.y = X[RI.y]; c.z = X[RI.z]; c.yb = X[RI.yb]; c.psi = X[RI.psi]; for (let k = 0; k < 4; k++) c.Q[k] = X[RI.q0 + k];
@@ -33897,7 +34038,7 @@ const Replay = {
     this.goShot = Rec.go == null || t > Rec.go + 0.2; this.finShot = Rec.fin == null || t > Rec.fin - 1; for (const h of this.hl) h.used = h.t < t + 0.8;
   },
   update(dt) {
-    if (this.fb) this.fbTick(dt); else this.uiTick(dt); if (!this.on) return;
+    if (this.fb) this.fbTick(dt); else if (this.reel) this.reelTick(dt); else this.uiTick(dt); if (!this.on) return;
     // (a flashback rewinding: back through the seconds at a little over their own pace, the car as it was at each; at the
     // first of them it stops there)
     // (back past a blow the car is as it was before it: reshaped, at most ten times a second, where it was only dented;
@@ -33909,10 +34050,12 @@ const Replay = {
       if (t <= this.t0 + 1e-4) { this.rew = false; this.seek(this.t0); this.fbShow(); } }
     // (the director slows a big moment down, as a highlights programme does: a jump from take-off to landing, a crash
     // or a roll as it happens; eased in and out)
-    const slow = this.kind === 'auto' && this.rate === 1 && !!this.slowAt(this.t); this.rk = (this.rk || 1) + ((slow ? 0.42 : 1) - (this.rk || 1)) * Math.min(1, dt * 5);
+    const slow = this.kind === 'auto' && this.rate === 1 && !this.reel && !!this.slowAt(this.t); this.rk = (this.rk || 1) + ((slow ? 0.42 : 1) - (this.rk || 1)) * Math.min(1, dt * 5);
     if (slow !== !!this.slowWas) { this.slowWas = slow; this.uiCam(); }
-    const go = this.play && !this.end, dtR = go ? dt * this.rate * (this.rate === 1 ? this.rk : 1) : 0; this.dtR = dtR; G.frameN = (G.frameN || 0) + 1;
-    if (go) { this.t = Math.min(this.t1, this.t + dtR); if (this.t >= this.t1) { this.end = true; this.play = false; this.uiPlay(); this.wake(); } }
+    let go = this.play && !this.end, dtR = go ? dt * this.rate * (this.rate === 1 ? this.rk : 1) : 0;
+    if (this.reel) { dtR = this.reelStep(dt); go = dtR > 0; } // (the highlights: their own clock, cuts and pace, see reelStep)
+    else if (go) { this.t = Math.min(this.t1, this.t + dtR); if (this.t >= this.t1) { this.end = true; this.play = false; this.uiPlay(); this.wake(); } }
+    this.dtR = dtR; G.frameN = (G.frameN || 0) + 1;
     const t0 = this.tp; this.tp = this.t; const c = this.car, m = this.rig, S = this.S, T = Rec.T; Atmos.wt = this.t; // (the weather as it was at the moment shown: its clock is the run's, see Atmos.evolve)
     this.cur = this.sample(this.t, this.X, this.cur); this.toCar(this.X, c);
     // what happened since the last frame: sounds and jolts, the crew's starts, the co-driver's calls, the damage
@@ -33934,21 +34077,24 @@ const Replay = {
     CarLights.update(dtR, m, c); m.sync({ wipers: wpos });
     if (dtR > 0) { const s = screenState(c, sp, wpos); s.show = interior; s.dmg = false; ScreenFx.update(dtR, s); }
     const RC = RCAM[V] || RCAM.chase; G.camMode = RC.mode;
-    if (go) { Snd.update(c, S, sp, c.surfName, c.inWater, interior, RC.snd, dtR, G.engEv); }
+    if (go) { const rp0 = c.rpm, sk = this.reel ? this.reel.slowK : 0; if (sk > 0.02) c.rpm *= 1 - 0.3 * sk; Snd.update(c, S, sp, c.surfName, c.inWater, interior, RC.snd, dtR, G.engEv); c.rpm = rp0; } // (in the highlights' slow motion the engine lower, and the whole of it muffled: Snd.slowmo)
+    if (this.reel) Snd.slowmo(this.reel.slowK);
     updateCrowd(dtR, crowdCars());
     if (go) { const cn = G.crowd ? G.crowd.near : 0; Snd.env(c, S, dtR, interior, cn, G.crowd && cn > 0.01 ? G.crowd.at : null); }
     emit(dtR); engineFx(dtR); Particles.update(dtR);
     this.pose(m, c, this.fb && this.rew ? -dt * FB_REW : dtR); m.sync(); this.dmgFx(dtR); if (this.fb) this.fbDebris(); else Debris.update(dtR); Stones.update(); // (rewinding, the wheels turn back)
     Duel.update(dtR, this.raceT); if (RX.on) RX.replayAt(this.t, dtR); // (a rallycross race: the other cars as they went)
+    if (MP.game && Rec.rcv && Rec.rcv.length) MP.replayAt(this.reel && this.reel.mp ? this.reel.rc : HL.rcOf(this.t), dtR, go); // (a race against friends: theirs, as they came)
     // the crew: in full from close by or from inside (a long lens brings them close too)
     const d2 = interior ? 0 : camera.position.distanceToSquared(m.root.position) * Math.pow(Math.min(1, camera.fov / 50), 2);
     animateInterior(m, c, S, dtR, this.hb && this.phase !== 'finish', false, interior ? 0 : d2); // (no camera is in the driver's head here: theirs is seen too)
     crewJolt(dtR, 1 / REC_HZ);
-    this.camera(dt, dtR);
+    // (the camera on the car the highlights' cut follows: another driver's, in a race)
+    { const FC = this.reel && this.reel.fc; if (FC) { this.car = FC.c; this.rig = FC.m; } try { this.camera(dt, dtR); } finally { if (FC) { this.car = c; this.rig = m; } } }
     // (the sound from far off: falling away with distance, arriving later)
-    if (RC.far) { const d = camera.position.distanceTo(_rv.set(c.x, c.yb, c.z)); Snd.dist = 7; Snd.farG = clamp(9 / Math.max(9, d), 0.02, 1); } else { Snd.dist = null; Snd.farG = null; }
-    Atmos.place(c.x, c.y, c.z);
-    if (this.fb) this.fbHud(); else this.hud(c, sp);
+    if (RC.far || (this.reel && this.reel.fc)) { const d = camera.position.distanceTo(_rv.set(c.x, c.yb, c.z)); Snd.dist = 7; Snd.farG = clamp(9 / Math.max(9, d), 0.02, 1); } else { Snd.dist = null; Snd.farG = null; }
+    { const pc = this.reel && this.reel.fc ? this.reel.fc.c : c; Atmos.place(pc.x, pc.y, pc.z); }
+    if (this.fb) this.fbHud(); else if (this.reel) this.reelHud(c, sp, dt); else this.hud(c, sp);
   },
   // steam from a holed radiator, smoke from a dying engine (as the run had them), and the panels swinging as they swung
   dmgFx(dt) {
@@ -33961,7 +34107,7 @@ const Replay = {
     while (H.smokeT < 0) { H.smokeT += 1; _dp.set(ep[0], ep[1], ep[2]).applyMatrix4(M); Particles.spawn(_dp.x, _dp.y, _dp.z, vx * 0.6 - s * 1.5, 0.5, vz * 0.6 - co * 1.5, SMOKEC, 0.9 + Math.random() * 0.6, 1.8, 0, 0.45); }
   },
   // (the co-driver's calls are heard from cameras on the car, at the run's own speed)
-  voiceOk() { const R = RCAM[this.camKind()]; return !!(R && R.voice) && this.play && this.rate === 1 && this.rk > 0.95; },
+  voiceOk() { const R = RCAM[this.camKind()]; return !!(R && R.voice) && this.play && this.rate === 1 && this.rk > 0.95 && !(this.reel && (this.reel.slowK > 0.05 || this.reel.fc)); },
   // the big moment under way at t, if any (for the director's slow motion)
   slowAt(t) { for (const h of this.hl) { if (h.t > t + 0.5) break; const a = h.k === 'jump' ? h.t - 0.1 : h.t + 0.15, b = h.k === 'jump' ? h.t + h.d + 0.3 : h.k === 'roll' ? h.t + 3 : h.k === 'crash' ? h.t + 1.6 : -1; if (t >= a && t <= b) return h; } return null; },
   camKind() { return Orbit.user && !this.play ? 'look' : this.shot ? this.shot.k : 'chase'; },
@@ -33991,10 +34137,11 @@ Object.assign(Replay, {
     if (Orbit.user && !this.play) { orbitCamera(dt, Orbit, c, T); this.close = null; if (!this.lookShown) { this.lookShown = true; this.uiCam(); } return; }
     if (this.lookShown) { this.lookShown = false; this.uiCam(); }
     let S = this.shot;
-    if (!S || (S.k !== 'orbit' && this.t - S.t0 >= S.dur && !this.hold(S)) || S.lost > 1.2 || (this.kind === 'auto' && S.k !== 'orbit' && this.t >= this.stopT - 0.3)) S = this.next();
+    if (this.reel) S = this.reelShot(S); // (the highlights: each cut's own camera)
+    else if (!S || (S.k !== 'orbit' && this.t - S.t0 >= S.dur && !this.hold(S)) || S.lost > 1.2 || (this.kind === 'auto' && S.k !== 'orbit' && this.t >= this.stopT - 0.3)) S = this.next();
     S.age += dtR; this.close = (RCAM[S.k] || {}).close || null;
     if (S.k !== 'orbit' && CarLights.flood && CarLights.flood.away) floodHome(Rec.T); // (the start's floodlight back on its mast once the camera leaves the car)
-    if (!this.frameShot(S, dt, dtR)) { this.shot = null; this.close = null; chaseCamera(dtR); }
+    if (!this.frameShot(S, dt, dtR)) { this.shot = null; this.close = null; chaseCamera(dtR, this.car !== G.car ? this.car : undefined); }
   },
   // (a shot over just before a cut that comes anyway - a recovery, or the car pulling up at the finish - is held on to
   // it, rather than a moment's shot between)
@@ -34030,8 +34177,9 @@ Object.assign(Replay, {
   },
   // a shot of the camera k beginning at t (h: the moment it is for); null if it cannot be had here
   begin(k, t, h) {
-    const R = RSHOT[k] || [5, 7], S = { k, t0: t, age: 0, dur: R[0] + Math.random() * (R[1] - R[0]), lost: 0, h, init: false }, m = this.rig;
+    const R = RSHOT[k] || [5, 7], S = { k, t0: t, age: 0, dur: R[0] + this.rnd() * (R[1] - R[0]), lost: 0, h, init: false }, m = this.rig;
     if (k === 'track' || k === 'fan') { const P = this.spot(t, k === 'fan', h); if (!P) return null; Object.assign(S, P); }
+    else if (k === 'ground') { const P = this.groundSpot(t, h); if (!P) return null; Object.assign(S, P); }
     else if ((k === 'crew' || k === 'onboard') && !(m.crewRig || m.eye)) return null;
     else if (k === 'wheel' && !(m.cab && m.cab.axles)) return null;
     else if (k === 'bonnet' && !m.hood) return null;
@@ -34048,10 +34196,12 @@ Object.assign(Replay, {
       case 'bonnet': return bonnetCamera(dtR);
       case 'wheel': return this.camWheel(S, dtR);
       case 'crew': return crewCamera(m, Math.min(1, S.age / 3));
-      case 'chase': if (this.fb && this.rew) { Object.assign(Cam, { rx: c.x, rz: c.z, rvx: 0, rvz: 0, vxF: 0, vzF: 0, y: c.y, yV: 0, vyF: 0 }); chaseCamera(dt); } else chaseCamera(dtR); return true; // (rewinding: it follows the car back, its point on the car, its heading easing after it)
+      case 'chase': if (this.fb && this.rew) { Object.assign(Cam, { rx: c.x, rz: c.z, rvx: 0, rvz: 0, vxF: 0, vzF: 0, y: c.y, yV: 0, vyF: 0 }); chaseCamera(dt); } else chaseCamera(dtR, this.car !== G.car ? this.car : undefined); return true; // (rewinding: it follows the car back, its point on the car, its heading easing after it)
       case 'drone': return this.camDrone(S, dtR);
       case 'heli': return this.camHeli(S, dtR);
       case 'track': case 'fan': return this.camSpot(S, dtR);
+      case 'ground': return this.camGround(S, dtR);
+      case 'fpv': return this.camFpv(S, dtR);
       case 'orbit': orbitCamera(this.end ? dt : dtR, Orbit, c, Rec.T); return true; // (at the end of the run, it keeps on round the car)
     }
     return false;
@@ -34070,7 +34220,7 @@ Object.assign(Replay, {
   // turned in a little toward the body
   camWheel(S, dt) {
     const m = this.rig, cab = m.cab; m.root.updateMatrixWorld(true);
-    if (!S.p) { const sd = Math.random() < 0.6 ? 1 : -1, fw = Math.random() < 0.5, hw = ((this.S && this.S.width) || 1.75) / 2 + 0.24; S.sd = sd; S.fw = fw; S.p = [sd * hw, 0.36, fw ? cab.axles[1] + 0.55 : cab.axles[0] - 0.55]; }
+    if (!S.p) { const sd = this.rnd() < 0.6 ? 1 : -1, fw = this.rnd() < 0.5, hw = ((this.S && this.S.width) || 1.75) / 2 + 0.24; S.sd = sd; S.fw = fw; S.p = [sd * hw, 0.36, fw ? cab.axles[1] + 0.55 : cab.axles[0] - 0.55]; }
     _rv.set(S.p[0], S.p[1], S.p[2]).applyMatrix4(m.body.matrixWorld); camera.position.copy(_rv); m.body.getWorldQuaternion(_q);
     _re.set(-0.07, (S.fw ? Math.PI : 0) + (S.fw ? -1 : 1) * S.sd * 0.11, 0); camera.quaternion.copy(_q).multiply(_rq.setFromEuler(_re));
     camKnock(dt, 13, 0.01); camera.position.add(_rv.set(Cam.kx, Cam.ky, 0).applyQuaternion(camera.quaternion)); camLens(68); return true;
@@ -34081,7 +34231,7 @@ Object.assign(Replay, {
   // after a crash, say) it climbs until it sees it again
   camDrone(S, dt) {
     const c = this.car, T = Rec.T;
-    if (!S.v) { const vs = [[-13, 6, 0], [-9, 11, 6], [15, 5, -3], [-6, 17, 2]]; S.v = vs[Math.floor(Math.random() * vs.length)].slice(); if (Math.random() < 0.5) S.v[2] = -S.v[2]; S.hd = c.psi; S.up = 0; S.hid = 0; }
+    if (!S.v) { const vs = [[-13, 6, 0], [-9, 11, 6], [15, 5, -3], [-6, 17, 2]]; S.v = vs[Math.floor(this.rnd() * vs.length)].slice(); if (this.rnd() < 0.5) S.v[2] = -S.v[2]; S.hd = c.psi; S.up = 0; S.hid = 0; }
     const mv = Math.hypot(c.V[0], c.V[2]) > 2 ? Math.atan2(c.V[0], c.V[2]) : c.psi; S.hd += wrapAngle(mv - S.hd) * (1 - Math.exp(-dt * 0.9));
     const fx = Math.sin(S.hd), fz = Math.cos(S.hd), [b, u, sd] = S.v, tx = c.x + fx * b + fz * sd, tz = c.z + fz * b - fx * sd, gy = groundY(T, tx, tz);
     if (!S.wood && (!S.init || (S.wk = (S.wk || 0) - dt) <= 0)) { S.wk = 0.3; S.wood = this.woods(T, tx, tz, c.hint | 0); } // (once up, it stays up for the shot)
@@ -34097,7 +34247,7 @@ Object.assign(Replay, {
   // in the country about it
   camHeli(S, dt) {
     const c = this.car, T = Rec.T;
-    if (!S.v) { S.v = [-(50 + Math.random() * 45), 65 + Math.random() * 40, (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 45)]; S.hd = c.psi; S.fh = 18 + Math.random() * 12; }
+    if (!S.v) { S.v = [-(50 + this.rnd() * 45), 65 + this.rnd() * 40, (this.rnd() < 0.5 ? -1 : 1) * (30 + this.rnd() * 45)]; S.hd = c.psi; S.fh = 18 + this.rnd() * 12; }
     const mv = Math.hypot(c.V[0], c.V[2]) > 2 ? Math.atan2(c.V[0], c.V[2]) : c.psi; S.hd += wrapAngle(mv - S.hd) * (1 - Math.exp(-dt * 0.35));
     const fx = Math.sin(S.hd), fz = Math.cos(S.hd), [b, u, sd] = S.v, tx = c.x + fx * b + fz * sd, tz = c.z + fz * b - fx * sd, ty = Math.max(c.yb + u, groundY(T, tx, tz) + 45);
     if (!S.init) { S.init = true; Object.assign(S, { px: tx, py: ty, pz: tz, pxv: 0, pyv: 0, pzv: 0, ax: c.x, ay: c.yb, az: c.z, axv: 0, ayv: 0, azv: 0, f: null }); }
@@ -34105,7 +34255,7 @@ Object.assign(Replay, {
     const d = Math.hypot(S.px - c.x, S.py - c.yb, S.pz - c.z), ft = clamp(2 * Math.atan(this.frameH(S.fh) / (2 * d)) * 180 / Math.PI, 6, 40);
     if (S.f == null) { S.f = ft; S.fv = 0; } rFollow(S, 'f', ft, 1.5, dt);
     camera.position.set(S.px, S.py, S.pz); camera.up.set(0, 1, 0); camera.lookAt(S.ax, S.ay, S.az); camLens(Math.round(S.f * 10) / 10);
-    { const n = this.t - S.t0, k = 0.0012 * (1 + 25 / S.f); camera.rotateY(k * (Math.sin(n * 0.37 + 1) + 0.4 * Math.sin(n * 1.13))); camera.rotateX(k * (Math.sin(n * 0.29) + 0.3 * Math.sin(n * 0.91 + 2))); } // (the mount's slow drift)
+    { const n = this.ft() - S.t0, k = 0.0012 * (1 + 25 / S.f); camera.rotateY(k * (Math.sin(n * 0.37 + 1) + 0.4 * Math.sin(n * 1.13))); camera.rotateX(k * (Math.sin(n * 0.29) + 0.3 * Math.sin(n * 0.91 + 2))); } // (the mount's slow drift)
     this.watch(S, dt, S.px, S.py, S.pz); return true;
   },
   // the roadside: a broadcast camera on its tripod (or a spectator's, at head height and held by hand), panning with the
@@ -34116,7 +34266,7 @@ Object.assign(Replay, {
     const w = fan ? 3.2 : 5, k = fan ? 0.82 : 0.92; rFollow(S, 'ax', tx, w, dt, c.V[0] * k); rFollow(S, 'ay', ty, w, dt, c.V[1] * k); rFollow(S, 'az', tz, w, dt, c.V[2] * k);
     const d = Math.hypot(S.x - c.x, S.y - c.yb, S.z - c.z), ft = clamp(2 * Math.atan(this.frameH(S.fh) / (2 * d)) * 180 / Math.PI, fan ? 9 : 4.5, fan ? 55 : 50);
     if (S.f == null) { S.f = ft; S.fv = 0; } rFollow(S, 'f', ft, fan ? 1.8 : 2.6, dt);
-    const n = this.t - S.t0 + S.seed; camera.position.set(S.x, S.y + (fan ? 0.012 * Math.sin(n * 1.3) : 0), S.z); camera.up.set(0, 1, 0); camera.lookAt(S.ax, S.ay, S.az);
+    const n = this.ft() - S.t0 + S.seed; camera.position.set(S.x, S.y + (fan ? 0.012 * Math.sin(n * 1.3) : 0), S.z); camera.up.set(0, 1, 0); camera.lookAt(S.ax, S.ay, S.az);
     if (fan) { const k = 0.003 * (1 + 30 / S.f); camera.rotateY(k * (Math.sin(n * 1.9) + 0.5 * Math.sin(n * 4.7 + 1.3) + 0.25 * Math.sin(n * 10.3))); camera.rotateX(k * 0.8 * (Math.sin(n * 2.3 + 2) + 0.5 * Math.sin(n * 5.9))); camera.rotateZ(0.008 * Math.sin(n * 0.7)); }
     camLens(Math.round(S.f * 10) / 10); this.watch(S, dt, S.x, S.y, S.z); if (d > 330) S.lost = 9; return true;
   },
@@ -34133,12 +34283,12 @@ Object.assign(Replay, {
   // lie of the land and the woods let it see the car for most of the shot; null if there is none
   spot(t, fan, h) {
     const T = Rec.T, P = T.pts, N = P.length, tp = h ? h.t + (h.k === 'jump' ? (h.d || 0.6) * 0.7 : h.k === 'fin' || h.k === 'go' ? 0 : 0.4) : t + (fan ? 2.2 : 2.8);
-    const t1 = Math.min(this.t1, Math.max(tp + (fan ? 1.6 : 2), t + 3)), q = this.peek(tp), ss = [];
+    const t1 = Math.min(this.fEnd(), Math.max(tp + (fan ? 1.6 : 2), t + 3)), q = this.peek(tp), ss = [];
     for (let tt = t; tt <= t1; tt += 0.4) ss.push(this.peek(tt)); const kp = Math.round((tp - t) / 0.4); // (the moment's own sample)
     const ic = clamp(q.i, 7, N - 8), dh = wrapAngle(P[ic + 6].h - P[ic - 6].h), outside = dh > 0.05 ? -1 : dh < -0.05 ? 1 : 0, cov = this.coverAt(); let best = null;
     for (const off of fan ? [0, 4, -4] : [0, 5, -5, 10]) { const i = clamp(ic + off, 1, N - 2), p = P[i]; if (p.wall || p.nb) continue; const nx = Math.cos(p.h), nz = -Math.sin(p.h);
       for (const sd of [1, -1]) for (const d of fan ? [3, 5.5, 8.5] : [6, 11, 18, 30]) {
-        const lat = p.w / 2 + d, x = p.x + nx * sd * lat, z = p.z + nz * sd * lat, gy = groundY(T, x, z); let y = gy + (fan ? 1.62 : 1.6 + 1.6 * Math.random());
+        const lat = p.w / 2 + d, x = p.x + nx * sd * lat, z = p.z + nz * sd * lat, gy = groundY(T, x, z); let y = gy + (fan ? 1.62 : 1.6 + 1.6 * this.rnd());
         if (!fan && y < p.y + 1) y = p.y + 1; if (y - gy > 4.5 || this.inside(T, i, x, y, z) || (d > 6 && cov && cov(x, z) > 0.45)) continue; // (a stand or a scaffold at most; out of the woods)
         // (never where the car is going to come, off the road in a crash or a slide: a crew stands back from its line)
         let near = 1e9; for (const s of ss) near = Math.min(near, Math.hypot(x - s.x, z - s.z)); if (near < (fan ? 2.6 : 5)) continue;
@@ -34146,10 +34296,10 @@ Object.assign(Replay, {
         let vis = 0, miss = 0, face = 0, key = !h, first = -1; const lim = ss.length * 0.4;
         for (let k = 0; k < ss.length; k++) { const s = ss[k]; if (this.sees(T, x, y, z, s, i)) { vis++; if (first < 0) first = k; if (k === kp || k === kp + 1) key = true; const dx = x - s.x, dz = z - s.z, dl = Math.hypot(dx, dz) || 1; face += clamp((dx * s.vx + dz * s.vz) / (dl * Math.max(1, s.sp)), -1, 1); } else if (++miss > lim) break; }
         // (a camera stands level with the road or above it, as the crews and the spectators do, never down a drop looking up)
-        if (miss > lim || !key || first < 0 || first * 0.4 > 2.2) continue; const below = p.y + 0.4 - y, v = vis / ss.length, sc = v + 0.12 * face / ss.length + (sd === outside ? 0.06 : 0) - d * 0.003 - (below > 0 ? 0.12 + 0.08 * below : 0) - 0.05 * first + Math.random() * 0.04;
+        if (miss > lim || !key || first < 0 || first * 0.4 > 2.2) continue; const below = p.y + 0.4 - y, v = vis / ss.length, sc = v + 0.12 * face / ss.length + (sd === outside ? 0.06 : 0) - d * 0.003 - (below > 0 ? 0.12 + 0.08 * below : 0) - 0.05 * first + this.rnd() * 0.04;
         if (!best || sc > best.sc) best = { x, y, z, sc, i }; } }
     if (!best) return null;
-    return { x: best.x, y: best.y, z: best.z, i: best.i, fh: fan ? 4.2 + Math.random() * 1.5 : 5.5 + Math.random() * 3, dur: t1 - t, seed: Math.random() * 100 };
+    return { x: best.x, y: best.y, z: best.z, i: best.i, fh: fan ? 4.2 + this.rnd() * 1.5 : 5.5 + this.rnd() * 3, dur: t1 - t, seed: this.rnd() * 100 };
   },
   // (is (x, z) over the woods, or by a tree's crown, off the road's open strip? i: the road point near it)
   woods(T, x, z, i) {
@@ -34221,7 +34371,7 @@ Object.assign(Replay, {
   stopUI() { const el = $('#replay'); if (el) { el.hidden = true; el.classList.remove('idle'); } },
   bindUI() {
     const cams = $('#rpCams'); cams.textContent = '';
-    RCAM_LIST.forEach((k, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = k; b.textContent = RCAM[k].name; b.title = k === 'auto' ? 'The cameras picked for you, as on television' + (i < 10 ? ` (${(i + 1) % 10})` : '') : `${RCAM[k].name} camera (${(i + 1) % 10})`;
+    RCAM_LIST.forEach((k, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.k = k; b.textContent = RCAM[k].name; b.title = k === 'auto' ? 'The cameras picked for you, as on television' + (i < 10 ? ` (${(i + 1) % 10})` : '') : `${RCAM[k].name} camera` + (i < 10 ? ` (${(i + 1) % 10})` : '');
       b.addEventListener('click', () => this.setKind(k)); cams.append(b); });
     $('#rpPlay').addEventListener('click', () => this.toggle());
     $('#rpSlow').addEventListener('click', () => this.step(-1)); $('#rpFast').addEventListener('click', () => this.step(1));
@@ -34239,7 +34389,7 @@ Object.assign(Replay, {
   // the keys: Space pauses, the arrows skip back and on and change the speed, C (or the camera key) and 1 to 0 pick the
   // camera, Esc leaves
   key(e) {
-    if (this.fb) return this.fbKey(e);
+    if (this.fb) return this.fbKey(e); if (this.reel) return this.reelKey(e);
     const c = e.code, ae = document.activeElement;
     // (a button of the bar in focus: Enter is its own; Space pauses, never pressing it as well)
     if (ae && ae.tagName === 'BUTTON' && this.el && this.el.contains(ae)) { if (c === 'Enter' || c === 'NumpadEnter') return false; if (c === 'Space') ae.blur(); }
@@ -34426,6 +34576,617 @@ Object.assign(Replay, {
   // (the run's broken-off pieces lie where they fell; one broken off after the moment shown is not there yet)
   fbDebris() { const t = this.t; for (const d of Debris.list) { const v = !(d.at > t + 1e-6); if (d.mesh.visible !== v) d.mesh.visible = v; } }
 });
+
+// ==== HIGHLIGHTS ====
+// A stage's highlights, cut as a rally programme or a highlights video online cuts one. The run's moments are found in
+// its replay's record (HL.find): a big jump (how long in the air, how far, how high), a long slide (how far sideways,
+// how fast, for how long), a bend taken flat out (how fast, how many g), a crash (what it hit and how fast, how many
+// times the car rolled, what came off it), a save (the car caught when it was going: far sideways, on two wheels, a
+// tank-slapper, or off the road and back on), a splash through water, a pass in a race. Each is scored by how big it
+// was, and the best of them (the best of each kind first, a few of each at most) go in the order they came, between
+// the start and the finish (HL.pick). Each is shown as it happened from one camera, then again slower from another or
+// two (HL.edit), as a programme shows a big moment: a jump from the roadside's long lens, then from a small camera on
+// the ground where the car comes down, then on board; a crash from the roadside, then on board and from above; a save
+// from a drone chasing the car, then from the dash on the crew; the slow motion eased in at the moment and out after
+// it. A programme's graphics go over it: its mark, a title card over the opening shot (the stage, its conditions and
+// the car), a caption for each moment with its figures and whose it was, the stage's clock and the speed while it
+// runs, a REPLAY mark, a stinger wiping across each cut into the replays and out of them with a sweep of sound, the
+// sound muffled in slow motion; at the end the car circled where it stopped, under the run's figures. The moments are
+// marked along its bar as a video's chapters are; it pauses, steps a moment back or on, or gives way to the whole
+// replay at the moment shown. In a race against friends each page finds its own car's moments and tells the others
+// (MP.hlOut), and records the others' cars as they come (MP.hlRec): the race's highlights are every driver's best
+// moments, cut the same on every page (from the race's own number), and can be watched together: one driver starts
+// them a few seconds on by the race's clock, the others join, and each page keeps to that clock (the reactions sent
+// meanwhile shown over the pictures). The race is held at its finish while anyone watches.
+const HL_DOT = String.fromCharCode(183), HL_DEG = String.fromCharCode(176), HL_PLAY = String.fromCharCode(9654), HL_PAUSE = String.fromCharCode(10074, 10074);
+const HL_MAX = 8, HL_MAX_MP = 10, HL_PER = 3, HL_LEN = 150; // (the most moments in a reel, alone and in a race; the most of one driver's in a race; the reel's most length, s)
+// the kinds of moment: the caption's title, which of two that overlap is kept (pri), how big one must be to be shown
+// at all (min), the cameras for it as it happens (live) and for its replays (rp: the first replay's, and a second's
+// for a big one), each list in the order they suit it
+const HL_K = {
+  start: { name: 'Start', pri: 0 },
+  jump: { name: 'Big air', pri: 3, min: 15, live: ['track', 'fan', 'heli'], rp: [['ground', 'track', 'fan'], ['onboard', 'heli', 'fpv']] },
+  drift: { name: 'Sideways', pri: 2, min: 18, live: ['heli', 'drone', 'track', 'fan'], rp: [['fpv', 'wheel', 'fan']] },
+  corner: { name: 'Flat out', pri: 1, min: 24, live: ['onboard', 'fpv', 'bonnet'], rp: [['track', 'heli']] },
+  crash: { name: 'Crash', pri: 5, min: 0, live: ['track', 'fan', 'heli'], rp: [['onboard', 'crew'], ['heli', 'drone', 'fan']] },
+  save: { name: 'What a save!', pri: 4, min: 40, live: ['fpv', 'chase', 'fan'], rp: [['crew', 'onboard'], ['heli', 'drone']] },
+  splash: { name: 'Water splash', pri: 3, min: 0, live: ['track', 'fan'], rp: [['ground', 'fan', 'track']] },
+  pass: { name: 'Overtake', pri: 3, min: 0, live: ['heli', 'drone', 'track'], rp: [['fpv', 'chase']] },
+  finish: { name: 'Finish', pri: 0 }
+};
+const HL_KEYS = Object.keys(HL_K);
+// (the cameras on and in the car itself: not for another driver's car, whose cabin this page does not drive)
+const HL_IN = new Set(['onboard', 'crew', 'wheel', 'bonnet']);
+// what a crash hit, as its caption has it (a blow's kind: see the car's events)
+const HL_HIT = { tree: 'Into a tree at {0} km/h', wall: 'Into a wall at {0} km/h', house: 'Into a wall at {0} km/h', bank: 'Into the bank at {0} km/h', rock: 'Into the rocks at {0} km/h', rockw: 'Into the rocks at {0} km/h',
+  post: 'Through a post at {0} km/h', pole: 'Into a pole at {0} km/h', car: 'Into another car at {0} km/h', rail: 'Into the barrier at {0} km/h', bale: 'Through the bales at {0} km/h', block: 'Into a concrete block at {0} km/h',
+  island: 'Over a traffic island at {0} km/h', pier: 'Into a bridge pier at {0} km/h', hit: '{0} km/h impact' };
+// each moment's replays: the stretch of it shown again and how slowly (r: a pace, or one eased down to lo between ta
+// and tb from hi either side), and a second replay's for a big one
+const HL_RW = {
+  jump: m => ({ a: m.t - 0.8, b: m.t + m.d + 0.9, r: { lo: 0.3, hi: 0.85, ta: m.t - 0.15, tb: m.t + m.d + 0.25 } }),
+  drift: m => ({ a: m.t - 1.6, b: m.t + 1.5, r: 0.5 }),
+  corner: m => ({ a: m.t - 1.3, b: m.t + 1.2, r: 0.5 }),
+  crash: m => ({ a: m.t - 1.3, b: Math.min(m.b - 0.4, m.t + 3), r: { lo: 0.35, hi: 0.85, ta: m.t - 0.25, tb: m.t + 1.3 } }),
+  save: m => ({ a: m.t - 1.4, b: m.t + 1.4, r: 0.5 }),
+  splash: m => ({ a: m.t - 0.9, b: m.t + 1.7, r: { lo: 0.3, hi: 0.8, ta: m.t - 0.1, tb: m.t + 1.1 } }),
+  pass: m => ({ a: m.t - 1.6, b: m.t + 1.4, r: 0.5 })
+};
+const HL_RW2 = { crash: m => ({ a: m.t - 0.7, b: Math.min(m.b - 0.3, m.t + 3.2), r: 0.6 }), jump: m => ({ a: m.t - 0.4, b: m.t + m.d + 0.6, r: 0.5 }), save: m => ({ a: m.t - 1, b: m.t + 1.2, r: 0.6 }) };
+
+const HL = {
+  // ---- the moments of this car's run, from its record (times on the record's clock) ----
+  find() {
+    const n = Rec.n, T = Rec.T, out = [], st = this.st = { top: 0, air: 0, airL: 0, slide: 0, crashes: 0, rolls: 0 }; if (n < REC_HZ * 2 || !T) return out;
+    const go = Rec.go != null ? Rec.go : 0, fin = Rec.fin != null ? Rec.fin : Infinity, SP = new Float32Array(n), TT = new Float32Array(n), UP = new Float32Array(n), BE = new Float32Array(n);
+    // the blows that count (and what was hit), what broke off, the recoveries
+    const hits = [], brk = [], rst = [];
+    for (const e of Rec.ev) { if (e[1] === 'e') { const p = e[2].split(':'), v = parseFloat(p[1]) || 0; if (HL_HIT[p[0]] !== undefined && v >= 4) hits.push({ t: e[0], v, k: p[0] }); }
+      else if (e[1] === 'd') { if (Object.keys(e[2]).some(q => q !== 'dents')) brk.push(e[0]); } else if (e[1] === 'reset') rst.push(e[0]); }
+    let air = null, sl = null, cn = null, sv = null, wet = 0, ov = false, rf = false; const overs = [], rolls = [], saves = [];
+    const live = t => t >= go - 0.05 && t <= fin + 0.3;
+    for (let i = 0; i < n; i++) {
+      const F = Rec.ch[i >> 9], o = (i & (REC_CH - 1)) * RN, t = F[o], u = F[o + RI.u], v = F[o + RI.v], sp = Math.hypot(u, v), b = sp > 6 ? Math.atan2(Math.abs(v), Math.abs(u)) : 0, fl = F[o + RI.flags] | 0;
+      const x = F[o + RI.x], z = F[o + RI.z], yb = F[o + RI.yb], q0 = F[o + RI.q0], q2 = F[o + RI.q0 + 2], up = 1 - 2 * (q0 * q0 + q2 * q2), ok = live(t);
+      SP[i] = sp; TT[i] = t; UP[i] = up; BE[i] = b; if (ok) st.top = Math.max(st.top, sp);
+      // over on its side or roof, and each time onto its roof (a roll)
+      if (up < 0.5 && !ov) { ov = true; if (ok) overs.push(t); } else if (up > 0.75) ov = false;
+      if (up < -0.3 && !rf) { rf = true; if (ok) rolls.push(t); } else if (up > 0.3) rf = false;
+      // in the air: from the moment the wheels left the ground to the landing; how far it flew, how high over the ground
+      const inAir = F[o + RI.airT] > 0.1 && !(fl & RF.ground);
+      if (inAir && ok) { const gy = groundY(T, x, z); if (!air) air = { t0: t - F[o + RI.airT], x0: x, z0: z, y0: yb - gy, sp, h: 0 }; air.h = Math.max(air.h, yb - gy - air.y0); air.t1 = t; air.x1 = x; air.z1 = z; }
+      else if (air) { const d = air.t1 - air.t0 + 1 / REC_HZ, L = Math.hypot(air.x1 - air.x0, air.z1 - air.z0);
+        if (d > 0.35 && L > 6) { const sc = 100 * clamp(0.5 * (d - 0.35) / 1.4 + 0.35 * (L - 6) / 45 + 0.15 * air.h / 2.5, 0, 1); out.push({ k: 'jump', t: air.t0, d, a: air.t0 - 2.6, b: air.t0 + d + 1, sc, v: [L, d, air.h, air.sp * 3.6] }); st.air = Math.max(st.air, d); st.airL = Math.max(st.airL, L); }
+        air = null; }
+      // a slide: well sideways (beyond 15 degrees) at speed, a moment's straightening apart
+      if (ok && !inAir && sp > 13 && u > 3 && b > 0.27 && b < 1.4) { if (!sl) sl = { t0: t, bm: 0, tm: t, spm: 0, n: 0, sum: 0 }; sl.t1 = t; sl.gap = 0; sl.n++; sl.sum += sp; if (b > sl.bm) { sl.bm = b; sl.tm = t; sl.spm = sp; } }
+      else if (sl && (sl.gap += 1 / REC_HZ) > 0.3) { const d = sl.t1 - sl.t0, m = sl.sum / sl.n;
+        if (d >= 0.9) { const sc = 100 * clamp(0.4 * (d - 0.9) / 3 + 0.35 * (sl.bm - 0.27) / 0.5 + 0.25 * (m - 13) / 20, 0, 1); out.push({ k: 'drift', t: sl.tm, d, s0: sl.t0, s1: sl.t1, a: Math.max(sl.t0 - 1.2, sl.tm - 3.2), b: Math.min(sl.t1 + 0.7, sl.tm + 2.4), sc, v: [sl.bm * 180 / Math.PI, sl.spm * 3.6, d] }); st.slide = Math.max(st.slide, d); }
+        sl = null; }
+      // a bend flat out: fast (over 79 km/h), pulling hard across (over half a g), the car pointing where it goes
+      const g = Math.abs(F[o + RI.ay]) / 9.81;
+      if (ok && !inAir && sp > 22 && g > 0.5 && b < 0.22) { if (!cn) cn = { t0: t, gm: 0, tm: t, spm: 0, top: 0 }; cn.t1 = t; cn.gap = 0; cn.top = Math.max(cn.top, sp); if (g > cn.gm) { cn.gm = g; cn.tm = t; cn.spm = sp; } }
+      else if (cn && (cn.gap += 1 / REC_HZ) > 0.3) { const d = cn.t1 - cn.t0;
+        if (d >= 1) { const sc = 100 * clamp(0.55 * (cn.top - 22) / 22 + 0.3 * (cn.gm - 0.5) / 0.6 + 0.15 * (d - 1) / 2.5, 0, 1); out.push({ k: 'corner', t: cn.tm, d, a: Math.max(cn.t0 - 1.5, cn.tm - 2.8), b: Math.min(cn.t1 + 0.8, cn.tm + 2.2), sc, v: [cn.top * 3.6, cn.gm, d] }); }
+        cn = null; }
+      // a save in the making: far sideways (over 43 degrees), spinning fast about the upright, up on two wheels, or off
+      // the road at speed (how far off it went)
+      let sv1 = 0, sv2 = 0, sv3 = 0, sv4 = 0;
+      if (ok && sp > 12) { if (b > 0.75 && b < 1.6) sv1 = clamp((b - 0.75) / 0.6, 0, 1); const r = Math.abs(F[o + RI.r]); if (r > 1.5) sv2 = clamp((r - 1.5) / 1.5, 0, 1); }
+      if (ok && sp > 8 && !inAir && up > 0.5) { const rr = Math.abs(F[o + RI.roll] - F[o + RI.gRoll]), fz = j => F[o + RW0 + j * RW + RWI.Fz], L0 = fz(0) < 1 && fz(2) < 1 && fz(1) > 200 && fz(3) > 200, R0 = fz(1) < 1 && fz(3) < 1 && fz(0) > 200 && fz(2) > 200;
+        if (rr > 0.2 && (L0 || R0)) sv3 = clamp((rr - 0.2) / 0.35, 0, 1); }
+      if (ok && sp > 14 && (fl & RF.off)) { const I = locate(T, x, z, F[o + RI.hint] | 0); sv4 = clamp((Math.abs(I.lat) - I.w / 2 - 1) / 3, 0, 1); }
+      const sev = Math.max(sv1, sv2, sv3, sv4);
+      if (sev > 0) { if (!sv) sv = { t0: t, sev: 0, tp: t, sp, kind: 0, parts: 0 }; sv.last = t; sv.parts |= (sv1 > 0 ? 1 : 0) | (sv2 > 0 ? 2 : 0) | (sv3 > 0 ? 4 : 0) | (sv4 > 0 ? 8 : 0);
+        if (sev > sv.sev) { sv.sev = sev; sv.tp = t; sv.sp = sp; sv.b = b; sv.kind = sev === sv1 ? 1 : sev === sv2 ? 2 : sev === sv3 ? 3 : 4; } }
+      else if (sv && t - sv.last > 0.5) { saves.push(sv); sv = null; }
+      // a splash: into water at speed
+      const w = F[o + RI.inWater]; if (ok && w > 0.2 && wet <= 0.2 && sp > 5) out.push({ k: 'splash', t, d: 1, a: t - 2.5, b: t + 2, sc: 30 + 60 * clamp((sp - 5) / 22, 0, 1), v: [sp * 3.6] }); wet = w;
+    }
+    if (sv) saves.push(sv);
+    // (the frame nearest t; the car's speed then)
+    const ix = t => { let lo = 0, hi = n - 1; while (hi - lo > 1) { const md = (lo + hi) >> 1; if (TT[md] <= t) lo = md; else hi = md; } return lo; };
+    // the crashes: a big blow, or the car going over, with whatever follows it within a couple of seconds as one - how
+    // fast it was going into it, what it hit hardest, how many times it rolled, what came off it, where it came to rest
+    const E = hits.filter(h => h.v >= 6 && live(h.t)).map(h => ({ t: h.t, v: h.v, k: h.k })).concat(overs.map(t => ({ t, v: 0, k: '' }))).sort((a, b) => a.t - b.t), crashes = [];
+    let cur = null; const shut = () => { if (!cur) return; const c = cur; cur = null;
+      let i = ix(c.last), end = c.last; for (const lim = c.last + 2.5; i < n - 1 && TT[i] < lim; i++) { end = TT[i]; if (SP[i] < 1.5 && TT[i] > c.last + 0.4) break; }
+      const i0 = ix(c.t - 0.6), i1 = ix(c.t - 0.05); let spB = 0; for (let j = i0; j <= i1; j++) spB = Math.max(spB, SP[j]);
+      const nr = rolls.filter(t => t >= c.t - 0.3 && t <= end + 0.3).length, np = brk.filter(t => t >= c.t - 0.3 && t <= end + 0.6).length, over = UP[Math.min(n - 1, ix(end))] < 0.5;
+      if (!(c.vmax >= 7 || c.over || (np && c.vmax >= 5))) return;
+      const light = /^(post|pole|bale|hit)?$/.test(c.k), sc = 100 * clamp(0.35 + 0.25 * (spB - 8) / 25 + 0.2 * nr / 2 + 0.15 * np / 3 + (over ? 0.12 : 0) + (light ? 0 : 0.08), 0.35, 1);
+      crashes.push({ k: 'crash', t: c.t, d: end - c.t, a: c.t - 2.6, b: Math.min(end + 1.2, c.t + 5.5), sc, v: [spB * 3.6, nr, np, over ? 1 : 0], hit: c.k, end, light: light && !nr && !np && !over }); st.crashes++; st.rolls += nr; };
+    for (const e of E) { if (cur && e.t - cur.last <= 2.5) { cur.last = Math.max(cur.last, e.t); if (e.v > cur.vmax) { cur.vmax = e.v; cur.k = e.k; } if (!e.v) cur.over = true; continue; }
+      shut(); if (e.v >= 7 || !e.v) cur = { t: e.t, last: e.t, vmax: e.v, k: e.k, over: !e.v }; else cur = { t: e.t, last: e.t, vmax: e.v, k: e.k, over: false }; }
+    shut();
+    const near = (t, a, b) => crashes.some(c => c.t >= t + a && c.t <= t + b) || rst.some(r => r >= t + a && r <= t + b);
+    // the saves: caught - no crash, no recovery and the car still going a couple of seconds on - and how close it came
+    for (const s of saves) { if (near(s.tp, -1, 3.5)) continue; const j = ix(s.tp + 2.5); if (SP[j] < 6 || UP[j] < 0.5) continue;
+      const f = clamp((s.sp - 12) / 20, 0.2, 1), k = [s.parts & 1, s.parts & 2, s.parts & 4, s.parts & 8].filter(Boolean).length;
+      out.push({ k: 'save', t: s.tp, d: s.last - s.t0, a: s.tp - 2.6, b: s.tp + 2, sc: 100 * clamp(0.3 + 0.6 * s.sev * f + 0.1 * (k - 1), 0, 1), v: [s.kind, s.kind === 1 ? s.b * 180 / Math.PI : 0, s.sp * 3.6] }); }
+    // (a jump, a slide or a bend that ends in a crash is the crash's run-up: the crash is shown from it)
+    const keep = out.filter(m => { const c = crashes.find(c => c.t >= m.t - 0.5 && c.t <= (m.b || m.t) + 1.5); if (!c || m.k === 'save') return !c; c.a = Math.min(c.a, Math.max(m.a, c.t - 5.5)); return false; });
+    const all = keep.concat(crashes).filter(m => m.t >= go - 0.5 && m.t <= fin + 1);
+    for (const m of all) { m.a = Math.max(m.a, go - 0.5); if (isFinite(fin)) m.b = Math.min(m.b, fin + 3); }
+    return this.apart(all);
+  },
+  // (one moment at a time: of two whose stretches overlap, both kept, each its own stretch, where they are far enough
+  // apart; else the bigger kind, or the bigger of the same kind)
+  apart(L) {
+    L.sort((a, b) => a.t - b.t); const out = [];
+    for (const m of L) { const p = out[out.length - 1]; if (!p || m.a >= p.b - 0.2) { out.push(m); continue; }
+      if (m.t - p.t >= 3.2) { const cut = Math.max(p.t + 1.4, Math.min(m.t - 1.4, (p.t + m.t) / 2)); p.b = Math.min(p.b, cut); m.a = Math.max(m.a, cut); out.push(m); continue; }
+      const pm = HL_K[m.k].pri, pp = HL_K[p.k].pri; if (pm > pp || (pm === pp && m.sc > p.sc)) out[out.length - 1] = m; }
+    return out;
+  },
+  // the moments to show: the best of each kind there is (big enough to show), then the biggest of the rest, up to n (a
+  // few of each kind at most), in the order they came
+  pick(L, n) {
+    const ok = L.filter(m => m.sc >= (HL_K[m.k].min || 0)), keep = [], cnt = {}, by = (a, b) => b.sc - a.sc || (a.who || 0) - (b.who || 0) || a.t - b.t;
+    const take = m => { keep.push(m); cnt[m.k] = (cnt[m.k] || 0) + 1; };
+    for (const k of HL_KEYS) { const b = ok.filter(m => m.k === k).sort(by)[0]; if (b && keep.length < n) take(b); }
+    for (const m of ok.slice().sort(by)) { if (keep.length >= n) break; if (keep.includes(m) || (cnt[m.k] || 0) >= 3) continue; take(m); }
+    return keep.sort((a, b) => a.t - b.t || (a.who || 0) - (b.who || 0));
+  },
+  // ---- the cut: each moment as it happens, then its replays; the start before them and the finish after ----
+  // o: the reel's own (seed, the record's span t0 to t1, the start go, the finish fin and where the car stopped, whose
+  // car opens and closes it); each cut { k: camera, a, b: its stretch, r: its pace, h: the moment the camera is set up
+  // for, m: the moment, who: whose car (a race's grid place), lt: its caption, rp: a replay, wipe: a stinger into it }
+  edit(M, o, two) {
+    const R = mulberry32(o.seed >>> 0), cuts = [], add = cu => { cu.i = cuts.length; cuts.push(cu); return cu; };
+    const one = (L, not) => { const c = L.filter(k => !not || !not.includes(k)), P = c.length ? c : L; return R() < 0.55 ? P[0] : P[Math.floor(R() * P.length) % P.length]; };
+    let last = null, after = false;
+    if (o.go != null) {
+      if (o.go - o.t0 > 2.4) add({ k: 'heli', a: Math.max(o.t0, o.go - 5.4), b: o.go - 0.45, r: 1, card: 'title', who: o.first, alt: ['drone', 'chase'] });
+      add({ k: 'track', a: o.go - 0.45, b: o.go + 3.4, r: 1, h: { t: o.go + 1.8, k: 'go' }, who: o.first, ch: 'start', alt: ['fan', 'chase'] }); last = 'track'; }
+    for (const m of M) {
+      const K = HL_K[m.k], big = two ? two.has(m) : this.big(m), h = { t: m.t, k: m.k, d: m.d }, lv = one(K.live, [last]);
+      add({ k: lv, a: m.a, b: m.b, r: 1, h, m, lt: true, who: m.who, wipe: after, alt: K.live.filter(k => k !== lv).concat(['heli', 'chase']) }); last = lv; after = false;
+      const W = HL_RW[m.k] && HL_RW[m.k](m); if (!W || W.b - W.a < 0.6) continue;
+      const c1 = one(K.rp[0], [last]); add({ k: c1, a: W.a, b: W.b, r: W.r, h, m, rp: true, who: m.who, wipe: true, alt: K.rp[0].filter(k => k !== c1).concat(K.live, ['heli']) }); last = c1; after = true;
+      if (big && K.rp[1]) { const c2 = one(K.rp[1], [last]), W2 = HL_RW2[m.k] ? HL_RW2[m.k](m) : W; if (W2.b - W2.a >= 0.6) { add({ k: c2, a: W2.a, b: W2.b, r: W2.r, h, m, rp: true, who: m.who, flash: true, alt: K.rp[1].filter(k => k !== c2).concat(['heli']) }); last = c2; } }
+    }
+    if (o.fin != null) {
+      add({ k: 'track', a: o.fin - 3.4, b: o.fin + 1.3, r: 1, h: { t: o.fin, k: 'fin' }, who: o.win, lt: true, fin: true, wipe: after, alt: ['fan', 'heli'], ch: 'finish' });
+      add({ k: 'orbit', a: o.stop - 0.3, b: o.stop + 9, r: 1, who: o.win, card: 'end', ch: 'finish' }); }
+    return cuts;
+  },
+  // (a moment big enough for a second replay: the biggest, and a crash that rolled the car, put it over or broke it)
+  big(m) { return m.sc >= 72 || (m.k === 'crash' && (m.v[1] > 0 || m.v[2] >= 2 || m.v[3] > 0)); },
+  // the pace at t of a cut, and its stretch timed on the screen: its length there, and for an eased one a table of
+  // the screen's time against the record's
+  rate(cu, t) { const r = cu.r; if (typeof r === 'number') return r; const w = smooth(r.ta - 0.3, r.ta, t) * (1 - smooth(r.tb, r.tb + 0.3, t)); return r.hi + (r.lo - r.hi) * w; },
+  time(cuts) {
+    let R = 0;
+    for (const cu of cuts) { cu.R0 = R;
+      if (typeof cu.r === 'number') cu.len = (cu.b - cu.a) / cu.r;
+      else { const X = []; let s = 0, t = cu.a; X.push(0, t); while (t < cu.b - 1e-9) { const h = Math.min(0.02, cu.b - t); s += h / this.rate(cu, t + h / 2); t += h; X.push(s, t); } cu.tab = X; cu.len = s; }
+      R += cu.len; cu.R1 = R; }
+    return R;
+  },
+  // the moment of the record at the screen's time R of a cut
+  at(cu, R) {
+    const s = clamp(R - cu.R0, 0, cu.len); if (!cu.tab) return cu.a + s * cu.r; const X = cu.tab; let lo = 0, hi = X.length / 2 - 1;
+    while (hi - lo > 1) { const md = (lo + hi) >> 1; if (X[2 * md] <= s) lo = md; else hi = md; }
+    const s0 = X[2 * lo], s1 = X[2 * hi], f = s1 > s0 ? clamp((s - s0) / (s1 - s0), 0, 1) : 0; return X[2 * lo + 1] + (X[2 * hi + 1] - X[2 * lo + 1]) * f;
+  },
+  // the chapters: the start, each moment, the finish (each its cuts, together)
+  chapters(cuts) {
+    const C = [];
+    for (const cu of cuts) { const key = cu.m || cu.ch || 'start', l = C[C.length - 1]; if (l && l.key === key) { l.R1 = cu.R1; continue; }
+      C.push({ key, R0: cu.R0, R1: cu.R1, m: cu.m || null, k: cu.m ? cu.m.k : key === 'finish' ? 'finish' : 'start', name: cu.m ? this.title(cu.m) : key === 'finish' ? 'Finish' : 'Start' }); }
+    return C;
+  },
+  // ---- a moment's caption: its title, and its figures ----
+  title(m) {
+    const v = m.v || [];
+    if (m.k === 'jump') return v[1] >= 1.3 || v[0] >= 35 ? 'Massive air' : 'Big air';
+    if (m.k === 'drift') return v[2] >= 3 ? 'Full lock' : 'Sideways';
+    if (m.k === 'crash') return v[1] >= 2 ? 'Barrel roll' : v[1] === 1 ? 'Rolled over' : v[3] ? 'Onto its side' : /^(post|pole|bale|hit)?$/.test(m.hit || '') && !v[2] ? 'Big hit' : 'Crash';
+    return HL_K[m.k].name;
+  },
+  figures(m, nameOf) {
+    const v = m.v || [], km = x => Math.round(x || 0);
+    switch (m.k) {
+      case 'jump': return [`${km(v[0])} m`, `${(v[1] || 0).toFixed(1)} s in the air`].concat(v[3] > 1 ? [`${km(v[3])} km/h`] : []);
+      case 'drift': return [`${km(v[0])}${HL_DEG} at ${km(v[1])} km/h`, `${(v[2] || 0).toFixed(1)} s sideways`];
+      case 'corner': return [`${km(v[0])} km/h`, `${(v[1] || 0).toFixed(1)} g`];
+      case 'crash': { const f = m.hit && m.hit !== 'hit' && HL_HIT[m.hit] ? HL_HIT[m.hit] : v[1] >= 1 ? 'Rolled at {0} km/h' : v[3] ? 'Over at {0} km/h' : HL_HIT.hit, L = [f.split('{0}').join(String(km(v[0])))];
+        if (v[1] > 1) L.push(`rolled ${km(v[1])} times`); else if (v[1] === 1 && f !== 'Rolled at {0} km/h') L.push('rolled over'); if (v[2] > 0) L.push(v[2] > 1 ? `${km(v[2])} parts off` : 'a part off'); return L; }
+      case 'save': return [v[0] === 1 ? `${km(v[1])}${HL_DEG} sideways at ${km(v[2])} km/h` : v[0] === 2 ? `A tank-slapper at ${km(v[2])} km/h` : v[0] === 3 ? `On two wheels at ${km(v[2])} km/h` : `Off the road at ${km(v[2])} km/h, and back on`];
+      case 'splash': return [`${km(v[0])} km/h through the water`];
+      case 'pass': return [`Past ${nameOf ? nameOf(v[1]) : 'a rival'} at ${km(v[0])} km/h`];
+    }
+    return [];
+  },
+  // ---- this car's record against the race's clock (a race against friends: see Rec.rcv) ----
+  rcOf(t) {
+    const V = Rec.rcv, n = Rec.n; if (!V || !V.length || n < 2) return t;
+    const i = Replay.find(t, -1), a = V[i], b = V[Math.min(i + 1, n - 1)], ta = Replay.frameT(i), tb = Replay.frameT(Math.min(i + 1, n - 1));
+    if (a == null) return t + this.off(); const f = tb > ta ? clamp((t - ta) / (tb - ta), 0, 1) : 0; return (a + ((b == null ? a : b) - a) * f) / 1000 + (t < ta ? t - ta : t > tb ? t - tb : 0);
+  },
+  tOf(rc) {
+    const V = Rec.rcv, n = Math.min(Rec.n, V ? V.length : 0); if (n < 2) return rc; const ms = rc * 1000;
+    if (V[0] == null || V[n - 1] == null) return rc - this.off();
+    if (ms <= V[0]) return Replay.frameT(0) + (ms - V[0]) / 1000; if (ms >= V[n - 1]) return Replay.frameT(n - 1) + (ms - V[n - 1]) / 1000;
+    let lo = 0, hi = n - 1; while (hi - lo > 1) { const md = (lo + hi) >> 1; if (V[md] != null && V[md] <= ms) lo = md; else hi = md; }
+    const a = V[lo], b = V[hi], ta = Replay.frameT(lo), tb = Replay.frameT(hi); return b > a ? ta + (tb - ta) * clamp((ms - a) / (b - a), 0, 1) : ta;
+  },
+  // (where the record has no race clock: the usual difference between the two)
+  off() { const V = Rec.rcv, n = Math.min(Rec.n, V ? V.length : 0), d = []; for (let i = 0; i < n; i += 15) if (V[i] != null) d.push(V[i] / 1000 - Replay.frameT(i)); d.sort((a, b) => a - b); return d.length ? d[d.length >> 1] : 0; },
+  // ---- the reel ----
+  // alone: this run's moments; in a race against friends, every driver's (see MP.hlMoments). sync: watching together
+  make(o, P) {
+    const mp = !!(MP.game && MP.rc && Rec.rcv && Rec.rcv.length && (MP.phase === 'done' || MP.phase === 'race'));
+    let M, f;
+    if (mp) { f = MP.hlPlan(o && o.mask); if (!f) return null; M = f.M; }
+    else { M = this.pick(this.find(), HL_MAX); const stop = P.stopT, fin = Rec.fin;
+      f = { seed: strHash('hl:' + (Rec.T.seed || 0) + ':' + Math.round((fin != null ? fin : Rec.t) * 100)), go: Rec.go, fin, stop: isFinite(stop) ? stop : fin != null ? fin + 4 : null, t0: P.t0, t1: P.t1 };
+    }
+    // (too long: the smallest moments' second replays left out, then the smallest moments, of the kinds shown most)
+    let cuts, dur; const two = new Set(M.filter(m => this.big(m)));
+    for (let k = 0; k < 60; k++) { cuts = this.edit(M, f, two); dur = this.time(cuts); if (dur <= HL_LEN) break;
+      const t2 = [...two].sort((a, b) => a.sc - b.sc || a.t - b.t)[0]; if (t2) { two.delete(t2); continue; } if (M.length <= 3) break;
+      const cnt = {}; for (const m of M) cnt[m.k] = (cnt[m.k] || 0) + 1; const pool = M.filter(m => cnt[m.k] > 1), lo = (pool.length ? pool : M).slice().sort((a, b) => a.sc - b.sc || a.t - b.t)[0]; M = M.filter(m => m !== lo); }
+    if (!cuts.length) return null;
+    return { cuts, dur, ch: this.chapters(cuts), M, seed: f.seed, mp, R: 0, ci: -1, rc: cuts[0].a, slowK: 0, sync: o && o.sync ? { at: o.sync.at, n: o.sync.n, by: o.sync.by, on: true } : null, fc: null, stats: mp ? null : this.st, race: mp ? f : null };
+  }
+};
+
+// (a caption's parts, each in its own element between dots: each is put into the language on its own)
+function hlParts(e, L) { if (!e) return; L = L.filter(Boolean); const k = L.join('|'); if (e.__p === k) return; e.__p = k; e.textContent = ''; L.forEach((p, i) => { if (i) e.append(el('i', { class: 'sep', text: HL_DOT })); e.append(el('span', { text: p })); }); }
+
+// ---- the highlights in the replay: its own clock, cuts, cameras and pictures ----
+Object.assign(Replay, {
+  rng: null,
+  rnd() { return this.rng ? this.rng() : Math.random(); },
+  // (the time the cameras plan by: the reel's, on the race's clock in a race; and where the record of the car they
+  // follow ends)
+  ft() { return this.reel ? this.reel.rc : this.t; },
+  fEnd() { const L = this.reel; return !L ? this.t1 : L.fc ? L.fc.t1 : L.mp ? HL.rcOf(this.t1) : this.t1; },
+  // the highlights, opened from the results (o.sync: watching together)
+  openReel(o) { return this.open(false, o || {}); },
+  // set up as the replay opens (see open): the reel cut, its bar and its chapters
+  reelStart(o) {
+    const L = HL.make(o, this); if (!L) return false; this.reel = L; this.kind = 'auto'; this.rate = 1; this.play = true; this.rk = 1; this.slowWas = false;
+    const box = $('#reel'); if (!box) return false; this.rel = box; this.idleT = 0; box.classList.remove('idle');
+    if (!this.hlBound) { this.hlBound = true; this.reelBind(); }
+    const ch = $('#hlCh'); ch.textContent = '';
+    for (const C of L.ch) { const b = el('button', { type: 'button', class: C.m ? 'm' : '', 'data-k': C.k, title: C.name, 'aria-label': C.name }); b.append(document.createElement('i')); b.style.flexGrow = String(Math.max(0.6, C.R1 - C.R0)); b.addEventListener('click', () => this.reelGo(C.R0 + 0.01)); ch.append(b); C.el = b; }
+    for (const id of ['#hlLt', '#hlTitle', '#hlEnd']) $(id).classList.remove('on');
+    $('#hlRp').hidden = true; $('#hlTime').hidden = true; $('#hlRx').textContent = ''; $('#hlWait').hidden = true;
+    const re = $('#hlReact'); if (re) { re.textContent = ''; re.hidden = !L.mp; if (L.mp) MP_REACT.forEach((t, i) => re.append(el('button', { type: 'button', text: t, onclick: () => MP.react(i) }))); }
+    this.reelTitle(); this.reelPlayUI(); MP.hlWatch(true);
+    return true;
+  },
+  // out of it (on: carrying on with the whole replay)
+  reelEnd(on) {
+    const L = this.reel; if (!L) return; this.reel = null; this.rng = null; Snd.slowmo(0); if (MP.game) MP.hlWatch(false);
+    const box = $('#reel'); if (box) { box.hidden = true; box.classList.remove('idle'); } if (!on) MP.replayEnd();
+    for (const id of ['#hlLt', '#hlTitle', '#hlEnd']) { const e = $(id); if (e) e.classList.remove('on'); }
+  },
+  // the whole replay from the moment shown, its own controls and director
+  reelFull() { if (!this.reel) return; const keep = this.t; this.reelEnd(true); this.kind = 'auto'; this.shot = null; this.rate = 1; this.play = true; this.end = keep >= this.t1; this.startUI(); showScreen('replay'); Snd.mute(false); this.seek(keep); this.uiPlay(); this.uiCam(); },
+  reelBind() {
+    $('#hlPlay').addEventListener('click', () => this.reelToggle()); $('#hlPrev').addEventListener('click', () => this.reelStep2(-1)); $('#hlNext').addEventListener('click', () => this.reelStep2(1));
+    $('#hlFull').addEventListener('click', () => this.reelFull()); $('#hlExit').addEventListener('click', () => this.exit()); $('#hlSync').addEventListener('click', () => this.reelResync());
+    $('#hlAgain').addEventListener('click', () => this.reelGo(0)); $('#hlEndFull').addEventListener('click', () => this.reelFull()); $('#hlDone').addEventListener('click', () => this.exit());
+    const wake = () => { if (this.on && this.reel) this.wake(); }; addEventListener('pointermove', wake, { passive: true }); addEventListener('pointerdown', wake, { passive: true });
+  },
+  reelToggle() { const L = this.reel; if (!L) return; if (L.done) { this.reelGo(0); return; } this.play = !this.play; if (L.sync) L.sync.on = false; if (this.play) Orbit.user = false; Snd.mute(!this.play); if (!this.play) Voice.stop(); this.reelPlayUI(); this.wake(); },
+  // to the screen's time R (a chapter, the moment before or after); watching together, that leaves the others' clock
+  reelGo(R) { const L = this.reel; if (!L) return; L.R = clamp(R, 0, Math.max(0, L.dur - 0.05)); L.ci = -1; L.done = false; if (L.sync) L.sync.on = false; this.play = true; Orbit.user = false; Snd.mute(false); this.reelPlayUI(); this.wake(); },
+  reelStep2(d) { const L = this.reel; if (!L) return; const C = L.ch; let k = C.findIndex(c => L.R >= c.R0 && L.R < c.R1); if (k < 0) k = C.length - 1;
+    if (d < 0 && L.R - C[k].R0 > 2 && k >= 0) { this.reelGo(C[k].R0 + 0.01); return; } const j = clamp(k + d, 0, C.length - 1); this.reelGo(C[j].R0 + 0.01); },
+  reelResync() { const L = this.reel; if (!L || !L.sync) return; L.sync.on = true; L.ci = -1; this.play = true; Snd.mute(false); this.reelPlayUI(); },
+  reelPlayUI() { const L = this.reel, b = hud$('#hlPlay'); if (!b || !L) return; const on = this.play && !L.done; b.textContent = on ? HL_PAUSE : HL_PLAY; b.setAttribute('aria-label', on ? 'Pause' : L.done ? 'Play again' : 'Play');
+    const s = hud$('#hlSync'); if (s) s.hidden = !(L.sync && !L.sync.on); },
+  // ---- each frame: the screen's clock on, the cut under way, the record's moment for it ----
+  // (returns how far the record moved on: the run's events, sound, dust and the cameras go by it, so slow motion is
+  // slow for all of them)
+  reelStep(dt) {
+    const L = this.reel;
+    // watching together: the reel's clock is the race's, from the moment it was started for (a viewer who pauses or
+    // skips leaves it, and can come back to it)
+    if (L.sync) { const now = MP.raceMs(); L.wait = 0; if (now != null && L.sync.on) { const want = (now - L.sync.at) / 1000;
+        if (want < 0) { L.wait = -want; L.R = 0; this.play = false; } else if (want >= L.dur) { L.R = L.dur; } else { if (!this.play) { this.play = true; Snd.mute(false); this.reelPlayUI(); } if (Math.abs(want - L.R) > 0.4) { L.R = want; L.ci = -1; } } } }
+    if (this.play) L.R = Math.min(L.dur, L.R + dt);
+    if (L.R >= L.dur - 1e-6 && !L.done) { L.done = true; this.play = false; this.reelPlayUI(); this.wake(); }
+    let ci = L.ci; const C = L.cuts; if (ci < 0 || L.R < C[ci].R0 || (L.R >= C[ci].R1 && ci < C.length - 1)) { ci = 0; while (ci < C.length - 1 && L.R >= C[ci].R1) ci++; }
+    const fresh = ci !== L.ci; if (fresh) this.reelEnter(ci);
+    const cu = C[ci], rc0 = L.rc, rc = HL.at(cu, L.R); L.rc = rc; L.slowK = clamp((0.95 - HL.rate(cu, rc)) / 0.6, 0, 1) * (this.play ? 1 : 0);
+    // this car at that moment (in a race: the race's clock to its record's; before or after its record, where it stood)
+    const t = clamp(L.mp ? HL.tOf(rc) : rc, this.t0, this.t1);
+    if (fresh || t < this.t - 1e-4 || t > this.t + 1) { if (t < this.t - 1e-4) Debris.since(t); if (Math.abs(t - this.t) > 1e-4 || fresh) this.seek(t); }
+    this.t = t; this.end = t >= this.t1 - 1e-6; L.jump = fresh;
+    return fresh ? 0 : Math.max(0, rc - rc0);
+  },
+  // into a cut: the car it follows, its camera begun afresh, the captions. (A replay going back past something broken
+  // off the car has the car built again as it was: under the stinger, or the flash between two replays)
+  reelEnter(ci) {
+    const L = this.reel, cu = L.cuts[ci]; L.ci = ci; this.shot = null; Voice.stop(); Orbit.user = false;
+    L.fc = L.mp && cu.who != null && cu.who !== MP.slot ? MP.hlFocus(cu.who) : null; if (L.fc && cu.a < L.fc.t0 - 0.3) L.fc = null; // (another car this page has no record of then: this one)
+    this.reelCaption(cu); L.ltAt = cu.lt ? cu.R0 + (cu.fin ? 1.2 : 0.7) : -1; L.ltTo = cu.lt ? Math.min(cu.R1 - 0.25, L.ltAt + 4.2) : -1;
+  },
+  // the cut's camera (begun at its first frame, with the cut's own dice: every page cuts the same); if it loses the car
+  // for good, the helicopter for the rest of the cut
+  reelShot(S) {
+    const L = this.reel, cu = L.cuts[L.ci];
+    if (S && S.cut === L.ci && !(S.lost > 1.2 && !S.fbk)) return S;
+    const lost = !!(S && S.cut === L.ci); this.rng = mulberry32(((L.seed >>> 0) ^ Math.imul(cu.i + 1, 2654435761)) >>> 0);
+    const want = (lost ? [] : [cu.k].concat(cu.alt || [])).concat(['heli', 'chase']);
+    let N = null; for (const k of want) { if (L.fc && HL_IN.has(k)) continue; if (lost && S && k === S.k) continue; N = this.begin(k, this.ft(), cu.h); if (N) break; }
+    if (!N) N = { k: 'chase', t0: this.ft(), age: 0, dur: 1e9, lost: 0, init: false };
+    N.cut = L.ci; N.fbk = lost; N.dur = 1e9; this.shot = N; this.used.unshift(N.k); this.used.length = Math.min(this.used.length, 3);
+    Cam.ok = false; Cam.back = false; head.j.t = -1; Snd.view = null; return N;
+  },
+  // ---- the pictures: captions, title, end, the stinger, the clock ----
+  reelCaption(cu) {
+    const L = this.reel, lt = $('#hlLt'); if (!lt) return; lt.classList.remove('on');
+    if (!cu.lt) return; const m = cu.m, who = this.reelWho(cu.who);
+    if (cu.fin) { setText($('#hlLtK'), 'Stage time'); hlParts($('#hlLtWho'), [who.name, fmtT(who.fin)]); hlParts($('#hlLtV'), [who.car, who.top ? `top speed ${Math.round(who.top)} km/h` : '']); return; }
+    setText($('#hlLtK'), HL.title(m)); hlParts($('#hlLtWho'), [who.name, who.car]); hlParts($('#hlLtV'), HL.figures(m, k => this.reelWho(k).name || 'a rival'));
+  },
+  // whose car a cut follows: its driver (in a race), its car, its time and top speed
+  reelWho(k) {
+    const L = this.reel;
+    if (!L || !L.mp || k == null || k === MP.slot) return { name: L && L.mp ? 'You' : '', car: (Rec.spec || G.spec).name, fin: L && L.mp ? MP.myFin : G.finT, top: HL.st ? HL.st.top * 3.6 : 0 };
+    const f = (L.race && L.race.who[k]) || {}; return { name: f.name || `Driver ${k + 1}`, car: f.car || '', fin: f.ft, top: 0 };
+  },
+  reelTitle() {
+    const L = this.reel, T = Rec.T; let ev = 'Stage highlights', h = '', sub = '', car = '';
+    try {
+      const c = stageCond(T), Rg = regionOf(T), km = (T.length / 1000).toFixed(2) + ' km';
+      h = T.loop ? 'Rallycross circuit' : T.sss ? 'Super special' : T.type ? T.type.name : 'Special stage';
+      sub = [T.loop ? '' : `Stage ${T.seed}`, T.loop ? '' : km, Rg && Rg.month ? Rg.month : ''];
+      if (Rec.rally && G.rally && Rally.cur && typeof Rally.plan === 'function') { const g = Rally.plan().stages[Rally.cur.s]; if (g) ev = `SS${g.n} highlights`; }
+      const wx = [TIME_NAMES[c.time] || '', WEATHER[c.wx] ? WEATHER[c.wx].name : ''].filter(Boolean);
+      if (L.mp) { ev = 'Race highlights'; const n = L.race ? Object.keys(L.race.who).length : 0; car = wx.concat(n > 1 ? [`${n} drivers`, MP_FMT_NAME[(MP.rc && MP.rc.fm) || 'side']] : []); } else car = wx.concat([(Rec.spec || G.spec).name]);
+    } catch (e) { }
+    setText($('#hlTiEv'), ev); setText($('#hlTiH'), h); hlParts($('#hlTiSub'), sub || []); hlParts($('#hlTiCar'), car || []);
+  },
+  reelEndCard() {
+    const L = this.reel, tb = $('#hlEndT'), aw = $('#hlEndAw'); if (!tb) return; tb.textContent = ''; aw.textContent = ''; const row = (a, b) => tb.append(el('tr', null, el('td', { text: a }), el('td', { text: b })));
+    if (L.mp) { setText($('#hlEndH'), 'Race highlights'); const F = MP.field();
+      F.slice(0, 8).forEach((f, k) => row(`${k + 1}. ${f.name}`, f.rt != null ? fmtT(f.rt) : f.ko >= 0 ? `Out at split ${f.ko + 1}` : I18N.say(f.ph === 'run' || f.ph === 'grid' ? 'race|running' : 'race|out')));
+      for (const [a, who, what] of MP.awards(F).slice(0, 4)) aw.append(el('li', null, el('b', { text: a }), ` ${who} `, el('small', { text: what }))); aw.hidden = !aw.children.length; return; }
+    setText($('#hlEndH'), 'Stage highlights'); const s = HL.st || {};
+    if (G.finT) row('Stage time', fmtT(G.finT)); row('Top speed', Math.round((s.top || 0) * 3.6) + ' km/h');
+    if (s.airL) row('Biggest jump', `${Math.round(s.airL)} m ${HL_DOT} ${(s.air || 0).toFixed(1)} s`); if (s.slide) row('Longest slide', `${s.slide.toFixed(1)} s`);
+    if (s.crashes) row('Crashes', String(s.crashes)); row('Moments', String(L.M.length)); aw.hidden = true;
+  },
+  reelHud(c, sp, dt) {
+    const L = this.reel, cu = L.cuts[L.ci], R = L.R; if (!cu) return;
+    // the stinger: across the screen around each cut into the replays and out of them, the cut itself under it
+    let wp = -1; for (const k of [L.ci, L.ci + 1]) { const x = L.cuts[k]; if (x && x.wipe && Math.abs(R - x.R0) < 0.33) { wp = (R - x.R0 + 0.33) / 0.66; if (L.whoosh !== k) { L.whoosh = k; if (this.play) Snd.whoosh(); } } }
+    const w = hud$('#hlWipe'); if (w) { const on = wp >= 0; if (w.hidden === on) w.hidden = !on; if (on) w.style.transform = `translateX(${(-100 + 150 * clamp(wp, 0, 1)).toFixed(2)}%)`; }
+    const fd = hud$('#hlFade'); if (fd) { const o = R < 0.7 ? 1 - R / 0.7 : 0; fd.style.opacity = o.toFixed(3); }
+    const fl = hud$('#hlFlash'); if (fl) { let f = 0; for (const k of [L.ci, L.ci + 1]) { const x = L.cuts[k]; if (x && x.flash) f = Math.max(f, R < x.R0 ? smooth(x.R0 - 0.1, x.R0, R) : 1 - smooth(x.R0, x.R0 + 0.3, R)); } const o = (0.85 * f).toFixed(3); if (fl.__o !== o) { fl.__o = o; fl.style.opacity = o; } }
+    // the captions, the title card, the end card; the replay's mark; the clock and the speed while the run is shown live
+    const lt = hud$('#hlLt'); if (lt) lt.classList.toggle('on', L.ltAt >= 0 && R >= L.ltAt && R < L.ltTo);
+    const ti = hud$('#hlTitle'); if (ti) ti.classList.toggle('on', cu.card === 'title' && R > cu.R0 + 0.5 && R < cu.R1 - 0.35);
+    const en = hud$('#hlEnd'), endOn = cu.card === 'end' && R > cu.R0 + 0.9; if (en) { if (endOn && !en.classList.contains('on')) this.reelEndCard(); en.classList.toggle('on', endOn); }
+    const rp = hud$('#hlRp'); if (rp) { const on = !!cu.rp; if (rp.hidden === on) rp.hidden = !on; if (on) setText(hud$('#hlRpS'), L.slowK > 0.4 ? 'slow motion' : ''); }
+    const tm = hud$('#hlTime'), live = !cu.rp && !cu.card && (cu.m || cu.ch); if (tm) { if (tm.hidden === !!live) tm.hidden = !live;
+      if (live) { const F = L.fc, who = this.reelWho(cu.who), clk = F ? F.et : this.raceT, s = F ? Math.hypot(F.c.V[0], F.c.V[2]) : sp; setText(hud$('#hlTWho'), who.name || who.car); const k = Math.max(0, clk || 0); setText(hud$('#hlTClock'), k < 60 ? k.toFixed(1) : fmtT(k).slice(0, -1)); setText(hud$('#hlTSpd'), Math.round(s * 3.6) + ' km/h'); } }
+    // the bar: the chapters filled to where the reel is, the time, the chapter's name
+    for (const C of L.ch) { const f = clamp((R - C.R0) / Math.max(0.01, C.R1 - C.R0), 0, 1), i = C.el && C.el.firstChild; if (i && i.__f !== f) { i.__f = f; i.style.width = (f * 100).toFixed(1) + '%'; } }
+    const fm = s => { s = Math.max(0, s); const m = Math.floor(s / 60), r = Math.floor(s - m * 60); return m + ':' + String(r).padStart(2, '0'); };
+    setText(hud$('#hlPos'), fm(R) + ' / ' + fm(L.dur)); const C = L.ch.find(q => R >= q.R0 && R < q.R1) || L.ch[L.ch.length - 1]; setText(hud$('#hlNow'), C ? C.name : '');
+    const wt = hud$('#hlWait'); if (wt) { const on = !!(L.sync && L.sync.on && L.wait > 0); if (wt.hidden === on) wt.hidden = !on; if (on) setText(wt, `Starting in ${Math.ceil(L.wait)}`); }
+    this.reelPlayUI();
+  },
+  // the friends' reactions, over the pictures a few seconds
+  reelRx(who, txt) { const box = $('#hlRx'); if (!box || !this.reel) return; const d = el('div', null, el('b', { text: who }), ' ', txt); box.append(d); while (box.children.length > 4) box.firstChild.remove(); setTimeout(() => d.remove(), 4200); },
+  // ---- the controls: Space pauses, the arrows go a moment back or on, F the whole replay from here, Esc leaves ----
+  reelKey(e) {
+    const c = e.code, ae = document.activeElement;
+    if (ae && ae.tagName === 'BUTTON' && this.rel && this.rel.contains(ae)) { if (c === 'Enter' || c === 'NumpadEnter') return false; if (c === 'Space') ae.blur(); }
+    if (c === 'Space' || c === 'KeyK') { this.reelToggle(); return true; }
+    if (c === 'ArrowLeft' || c === 'KeyJ' || c === 'PageUp') { this.reelStep2(-1); return true; }
+    if (c === 'ArrowRight' || c === 'KeyL' || c === 'PageDown') { this.reelStep2(1); return true; }
+    if (c === 'Home') { this.reelGo(0); return true; }
+    if (c === 'KeyF') { this.reelFull(); return true; }
+    if (c === 'Escape' || isKey(e, 'pause')) { this.exit(); return true; }
+    const dg = /^Digit([1-9])$/.exec(c); if (dg && this.reel) { const C = this.reel.ch[+dg[1] - 1]; if (C) this.reelGo(C.R0 + 0.01); return true; }
+    return false;
+  },
+  // a gamepad: A pauses, B leaves, the shoulder buttons a moment back or on, X the whole replay from here
+  reelTick(dt) {
+    const gp = padNow(); if (gp) { const P = this.pp || (this.pp = {}), hit = i => { const on = padBtn(gp, i) > 0.5, was = P[i]; P[i] = on; return on && !was; };
+      if (hit(0)) this.reelToggle(); if (hit(1)) { this.exit(); return; } if (hit(4) || hit(14)) this.reelStep2(-1); if (hit(5) || hit(15)) this.reelStep2(1); if (hit(2)) { this.reelFull(); return; } }
+    if (!this.on || !this.reel) return; this.idleT += dt; const bx = this.rel, L = this.reel;
+    if (bx && this.idleT > 3 && this.play && !L.done && !bx.classList.contains('idle') && !(document.activeElement && bx.contains(document.activeElement) && document.activeElement.matches(':focus-visible'))) bx.classList.add('idle');
+    if (bx && (L.done || !this.play) && bx.classList.contains('idle')) bx.classList.remove('idle');
+  },
+  // ---- the two cameras the highlights add ----
+  // a small camera on the ground by the road where the moment comes (past where a jump comes down, at a splash's
+  // water), set there before it and left running as a crew leaves one: wide, low, looking up at the car coming over it
+  groundSpot(t, h) {
+    const T = Rec.T, P = T.pts, N = P.length; if (!h) return null;
+    const tp = h.t + (h.k === 'jump' ? (h.d || 0.6) : 0.3), q = this.peek(tp), q0 = this.peek(h.t), ic = clamp(q.i, 2, N - 3), path = [];
+    for (let tt = h.t - 1.2; tt <= tp + 1.4; tt += 0.1) path.push(this.peek(tt));
+    let best = null;
+    for (const fwd of [5, 8, 3, 11]) for (const sd of [1, -1]) for (const ex of [1.7, 2.8, 4]) {
+      const i = clamp(ic + Math.round(fwd / STEP), 1, N - 2), r = P[i]; if (r.wall || r.nb) continue; const nx = Math.cos(r.h), nz = -Math.sin(r.h), lat = r.w / 2 + ex, x = r.x + nx * sd * lat, z = r.z + nz * sd * lat, y = groundY(T, x, z) + 0.6;
+      if (this.inside(T, i, x, y, z)) continue; let near = 1e9; for (const s of path) near = Math.min(near, Math.hypot(s.x - x, s.z - z)); if (near < 2.4) continue;
+      if (!this.sees(T, x, y, z, q, i) || !this.sees(T, x, y, z, q0, i)) continue;
+      const sc = -Math.abs(near - 4) * 0.08 - fwd * 0.01 + this.rnd() * 0.05; if (!best || sc > best.sc) best = { x, y, z, sc, i }; }
+    if (!best) return null; return { x: best.x, y: best.y, z: best.z, i: best.i, ax: (q.x + q0.x) / 2, ay: (q.y + q0.y) / 2 + 0.6, az: (q.z + q0.z) / 2 };
+  },
+  camGround(S, dt) {
+    const c = this.car;
+    if (!S.init) { S.init = true; Object.assign(S, { lx: S.ax, ly: S.ay, lz: S.az, lxv: 0, lyv: 0, lzv: 0 }); }
+    rFollow(S, 'lx', c.x, 1.7, dt); rFollow(S, 'ly', c.yb + 0.4, 1.7, dt); rFollow(S, 'lz', c.z, 1.7, dt); // (its head turning after the car a little, slowly)
+    const d = Math.hypot(c.x - S.x, c.z - S.z), sh = clamp(1 - d / 14, 0, 1) * clamp(Math.hypot(c.V[0], c.V[2]) / 25, 0, 1), n = this.ft() * 47; // (shaken as the car goes by)
+    camera.position.set(S.x, S.y + 0.012 * sh * Math.sin(n), S.z); camera.up.set(0, 1, 0); camera.lookAt(S.lx, S.ly, S.lz); camera.rotateZ(0.01 * sh * Math.sin(n * 1.31 + 1));
+    camLens(72); this.watch(S, dt, S.x, S.y, S.z); return true;
+  },
+  // an FPV drone chasing the car: close behind and a little above it, slewing after its line, banking into the turns as
+  // its pilot flies it, its lens wide; never through a trunk or a wall (in close at once, out again slowly)
+  camFpv(S, dt) {
+    const c = this.car, T = Rec.T;
+    if (!S.v) { S.v = [-(5.2 + 2.2 * this.rnd()), 1.2 + 1.3 * this.rnd(), (this.rnd() < 0.5 ? -1 : 1) * (0.5 + 1.5 * this.rnd())]; S.hd = Math.hypot(c.V[0], c.V[2]) > 2 ? Math.atan2(c.V[0], c.V[2]) : c.psi; S.bk = 0; S.bkv = 0; S.pl = 1; }
+    const mv = Math.hypot(c.V[0], c.V[2]) > 2 ? Math.atan2(c.V[0], c.V[2]) : c.psi, dw = wrapAngle(mv - S.hd); S.hd += dw * (1 - Math.exp(-dt * 3.2));
+    const fx = Math.sin(S.hd), fz = Math.cos(S.hd), [b, u, sd] = S.v, sw = sd * Math.sin(this.ft() * 0.45 + 1), tx = c.x + fx * b + fz * sw, tz = c.z + fz * b - fx * sw, ty = Math.max(c.yb + u, groundY(T, tx, tz) + 1.1);
+    if (!S.init) { S.init = true; Object.assign(S, { px: tx, py: ty, pz: tz, pxv: c.V[0], pyv: 0, pzv: c.V[2] }); }
+    rFollow(S, 'px', tx, 3.6, dt, c.V[0]); rFollow(S, 'py', ty, 3, dt, c.V[1]); rFollow(S, 'pz', tz, 3.6, dt, c.V[2]);
+    const clr = Math.min(camClear(T, c.hint | 0, c.x, c.yb + 0.6, c.z, S.px, S.py, S.pz), woodsClear(T, c.x, c.yb + 0.6, c.z, S.px, S.py, S.pz)); S.pl += (clr - S.pl) * (1 - Math.exp(-dt * (clr < S.pl ? 14 : 1.2)));
+    const k = Math.min(S.pl, clr), px = c.x + (S.px - c.x) * k, pz = c.z + (S.pz - c.z) * k, py = Math.max(c.yb + 0.4 + (S.py - c.yb - 0.4) * k, groundY(T, px, pz) + 0.8);
+    camera.position.set(px, py, pz); camera.up.set(0, 1, 0); camera.lookAt(c.x + c.V[0] * 0.2, c.yb + 0.25, c.z + c.V[2] * 0.2);
+    rFollow(S, 'bk', clamp(-dw * 0.9, -0.5, 0.5), 4, dt); const n = this.ft(); // (banked into the turn; the buzz of its propellers)
+    camera.rotateZ(S.bk); camera.rotateX(0.003 * Math.sin(n * 23) + 0.002 * Math.sin(n * 37 + 1)); camera.rotateY(0.0025 * Math.sin(n * 29 + 2));
+    camLens(84); return true;
+  }
+});
+
+// ---- the highlights of a race against friends ----
+Object.assign(MP, {
+  // each other car as it came (twenty times a second), for the replay and the highlights: its state as its page sent
+  // it, on the race's clock from the moment it was sent, with its time on the stage and how far along it was
+  hlRec(r, s, P) {
+    const c = this.rc; if (!c || !c.go || (this.phase !== 'race' && this.phase !== 'done') || !['grid', 'run', 'fin'].includes(P.ph)) return;
+    const ms = this.hlMs(P, c); if (ms == null) return;
+    const H = r.hr || (r.hr = []), t = ms / 1000; if ((H.length && t <= H[H.length - 1][0] + 1e-3) || H.length >= 36000) return;
+    const f = new Float32Array(34); f[0] = t; f[1] = s.x; f[2] = s.yb; f[3] = s.z; f[8] = s.V[0]; f[9] = s.V[1]; f[10] = s.V[2];
+    for (let i = 0; i < 4; i++) { f[4 + i] = s.Q[i]; f[11 + i] = s.L[i]; f[15 + i] = s.dw[i]; f[19 + i] = s.lb[i]; f[23 + i] = s.om[i]; }
+    f[27] = s.fl; f[28] = s.rpm; f[29] = s.thr; f[30] = s.gear; f[31] = s.steer; f[32] = mpNum(P.et, 0, 1e6) || 0; f[33] = mpNum(P.p, 0, 1e5) || 0; H.push(f);
+  },
+  // (and its damage each time it changed, from about when its page sent it)
+  hlDm(r, o, P) {
+    const c = this.rc; if (!c || !c.go || (this.phase !== 'race' && this.phase !== 'done')) return; const ms = this.hlMs(P, c); if (ms == null) return;
+    const D = r.hd || (r.hd = []); D.push([Math.max(ms / 1000, D.length ? D[D.length - 1][0] : -1e9), o]);
+  },
+  // (when its page sent it, on the race's clock as that page reckons it - the clock its own moments are told on - else
+  // from its clock and the host's; else as it came here)
+  hlMs(P, c) { const rt = mpNum(P.rt, -1e7, 1e8); if (rt != null) return rt; const ck = mpNum(P.ck, 0, 1e15), hc = mpNum(P.hc, -1e13, 1e13); if (ck != null && hc != null) return ck - hc - c.go; const now = this.raceMs(); return now != null ? now - 60 : null; },
+  // a rival's state at the race's time t, from its record (eased between the states either side)
+  hlAt(r, t, s) {
+    const H = r.hr, n = H.length; let lo = 0, hi = n - 1;
+    if (t <= H[0][0]) hi = 0; else if (t >= H[hi][0]) lo = hi; else { const j = s ? -1 : r.hlI; if (j != null && j >= 0 && j < n - 1 && H[j][0] <= t && H[j + 1][0] > t) { lo = j; hi = j + 1; } else while (hi - lo > 1) { const md = (lo + hi) >> 1; if (H[md][0] <= t) lo = md; else hi = md; } }
+    if (!s) { r.hlI = lo; s = r.hlS || (r.hlS = this.hlBlank()); }
+    const A = H[lo], B = H[hi], u = hi > lo ? clamp((t - A[0]) / Math.max(1e-6, B[0] - A[0]), 0, 1) : 0, l = i => A[i] + (B[i] - A[i]) * u;
+    s.x = l(1); s.yb = l(2); s.z = l(3); { let d = 0, q = 0; for (let i = 0; i < 4; i++) d += A[4 + i] * B[4 + i]; const sg = d < 0 ? -1 : 1; for (let i = 0; i < 4; i++) { s.Q[i] = A[4 + i] + (sg * B[4 + i] - A[4 + i]) * u; q += s.Q[i] * s.Q[i]; } q = Math.sqrt(q) || 1; for (let i = 0; i < 4; i++) s.Q[i] /= q; }
+    for (let i = 0; i < 3; i++) s.V[i] = l(8 + i); for (let i = 0; i < 4; i++) { s.L[i] = l(11 + i); s.dw[i] = l(15 + i); s.lb[i] = l(19 + i); s.om[i] = l(23 + i); }
+    s.fl = A[27] | 0; s.rpm = l(28); s.thr = l(29); s.gear = A[30] | 0; s.steer = l(31); s.et = l(32); s.p = l(33); return s;
+  },
+  hlBlank() { return { Q: [0, 0, 0, 1], V: [0, 0, 0], W: [0, 0, 0], A: [0, 0, 0], L: [0, 0, 0, 0], dw: [0, 0, 0, 0], lb: [0, 0, 0, 0], om: [0, 0, 0, 0], pn: [] }; },
+  // where a rival was at the race's time t, for the cameras' planning (see Replay.peek)
+  hlPeek(r, t) {
+    const H = r.hr, s = this.hlAt(r, clamp(t, H[0][0], H[H.length - 1][0]), r.hlS2 || (r.hlS2 = this.hlBlank())), T = G.T, f = qRot(s.Q, [0, 0, 1]);
+    return { t, x: s.x, y: s.yb, z: s.z, h: Math.atan2(f[0], f[2]), vx: s.V[0], vz: s.V[2], sp: Math.hypot(s.V[0], s.V[2]), i: locate(T, s.x, s.z, clamp(T.startIdx + Math.round(s.p), 0, T.pts.length - 1)).i };
+  },
+  // the car a cut follows when it is another driver's (k: its place on the grid): a stand-in for it the cameras follow
+  // (see Replay.camera), its mesh, where its record ends; null where this page has no record of it
+  hlFocus(k) {
+    const peer = this.gr[k], r = peer ? this.rivals.get(peer) : null; if (!r || !r.hr || r.hr.length < 2 || !r.mesh) return null;
+    const fc = r.hlFc || (r.hlFc = { c: { S: r.S, x: 0, y: 0, yb: 0, z: 0, psi: 0, u: 0, v: 0, vy: 0, vyb: 0, ax: 0, ay: 0, r: 0, Q: [0, 0, 0, 1], V: [0, 0, 0], Wv: [0, 0, 0], gear: 1, hint: 0, over: false, surfName: '', w: [] }, r, S: r.S, et: 0 });
+    fc.m = r.mesh; fc.t0 = r.hr[0][0]; fc.t1 = r.hr[r.hr.length - 1][0]; fc.peek = t => this.hlPeek(r, t);
+    this.hlPose(fc, this.hlAt(r, Replay.reel ? Replay.reel.rc : r.hr[0][0], r.hlS3 || (r.hlS3 = this.hlBlank()))); return fc;
+  },
+  hlPose(fc, s) {
+    const c = fc.c, T = G.T, f = qRot(s.Q, [0, 0, 1]), psi = Math.atan2(f[0], f[2]), sn = Math.sin(psi), co = Math.cos(psi), K = carSetup(fc.S);
+    c.x = s.x; c.yb = s.yb; c.y = s.yb - (K.sp.hcg || 0.5); c.z = s.z; c.psi = psi; for (let i = 0; i < 4; i++) c.Q[i] = s.Q[i]; for (let i = 0; i < 3; i++) c.V[i] = s.V[i];
+    c.u = s.V[0] * sn + s.V[2] * co; c.v = s.V[0] * co - s.V[2] * sn; c.vy = c.vyb = s.V[1]; c.gear = s.gear; c.over = 1 - 2 * (s.Q[0] * s.Q[0] + s.Q[2] * s.Q[2]) < 0.5;
+    c.hint = locate(T, s.x, s.z, clamp(T.startIdx + Math.round(s.p), 0, T.pts.length - 1)).i; fc.et = s.et;
+  },
+  // every rival drawn as its record has it at the race's time t (a replay of the race: see Replay.update); the one a cut
+  // follows heard louder; its damage as its page had sent it by then
+  replayAt(t, dt, go) {
+    if (!this.game) return; const L = Replay.reel, fc = L && L.fc;
+    for (const r of this.rivals.values()) {
+      const H = r.hr, m = r.mesh; if (!m) continue;
+      if (!H || H.length < 2 || t < H[0][0] - 0.1) { m.root.visible = false; if (r.vx) this.voice(r, null, false); continue; } // (past its record's end: where it was last, stopped)
+      const s = this.hlAt(r, t); this.rpOn = true;
+      r.x = s.x; r.yb = s.yb; r.z = s.z; r.Q = s.Q; r.V = s.V; r.W = s.W; // (for the pieces its damage throws off: see asRival)
+      this.hlDmg(r, t, go);
+      const P = r.hlP || (r.hlP = { x: 0, yb: 0, z: 0, Q: [0, 0, 0, 1] }); P.x = s.x; P.yb = s.yb; P.z = s.z; P.Q = s.Q;
+      const foc = !!(fc && fc.r === r); this.voice(r, s, go, foc ? 3 : 1.4, P);
+      this.drawRival(r, dt, s, P, true); if (go && dt > 0 && r.mesh.root.visible) hlDust(r, s, dt);
+      if (foc) { fc.m = r.mesh; this.hlPose(fc, s); }
+    }
+  },
+  hlDmg(r, t, go) {
+    const D = r.hd || []; let k = -1; for (let j = D.length - 1; j >= 0; j--) if (D[j][0] <= t) { k = j; break; }
+    if (k === r.hdAt) return; const fwd = r.hdAt != null && k === r.hdAt + 1; r.hdAt = k; r.dmIn = k >= 0 ? D[k][1] : null; r.dmQuiet = !(go && fwd); this.dmApply(r);
+  },
+  // (the replay over: each rival's own damage back on it as its page has it now)
+  replayEnd() { if (!this.rpOn) return; this.rpOn = false; for (const r of this.rivals.values()) { r.hlI = null; if (r.hdAt === undefined) continue; r.hdAt = undefined; r.dmIn = r.dmLive !== undefined ? r.dmLive : r.dmIn; r.dmQuiet = true; r.dmDirty = true; } },
+  // ---- this car's moments, for the others: the best of them, on the race's clock (in hundredths of a second), each
+  // [kind, from, the moment, to, how big, its four figures, what a crash hit, how long it lasted]; with the finish and
+  // where the car stopped after it ----
+  hlOut() {
+    try {
+      const c = this.rc, M = HL.pick(HL.apart(HL.find().concat(c && c.fm === 'rally' ? [] : this.hlPasses())), 6), cs = t => Math.round(HL.rcOf(t) * 100), hits = Object.keys(HL_HIT);
+      const out = M.map(m => [HL_KEYS.indexOf(m.k), cs(m.a), cs(m.t), cs(m.b), Math.round(m.sc), ...[0, 1, 2, 3].map(i => Math.round((m.v[i] || 0) * 10) / 10), m.k === 'crash' ? Math.max(0, hits.indexOf(m.hit)) : 0, Math.round(clamp(m.d || 0, 0, 20) * 100)]);
+      if (Rec.fin != null) { const st = Replay.stopAt(), stop = isFinite(st) ? st : Rec.fin + 4; out.push([HL_KEYS.indexOf('finish'), cs(Rec.fin), cs(Rec.fin), cs(stop), 0, 0, 0, 0, 0, 0, 0]); }
+      return out;
+    } catch (e) { return null; }
+  },
+  // the others' moments, checked
+  hmIn(L) {
+    if (!Array.isArray(L) || L.length > 10) return null; const out = [], hits = Object.keys(HL_HIT);
+    for (const e of L) { if (!Array.isArray(e) || e.length !== 11 || !e.every(v => typeof v === 'number' && isFinite(v))) continue; const ki = e[0] | 0; if (ki < 0 || ki >= HL_KEYS.length) continue;
+      const a = e[1] / 100, t = e[2] / 100, b = e[3] / 100; if (!(a <= t + 0.01 && t <= b + 0.01) || b - a > 20 || Math.abs(t) > 7200) continue;
+      out.push({ k: HL_KEYS[ki], a, t, b, sc: clamp(e[4], 0, 100), v: [e[5], e[6], e[7], e[8]].map(v => clamp(v, -1e4, 1e4)), hit: hits[e[9] | 0] || 'hit', d: clamp(e[10] / 100, 0, 20) }); }
+    return out;
+  },
+  // this car's passes: each time it went by another car close to it, on the road (the two set against each other on
+  // the race's clock four times a second, by how far along the stage each was)
+  hlPasses() {
+    const T = G.T, n = Rec.n, out = []; if (!T || n < 60 || T.loop) return out; const me = [];
+    for (let i = 0; i < n; i += 8) { const F = Rec.ch[i >> 9], o = (i & (REC_CH - 1)) * RN, t = F[o]; if (Rec.go != null && t < Rec.go) continue; if (Rec.fin != null && t > Rec.fin) break; me.push([HL.rcOf(t), locate(T, F[o + RI.x], F[o + RI.z], F[o + RI.hint] | 0).dist, Math.hypot(F[o + RI.u], F[o + RI.v]), t]); }
+    for (const [peer, r] of this.rivals) { const H = r.hr; if (!H || H.length < 10 || r.ghost) continue; const k = this.gr.indexOf(peer); let prev = null; const S = r.hlS4 || (r.hlS4 = this.hlBlank());
+      for (const q of me) { if (q[0] < H[0][0] || q[0] > H[H.length - 1][0]) { prev = null; continue; } const s = this.hlAt(r, q[0], S), gap = q[1] - locate(T, s.x, s.z, clamp(T.startIdx + Math.round(s.p), 0, T.pts.length - 1)).dist;
+        if (prev != null && prev < -1 && gap > 1 && Math.abs(gap) < 25 && q[2] > 8) out.push({ k: 'pass', t: q[3], d: 1, a: q[3] - 3, b: q[3] + 2, sc: 55 + 30 * clamp((q[2] - 10) / 30, 0, 1), v: [q[2] * 3.6, k, 0, 0] });
+        prev = gap; } }
+    return out;
+  },
+  // ---- the race's reel ----
+  // every driver's moments (theirs as their pages told them, this page's own as it told them), the best few of each and
+  // the best of all; opened at the grid (the first car's start), closed at the winner's finish, circling the winner's
+  // car. mask: the drivers whose moments to take (watching together: those the driver who started it had)
+  hlPlan(mask) {
+    const c = this.rc; if (!c) return null; const who = {}, all = [], F = this.field(), mine = this.mine.hm ? this.hmIn(this.mine.hm) : this.hmIn(this.hlOut());
+    for (const f of F) { const k = f.k; who[k] = { name: f.name, car: f.car, ft: f.rt != null ? f.rt : f.ft, me: f.me }; if (mask != null && !(mask & (1 << k))) continue;
+      const L = f.me ? mine : (this.hmSeen.get(f.peer) || {}).hm; if (!L) continue; who[k].has = true; for (const m of L) { m.who = k; all.push(m); } }
+    const fins = all.filter(m => m.k === 'finish'), per = {}; for (const m of all) if (m.k !== 'finish' && (m.who === this.slot || this.hlHas(m.who))) (per[m.who] || (per[m.who] = [])).push(m);
+    let M1 = []; for (const k in per) M1 = M1.concat(HL.pick(per[k], HL_PER)); const M = HL.pick(M1, HL_MAX_MP);
+    const done = F.filter(f => f.rt != null), win = done.length ? done[0].k : null, wf = win != null ? fins.find(m => m.who === win) : null; let mk = 0; for (const k in who) if (who[k].has) mk |= 1 << k;
+    const go = this.startDelay(c, 0), first = this.gr[0] === this.my || this.hlHas(0) ? 0 : this.slot;
+    return { M, seed: strHash('hl:' + this.code + ':' + c.rd + ':' + mk), go, fin: wf && (win === this.slot || this.hlHas(win)) ? wf.t : null, stop: wf ? wf.b : null, win, first, t0: go - 6, who, mask: mk };
+  },
+  hlHas(k) { const peer = this.gr[k], r = peer && this.rivals.get(peer); return !!(r && r.hr && r.hr.length > 2); },
+  // ---- watching them together ----
+  // (this page watching them, for the others: the race is held at its finish meanwhile, see hlHold)
+  hlWatch(on) { if (!this.game) return; const v = on ? 1 : 0; if ((this.mine.hw || 0) !== v) this.pub({ hw: v }); },
+  hlHold(now) { const w = !!(Replay.on && Replay.reel) || this.drivers().some(p => !p.sameTab && p.presence && p.presence.hw === 1 && this.fresh(p));
+    if (!w) { this.hlCap = 0; return false; } if (!this.hlCap) this.hlCap = now + 240000; return now < this.hlCap; },
+  // started for everyone: four seconds on by the race's clock, with the drivers whose moments this page has
+  hlTogether() {
+    if (!Replay.can()) return; const now = this.raceMs(), plan = this.hlPlan(null); if (now == null || !plan) return;
+    this.hsN = (this.hsN || 0) + 1; const at = Math.round(now + 4000); this.pub({ hs: [this.hsN, at, plan.mask] }); $('#mpRes').hidden = true; this.hlInv = null;
+    Replay.openReel({ sync: { at, n: this.hsN, by: this.my }, mask: plan.mask });
+  },
+  hlJoin() { const v = this.hlInv; if (!v || !Replay.can()) return; this.hlInv = null; $('#mpRes').hidden = true; Replay.openReel({ sync: { at: v.at, n: v.n, by: v.peer }, mask: v.mask }); },
+  // another driver started them: an invitation on the results, while they run
+  hlHeard(r, hs) {
+    const now = this.raceMs(), at = hs[1]; if (now == null || at < now - 200000 || at > now + 30000) return;
+    const p = this.peers.find(q => q.peer === r.peer), name = p ? this.nameOf(p, this.gr.indexOf(r.peer)) : 'A driver'; this.hlInv = { peer: r.peer, n: hs[0], at, mask: hs[2] | 0, name };
+    if (this.phase === 'done' && !(Replay.on && Replay.reel)) { this.banner(`${name} started the highlights: watch them together from the results`, 5000); this.results(); } // (not while this car is still racing)
+  }
+});
+// a rival's dust in a replay (its page sends no surfaces or slip for its wheels: the stage's under each wheel on the
+// ground, and how its wheels spin against its speed)
+function hlDust(r, s, dt) {
+  const m = r.mesh, T = G.T; if (!m || !T || !m.wheels) return; const sf = T.surface === 'mixed' ? 'gravel' : T.surface, loose = sf === 'gravel' || sf === 'snow', wet = T.wet || 0;
+  const V = s.V, spd = Math.hypot(V[0], V[2]); if (spd < 2 || (!loose && wet < 0.15)) return; const R0 = wheelOf(r.S).R, col = loose ? (sf === 'gravel' && wet > 0.3 ? MUDC : DUST[sf] || DUST.gravel) : WATERC, P = _hlV;
+  for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (!w || !w.piv) continue; w.piv.getWorldPosition(P); const gy = groundY(T, P.x, P.z); if (P.y - R0 > gy + 0.15) continue;
+    const sl = Math.abs(Math.abs(s.om[i] || 0) * R0 - spd) / (spd + 3) * 10, rate = loose ? (smooth(3, 30, spd) * (i >= 2 ? 5 : 3) + sl * 3.5) * (sf === 'gravel' ? (Atmos.dustK || 1) * (1 - 0.8 * wet) : 1) : wet * smooth(6, 32, spd) * (i >= 2 ? 16 : 7);
+    let n = rate * dt; while (n > 0) { if (n < 1 && Math.random() > n) break; n -= 1;
+      Particles.spawn(P.x, gy + 0.12, P.z, -V[0] * 0.12 + (Math.random() - 0.5) * 2, 0.4 + Math.random() * (1 + sl * 0.08), -V[2] * 0.12 + (Math.random() - 0.5) * 2, col, loose ? 1.0 + Math.random() * 0.8 : 0.8 + Math.random() * 0.6, loose ? 1.4 + Math.random() * 1.2 : 0.8 + Math.random() * 0.5, 0, loose ? 0.55 : 0.35); } }
+}
+const _hlV = new THREE.Vector3();
 
 // ---- the workshop's cars in the game ----
 // A car built in the workshop (its physics: cucore.js) joins the game as a car of its own: its spec on the entry list
@@ -37647,7 +38408,7 @@ const Rally = {
       card.append(el('p', { class: 'rkick', text: 'Shakedown · stop control' }), el('h2', { id: 'rH', text: 'Shakedown run' }), el('div', { class: 'rbig', text: fmtR(cur.last) }),
         el('p', { class: 'sub', text: (cur.best < cur.last ? `Your best: ${fmtR(cur.best)}. ` : '') + 'Not timed against the field. The crew will have the car mended before the start.' }));
       { const tr = tyreReport(G.car, G.phys); if (tr) card.append(el('p', { class: 'rnote', text: tr })); }
-      this.buttons(card, [['Run it again', () => this.startStage(), 'go'], ...(Replay.can() ? [['Watch replay', () => Replay.open()]] : []), ['Car setup', () => this.openSetup()], ['To the start', () => { this.cur = null; this.showItem(); }]]);
+      this.buttons(card, [['Run it again', () => this.startStage(), 'go'], ...(Replay.can() ? [['Highlights', () => Replay.openReel()], ['Watch replay', () => Replay.open()]] : []), ['Car setup', () => this.openSetup()], ['To the start', () => { this.cur = null; this.showItem(); }]]);
       return; }
     if (this.cur && this.cur.wait) return this.waitResult();
     const st = this.st, s = this.cur.s, g = this.plan().stages[s], res = st.res[s], card = this.card('dock'); $('#rally').hidden = false; showScreen('result');
@@ -37659,7 +38420,7 @@ const Rally = {
     if (g.sss && Duel.on) card.append(el('p', { class: 'rnote', text: duelLine(res.t[0]) }));
     if (g.power && p >= 1 && p <= 5) card.append(el('p', { class: 'rnote', text: p < 5 ? `Power Stage: ${PTS_BONUS[p - 1]} bonus points for ${ordinal(p)} fastest, if you are classified at the finish.` : `Power Stage: 1 bonus point for ${ordinal(p)} fastest, if you are classified at the finish.` }));
     this.resultBody(card, s); { const tr = tyreReport(G.car, G.phys); if (tr) card.append(el('p', { class: 'rnote', text: tr })); }
-    this.buttons(card, [['Continue', () => { this.cur = null; this.next(); }, 'go'], ...(Replay.can() ? [['Watch replay', () => Replay.open()]] : []), ['Save and leave', () => { this.cur = null; this.st.at++; this.save(); this.leave(); }]]);
+    this.buttons(card, [['Continue', () => { this.cur = null; this.next(); }, 'go'], ...(Replay.can() ? [['Highlights', () => Replay.openReel()], ['Watch replay', () => Replay.open()]] : []), ['Save and leave', () => { this.cur = null; this.st.at++; this.save(); this.leave(); }]]);
   },
   // at the stop control with some of the field still on the stage: your time, and the crews coming in
   waitResult() {
@@ -38549,6 +39310,7 @@ const RXUI = {
     { const b = $('#rxEvLeave'); if (b) b.addEventListener('click', e => { const t = e.currentTarget; if (t.dataset.sure) { delete t.dataset.sure; RXEV.st = null; RXEV.save(); this.render(); } else { t.dataset.sure = '1'; t.textContent = 'Leave: tap again to confirm'; setTimeout(() => { delete t.dataset.sure; t.textContent = 'Leave the event'; }, 3500); } }); }
     $('#rxResNext').addEventListener('click', () => this.next()); $('#rxResMenu').addEventListener('click', () => { this.hide(); toMenu(); });
     $('#rxResWatch').addEventListener('click', () => { if (Replay.can()) { this.hide(); Replay.open(); } });
+    $('#rxResHigh').addEventListener('click', () => { if (Replay.can()) { this.hide(); Replay.openReel(); } });
   },
   set(o) { Object.assign(this.cfg, o); lsSet('sr86.rxcfg', this.cfg); this.render(); },
   // into the tab and out of it: the stage shown behind the menu a circuit, or a stage again
@@ -38587,7 +39349,7 @@ const RXUI = {
     $('#rxResH').textContent = me ? (me.out === 'excluded' ? 'Excluded' : me.out ? 'Out of the race' : me.pos === 1 ? 'You win' : `${ordinal(me.pos)} place`) : 'Results';
     { const lb = RX.cfg.label || 'Race'; $('#rxResSub').textContent = [lb, `Circuit ${G.T.seed}`, /\blaps?\b/.test(lb) ? '' : `${RX.cfg.laps} laps`, me && me.e.best ? `Your best lap ${fmtT(me.e.best)}` : ''].filter(Boolean).join(' · '); } // (the laps once: a race's own name has them)
     $('#rxResNote').textContent = ev ? '' : 'Same circuit, new rivals each time: race again, or change the laps, rivals and their pace in the menu.';
-    $('#rxResNext').textContent = ev ? 'Event standings' : 'Race again'; $('#rxResWatch').hidden = !Replay.can();
+    $('#rxResNext').textContent = ev ? 'Event standings' : 'Race again'; $('#rxResWatch').hidden = !Replay.can(); $('#rxResHigh').hidden = !Replay.can();
     this.show();
   },
   show() { showScreen('finish'); $('#finish').hidden = true; $('#rxRes').hidden = false; this.shown = true; const b = $('#rxResNext'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 30); },
