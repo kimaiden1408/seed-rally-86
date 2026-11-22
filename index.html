@@ -1076,6 +1076,9 @@ html.hsc #hud,html.hsc #replay,html.hsc #reel,html.hsc #flashback{inset:auto;lef
     <h2 class="asth">Graphics</h2>
     <div class="assist" role="group" aria-label="Graphics quality"><button id="gx_auto" type="button">Auto</button><button id="gx_high" type="button">High</button><button id="gx_medium" type="button">Medium</button><button id="gx_low" type="button">Low</button></div>
     <p id="gfxNote" class="small"></p>
+    <h2 class="asth">Detailed wheels</h2>
+    <div class="assist" role="group" aria-label="Detailed wheels"><button id="wv_on" type="button">On</button><button id="wv_off" type="button">Off</button></div>
+    <p id="wvNote" class="small"></p>
     <h2 class="asth">Sound</h2>
     <div class="assist" role="group" aria-label="Listening on"><button id="au_hp" type="button">Headphones</button><button id="au_sp" type="button">Speakers</button></div>
     <p id="audNote" class="small"></p>
@@ -7679,7 +7682,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const awx = Lx * cl * cd - Ex * sl - Fx0 * cl * sd, awy = Ly * cl * cd - Ey * sl - Fy0 * cl * sd, awz = Lz * cl * cd - Ez * sl - Fz0 * cl * sd;
     const uwx = Lx * sl * cd + Ex * cl - Fx0 * sl * sd, uwy = Ly * sl * cd + Ey * cl - Fy0 * sl * sd, uwz = Lz * sl * cd + Ez * cl - Fz0 * sl * sd;
     // the tyre's radius (a punctured tyre sits lower; a lost wheel leaves its hub) and the round of its shoulder
-    const Rw = DR ? (DR.w[i].off ? (S.wheel ? 0.42 * R0 : 0.13) : DR.w[i].flat ? R0 - (S.wheel ? 0.21 * R0 : S.mousse ? 0.02 : 0.065) : R0) : R0, rt = Math.min(0.1, Rw * 0.5);
+    const Rw = DR ? (DR.w[i].off ? (S.wheel ? 0.42 * R0 : 0.13) : DR.w[i].deb ? tyreDebR(S, G.front) : DR.w[i].flat ? R0 - (S.wheel ? 0.21 * R0 : S.mousse ? 0.02 : 0.065) : R0) : R0, rt = Math.min(0.1, Rw * 0.5); wh.Rw = Rw;
     // where the tread comes nearest the ground: down the wheel's plane toward the ground and round the shoulder
     const touch = (n, o) => { const na = n[0] * awx + n[1] * awy + n[2] * awz; let dx = -n[0] + na * awx, dy = -n[1] + na * awy, dz = -n[2] + na * awz; const dl = Math.hypot(dx, dy, dz);
       if (dl > 1e-3) { dx /= dl; dy /= dl; dz /= dl; } else { dx = 0; dy = 0; dz = 0; } o[0] = Cx + (Rw - rt) * dx - rt * n[0]; o[1] = Cy + (Rw - rt) * dy - rt * n[1]; o[2] = Cz + (Rw - rt) * dz - rt * n[2]; return o; };
@@ -7835,7 +7838,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     TY.r = TP.r; TY.vd = TP.vd; TY.cam = TP.cam; TY.crr = TP.crr * (1 + 0.15 * (au / 27.8) * (au / 27.8)) + Math.min(0.15, MX.pool * (0.02 + 0.0005 * au * au)) + (wh.bankH ? 0.3 * Math.min(1.4, wh.bankH / 0.45) : 0); TY.heat = TP.heat; TY.abr = TP.abr; TY.pav = TP.pav; // (water's drag held under the grip it leaves)
     // the grip there, less in standing water, on a punctured or lost tyre, and on its sidewall (a wheel far over); a car
     // prepared better or worse than it was built (gripK: a rival's, see tunedSpec)
-    const km = (S.gripK || 1) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (Dw ? (Dw.off ? 0.4 : Dw.flat ? (S.mousse ? 0.85 : 0.5) : 1) : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
+    const km = (S.gripK || 1) * (pool > 0 ? 1 - (water > 0 ? 0.35 : 0.6) * pool * aq : 1) * (Dw ? (Dw.off ? 0.4 : Dw.deb ? 0.42 : Dw.flat ? (S.mousse ? 0.85 : 0.5) : 1) : 1) * (wh.side > 0.7 ? 1 - 0.6 * smooth(0.7, 0.95, wh.side) : 1);
     // each of the corner's patches (a bogie's two tyres, each with its share of the load: see beamGround), its own slip and
     // its own load; their forces summed, and their lateral forces' turn about the pivot added to the aligning torque.
     // A patch of twin tyres (nd): each of the pair works with half its load, the pair giving twice one's force
@@ -7882,6 +7885,14 @@ function stepCar(c, S, inp, dt, T, opts) {
     }
     const rho = lam; // (1 near the peak, for the sounds and the slides)
     wh.Fx = fx; wh.Fy = fy; wh.Mz = mz; wh.rho = rho; if (rho > maxRho) maxRho = rho;
+    // (a flat tyre run on: its sidewalls, folded under the rim, are cut and torn by the flanges - the sooner the faster it
+    // rolls and the harder it is pushed across - until it comes off the rim: some 3 km at a stage's pace, well under one
+    // cornering hard, five or more limping; and the car runs on the rim itself, which bends the further it goes. A mousse,
+    // holding the tyre up, keeps the sidewalls off the flanges: it lasts a stage's 15-25 km at pace, until its heat breaks it up)
+    if (Dw && Dw.flat && !Dw.off) { const vr = Math.abs(wh.omega) * (wh.Rw || R0), la = Math.abs(fy) / Math.max(400, wh.Fz);
+      if (!Dw.deb) { Dw.tl = (Dw.tl == null ? 1 : Dw.tl) - vr * dt * (S.mousse ? (1 + vr * vr / 900) * (1 + 2 * la * la) / 60000 : (1 + vr * vr / 144) * (1 + 7 * la * la) / 9000);
+        if (Dw.tl <= 0) { Dw.tl = 0; Dw.deb = 1; dmgNews(DR, `Tyre off the rim, ${CORNER[i]}`); } }
+      else Dw.rim = Math.min(1, (Dw.rim || 0) + vr * dt / 5000 * (1 + la)); }
     // what turns a front wheel about its kingpin: the aligning torque and the lateral force behind the kingpin (caster)
     // and the force along it: at the patch, the scrub radius out from the axis's foot, and the drive torque's share about
     // the inclined axis (a driving force in effect at the hub, the kingpin's offset there out) - toeing a wheel in as it
@@ -7959,7 +7970,7 @@ function stepCar(c, S, inp, dt, T, opts) {
     const mu = ax ? (padT ? PAD_MU.tarmac * (0.72 + 0.28 * smooth(40, 300, tB)) : PAD_MU.gravel * (0.9 + 0.1 * smooth(40, 180, tB))) * brakeFade(tB) : 0;
     const bwI = inp.bw ? inp.bw[i] || 0 : 0; // (a stability system's pressure at this caliper alone: see escHelp)
     const Tp = ax ? Math.max(G.front ? pF : pR, bwI * BRK_P * (S.bpK || 1)) * ax.tq * mu : (bT * (AB ? (G.front ? AB.kF : AB.kR) : G.front || inp.kR == null ? 1 : inp.kR) + bwI * m * g * SP.brake * R0) * (G.front ? SP.bias : 1 - SP.bias) / 2 * brakeFade(tB);
-    let Tb = Tp + ((wh.ty ? (wh.ftOn ? Math.max(0, wh.ty.crr - (wh.crr0 || 0.014) * (1 + 0.15 * (au / 27.8) * (au / 27.8)) * smooth(0.02, 0.5, au)) : wh.ty.crr) : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].flat ? (S.mousse ? 0.05 : 0.16) : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
+    let Tb = Tp + ((wh.ty ? (wh.ftOn ? Math.max(0, wh.ty.crr - (wh.crr0 || 0.014) * (1 + 0.15 * (au / 27.8) * (au / 27.8)) * smooth(0.02, 0.5, au)) : wh.ty.crr) : (TYRE[wh.surf] || TYRE.gravel).crr) * (ty ? Math.pow(S.pOpt / Math.max(0.8, ty[i].p), 0.6) : 1) + (DR ? (DR.w[i].off ? 0.5 : DR.w[i].deb ? 0.24 : DR.w[i].flat ? (S.mousse ? 0.05 : 0.16) : 0) + DR.w[i].rim * 0.02 : 0)) * wh.Fz * R0;
     // (the hydraulic handbrake: its own master cylinder on the rear calipers, its pads as hot as the discs)
     const Th = G.front ? 0 : ax ? (S.hbT || 1700) * pH * mu / (padT ? PAD_MU.tarmac : PAD_MU.gravel) : (AB ? AB.kP > 0 : hb) ? (S.hbT || 1700) * (AB ? AB.kP : 1) : 0; Tb += Th;
     const w0 = Math.abs(wh.omega), d = Tb * dt / IW[i]; if (w0 <= d) wh.omega = 0; else wh.omega -= Math.sign(wh.omega) * d;
@@ -8261,6 +8272,9 @@ function crushZone(h, Hs) {
 }
 const CORNER = ['front left', 'front right', 'rear left', 'rear right'];
 function dmgNews(D, txt) { if (!D.news.includes(txt)) D.news.push(txt); }
+// a tyre come off its rim (Dw.deb): the wheel on its rim's flanges, their tips the bead seat's radius and 17.5 mm out (a
+// vehicle on wheels of its own, without a tyre sheet: three fifths of its tyre's radius)
+function tyreDebR(S, front) { const h = S.tySh && S.tySh[front ? 0 : 1]; return h && h.rimIn ? h.rimIn * 0.0127 + 0.0175 : 0.62 * wheelOf(S).R; }
 // a dent: where, which way, how deep and how wide; blows close to an old dent deepen it
 function addDent(D, h, depth, rad) {
   for (const d of D.dents) {
@@ -8669,7 +8683,7 @@ const ROAD_FIXES = [
   // run on to service on its flat tyres)
   { k: 'spare', name: 'Fit the spare wheels', label: D => { const n = D.spares == null ? 4 : D.spares, f = D.w.filter(w => w.flat && !w.off).length; return n >= f ? (f === 1 ? 'Fit the spare wheel' : 'Fit the spare wheels') : `Fit the spare wheel${n > 1 ? 's' : ''}: you carry ${n} for ${f} flat tyres`; },
     need: D => D.w.some(w => w.flat && !w.off) && (D.spares == null || D.spares > 0), mins: D => 4 * Math.min(D.spares == null ? 4 : D.spares, D.w.filter(w => w.flat && !w.off).length),
-    fix: D => { let n = D.spares == null ? 4 : D.spares; for (const w of D.w) if (w.flat && !w.off && n > 0) { w.flat = 0; w.rim = 0; n--; D.spUsed = (D.spUsed || 0) + 1; } } },
+    fix: D => { let n = D.spares == null ? 4 : D.spares; for (const w of D.w) if (w.flat && !w.off && n > 0) { w.flat = 0; w.rim = 0; w.deb = 0; w.tl = 1; n--; D.spUsed = (D.spUsed || 0) + 1; } } },
   { k: 'tape', name: 'Patch the radiator and top up', need: D => D.rad > 0.05, mins: () => 6, fix: D => { D.rad *= 0.35; D.cool = Math.max(D.cool, 0.85); } },
   { k: 'pull', name: 'Pull the worst bent corner roughly straight', need: D => D.w.some(w => w.arm > 0 && !w.off && (Math.abs(w.toe) > 0.01 || Math.abs(w.cam) > 0.01)), mins: () => 8, fix: D => { const w = D.w.filter(w => w.arm > 0 && !w.off).sort((a, b) => Math.abs(b.toe) + Math.abs(b.cam) - Math.abs(a.toe) - Math.abs(a.cam))[0]; if (w) { w.toe *= 0.3; w.cam *= 0.4; } } }
 ];
@@ -11198,6 +11212,14 @@ I18N_MORE.zh.push(...["集锦", "赛段集锦", "比赛集锦", "SS{0}集锦", "
 I18N_MORE.es.push(...["Lo mejor", "Lo mejor del tramo", "Lo mejor de la carrera", "Lo mejor del SS{0}", "Volver a ver", "Repetición completa", "Volver a sincronizar", "Salir", "Controles de lo mejor", "Momentos", "Momento anterior", "Momento siguiente", "Ver juntos", "Ver con {0}", "Espacio pausa · ← → momentos · F repetición completa · Esc salir", "Tiempo del tramo", "Accidentes", "Gran salto", "Salto enorme", "De lado", "Contravolante a tope", "A fondo", "Accidente", "Golpe fuerte", "Vueltas de campana", "Sobre un costado", "¡Qué salvada!", "Vadeo", "Adelantamiento", "{0}° a {1} km/h", "{0} s de lado", "Contra un árbol a {0} km/h", "Contra un muro a {0} km/h", "Contra el talud a {0} km/h", "Contra las rocas a {0} km/h", "Llevándose un poste a {0} km/h", "Contra un poste de la luz a {0} km/h", "Contra otro coche a {0} km/h", "Contra el guardarraíl a {0} km/h", "Contra las balas de paja a {0} km/h", "Contra un bloque de hormigón a {0} km/h", "Sobre una isleta a {0} km/h", "Contra una pila del puente a {0} km/h", "Impacto a {0} km/h", "Vuelco a {0} km/h", "Sobre un costado a {0} km/h", "{0} vueltas de campana", "una vuelta de campana", "{0} piezas fuera", "una pieza fuera", "{0}° de lado a {1} km/h", "Un latigazo a {0} km/h", "Sobre dos ruedas a {0} km/h", "Fuera de la pista a {0} km/h, y de vuelta", "{0} km/h atravesando el agua", "Adelanta a {0} a {1} km/h", "un rival", "velocidad punta {0} km/h", "cámara lenta", "Empieza en {0}", "{0} ha empezado lo mejor: míralo con todos desde los resultados", "Dron FPV", "Suelo", "Cámara dron FPV"]);
 I18N_MORE.fr.push(...["Temps forts", "Temps forts de la spéciale", "Temps forts de la course", "Temps forts de la SS{0}", "Revoir", "Replay complet", "Revenir en synchro", "Quitter", "Commandes des temps forts", "Moments", "Moment précédent", "Moment suivant", "Regarder ensemble", "Regarder avec {0}", "Espace pause · ← → moments · F replay complet · Échap quitter", "Temps de la spéciale", "Accidents", "Gros saut", "Saut énorme", "En glisse", "Contrebraquage à fond", "À fond", "Accident", "Gros choc", "Tonneaux en série", "Sur le flanc", "Quel sauvetage !", "Passage à gué", "Dépassement", "{0}° à {1} km/h", "{0} s en glisse", "Dans un arbre à {0} km/h", "Dans un mur à {0} km/h", "Dans le talus à {0} km/h", "Dans les rochers à {0} km/h", "À travers un piquet à {0} km/h", "Dans un poteau à {0} km/h", "Dans une autre voiture à {0} km/h", "Dans la glissière à {0} km/h", "Dans les bottes de paille à {0} km/h", "Dans un bloc de béton à {0} km/h", "Sur un îlot à {0} km/h", "Dans une pile de pont à {0} km/h", "Choc à {0} km/h", "Tonneau à {0} km/h", "Sur le flanc à {0} km/h", "{0} tonneaux", "un tonneau", "{0} pièces arrachées", "une pièce arrachée", "{0}° en glisse à {1} km/h", "Des embardées à {0} km/h", "Sur deux roues à {0} km/h", "Hors de la route à {0} km/h, et de retour", "{0} km/h dans l’eau", "Passe {0} à {1} km/h", "un rival", "vitesse de pointe {0} km/h", "ralenti", "Début dans {0}", "{0} a lancé les temps forts : regardez-les ensemble depuis les résultats", "Drone FPV", "Sol", "Caméra drone FPV"]);
 I18N_MORE.de.push(...["Highlights", "Highlights der Prüfung", "Highlights des Rennens", "Highlights SS{0}", "Noch einmal ansehen", "Ganze Wiederholung", "Wieder synchron", "Beenden", "Highlight-Steuerung", "Momente", "Vorheriger Moment", "Nächster Moment", "Zusammen ansehen", "Mit {0} ansehen", "Leertaste Pause · ← → Momente · F ganze Wiederholung · Esc beenden", "Prüfungszeit", "Unfälle", "Großer Sprung", "Riesensprung", "Quer", "Volles Gegenlenken", "Vollgas", "Unfall", "Harter Einschlag", "Mehrfacher Überschlag", "Auf der Seite", "Was für ein Rettungsmanöver!", "Wasserdurchfahrt", "Überholmanöver", "{0}° bei {1} km/h", "{0} s quer", "Mit {0} km/h in einen Baum", "Mit {0} km/h in eine Mauer", "Mit {0} km/h in die Böschung", "Mit {0} km/h in die Felsen", "Mit {0} km/h durch einen Pfosten", "Mit {0} km/h gegen einen Mast", "Mit {0} km/h in ein anderes Auto", "Mit {0} km/h in die Leitplanke", "Mit {0} km/h durch die Strohballen", "Mit {0} km/h gegen einen Betonblock", "Mit {0} km/h über eine Verkehrsinsel", "Mit {0} km/h gegen einen Brückenpfeiler", "Einschlag mit {0} km/h", "Überschlag bei {0} km/h", "Umgekippt bei {0} km/h", "{0}-mal überschlagen", "überschlagen", "{0} Teile ab", "ein Teil ab", "{0}° quer bei {1} km/h", "Wildes Pendeln bei {0} km/h", "Auf zwei Rädern bei {0} km/h", "Mit {0} km/h von der Straße, und wieder drauf", "Mit {0} km/h durchs Wasser", "Mit {1} km/h an {0} vorbei", "einem Rivalen", "Höchstgeschwindigkeit {0} km/h", "Zeitlupe", "Start in {0}", "{0} hat die Highlights gestartet: Seht sie euch gemeinsam in den Ergebnissen an", "FPV-Drohne", "Boden", "FPV-Drohnenkamera"]);
+// (the detailed wheels: see WheelViz)
+I18N_MORE.k.push(...["Detailed wheels", "Your car on tyres and rims drawn as they are built: the tread’s blocks, the sidewalls and the rim, squashing under load, wearing down, going flat and coming off the rim. Only your own car, so it costs little.", "Your car on the simple wheels every other car has.", "Tyre off the rim, {0}"]);
+I18N_MORE.ko.push(...["정밀 바퀴", "내 차의 타이어와 휠을 실제 구조대로 그립니다. 트레드 블록, 사이드월, 림이 하중에 눌리고, 닳고, 펑크 나고, 림에서 빠집니다. 내 차에만 적용되므로 부담이 적습니다.", "다른 모든 차와 같은 단순한 바퀴로 그립니다.", "타이어가 림에서 빠짐, {0}"]);
+I18N_MORE.ja.push(...["詳細なホイール", "自分の車のタイヤとホイールを実際の構造どおりに描きます。トレッドのブロック、サイドウォール、リムが荷重でつぶれ、すり減り、パンクし、リムから外れます。自分の車だけなので負荷はわずかです。", "ほかのすべての車と同じシンプルなホイールで描きます。", "タイヤがリムから外れた、{0}"]);
+I18N_MORE.zh.push(...["精细车轮", "按真实结构绘制你的赛车的轮胎和轮辋：胎面花纹块、胎侧和轮辋会在载荷下压扁、磨损、漏气，并从轮辋上脱出。只用于你自己的车，开销很小。", "你的车使用与其他所有车相同的简单车轮。", "轮胎脱出轮辋，{0}"]);
+I18N_MORE.es.push(...["Ruedas detalladas", "Tu coche con neumáticos y llantas dibujados tal como se fabrican: los tacos de la banda, los flancos y la llanta, que se aplastan con la carga, se desgastan, se pinchan y se salen de la llanta. Solo en tu propio coche, así que apenas cuesta.", "Tu coche con las ruedas sencillas que tienen todos los demás.", "Neumático fuera de la llanta ({0})"]);
+I18N_MORE.fr.push(...["Roues détaillées", "Votre voiture sur des pneus et des jantes dessinés tels qu’ils sont construits : les pains de la bande de roulement, les flancs et la jante, qui s’écrasent sous la charge, s’usent, crèvent et déjantent. Seulement votre propre voiture, donc cela coûte peu.", "Votre voiture sur les roues simples qu’ont toutes les autres.", "Pneu déjanté, {0}"]);
+I18N_MORE.de.push(...["Detaillierte Räder", "Dein Auto auf Reifen und Felgen, gezeichnet, wie sie gebaut sind: die Profilblöcke, die Flanken und die Felge, die unter Last zusammengedrückt werden, sich abnutzen, platt werden und von der Felge springen. Nur dein eigenes Auto, daher kostet es wenig.", "Dein Auto auf den einfachen Rädern, die alle anderen Autos haben.", "Reifen von der Felge, {0}"]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -11358,7 +11380,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '9C3E';
+const SR86_BUILD = '4E8B';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -23825,7 +23847,7 @@ const Snd = {
     this.panOf(c.x, c.y + 0.5, c.z); const dCar = this.d, w = [], ev = []; let rs = 0, nr = 0, rb = 0, nb = 0;
     const T0 = G.T, info = c.info, amp = T0.amp && info ? T0.amp[clamp(info.i, 0, T0.amp.length - 1)] : 0.5;
     for (let i = 0; i < 4; i++) {
-      const wh = c.w[i], G0 = K.W[i], on = wh.Fz > 50, fl = D ? (D.w[i].off ? 2 : D.w[i].flat ? 1 : 0) : 0, sc = wh.onRock ? 1 : SURF_CODE[wh.surf] || 2;
+      const wh = c.w[i], G0 = K.W[i], on = wh.Fz > 50, fl = D ? (D.w[i].off ? 2 : D.w[i].deb ? 3 : D.w[i].flat ? 1 : 0) : 0, sc = wh.onRock ? 1 : SURF_CODE[wh.surf] || 2;
       if (on) { rb += ROUGH[sc] || 0.3; nb++; }
       // the small holes and stones in the road that its shape is too coarse to carry: each wheel crossing one knocks (a
       // rear wheel runs through the hole its front wheel found a moment before)
@@ -25656,7 +25678,7 @@ function penParts() { const fx = G.penFix || 0, cut = G.penCut || 0, all = Math.
 function stageFixes(c, X) {
   const D = c.dmg, real = D.mode === 'real', H = X.H, E = X.E, L = [], add = (k, t, s, at, on, fix) => L.push({ k, t, s: Math.round(s), at, on, fix });
   const hot = real && D.temp > 102 ? 20 : 0, sp = X.spares; let spN = sp; // (a boiling radiator left to cool a little before its cap comes off)
-  const strap = w => { w.arm = 0.25; w.toe *= 0.35; w.cam *= 0.4; }, fit = (i, w) => { w.flat = 0; w.rim = 0; D.spUsed = (D.spUsed || 0) + 1;
+  const strap = w => { w.arm = 0.25; w.toe *= 0.35; w.cam *= 0.4; }, fit = (i, w) => { w.flat = 0; w.rim = 0; w.deb = 0; w.tl = 1; D.spUsed = (D.spUsed || 0) + 1;
     if (w.off) { w.off = 0; const m = G.mesh, Hm = m && m.dv; if (Hm && Hm.lost) { Hm.lost[i] = 0; const wm = m.wheels[i]; if (wm) wheelSc(wm); } } };
   if (real) for (let i = 0; i < 4; i++) { const w = D.w[i], nm = CORNER[i], br = w.arm <= 0, tyre = w.flat || w.rim > 0.15 || w.off;
     if (br) { if (tyre && spN > 0) { spN--; add('w' + i, `Strap up the broken ${nm} corner and fit the spare`, w.off ? 80 : 70, i, true, () => { strap(w); fit(i, w); }); }
@@ -25699,7 +25721,7 @@ function fixPose(m, rp, KW) {
   if (i < 0 || !KW || !KW[i]) { if (m.tilt.position.y !== U.y0) m.tilt.position.y = U.y0; return; }
   const h = 0.12, lx = Math.abs(KW[i].lx) > 0.2 ? KW[i].lx : 0.75, lz = Math.abs(KW[i].lz) > 0.2 ? KW[i].lz : 1.2;
   m.tilt.rotation.set(-h / (4 * lz), 0, h / (4 * lx)); m.tilt.position.y = U.y0 + h / 2;
-  const w = m.wheels[i]; if (!w) return; const off = rp[1] === 2 || (m.dv && m.dv.lost && m.dv.lost[i]); w.piv.position.y += h * 0.8; if (off) { w.w.scale.setScalar(1e-3); if (w.w2) w.w2.scale.setScalar(1e-3); } else wheelSc(w); m.fixW = i;
+  const w = m.wheels[i]; if (!w) return; const off = rp[1] === 2 || (m.dv && m.dv.lost && m.dv.lost[i]); w.piv.position.y += h * 0.8; if (off) { w.w.scale.setScalar(1e-3); if (w.w2) w.w2.scale.setScalar(1e-3); } else wheelSc(w); m.fixW = i; m.fixOff = !!off;
 }
 const Fix = {
   open: false, busy: null, list: [], f: 0, used: new Set(), still: 0, hintT: 0, hasJobs: false, rp: null, pp: {},
@@ -27025,6 +27047,7 @@ function updateRun(dt) {
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0);
     for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); kpShift(w, wh.delta); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
     ckBogies(m, c); fixPose(m, Fix.pose(), KW); }
+  if (typeof WheelViz !== 'undefined') WheelViz.tick(m, c, S, G.spec, dt, false);
   m.sync(); CarDmg.update(m, c, S, dt); Damage.tick(dt); Debris.update(dt); Stones.update();
   // the banner for a car that cannot go on as it is: upturned (help is at hand) or broken (retire)
   { const dd = $('#dmgDead'), D = c.dmg, tap = G.coarse == null ? (G.coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) : G.coarse,
@@ -27875,7 +27898,7 @@ const FullScr = {
 function init() {
   Particles.init(); CrowdFx.init(); Skids.init(); Atmos.init(); Precip.init(); CarLights.init(); ScreenFx.init(); resize(); addEventListener('resize', () => { resize(); if (G.state === 'menu') drawMap($('#mapPrev'), false); });
   { const mq = window.matchMedia && matchMedia('(pointer:coarse)'); if (mq && mq.addEventListener) mq.addEventListener('change', () => UIFit.fit()); } // (a touch screen's laptop folded into a tablet, and back)
-  Ctl.load(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init(); Tyres.init(); Hard.init();
+  Ctl.load(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init(); Tyres.init(); if (typeof WheelViz !== 'undefined') WheelViz.init(); Hard.init();
   // the sound starts on the first touch or key (browsers allow it no sooner), so its models are warmed up by the time a
   // stage starts
   const wake = () => { removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true); Snd.init(); };
@@ -33783,7 +33806,7 @@ const Rec = {
     F[o + 51] = wpos || 0; F[o + 52] = Math.max(0, RLIGHT.indexOf(CarLights.mode)) * 4 + Math.max(0, RFOG.indexOf(CarLights.fogMode)); F[o + 53] = G.time + G.penalty; F[o + 54] = G.state === 'countdown' ? 0 : G.finished ? 2 : 1; F[o + 55] = G.cd || 0;
     const real = D && D.mode === 'real'; F[o + 56] = real ? clamp(D.rad * 1.5 + (D.temp - 105) / 20, 0, 2.2) : 0; F[o + 57] = real ? clamp((0.75 - D.eng) * 2, 0, 1.5) * (0.4 + (c.lastThr || 0)) : 0;
     F[o + 58] = V[0]; F[o + 59] = V[1]; F[o + 60] = V[2]; F[o + 61] = Wv[1];
-    F[o + 62] = D ? D.turbo : 1; F[o + 63] = D && D.crack ? 1 : 0; F[o + 64] = D && D.cwheel ? 1 : 0; let wb = 0; if (D) for (let i = 0; i < 4; i++) wb |= (D.w[i].flat ? 1 << i : 0) | (D.w[i].off ? 16 << i : 0); F[o + 65] = wb;
+    F[o + 62] = D ? D.turbo : 1; F[o + 63] = D && D.crack ? 1 : 0; F[o + 64] = D && D.cwheel ? 1 : 0; let wb = 0; if (D) for (let i = 0; i < 4; i++) { const Dw = D.w[i]; wb |= (Dw.flat ? 1 << i : 0) | (Dw.off ? 16 << i : 0) | (Dw.deb ? 256 << i : 0) | (Dw.flat && !Dw.deb ? Math.round(3 * (1 - clamp(Dw.tl == null ? 1 : Dw.tl, 0, 1))) << (12 + 2 * i) : 0); } F[o + 65] = wb;
     F[o + 66] = c.gPitch || 0; F[o + 67] = c.gRoll || 0; F[o + 68] = c.landV || 0; F[o + 69] = c.air ? c.air.p : 0; F[o + 70] = c.air && c.air.load ? 1 : 0;
     for (let i = 0; i < 4; i++) { const w = c.w[i], b = o + RW0 + i * RW, mx = w.mix;
       F[b] = w.L; F[b + 1] = w.delta || 0; F[b + 2] = w.lb || 0; F[b + 3] = w.omega || 0; F[b + 4] = w.Fz || 0; F[b + 5] = w.slipL || 0; F[b + 6] = w.slipT || 0; F[b + 7] = this.sid(w.surf); F[b + 8] = w.onRock ? 1 : 0;
@@ -34020,7 +34043,7 @@ const Replay = {
     if (c.es) { const e = c.es; e.run = Rec.str[X[RI.esRun]] || 'run'; e.mis = X[RI.esMis]; e.wet = X[RI.esWet]; e.crank = X[RI.esCrank]; e.steamR = X[RI.esSteam]; e.tailSteam = X[RI.esTail]; e.bub = X[RI.esBub]; e.Tc = X[RI.esTc]; }
     c.V[0] = X[RI.vx]; c.V[1] = X[RI.vy]; c.V[2] = X[RI.vz]; c.Wv[1] = X[RI.wy]; c.gPitch = X[RI.gPitch]; c.gRoll = X[RI.gRoll]; c.landV = X[RI.landV];
     if (c.air) { c.air.p = X[RI.airP]; c.air.load = X[RI.airC] > 0.5; }
-    const D = c.dmg; if (D) { D.turbo = X[RI.dTurbo]; D.crack = X[RI.dCrack]; D.cwheel = X[RI.dCwheel]; const wb = X[RI.dWheels] | 0; for (let i = 0; i < 4; i++) { D.w[i].flat = wb & (1 << i) ? 1 : 0; D.w[i].off = wb & (16 << i) ? 1 : 0; } }
+    const D = c.dmg; if (D) { D.turbo = X[RI.dTurbo]; D.crack = X[RI.dCrack]; D.cwheel = X[RI.dCwheel]; const wb = X[RI.dWheels] | 0; for (let i = 0; i < 4; i++) { D.w[i].flat = wb & (1 << i) ? 1 : 0; D.w[i].off = wb & (16 << i) ? 1 : 0; D.w[i].deb = wb & (256 << i) ? 1 : 0; D.w[i].tl = 1 - ((wb >> (12 + 2 * i)) & 3) / 3; } }
     for (let i = 0; i < 4; i++) { const w = c.w[i], b = RW0 + i * RW;
       w.L = X[b]; w.delta = X[b + 1]; w.lb = X[b + 2]; w.omega = X[b + 3]; w.Fz = X[b + 4]; w.slipL = X[b + 5]; w.slipT = X[b + 6]; w.surf = Rec.str[X[b + 7]] || w.surf; w.onRock = X[b + 8] > 0.5;
       w.comp = X[b + 9]; w.g = X[b + 10]; w.gRaw = X[b + 11]; w.x = X[b + 12]; w.z = X[b + 13]; w.rho = X[b + 14]; w.vyw = X[b + 17];
@@ -34035,7 +34058,7 @@ const Replay = {
     for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (w.x0 == null) { w.x0 = w.piv.position.x - KW[i].lx; w.z0 = w.piv.position.z - KW[i].lz; } }
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0); m.root.visible = true;
     for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); kpShift(w, wh.delta); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
-    ckBogies(m, c);
+    ckBogies(m, c); if (typeof WheelViz !== 'undefined') WheelViz.tick(m, c, this.S, Rec.spec, dt, true);
   },
   // ---- moving through it ----
   // to t: a seek back starts again from the car as it left the start, its damage put right quietly up to t
@@ -36005,10 +36028,441 @@ const Damage = {
 };
 
 // ---- parts that have broken away, lying where they fell ----
+// ---------- detailed wheels: the player's own car on tyres and rims drawn as they are built ----------
+// Each tyre from its data sheet (tyreSheet: its size, tread width and depth, the voids of its pattern, its studs) on a
+// rim of its own size: the carcass's section from bead to crown - the bead seated against the rim's J flange, the rim
+// protector rib just above it, the sidewall bowing out to its widest about halfway up, the shoulder rounding into the
+// crown - the tread's blocks laid out as each kind of rally tyre's are (gravel: big staggered blocks and open
+// shoulders; tarmac: a near slick, two grooves and shoulder slots; Nordic snow: narrow, deep blocks set with long
+// studs; winter: small siped blocks; the off-road tyres' lugs), the sidewall's lettering (an invented maker's: no real
+// names), and the rim: its J flanges, 5-degree bead seats, humps and drop-centre well, its spokes in the car's own style,
+// the hub, wheel nuts and valve. All of it drawn as the physics has the wheel, every frame:
+//   squashed where it meets the ground as far as the tyre is deflected (the patch flat on the road, the sidewalls bowing
+//   out over it), the patch pushed across under the rim by the cornering force (the carcass's stiffness across, the
+//   sheet's clatC), and both again when it lands from a jump;
+//   worn down across the tread column by column (the flexible ring's columns; the classic tyre's single wear), each
+//   block lower until the pattern has gone; dusty from gravel, white from snow, cleaned on tarmac, a hot tarmac tyre's
+//   tread glossy;
+//   punctured: deflated, the long patch of a flat, its sidewalls folded out under the rim with wrinkles either side,
+//   the slack carcass flopping from side to side as it turns; run on, cut and torn by the rim's flanges (its life,
+//   Dw.tl, running out): blocks torn away, the cords showing, the sidewalls ragged, rubber thrown off;
+//   off the rim (Dw.deb): the tyre flung off and the car on its bare rim, the beads' remains in the well, sparks off
+//   hard ground and stones;
+//   a rim struck (Dw.rim): its flange dented where it took the blow, the rim running out of true;
+//   a wheel torn off: the whole wheel thrown, as it was drawn.
+// Only the player's car (and its replays): everyone else's wheels are drawn as before. Off in the menu, the car's own
+// simple wheels come back; the physics is the same either way.
+const WV_FL = 0.0175; // (a J flange's height over its bead seat, ISO 4000-2)
+// each kind of tread: its blocks [u0, u1, v0, v1, slant, depth] across the tread (u: -1 to 1 across its width, past
+// that over the shoulder) and along one pitch (v, a pitch's length; slant: v per unit of u), n pitches round the tyre
+const WV_PAT = {
+  gravel: { n: 34, b: [[-0.2, 0.2, 0, 0.68, 0.12, 1], [0.27, 0.62, 0.34, 1, 0.2, 1], [-0.62, -0.27, 0.34, 1, -0.2, 1], [0.69, 1.12, 0.04, 0.74, 0.1, 0.8], [-1.12, -0.69, 0.04, 0.74, -0.1, 0.8]] },
+  tarmac: { n: 28, b: [[-0.43, 0.43, 0, 1, 0, 1], [0.49, 0.88, 0, 0.955, 0.3, 1], [-0.88, -0.49, 0.045, 1, -0.3, 1], [0.92, 1.1, 0.05, 0.85, 0.1, 0.75], [-1.1, -0.92, 0.05, 0.85, -0.1, 0.75]] },
+  snow: { n: 30, b: [[-0.3, 0.02, 0, 0.58, 0.25, 1], [0.06, 0.4, 0.5, 1.08, 0.25, 1], [0.48, 0.8, 0.05, 0.63, 0.2, 1], [-0.78, -0.4, 0.52, 1.1, 0.2, 1], [0.86, 1.12, 0.48, 1.05, 0.1, 0.85], [-1.12, -0.86, 0, 0.57, 0.1, 0.85]] },
+  winter: { n: 44, b: [[-1.1, -0.68, 0, 0.7, 0.1, 0.9], [-0.6, -0.3, 0.3, 1, 0.15, 1], [-0.22, 0.08, 0, 0.7, 0.15, 1], [0.15, 0.45, 0.3, 1, 0.15, 1], [0.52, 0.82, 0, 0.7, 0.1, 1], [0.88, 1.1, 0.3, 1, 0.05, 0.9]] },
+  mt: { n: 22, b: [[0.08, 1.14, 0, 0.5, 0.3, 1], [-1.14, -0.08, 0.5, 1, -0.3, 1], [-0.22, 0.22, 0.62, 0.9, 0, 0.8]] },
+  road: { n: 60, b: [[-1.05, -0.64, 0, 0.86, 0, 0.9], [-0.56, -0.2, 0, 0.92, 0.05, 1], [-0.13, 0.13, 0, 1, 0, 1], [0.2, 0.56, 0.08, 1, 0.05, 1], [0.64, 1.05, 0.14, 1, 0, 0.9]] } };
+WV_PAT.stud = WV_PAT.winter; WV_PAT.xc = WV_PAT.mt;
+const WV_NAME = { gravel: 'GR-86 GRAVEL', tarmac: 'TR-86 ASPHALT', snow: 'NX-86 NORDIC STUD', winter: 'WX-86 WINTER', stud: 'WX-86 STUD', xc: 'XC-86 TRAIL', mt: 'MT-86 MUD', road: 'RD-86 ROAD' };
+// (the ground's dust on a tyre: its colour and how thick it lies, by surface; on tarmac it wears off)
+const WV_DUST = { gravel: ['#8e7a5c', 0.5], dirt: ['#7a6448', 0.55], loose: ['#8e7a5c', 0.5], hard: ['#8a7a64', 0.35], grass: ['#5b5638', 0.4], moss: ['#565a3a', 0.3], snow: ['#e9eef3', 0.55], snowbank: ['#eef2f6', 0.65], snowlayer: ['#e4eaf0', 0.5], powder: ['#eef2f6', 0.6], slush: ['#9aa2a8', 0.45], ice: ['#cdd8e0', 0.2] };
+const WV_HARD = { tarmac: 1, concrete: 1, paint: 1, steel: 1, stone: 1 };
+
+// a mesh under construction: positions, normals and indices, and each vertex's other attributes
+function wvB(extra) { const B = { p: [], n: [], ix: [], v: 0, x: {} }; for (const k in extra) B.x[k] = { s: extra[k], a: [] }; return B; }
+function wvV(B, p, n, x) { B.p.push(p[0], p[1], p[2]); B.n.push(n[0], n[1], n[2]); for (const k in B.x) { const e = B.x[k], d = x[k]; if (e.s === 1) e.a.push(d); else for (let j = 0; j < e.s; j++) e.a.push(d[j]); } return B.v++; }
+// a flat quad (or triangle, d null) facing along out: its own normal, its corners' attributes (one set, or one each)
+function wvQ(B, a, b, c, d, out, x) {
+  const P = d ? [a, b, c, d] : [a, b, c], e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [(d || c)[0] - a[0], (d || c)[1] - a[1], (d || c)[2] - a[2]];
+  let n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]]; const l = Math.hypot(n[0], n[1], n[2]) || 1; n = [n[0] / l, n[1] / l, n[2] / l];
+  const flip = out && n[0] * out[0] + n[1] * out[1] + n[2] * out[2] < 0; if (flip) n = [-n[0], -n[1], -n[2]];
+  const ids = P.map((q, k) => wvV(B, q, n, Array.isArray(x) ? x[k] : x));
+  if (P.length === 4) { if (flip) B.ix.push(ids[0], ids[2], ids[1], ids[0], ids[3], ids[2]); else B.ix.push(ids[0], ids[1], ids[2], ids[0], ids[2], ids[3]); }
+  else if (flip) B.ix.push(ids[0], ids[2], ids[1]); else B.ix.push(ids[0], ids[1], ids[2]);
+}
+// a surface of revolution about the axle (x): a section's points {x, r} round N steps, smooth; xa(k, j) its attributes
+function wvRev(B, C, N, out, xa) {
+  const L = C.length, base = B.v;
+  const nr = C.map((q, k) => { const a = C[Math.max(0, k - 1)], b = C[Math.min(L - 1, k + 1)], dx = b.x - a.x, dr = b.r - a.r, l = Math.hypot(dx, dr) || 1; return out > 0 ? [dr / l, -dx / l] : [-dr / l, dx / l]; });
+  for (let j = 0; j <= N; j++) { const th = j / N * Math.PI * 2, s = Math.sin(th), c = Math.cos(th);
+    for (let k = 0; k < L; k++) { const q = C[k]; wvV(B, [q.x, q.r * s, q.r * c], [nr[k][0], nr[k][1] * s, nr[k][1] * c], xa(k, j)); } }
+  // (wound to face along its normals: checked on its first quad)
+  const P = (j, k) => { const o = 3 * (base + j * L + k); return [B.p[o], B.p[o + 1], B.p[o + 2]]; };
+  let k0 = 0; while (k0 < L - 2 && Math.hypot(C[k0 + 1].x - C[k0].x, C[k0 + 1].r - C[k0].r) < 1e-5) k0++;
+  const a = P(0, k0), b = P(1, k0), d = P(0, k0 + 1), e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+  const fn = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], o = 3 * (base + k0), flip = fn[0] * B.n[o] + fn[1] * B.n[o + 1] + fn[2] * B.n[o + 2] < 0;
+  for (let j = 0; j < N; j++) for (let k = 0; k < L - 1; k++) { const i0 = base + j * L + k, i1 = i0 + L;
+    if (flip) B.ix.push(i0, i0 + 1, i1 + 1, i0, i1 + 1, i1); else B.ix.push(i0, i1, i1 + 1, i0, i1 + 1, i0 + 1); }
+}
+function wvGeo(B) {
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(B.n, 3));
+  for (const k in B.x) g.setAttribute(k, new THREE.Float32BufferAttribute(B.x[k].a, B.x[k].s)); g.setIndex(B.ix); g.computeBoundingSphere(); return g;
+}
+const wvHash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// the tyre's section, bead to crown on its outer side ({x, r, k: 0 sidewall, 1 shoulder and crown, s: up the sidewall})
+function wvSection(d) {
+  const { R0, rb, Bw, sec, tw, td, cd } = d, xB = Bw / 2, rTop = rb + WV_FL, rc = R0 - td, H = R0 - rb;
+  const drop = x => cd * Math.min(1, Math.pow(2 * x / tw, 2)), xs = tw / 2, rs = rc - drop(xs);
+  const shR = Math.min(0.024, H * 0.2), xT = xs + 0.85 * shR, rT = rs - shR, xM = Math.max(sec / 2, xT + 0.004), P = [];
+  const add = (x, r, k) => P.push({ x, r, k, s: k ? 1 : clamp((r - rb) / (rT - rb), 0, 1) });
+  // (the bead against the flange, the rim protector rib above it)
+  add(xB - 0.003, rb - 0.003, 0); add(xB + 0.006, rb + 0.005, 0); add(xB + 0.012, rTop + 0.001, 0); add(xB + 0.0195, rTop + 0.0065, 0); add(xB + 0.0185, rTop + 0.013, 0);
+  // (the sidewall, bowing out to its widest a little under halfway up, into the shoulder)
+  const a = P[P.length - 1], tP = 0.42, sh = t => Math.pow(Math.sin(Math.PI * Math.pow(t, Math.log(0.5) / Math.log(tP))), 0.9), A = xM - (a.x + tP * (xT - a.x));
+  for (let k = 1; k <= 8; k++) { const t = k / 8; add(a.x + t * (xT - a.x) + A * sh(t), a.r + t * (rT - a.r), 0); }
+  // (the shoulder's round, then the crown falling a little to its edges)
+  for (const q of [Math.PI / 6, Math.PI / 3, Math.PI / 2]) add(xs + 0.85 * shR * Math.cos(q), rT + shR * Math.sin(q), 1);
+  for (let k = 1; k <= 4; k++) { const x = xs * (1 - k / 4); add(x, rc - drop(x), 1); }
+  return { P, xs, rs, rc, shR, xT, rT, rTop, drop };
+}
+// the tyre: carcass, tread blocks and studs (d: its dimensions and kind). Its attributes: aT = kind (0 sidewall,
+// 1 shoulder and crown, 2 block, 3 stud), place up the sidewall, place across the tread; aB = up the block (0-1), its
+// own number (0-1); uv into its lettering
+function wvTyreGeo(d) {
+  const S = wvSection(d), B = wvB({ uv: 2, aT: 3, aB: 2 }), N = d.N || 64, half = d.tw / 2;
+  // (the whole section, outer bead over the crown to the inner bead)
+  const C = S.P.concat(S.P.slice(0, -1).reverse().map(q => ({ x: -q.x, r: q.r, k: q.k, s: q.s })));
+  const vOf = q => q.k ? 0.03 : 0.07 + 0.93 * clamp((q.r - S.rTop) / (S.rT - S.rTop), 0, 1);
+  wvRev(B, C, N, 1, (k, j) => { const q = C[k]; return { uv: q.k ? [0.5, 0.03] : [q.x > 0 ? j / N : 1 - j / N, vOf(q)], aT: [q.k, q.s, clamp(q.x / half, -1.2, 1.2)], aB: [0, 0.5] }; });
+  // the tread: each block a prism on the crown (over the shoulder its foot follows the shoulder's round), a little
+  // smaller at its top (its draft), split along the tyre into short pieces so that it follows the round
+  const pat = WV_PAT[d.fam] || WV_PAT.gravel, n = pat.n, span = Math.PI * 2 / n, td = d.td;
+  const foot = u => { const au = Math.abs(u), sg = u < 0 ? -1 : 1; if (au <= 1) { const x = u * half; return [x, S.rc - S.drop(Math.abs(x)), 0, 1]; }
+    const q = Math.PI / 2 * (1 - 0.75 * clamp((au - 1) / 0.15, 0, 1)), c = Math.cos(q), s = Math.sin(q), l = Math.hypot(0.85 * c, s);
+    return [sg * (S.xs + 0.85 * S.shR * c), S.rT + S.shR * s, sg * 0.85 * c / l, s / l]; };
+  const at = (u, v, h, dep, p, sk) => { const f = foot(u), th = (p + v + sk * u) * span, r = f[1] - 0.0008 * (1 - h) + h * td * dep * f[3], x = f[0] + h * td * dep * f[2]; return [x, r * Math.sin(th), r * Math.cos(th)]; };
+  const studsPer = d.studs > 0 ? d.studs / n : 0, area = pat.b.reduce((t, b) => t + Math.max(0, Math.min(1, b[1]) - Math.max(-1, b[0])) * (b[3] - b[2]), 0);
+  for (let p = 0; p < n; p++) pat.b.forEach((bl, bi) => {
+    const [u0, u1, v0, v1, sk, dep] = bl, id = wvHash(p, bi), uc = (u0 + u1) / 2, vc = (v0 + v1) / 2, m = Math.max(1, Math.ceil((v1 - v0) * span / 0.07));
+    const du = Math.min(0.07 * (u1 - u0), 0.0025 / half), dv = Math.min(0.07 * (v1 - v0), 0.0025 / (span * d.R0));
+    const ti = (u, v) => at(uc + (u - uc) * (1 - 2 * du / (u1 - u0)), vc + (v - vc) * (1 - 2 * dv / (v1 - v0)), 1, dep, p, sk), bo = (u, v) => at(u, v, 0, dep, p, sk);
+    const xT = { uv: [0.5, 0.03], aT: [2, 1, uc], aB: [1, id] }, xF = { uv: [0.5, 0.03], aT: [2, 1, uc], aB: [0, id] };
+    const ctr = at(uc, vc, 0.5, dep, p, sk), radial = [0, ctr[1], ctr[2]];
+    for (let k = 0; k < m; k++) { const va = v0 + (v1 - v0) * k / m, vb = v0 + (v1 - v0) * (k + 1) / m;
+      // (its top, then its two long sides)
+      wvQ(B, ti(u0, va), ti(u1, va), ti(u1, vb), ti(u0, vb), radial, xT);
+      for (const [u, sg] of [[u0, -1], [u1, 1]]) { const A = bo(u, va), Bb = bo(u, vb), Ct = ti(u, vb), Dt = ti(u, va), mid = [(A[0] + Ct[0]) / 2 - ctr[0], (A[1] + Ct[1]) / 2 - ctr[1], (A[2] + Ct[2]) / 2 - ctr[2]];
+        wvQ(B, A, Bb, Ct, Dt, mid, [xF, xF, xT, xT]); } }
+    // (its leading and trailing faces)
+    for (const v of [v0, v1]) { const A = bo(u0, v), Bb = bo(u1, v), Ct = ti(u1, v), Dt = ti(u0, v), mid = [(A[0] + Ct[0]) / 2 - ctr[0], (A[1] + Ct[1]) / 2 - ctr[1], (A[2] + Ct[2]) / 2 - ctr[2]];
+      wvQ(B, A, Bb, Ct, Dt, mid, [xF, xF, xT, xT]); }
+    // studs: tungsten-tipped pins standing out of the blocks' tops, as many as the tyre's sheet has
+    if (studsPer > 0) { const share = Math.max(0, Math.min(1, u1) - Math.max(-1, u0)) * (v1 - v0) / area * studsPer, ns = Math.floor(share + wvHash(p + 7, bi + 3));
+      const pos = ns >= 2 ? [[uc - 0.22 * (u1 - u0), v0 + 0.3 * (v1 - v0)], [uc + 0.22 * (u1 - u0), v0 + 0.72 * (v1 - v0)]] : ns === 1 ? [[uc, vc]] : [];
+      for (const [us, vs] of pos.slice(0, ns)) { const c0 = at(us, vs, 1, dep, p, sk), c1 = at(us, vs, 0, dep, p, sk), ax = [c0[0] - c1[0], c0[1] - c1[1], c0[2] - c1[2]], al = Math.hypot(ax[0], ax[1], ax[2]) || 1;
+        for (let j = 0; j < 3; j++) ax[j] /= al;
+        const t1 = [0, ax[2], -ax[1]], tl = Math.hypot(t1[1], t1[2]) || 1; t1[1] /= tl; t1[2] /= tl; const t2 = [ax[1] * t1[2] - ax[2] * t1[1], ax[2] * t1[0] - ax[0] * t1[2], ax[0] * t1[1] - ax[1] * t1[0]];
+        const rs = d.sh > 0.004 ? 0.0034 : 0.0027, lo = -0.003, hi = d.sh, ring = h => [0, 1, 2, 3].map(k => { const q = (k + 0.5) / 4 * Math.PI * 2, c = Math.cos(q) * rs, s = Math.sin(q) * rs; return [c0[0] + ax[0] * h + t1[0] * c + t2[0] * s, c0[1] + ax[1] * h + t1[1] * c + t2[1] * s, c0[2] + ax[2] * h + t1[2] * c + t2[2] * s]; });
+        const L0 = ring(lo), L1 = ring(hi), xs = { uv: [0.985, 0.03], aT: [3, 1, us], aB: [1, id] };
+        for (let k = 0; k < 4; k++) { const k2 = (k + 1) % 4, o = [(L0[k][0] + L1[k2][0]) / 2 - c0[0], (L0[k][1] + L1[k2][1]) / 2 - c0[1], (L0[k][2] + L1[k2][2]) / 2 - c0[2]]; wvQ(B, L0[k], L0[k2], L1[k2], L1[k], o, xs); }
+        wvQ(B, L1[0], L1[1], L1[2], L1[3], ax, xs); } }
+  });
+  return wvGeo(B);
+}
+// the rim: its barrel (the tyre's side and the axle's), the face's lip, spokes in the car's style, hub, nuts, valve,
+// and the beads' remains (shown only once the tyre has come off). aR: 1 barrel and flanges (dented when struck), 2 the
+// beads' remains, 0 the rest; colours per vertex
+function wvRimGeo(d) {
+  const B = wvB({ color: 3, aR: 1 }), N = d.N || 64, rb = d.rb, xB = d.Bw / 2, rT = rb + WV_FL, col = d.col, k = (c, f) => [c.r * f, c.g * f, c.b * f];
+  const cR = k(col, 1), cD = k(col, 0.55), cT = k(col, 0.9), steel = [0.42, 0.43, 0.45], black = [0.05, 0.05, 0.05], dark = [0.16, 0.16, 0.17];
+  const wl = Math.max(-xB + 0.06, xB - 0.044 - Math.max(0.03, d.Bw - 0.11));
+  const outer = [[xB + 0.0105, rb - 0.006], [xB + 0.0105, rT - 0.006], [xB + 0.009, rT - 0.0015], [xB + 0.005, rT], [xB + 0.001, rT - 0.003], [xB, rb + 0.004], [xB - 0.003, rb], [xB - 0.02, rb - 0.0016], [xB - 0.025, rb + 0.0012], [xB - 0.031, rb - 0.0012], [xB - 0.04, rb - 0.019], [xB - 0.044, rb - 0.0205]];
+  const inner = [[wl, rb - 0.0205], [wl - 0.004, rb - 0.019], [-xB + 0.035, rb - 0.0012], [-xB + 0.029, rb + 0.0012], [-xB + 0.022, rb - 0.0016], [-xB + 0.003, rb], [-xB, rb + 0.004], [-xB - 0.001, rT - 0.003], [-xB - 0.005, rT], [-xB - 0.009, rT - 0.0015], [-xB - 0.0105, rT - 0.006], [-xB - 0.0105, rb - 0.006]];
+  const C1 = outer.concat(inner).map(q => ({ x: q[0], r: q[1] })); wvRev(B, C1, N, 1, () => ({ color: cT, aR: 1 }));
+  const C2 = [[xB + 0.0105, rb - 0.006], [xB - 0.03, rb - 0.009], [xB - 0.046, rb - 0.026], [wl - 0.002, rb - 0.026], [-xB + 0.04, rb - 0.009], [-xB - 0.0105, rb - 0.006]].map(q => ({ x: q[0], r: q[1] }));
+  wvRev(B, C2, N, -1, () => ({ color: cD, aR: 1 }));
+  // (the face: its lip round the rim's outer edge, the spokes from it to the hub)
+  const xL = xB + 0.0105, rL0 = rb - 0.006, rL1 = rb - 0.026, xh = d.xh, xF = xh + 0.022, rHub = d.hubR, rIn = rHub + 0.004;
+  wvRev(B, [{ x: xL, r: rL0 }, { x: xL - 0.002, r: rL1 + 0.004 }, { x: xL - 0.007, r: rL1 }], N, 1, () => ({ color: cR, aR: 0 }));
+  const style = d.style, ns = d.ns, P3 = (x, r, a) => [x, r * Math.sin(a), r * Math.cos(a)];
+  const spokes = style === 'multi' ? { n: 16, w1: 0.015, w2: 0.011, t: 0.011, sw: 0 } : style === 'fan' ? { n: Math.max(6, ns || 8), w1: 0.03, w2: 0.044, t: 0.012, sw: 0.45 } : style === 'dish' ? null : { n: ns || 6, w1: (ns || 6) <= 5 ? 0.042 : (ns || 6) <= 6 ? 0.036 : 0.028, w2: (ns || 6) <= 5 ? 0.032 : (ns || 6) <= 6 ? 0.027 : 0.022, t: 0.016, sw: 0 };
+  // (the centre's web: a solid disc out from the hub, the spokes from its edge)
+  const rW = rHub + 0.026, xAt0 = t => xF + (xL - 0.004 - xF) * Math.pow(t, 0.7), rAt0 = t => rIn + (rL1 + 0.002 - rIn) * t, tW = (rW - rIn) / (rL1 + 0.002 - rIn);
+  if (style !== 'dish') wvRev(B, [{ x: xF - 0.004, r: rHub }, { x: xF + 0.001, r: rHub + 0.006 }, { x: xAt0(tW) + 0.001, r: rW }, { x: xAt0(tW) - 0.014, r: rW + 0.002 }], N, 1, () => ({ color: k(col, 0.92), aR: 0 }));
+  const xAt = style === 'dish' ? xAt0 : t => xAt0(tW + (1 - tW) * t), rAt = style === 'dish' ? rAt0 : t => rAt0(tW + (1 - tW) * t - 0.02 * (1 - t));
+  if (spokes) for (let s = 0; s < spokes.n; s++) { const a0 = s / spokes.n * Math.PI * 2, M = 5;
+    for (let j = 0; j < M; j++) { const ta = j / M, tb = (j + 1) / M, pts = t => { const r = rAt(t), a = a0 + spokes.sw * t, w = (spokes.w1 + (spokes.w2 - spokes.w1) * t) / 2 / r, x = xAt(t); return [P3(x, r, a - w), P3(x, r, a + w), P3(x - spokes.t, r, a + w), P3(x - spokes.t, r, a - w)]; };
+      const A = pts(ta), Bq = pts(tb), out0 = P3(1, 0, 0), ra = (ta + tb) / 2, am = a0 + spokes.sw * ra;
+      wvQ(B, A[0], Bq[0], Bq[1], A[1], [1, 0, 0], { color: cR, aR: 0 });
+      wvQ(B, A[1], Bq[1], Bq[2], A[2], [0, Math.cos(am), -Math.sin(am)], { color: k(col, 0.8), aR: 0 });
+      wvQ(B, A[0], A[3], Bq[3], Bq[0], [0, -Math.cos(am), Math.sin(am)], { color: k(col, 0.8), aR: 0 }); void out0; } }
+  else { // (a dish: solid, its holes dark)
+    const M = 48; for (let j = 0; j < M; j++) { const a = j / M * Math.PI * 2, b = (j + 1) / M * Math.PI * 2;
+      for (let q = 0; q < 4; q++) { const ta = q / 4, tb = (q + 1) / 4; wvQ(B, P3(xAt(ta), rAt(ta), a), P3(xAt(tb), rAt(tb), a), P3(xAt(tb), rAt(tb), b), P3(xAt(ta), rAt(ta), b), [1, 0, 0], { color: cR, aR: 0 }); } }
+    const nh = ns || 8, rH = (rIn + rL1) / 2 + 0.01, hr = Math.min(0.022, 0.5 * Math.PI * rH / nh * 0.6);
+    for (let h = 0; h < nh; h++) { const a = (h + 0.5) / nh * Math.PI * 2, tH = (rH - rIn) / (rL1 + 0.002 - rIn), c = P3(xAt(tH) + 0.0015, rH, a);
+      for (let q = 0; q < 8; q++) { const e = q / 8 * Math.PI * 2, f = (q + 1) / 8 * Math.PI * 2, rad = [0, Math.sin(a), Math.cos(a)], tan = [0, Math.cos(a), -Math.sin(a)], pt = g => [c[0], c[1] + hr * (Math.cos(g) * rad[1] + Math.sin(g) * tan[1]), c[2] + hr * (Math.cos(g) * rad[2] + Math.sin(g) * tan[2])];
+        wvQ(B, c, pt(e), pt(f), null, [1, 0, 0], { color: dark, aR: 0 }); } } }
+  // (the hub: its pad, the centre cap, the wheel nuts on their pitch circle, the valve)
+  wvRev(B, [{ x: xh - 0.008, r: rHub }, { x: xF - 0.004, r: rHub }, { x: xF, r: rHub - 0.004 }, { x: xF, r: 0.031 }, { x: xF + 0.009, r: 0.029 }, { x: xF + 0.011, r: 0.02 }, { x: xF + 0.011, r: 0.0005 }], 24, 1, k2 => ({ color: k2 >= 3 ? dark : cR, aR: 0 }));
+  const nN = d.nuts, pcd = nN === 4 ? 0.05 : 0.0545;
+  for (let q = 0; q < nN; q++) { const a = (q + 0.5) / nN * Math.PI * 2 + 0.3, c = [0, pcd * Math.sin(a), pcd * Math.cos(a)], hex = (x, r) => [0, 1, 2, 3, 4, 5].map(j => { const g = j / 6 * Math.PI * 2; return [x, c[1] + r * Math.sin(g), c[2] + r * Math.cos(g)]; });
+    const L0 = hex(xF - 0.002, 0.0105), L1 = hex(xF + 0.016, 0.0105), L2 = hex(xF + 0.019, 0.007);
+    for (let j = 0; j < 6; j++) { const j2 = (j + 1) % 6, o = [0, (L0[j][1] + L0[j2][1]) / 2 - c[1], (L0[j][2] + L0[j2][2]) / 2 - c[2]]; wvQ(B, L0[j], L0[j2], L1[j2], L1[j], o, { color: steel, aR: 0 }); wvQ(B, L1[j], L1[j2], L2[j2], L2[j], [1, o[1], o[2]], { color: steel, aR: 0 }); }
+    wvQ(B, L2[0], L2[1], L2[2], L2[3], [1, 0, 0], { color: steel, aR: 0 }); wvQ(B, L2[0], L2[3], L2[4], L2[5], [1, 0, 0], { color: steel, aR: 0 }); }
+  { const a = Math.PI / (spokes ? spokes.n : 8), r0 = rb - 0.015, cyl = (x, r, rr) => [0, 1, 2, 3, 4, 5].map(j => { const g = j / 6 * Math.PI * 2; return [x, (r + rr * Math.cos(g)) * Math.sin(a) + rr * Math.sin(g) * Math.cos(a), (r + rr * Math.cos(g)) * Math.cos(a) - rr * Math.sin(g) * Math.sin(a)]; });
+    const V0 = cyl(xB - 0.004, r0, 0.0045), V1 = cyl(xB + 0.022, r0 - 0.004, 0.0042), V2 = cyl(xB + 0.03, r0 - 0.005, 0.004);
+    for (let j = 0; j < 6; j++) { const j2 = (j + 1) % 6, o = [0, (V0[j][1] + V0[j2][1]) / 2 - r0 * Math.sin(a), (V0[j][2] + V0[j2][2]) / 2 - r0 * Math.cos(a)]; wvQ(B, V0[j], V0[j2], V1[j2], V1[j], o, { color: black, aR: 0 }); wvQ(B, V1[j], V1[j2], V2[j2], V2[j], o, { color: steel, aR: 0 }); } }
+  // (the beads' remains: each bead's steel hoop in its rubber, left on its seat when the tyre has torn off it)
+  for (const sg of [1, -1]) { const x0 = sg * (xB - 0.009), r0 = rb + 0.0055, tr = 0.0055, C = [0, 1, 2, 0].map(j => { const g = j / 3 * Math.PI * 2 + Math.PI / 2; return { x: x0 + tr * Math.cos(g), r: r0 + tr * Math.sin(g) }; });
+    wvRev(B, C, 48, 1, () => ({ color: [0.07, 0.07, 0.07], aR: 2 })); }
+  return wvGeo(B);
+}
+// the sidewall's lettering (an invented maker's): its name and the tread's, the size, twice round; the fine rings
+// over the bead; at the bottom plain rubber (the tread's), and a stud's grey
+function wvTex(fam, dim, fwd) {
+  const cv = document.createElement('canvas'); cv.width = 2048; cv.height = 128; const g = cv.getContext('2d');
+  g.fillStyle = '#1b1b1b'; g.fillRect(0, 0, 2048, 128);
+  for (let y = 100; y < 118; y += 3) { g.fillStyle = (y / 3) % 2 ? '#242424' : '#141414'; g.fillRect(0, y, 2048, 1); }
+  g.fillStyle = '#8f9296'; g.fillRect(1990, 121, 58, 7);
+  g.textBaseline = 'middle';
+  for (let k = 0; k < 2; k++) { const x0 = k * 1024 + 24;
+    g.fillStyle = '#9b9b9b'; g.font = 'bold 42px Arial, Helvetica, sans-serif'; g.fillText('SEEDGRIP', x0 + 16, 52);
+    g.fillStyle = '#868686'; g.font = 'bold 22px Arial, Helvetica, sans-serif'; g.fillText(WV_NAME[fam] || 'RALLY', x0 + 262, 46);
+    g.font = '20px Arial, Helvetica, sans-serif'; g.fillText(dim, x0 + 262, 74); g.fillText(fwd ? 'ROTATION ▶' : '◀ ROTATION', x0 + 560, 52);
+    g.font = '15px Arial, Helvetica, sans-serif'; g.fillStyle = '#6d6d6d'; g.fillText('RALLY  ·  FOR COMPETITION USE ONLY  ·  SR 4626', x0 + 470, 84); g.fillText('RADIAL TUBELESS', x0 + 760, 52); }
+  const t = new THREE.CanvasTexture(cv); t.anisotropy = 4; t.wrapS = THREE.ClampToEdgeWrapping; return t;
+}
+// the tyre's material: its lettering, and the shape and look the physics gives it (see the comment at the top)
+const WV_TYRE_VS = `
+uniform vec4 uG; uniform vec4 uW; uniform vec4 uS; uniform vec4 uWa; uniform float uWb; uniform float uRe; uniform float uMir;
+attribute vec3 aT; attribute vec2 aB; varying vec3 vK;
+float wvWear(float u) { float c = clamp((u + 1.0) * 2.0, 0.0, 4.0);
+  return uWa.x * max(0.0, 1.0 - abs(c)) + uWa.y * max(0.0, 1.0 - abs(c - 1.0)) + uWa.z * max(0.0, 1.0 - abs(c - 2.0)) + uWa.w * max(0.0, 1.0 - abs(c - 3.0)) + uWb * max(0.0, 1.0 - abs(c - 4.0)); }
+float wvH(float x) { return fract(sin(x * 91.3458) * 47453.5453); }
+`;
+const WV_TYRE_BV = `
+vec3 transformed = vec3(position);
+{ float kind = aT.x, sw = aT.y, worn = 0.0, cord = 0.0, R0 = uW.x, td = uW.z, Hs = uW.w;
+  float th = atan(transformed.y, transformed.z);
+  // (worn down column by column; torn away where the tyre is being shredded)
+  if (kind > 1.5) { worn = clamp(wvWear(aT.z), 0.0, 1.0); float gone = step(aB.y, uS.z * 0.85); float rr0 = length(transformed.yz);
+    transformed.yz *= (rr0 - td * max(worn, gone) * aB.x) / max(rr0, 1e-4); cord = gone; }
+  else if (kind > 0.5) cord = uS.z * step(wvH(floor(th * 9.0) + floor(aT.z * 3.0) * 17.0), uS.z * 1.2);
+  // the ground: toward it in the wheel's plane, and how far the centre stands from it that way
+  float rr = length(transformed.yz); vec2 dir = transformed.yz / max(rr, 1e-4);
+  float nl = max(length(uG.yz), 0.2); vec2 cd = -uG.yz / nl; float hP = uG.w / nl;
+  float cph = dot(dir, cd), sph = cd.x * dir.y - cd.y * dir.x, ang = atan(sph, cph);
+  // (the belt pressed in onto the ground over the patch, the whole section moving with it)
+  float xq = uRe - hP / max(cph, 0.05), dB = max(0.0, 0.5 * (xq + sqrt(xq * xq + 1.6e-5)) - 0.002);
+  float wb = kind < 0.5 ? smoothstep(0.0, 1.0, sw) : 1.0, bow = kind < 0.5 ? sin(3.14159 * clamp(sw, 0.0, 1.0)) : 0.0;
+  // (the sidewalls bowing out over it: an inflated one a little; a flat one folding)
+  float bulge = mix(0.45 * dB, 0.85 * sqrt(max(0.0, 3.0 * max(Hs - dB, 0.0) * dB / 8.0)), uS.y) * bow;
+  float phP = acos(clamp(hP / max(uRe, 1e-3), -1.0, 1.0));
+  bulge += uS.y * 0.005 * bow * sin(ang * 30.0) * exp(-pow((abs(ang) - phP) / 0.3, 2.0));
+  // (the patch pushed across under the rim by the cornering force, the carcass with it either side; a flat one flopping)
+  float gL = exp(-ang * ang / 0.5), dx = uS.x * gL * wb + uS.y * 0.007 * sin(th + uS.w) * wb * (1.0 - gL);
+  if (kind < 0.5) dx += sign(transformed.x) * uS.z * 0.006 * (wvH(floor(th * 40.0)) - 0.3) * (1.0 - sw);
+  // (a shredded tyre's tread lifting: a stretch of it torn loose)
+  float lift = kind > 0.5 ? uS.z * uS.z * 0.028 * smoothstep(0.7, 0.0, abs(atan(sin(th - 1.3), cos(th - 1.3)))) * (1.0 - gL) : 0.0;
+  transformed.yz = dir * (rr - dB * wb + lift);
+  transformed.x += dx + sign(transformed.x) * bulge;
+  // (nothing below the ground: onto it)
+  float hg = dot(transformed, uG.xyz) + uG.w; if (hg < 0.0) transformed -= uG.xyz * hg;
+  vK = vec3(kind, worn, cord); }
+`;
+const WV_TYRE_FS = `
+uniform vec4 uD; uniform float uGl; varying vec3 vK;
+`;
+const WV_TYRE_MAP = `
+#include <map_fragment>
+{ float kd = vK.x;
+  if (kd > 2.5) diffuseColor.rgb = vec3(0.52, 0.53, 0.55);
+  else { diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.125, 0.12), step(1.5, kd) * vK.y * 0.55);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.40, 0.34, 0.27), clamp(vK.z, 0.0, 1.0) * step(0.5, kd) * 0.85);
+    diffuseColor.rgb = mix(diffuseColor.rgb, uD.rgb, uD.a * (kd < 0.5 ? 0.5 : 0.85)); } }
+`;
+const WV_RIM_VS = `
+uniform vec4 uRd; uniform vec4 uRw; uniform vec4 uG; attribute float aR;
+`;
+const WV_RIM_BV = `
+vec3 transformed = vec3(position);
+{ float th = atan(transformed.y, transformed.z), da = atan(sin(th - uRd.y), cos(th - uRd.y));
+  if (aR > 0.5 && aR < 1.5) { float wg = smoothstep(0.35, 1.0, abs(transformed.x) / uRw.x), rr = length(transformed.yz);
+    transformed.yz *= (rr - uRd.x * exp(-da * da / 0.15) * wg) / max(rr, 1e-4); transformed.x += uRd.z * sin(th - uRd.y) * wg; }
+  if (aR > 1.5) transformed *= uRd.w;
+  float hg = dot(transformed, uG.xyz) + uG.w; if (hg < 0.0) transformed -= uG.xyz * hg; }
+`;
+
+const WheelViz = {
+  on: lsGet('sr86.wheels', true) !== false, tex: new Map(), geo: new Map(), sp: null,
+  init() {
+    for (const [k, v] of [['on', true], ['off', false]]) { const b = $('#wv_' + k); if (b) b.addEventListener('click', () => this.set(v)); }
+    this.render();
+  },
+  // (the cars on the road take it up on their next frame: see tick)
+  set(v) { this.on = !!v; lsSet('sr86.wheels', this.on); this.render(); },
+  // every frame, once the car is posed: its wheels fitted if they are wanted and the car can have them (once; taken off
+  // again if not wanted), then drawn as the physics has them (rep: a replay's car, rebuilt from its record)
+  tick(rig, c, P, S, dt, rep) {
+    if (!rig || !rig.wheels) return;
+    if (!this.on) { if (rig.wv) this.detach(rig); rig.wvNo = false; return; }
+    if (!rig.wv && !rig.wvNo) { try { this.attach(rig, P, S); } catch (e) { rig.wv = null; } if (!rig.wv) rig.wvNo = true; }
+    if (rig.wv) this.frame(rig, c, dt, rep);
+  },
+  render() {
+    for (const k of ['on', 'off']) { const b = $('#wv_' + k); if (b) b.setAttribute('aria-pressed', (k === 'on') === this.on ? 'true' : 'false'); }
+    const n = $('#wvNote'); if (n) n.textContent = this.on ? 'Your car on tyres and rims drawn as they are built: the tread’s blocks, the sidewalls and the rim, squashing under load, wearing down, going flat and coming off the rim. Only your own car, so it costs little.' : 'Your car on the simple wheels every other car has.';
+  },
+  // the pattern a tyre's compound has
+  fam(P, sh) { let f = null; try { f = tyreCompound(P, sh.key).fam; } catch (e) { f = null; } if (f && WV_PAT[f]) return f;
+    if (sh.studs > 0) return sh.sh > 0.004 ? 'snow' : 'stud'; return sh.void >= 0.38 ? 'gravel' : sh.void <= 0.18 ? 'tarmac' : 'winter'; },
+  // each wheel's tyre and rim on the car's own wheel's place (its pivot), the car's own wheel hidden
+  attach(rig, P, S) {
+    if (!this.on || !rig || !rig.wheels || rig.wv || !P || !S) return;
+    if (!P.tySh || !P.tySh[0] || !P.tySh[1] || P.tandem || S.tandem || rig.wheels.length < 4 || rig.wheels.some(w => !w || !w.piv || w.w2 || w.beam)) return;
+    let D = null; try { const F = factoryFor(S.id); D = F.fittedDesign ? F.fittedDesign(S.id) : null; } catch (e) { D = null; } if (!D || D.dualR) return;
+    const R0 = wheelOf(P).R, K = carSetup(P), bk = K && K.bk, W = [];
+    for (let i = 0; i < 4; i++) {
+      const w = rig.wheels[i], ax = i < 2 ? 0 : 1, sh = P.tySh[ax], sd = w.piv.position.x >= 0 ? 1 : -1, fam = this.fam(P, sh);
+      // (its rim: the size the sheet has, unless the car's brake would not fit inside it - then the size up that does)
+      const rimD = D.rimR || 0.19, hw = bk ? (ax ? bk.R : bk.F) : null, rd = Math.min(hw ? hw.d / 2 : rimD * 0.78, rimD - 0.022), rb = Math.min(R0 - 0.05, Math.max(sh.rimIn * 0.0127, rd + 0.024));
+      const H = R0 - rb, sec = clamp(sh.sec || sh.W, 0.12, 0.42), tw = clamp(sh.tw || 0.88 * sec, 0.09, sec - 0.01), td = clamp(sh.td || 0.01, 0.004, Math.min(0.03, H * 0.25));
+      const Bw = clamp((sh.rw || 7) * 0.0254, 0.1, sec - 0.02), cd = fam === 'tarmac' ? 0.002 : fam === 'snow' || fam === 'mt' || fam === 'xc' ? 0.006 : 0.004;
+      const N = typeof Gfx !== 'undefined' && Gfx.level === 'low' ? 40 : 64, dm = { R0, rb, Bw, sec, tw, td, cd, fam, studs: sh.studs || 0, sh: sh.sh || 0, N }, key = Object.values(dm).map(v => typeof v === 'number' ? v.toFixed(4) : v).join(':');
+      const style = D.rim ? D.rim[0] : 'spokes', ns = D.rim ? D.rim[1] : 6, rc = new THREE.Color(D.rim ? D.rim[2] : '#c6cacf'), et = MechParts.hubET(D, S, ax === 0), hubR = clamp((D.hubR || 0.06) + 0.012, 0.06, 0.1);
+      const rkey = [rb, Bw, style, ns, rc.getHexString(), et, hubR, sh.rimIn <= 14 ? 4 : 5, N].join(':');
+      let tg = this.geo.get('t' + key); if (!tg) { tg = wvTyreGeo(dm); this.geo.set('t' + key, tg); }
+      let rg = this.geo.get('r' + rkey); if (!rg) { rg = wvRimGeo({ rb, Bw, style, ns, col: rc, xh: clamp(et - 0.01, -0.02, Bw / 2 - 0.035), hubR, nuts: sh.rimIn <= 14 ? 4 : 5, N }); this.geo.set('r' + rkey, rg); }
+      const tkey = fam + ':' + sh.dim + ':' + sd; let tx = this.tex.get(tkey); if (!tx) { tx = wvTex(fam, sh.dim || '', sd < 0); this.tex.set(tkey, tx); }
+      // (its materials: its own, for its own shape and look)
+      const uT = { uG: { value: new THREE.Vector4(0, 1, 0, 9) }, uW: { value: new THREE.Vector4(R0, rb, td, H) }, uS: { value: new THREE.Vector4() }, uWa: { value: new THREE.Vector4() }, uWb: { value: 0 }, uRe: { value: R0 }, uMir: { value: sd < 0 ? 1 : 0 }, uD: { value: new THREE.Vector4(0.5, 0.45, 0.4, 0) }, uGl: { value: 0 } };
+      const mt = new THREE.MeshStandardMaterial({ map: tx, roughness: 0.92, metalness: 0 });
+      // (a mirrored wheel's lettering read the right way round)
+      mt.onBeforeCompile = sh2 => { Object.assign(sh2.uniforms, uT); sh2.vertexShader = sh2.vertexShader.replace('#include <common>', '#include <common>\n' + WV_TYRE_VS).replace('#include <begin_vertex>', WV_TYRE_BV).replace('#include <uv_vertex>', '#include <uv_vertex>\nvUv.x = mix(vUv.x, 1.0 - vUv.x, uMir);');
+        sh2.fragmentShader = sh2.fragmentShader.replace('#include <common>', '#include <common>\n' + WV_TYRE_FS).replace('#include <map_fragment>', WV_TYRE_MAP).replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.5, uGl * step(1.5, vK.x) * step(vK.x, 2.5));'); };
+      mt.customProgramCacheKey = () => 'sr86-wv-tyre';
+      const uR = { uRd: { value: new THREE.Vector4(0, wvHash(i, 3) * 6.283, 0, 0) }, uRw: { value: new THREE.Vector4(Bw / 2 + 0.0105, 0, 0, 0) }, uG: uT.uG };
+      const mr = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.35 });
+      mr.onBeforeCompile = sh2 => { Object.assign(sh2.uniforms, uR); sh2.vertexShader = sh2.vertexShader.replace('#include <common>', '#include <common>\n' + WV_RIM_VS).replace('#include <begin_vertex>', WV_RIM_BV); };
+      mr.customProgramCacheKey = () => 'sr86-wv-rim';
+      // (a right-hand wheel the left's mirror image: its outer face out)
+      const g = new THREE.Group(); g.name = 'WheelViz' + i; g.scale.x = sd; const sp = new THREE.Group(); g.add(sp);
+      const tm = new THREE.Mesh(tg, mt), rm = new THREE.Mesh(rg, mr); tm.castShadow = rm.castShadow = true; tm.receiveShadow = rm.receiveShadow = true; tm.frustumCulled = rm.frustumCulled = false;
+      sp.add(tm); sp.add(rm); w.piv.add(g);
+      W.push({ g, sp, tm, rm, uT, uR, sd, ax, sh, R0, rb, td, H, Bw, kcy: sh.clatC || 1.5e5, fl: 0, dy: 0, du: 0, dc: new THREE.Color(0.5, 0.45, 0.4), deb: false, spk: 0, chk: 0, fam });
+    }
+    rig.wv = { W, P, S, w0: null };
+  },
+  detach(rig) {
+    const V = rig && rig.wv; if (!V) return;
+    V.W.forEach((X, i) => { const w = rig.wheels[i]; if (X.g.parent) X.g.parent.remove(X.g); X.tm.material.dispose(); X.rm.material.dispose();
+      if (!(rig.dv && rig.dv.lost && rig.dv.lost[i])) wheelSc(w); });
+    rig.wv = null;
+  },
+  // each wheel's wear across its tread, five columns (the flexible ring's own columns; the classic tyre's one wear)
+  wear(tw, o) { if (!tw) { o.fill(0); return o; } const z = tw.wz;
+    if (z && z.length > 1) { const ny = z.length; for (let k = 0; k < 5; k++) { const j = clamp((k / 4) * ny - 0.5, 0, ny - 1), j0 = Math.floor(j), j1 = Math.min(ny - 1, j0 + 1), f = j - j0; o[k] = z[j0] * (1 - f) + z[j1] * f; } }
+    else o.fill(tw.w || 0); return o; },
+  // every frame, after the car is posed: each wheel as the physics has it (rep: a replay's car, rebuilt from its record)
+  frame(rig, c, dt, rep) {
+    const V = rig && rig.wv; if (!V || !c || !c.w) return; dt = clamp(dt || 0, 0, 0.1);
+    const D = c.dmg && c.dmg.mode === 'real' ? c.dmg : null, H = rig.dv, P = V.P, R0 = wheelOf(P).R, wear = this._wr || (this._wr = [0, 0, 0, 0, 0]);
+    // (the tyres' wear: on the road, the stage's start's kept for its replay and the latest; a replay's eased between)
+    if (!rep && !V.w0) this.start(rig, c); if (rep && !V.w0 && this.w0) V.w0 = this.w0;
+    if (!rep && c.tyre) { const E = this.wEnd || (this.wEnd = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]); for (let i = 0; i < 4; i++) this.wear(c.tyre[i], E[i]); }
+    const Rp = typeof Replay !== 'undefined' ? Replay : null, wF = rep && Rp && Rp.t1 > Rp.t0 ? clamp((Rp.t - Rp.t0) / (Rp.t1 - Rp.t0), 0, 1) : 1;
+    for (let i = 0; i < 4; i++) {
+      const w = rig.wheels[i], X = V.W[i], wh = c.w[i], Dw = D ? D.w[i] : null;
+      w.w.scale.setScalar(1e-3); // (the car's own wheel stays hidden)
+      // (not while it is lost, or off the car in the crew's hands)
+      const lost = !!(H && H.lost && H.lost[i]) || !!(Dw && Dw.off) || (rig.fixW === i && !!rig.fixOff); X.g.visible = !lost; if (lost) continue;
+      X.sp.rotation.x = w.a || 0;
+      // the ground, in the wheel's own turning frame (live: the contact's own normal; a replay's: level)
+      w.piv.updateWorldMatrix(true, false); X.g.updateMatrix(); X.sp.updateMatrix(); const M = this._m || (this._m = new THREE.Matrix4()); M.multiplyMatrices(w.piv.matrixWorld, X.g.matrix).multiply(X.sp.matrix);
+      // (M turns, and for a right-hand wheel mirrors: its transpose takes the ground's normal into the tyre's own frame)
+      const e = M.elements, nx0 = !rep && wh.n ? wh.n[0] : 0, ny0 = !rep && wh.n ? wh.n[1] : 1, nz0 = !rep && wh.n ? wh.n[2] : 0, sx = X.sd;
+      let nlx = e[0] * nx0 + e[1] * ny0 + e[2] * nz0, nly = e[4] * nx0 + e[5] * ny0 + e[6] * nz0, nlz = e[8] * nx0 + e[9] * ny0 + e[10] * nz0; const nl = Math.hypot(nlx, nly, nlz) || 1; nlx /= nl; nly /= nl; nlz /= nl;
+      const gy = wh.g, h = isFinite(gy) && isFinite(wh.x) ? (e[12] - wh.x) * nx0 + (e[13] - gy) * ny0 + (e[14] - wh.z) * nz0 : 9;
+      X.uT.uG.value.set(nlx, nly, nlz, clamp(h, -1, 9));
+      // flat, shredded, off the rim
+      const flat = Dw && Dw.flat ? 1 : 0, deb = !!(Dw && Dw.deb), tl = Dw && Dw.tl != null ? Dw.tl : 1;
+      X.fl = dt > 0 ? X.fl + (flat - X.fl) * Math.min(1, dt * 3) : flat;
+      const shred = flat && !deb ? clamp((1 - tl) * 1.15 - 0.08, 0, 1) : 0;
+      // (the cornering force across the patch: the physics' own; a replay's from the slip it recorded)
+      let Fy = wh.Fy; if (rep || !isFinite(Fy)) { const vx = (wh.omega || 0) * R0 - (wh.slipL || 0); Fy = -(wh.Fz || 0) * 0.9 * Math.tanh((wh.slipT || 0) / (0.12 * Math.abs(vx) + 0.4)); }
+      const dy = clamp((wh.Fz > 0 ? Fy : 0) / X.kcy * (1 + 1.5 * X.fl), -0.3 * X.H, 0.3 * X.H) * sx; X.dy += (dy - X.dy) * Math.min(1, dt * 25 || 1);
+      X.uT.uS.value.set(X.dy, X.fl, shred, (w.a || 0) * 0.13);
+      // (worn: the car's own tyres; a replay's eased from the stage's start to its end)
+      if (!rep) this.wear(c.tyre && c.tyre[i], wear); else if (V.w0) { const g = this.wEnd ? this.wEnd[i] : V.w0[i]; for (let k = 0; k < 5; k++) wear[k] = V.w0[i][k] + (g[k] - V.w0[i][k]) * wF; } else wear.fill(0);
+      if (sx < 0) { const a0 = wear[0], a1 = wear[1]; wear[0] = wear[4]; wear[1] = wear[3]; wear[3] = a1; wear[4] = a0; }
+      X.uT.uWa.value.set(wear[0], wear[1], wear[2], wear[3]); X.uT.uWb.value = wear[4]; X.uT.uRe.value = R0 - X.td * (wear[0] + wear[1] + wear[2] + wear[3] + wear[4]) / 5;
+      // (dust off the ground: building up on loose ground as it turns, wearing off on tarmac)
+      const v = Math.abs(wh.omega || 0) * R0, du = WV_DUST[wh.surf], wet = wh.mix ? wh.mix.wet || 0 : 0;
+      if (du && wh.Fz > 0) { if (!X._c) X._c = new THREE.Color(); X._c.set(du[0]); if (wet > 0.3 && wh.surf !== 'snow') X._c.multiplyScalar(0.55); X.dc.lerp(X._c, Math.min(1, dt * v * 0.05)); X.du += (du[1] * (1 - 0.3 * wet) - X.du) * Math.min(1, dt * v * 0.02); }
+      else if (wh.Fz > 0) X.du += (0 - X.du) * Math.min(1, dt * v * 0.004);
+      X.uT.uD.value.set(X.dc.r, X.dc.g, X.dc.b, X.du);
+      const tw = c.tyre && c.tyre[i], Tt = tw ? (tw.Ts && tw.Ts.length ? (tw.Ts[0] + tw.Ts[tw.Ts.length - 1]) / 2 : tw.T) : 20; X.uT.uGl.value = !rep && WV_HARD[wh.surf] ? smooth(55, 95, Tt || 20) : 0;
+      // (the rim: dented where it was struck, out of true)
+      const rim = Dw ? Dw.rim || 0 : 0; X.uR.uRd.value.x = 0.02 * rim; X.uR.uRd.value.z = 0.006 * rim; X.uR.uRd.value.w = deb ? 1 : 0;
+      // off the rim: the tyre flung off (as it happens on the road), the bare rim on the ground
+      X.tm.visible = !deb;
+      if (deb && !X.deb && !rep && dt > 0) this.fling(rig, i, c);
+      X.deb = deb;
+      if (!rep && dt > 0) this.fx(X, wh, c, deb, shred, flat, v, dt);
+    }
+    this.sparks(dt);
+  },
+  // rubber torn off a tyre run flat, the tyre's carcass flung off, sparks off a bare rim
+  fx(X, wh, c, deb, shred, flat, v, dt) {
+    if (!(wh.Fz > 0) || v < 2 || !Particles.pos) return;
+    if (flat && !deb && shred > 0.05 && Math.random() < dt * v * 0.08 * shred) { const k = 0.4 + Math.random() * 0.6;
+      Particles.spawn(wh.x, wh.g + 0.05, wh.z, (c.V ? c.V[0] : 0) * 0.5 + (Math.random() - 0.5) * 3, 1 + Math.random() * 2.5, (c.V ? c.V[2] : 0) * 0.5 + (Math.random() - 0.5) * 3, this._rub || (this._rub = new THREE.Color(0.05, 0.05, 0.05)), 0.03 + 0.03 * k, 1 + Math.random(), 1, 0.95); }
+    if (deb && (WV_HARD[wh.surf] || wh.onRock)) { X.spk += dt * v * (wh.onRock ? 5 : 3.5); while (X.spk > 1) { X.spk--; this.spark(wh, c, v); } }
+    else if (deb && WV_DUST[wh.surf] && Math.random() < dt * v * 0.3) { const C = DUST[wh.surf] || DUST.gravel;
+      Particles.spawn(wh.x, wh.g + 0.08, wh.z, (c.V ? -c.V[0] : 0) * 0.15 + (Math.random() - 0.5) * 2, 0.8 + Math.random() * 1.5, (c.V ? -c.V[2] : 0) * 0.15 + (Math.random() - 0.5) * 2, C, 0.05 + Math.random() * 0.05, 0.8 + Math.random(), 1, 0.9); }
+  },
+  // (sparks: a few dozen glowing points of their own, flung back off the contact and falling)
+  spark(wh, c, v) {
+    if (!this.sp) { const N = 160, g = new THREE.BufferGeometry(), S = { N, i: 0, pos: new Float32Array(N * 3), vel: new Float32Array(N * 3), life: new Float32Array(N), max: new Float32Array(N), a: new Float32Array(N) };
+      g.setAttribute('position', new THREE.BufferAttribute(S.pos, 3)); g.setAttribute('aL', new THREE.BufferAttribute(S.a, 1));
+      S.mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uScale: { value: 400 } },
+        vertexShader: 'attribute float aL; uniform float uScale; varying float vL; void main(){ vL = aL; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = aL > 0.0 ? max(1.5, uScale * 0.03 / max(0.3, -mv.z)) : 0.0; gl_Position = projectionMatrix * mv; }',
+        fragmentShader: 'varying float vL; void main(){ vec2 q = gl_PointCoord - 0.5; float d = length(q); if (d > 0.5) discard; gl_FragColor = vec4(vec3(1.0, 0.72, 0.36) * 1.6, vL * (1.0 - 2.0 * d)); }' });
+      S.geo = g; S.obj = new THREE.Points(g, S.mat); S.obj.frustumCulled = false; S.obj.renderOrder = 6; scene.add(S.obj); this.sp = S; }
+    const S = this.sp, i = S.i; S.i = (i + 1) % S.N; const Vx = c.V ? c.V[0] : 0, Vz = c.V ? c.V[2] : 0, vv = Math.hypot(Vx, Vz) || 1;
+    S.pos[i * 3] = wh.x + (Math.random() - 0.5) * 0.06; S.pos[i * 3 + 1] = wh.g + 0.01; S.pos[i * 3 + 2] = wh.z + (Math.random() - 0.5) * 0.06;
+    const back = -(0.4 + Math.random() * 0.5) * Math.min(v, 30) * 0.35; S.vel[i * 3] = Vx * 0.6 + Vx / vv * back + (Math.random() - 0.5) * 3; S.vel[i * 3 + 1] = 0.6 + Math.random() * 2.2; S.vel[i * 3 + 2] = Vz * 0.6 + Vz / vv * back + (Math.random() - 0.5) * 3;
+    S.life[i] = S.max[i] = 0.12 + Math.random() * 0.3;
+  },
+  sparks(dt) {
+    const S = this.sp; if (!S) return; let live = 0; S.mat.uniforms.uScale.value = window.innerHeight * renderer.getPixelRatio() * 0.5;
+    for (let i = 0; i < S.N; i++) { if (S.life[i] <= 0) { S.a[i] = 0; continue; } live++; S.life[i] -= dt; const k = i * 3; S.vel[k + 1] -= 9.8 * dt; S.pos[k] += S.vel[k] * dt; S.pos[k + 1] += S.vel[k + 1] * dt; S.pos[k + 2] += S.vel[k + 2] * dt; S.a[i] = Math.max(0, S.life[i] / S.max[i]); }
+    S.geo.attributes.position.needsUpdate = true; S.geo.attributes.aL.needsUpdate = true; S.obj.visible = live > 0;
+  },
+  // a piece as it is drawn (for throwing): the tyre, worn and torn as it is, with its lettering; a rim as it is
+  piece(X, tyre) {
+    if (tyre) { const g = X.tm.geometry.clone(), p = g.attributes.position, T = g.attributes.aT, Bt = g.attributes.aB, u = X.uT, wa = u.uWa.value, wb = u.uWb.value, sh = u.uS.value.z;
+      const wr = q => { const cc = clamp((q + 1) * 2, 0, 4); return wa.x * Math.max(0, 1 - Math.abs(cc)) + wa.y * Math.max(0, 1 - Math.abs(cc - 1)) + wa.z * Math.max(0, 1 - Math.abs(cc - 2)) + wa.w * Math.max(0, 1 - Math.abs(cc - 3)) + wb * Math.max(0, 1 - Math.abs(cc - 4)); };
+      for (let k = 0; k < p.count; k++) if (T.getX(k) > 1.5) { const y = p.getY(k), z = p.getZ(k), r = Math.hypot(y, z), lw = Math.max(clamp(wr(T.getZ(k)), 0, 1), Bt.getY(k) < sh * 0.85 ? 1 : 0), f = (r - X.td * lw * Bt.getX(k)) / Math.max(r, 1e-4); p.setY(k, y * f); p.setZ(k, z * f); }
+      for (const k of ['aT', 'aB']) g.deleteAttribute(k);
+      if (X.sd < 0) { g.scale(-1, 1, 1); const ix = g.index.array, uv = g.attributes.uv; for (let k = 0; k < ix.length; k += 3) { const t = ix[k + 1]; ix[k + 1] = ix[k + 2]; ix[k + 2] = t; } for (let k = 0; k < uv.count; k++) uv.setX(k, 1 - uv.getX(k)); }
+      g.computeBoundingSphere(); return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: X.tm.material.map, roughness: 0.92 })); }
+    const g = X.rm.geometry.clone(); g.deleteAttribute('aR'); if (X.sd < 0) { g.scale(-1, 1, 1); const ix = g.index.array; for (let k = 0; k < ix.length; k += 3) { const t = ix[k + 1]; ix[k + 1] = ix[k + 2]; ix[k + 2] = t; } }
+    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.35 }));
+  },
+  // the tyre come off its rim: flung off the wheel, torn and spinning, and bits of it with it
+  fling(rig, i, c) {
+    const X = rig.wv.W[i], w = rig.wheels[i], m = this.piece(X, true), p = new THREE.Vector3(), q = new THREE.Quaternion(); w.piv.getWorldPosition(p); w.piv.getWorldQuaternion(q);
+    const ax = new THREE.Vector3(X.sd, 0, 0).applyQuaternion(q), V = c.V || [0, 0, 0], v = Math.hypot(V[0], V[2]);
+    Debris.add(m, p, q, new THREE.Vector3(V[0] * 0.8 + ax.x * (2 + Math.random() * 2), 1.2 + Math.random(), V[2] * 0.8 + ax.z * (2 + Math.random() * 2)), ax.clone().multiplyScalar(X.sd * v / X.R0), X.R0, true, 'tyre');
+    for (let k = 0; k < 14 && Particles.pos; k++) Particles.spawn(p.x, p.y - X.R0 * 0.6, p.z, V[0] * 0.5 + (Math.random() - 0.5) * 4, 1 + Math.random() * 3, V[2] * 0.5 + (Math.random() - 0.5) * 4, this._rub || (this._rub = new THREE.Color(0.05, 0.05, 0.05)), 0.03 + Math.random() * 0.04, 1 + Math.random(), 1, 0.95);
+  },
+  // a wheel torn off: the wheel as drawn (the tyre, its rim inside it, if the tyre was still on), hidden on the car
+  wheelPiece(rig, i) {
+    const X = rig.wv && rig.wv.W[i]; if (!X) return null; X.g.visible = false;
+    const rimM = this.piece(X, false); if (X.deb) return rimM;
+    const m = this.piece(X, true); m.add(rimM); return m;
+  },
+  // the stage's start: the tyres' wear then (a replay eases from it to the end's)
+  start(rig, c) { const V = rig && rig.wv; if (!V || !c || !c.tyre) return; V.w0 = [0, 1, 2, 3].map(i => this.wear(c.tyre[i], [0, 0, 0, 0, 0]).slice()); this.w0 = V.w0; }
+};
+
 const Debris = {
   list: [], group: null,
   init() { this.group = new THREE.Group(); this.group.name = 'Debris'; scene.add(this.group); },
-  drop(d) { this.group.remove(d.mesh); d.mesh.geometry.dispose(); if (!(d.mesh.material.userData || {}).shared) d.mesh.material.dispose(); },
+  drop(d) { this.group.remove(d.mesh); d.mesh.geometry.dispose(); if (!(d.mesh.material.userData || {}).shared) d.mesh.material.dispose(); for (const ch of d.mesh.children) { if (ch.geometry) ch.geometry.dispose(); if (ch.material && !(ch.material.userData || {}).shared) ch.material.dispose(); } },
   clear() { for (const d of this.list) this.drop(d); this.list.length = 0; },
   // (a flashback to t: the pieces broken off since gone again)
   since(t) { for (const d of this.list) if (d.at > t + 1e-6) this.drop(d); this.list = this.list.filter(d => !(d.at > t + 1e-6)); },
@@ -36755,8 +37209,8 @@ const CarDmg = {
   // a wheel come off rolls away on its own
   loseWheel(rig, i, car) {
     const H = rig.dv; if (H.lost[i]) return; H.lost[i] = 1; const w = rig.wheels[i]; if (!w) return; w.w.scale.setScalar(1e-3); if (w.w2) w.w2.scale.setScalar(1e-3); // (a bogie's two tyres go together)
-    const WR = rig.wheelR || WHEEL.R, geo = new THREE.CylinderGeometry(WR, WR, Math.max(0.22, WR * 0.55), 14, 1); geo.rotateZ(Math.PI / 2);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x1a1a1a })); w.piv.updateMatrixWorld(true); w.piv.getWorldPosition(_dp); w.piv.getWorldQuaternion(_dq);
+    const WR = rig.wheelR || WHEEL.R, dw = rig.wv && typeof WheelViz !== 'undefined' ? WheelViz.wheelPiece(rig, i) : null; let geo = null; if (!dw) { geo = new THREE.CylinderGeometry(WR, WR, Math.max(0.22, WR * 0.55), 14, 1); geo.rotateZ(Math.PI / 2); }
+    const mesh = dw || new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x1a1a1a })); w.piv.updateMatrixWorld(true); w.piv.getWorldPosition(_dp); w.piv.getWorldQuaternion(_dq);
     const s = Math.sin(car.psi), co = Math.cos(car.psi), side = i % 2 ? -1 : 1;
     // it rolls on about its axle (the car's sideways axis), at the speed the car was going
     Debris.add(mesh, _dp, _dq, new THREE.Vector3(car.u * s + car.v * co + co * side * 2, 1.5, car.u * co - car.v * s - s * side * 2), new THREE.Vector3(co, 0, -s).multiplyScalar(car.u / WR), WR, true, 'tyre');
@@ -36805,7 +37259,7 @@ const CarDmg = {
     const zone = { f: 0, r: 0, l: 0, rt: 0, top: 0 }, Hs = G.mesh && G.mesh.dv ? G.mesh.dv.H : { zf: 2, zr: -2, belt: 0.9 };
     for (const d of D.dents) { const k = d.y > Hs.belt + 0.1 ? 'top' : d.z > Hs.zf - 0.8 ? 'f' : d.z < Hs.zr + 0.8 ? 'r' : d.x > 0 ? 'l' : 'rt'; zone[k] = Math.max(zone[k], d.d); }
     const col = v => v < 0.02 ? '' : v < 0.08 ? 'y' : v < 0.2 ? 'o' : 'r';
-    const wcol = w => w.off || w.arm <= 0 ? 'r' : w.flat || w.arm < 0.5 || Math.abs(w.toe) > 0.03 ? 'o' : w.arm < 0.95 || Math.abs(w.toe) > 0.008 || w.rim > 0.3 ? 'y' : '';
+    const wcol = w => w.off || w.deb || w.arm <= 0 ? 'r' : w.flat || w.arm < 0.5 || Math.abs(w.toe) > 0.03 ? 'o' : w.arm < 0.95 || Math.abs(w.toe) > 0.008 || w.rim > 0.3 ? 'y' : '';
     const real = D.mode === 'real', warn = [];
     if (real && (D.temp > 100 || D.rad > 0.05)) warn.push([`${Math.round(D.temp)}°`, D.temp > 115 ? 'r' : D.temp > 104 ? 'o' : 'y']);
     if (real && D.sump > 0) warn.push(['OIL', D.oil < 0.35 ? 'r' : 'o']);
@@ -37365,7 +37819,7 @@ function ChassisDSPDef() {
       w.aRum = on * (0.008 + 0.03 * cl(e.rough, 0, 1.5)) * cl(v / 12, 0, 1.6) * (hard * 1.6 + loose + 0.5 * I) * ld;
       const adv = Math.abs(w.dv); w.aDmp = 0.045 * Math.max(0, adv - 0.22); if (w.aDmp > 1e-6) w.dmp.set('bp', (520 + 300 * Math.min(adv, 2)) | 0, 0.7, sr);
       // a flat tyre slapping once a turn and its rim on the road; a hub grinding with the wheel gone
-      w.flapR = w.fl === 1 ? v / (TAU * 0.31) : 0; w.aGrind = (w.fl === 2 ? 0.05 : w.fl === 1 ? 0.012 : 0) * cl(v / 10, 0, 3); if (w.aGrind > 1e-6) w.grind.set('bp', w.fl === 2 ? 1900 : 2600, 1.6, sr);
+      w.flapR = w.fl === 1 ? v / (TAU * 0.31) : 0; w.aGrind = (w.fl === 2 ? 0.05 : w.fl === 3 ? 0.042 : w.fl === 1 ? 0.012 : 0) * cl(v / 10, 0, 3); if (w.aGrind > 1e-6) w.grind.set('bp', w.fl === 2 ? 1900 : w.fl === 3 ? 2250 : 2600, 1.6, sr);
     }
     bird() {
       const r = () => this.rnd(), pan = (r() - 0.5) * 1.8, g = (0.006 + 0.016 * r()) * this.e.woods, kind = r(), N = [];
@@ -38507,7 +38961,7 @@ const Rally = {
     };
   },
   // at service the car always gets fresh tyres
-  freshTyres() { const st = this.st; if (!st.cd) return; const D = dmgLoad(st.cd, st.dmg); for (const w of D.w) if (!w.off) { w.flat = 0; w.rim = 0; } D.spUsed = 0; st.cd = dmgSave(D); }, // (and the spare wheels made up again)
+  freshTyres() { const st = this.st; if (!st.cd) return; const D = dmgLoad(st.cd, st.dmg); for (const w of D.w) if (!w.off) { w.flat = 0; w.rim = 0; w.deb = 0; w.tl = 1; } D.spUsed = 0; st.cd = dmgSave(D); }, // (and the spare wheels made up again)
   screenService(it) {
     const st = this.st, card = this.card('center'), s = lastDone(st), hurt = st.dmg && st.dmg !== 'off';
     card.append(el('p', { class: 'rkick', text: `Day ${it.d + 1} · ${clockStr(it.clock)}` }), el('h2', { id: 'rH', text: `Service · ${it.mins} minutes` }),
