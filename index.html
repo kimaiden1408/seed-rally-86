@@ -6599,7 +6599,7 @@ const FTW = (() => { const N = 16 * 8, f = n => new Float64Array(n); // (scratch
     bx: f(N), by: f(N), sx: f(N), sy: f(N), vs: f(N), pw: f(N), sl: f(N),
     w: f(16), v: f(16), y: f(16), be: f(16), ka: f(96), z0: f(6), uz: f(N), Mz: f(96), Cz: f(96), Ez: f(96), Fz: f(16 * 36), Rz: f(96), dz_: f(96), Mi: f(16 * 36), tz: f(6), tz2: f(6), Lr: f(16), Lt: f(16), La: f(16), Mb: f(16), Mk: f(16), A: f(16), B: f(16), Ck: f(16), D: f(16), E: f(16), Fk: f(16),
     At: f(16), Bt: f(16), Aa: f(16), Ba: f(16), Rk: f(16), kk: f(16), J: f(32 * 32), J2: f(16 * 16), r: f(32), r2: f(16), hh: f(N), hx: f(N), hz: f(N), hpx: f(N), hpz: f(N), sg: f(N), dl0r: f(N), piv: new Int32Array(32), eta: f(8), phi: f(8), cr: f(8),
-    LrF: f(16), LtF: f(16), LaF: f(16), Svv: f(16), Svy: f(16), Syv: f(16), Syy: f(16), lx: f(8), ly: f(8), lz: f(8), li: f(8), g1: f(16), g2: f(16), g3: f(16), cnt: [0, 0, 0, 0], Ph: f(48), JR: f(19 * 19), rr: f(19), Jwb: f(256), Jbw: f(256), Jbb: f(256), Gv: f(256), Gy: f(256), dw_: f(16), db_: f(16), dk_: f(16), w0f: f(16), J5: f(36), r5: f(6), pc: f(3), pc2: f(3), rpv: f(16), rpy: f(16), JPv: f(48), JPy: f(48), JPw: f(48), JPz: f(48), hg: { h: 0, gx: 0, gz: 0 } }; })();
+    LrF: f(16), LtF: f(16), LaF: f(16), kfr: f(16).fill(1), Svv: f(16), Svy: f(16), Syv: f(16), Syy: f(16), lx: f(8), ly: f(8), lz: f(8), li: f(8), g1: f(16), g2: f(16), g3: f(16), cnt: [0, 0, 0, 0], Ph: f(48), JR: f(19 * 19), rr: f(19), Jwb: f(256), Jbw: f(256), Jbb: f(256), Gv: f(256), Gy: f(256), dw_: f(16), db_: f(16), dk_: f(16), w0f: f(16), J5: f(36), r5: f(6), pc: f(3), pc2: f(3), rpv: f(16), rpy: f(16), JPv: f(48), JPy: f(48), JPw: f(48), JPz: f(48), hg: { h: 0, gx: 0, gz: 0 } }; })();
 // a 2n x 2n system [A B; C D] x = r (J row-major, 2n wide) solved block by block: A x1 = r1, then D x2 = r2 - C x1, then
 // A x1 = r1 - B x2 again (one sweep and a half: the two halves - radial and twist, or along and across - are coupled
 // only weakly, and the Newton round it takes up what is left), into r
@@ -6666,8 +6666,12 @@ function ftSub(ft, F, P, G, S, h, O) {
   // the contact's direction in the wheel's plane, and where the tread as it is built reaches into the ground
   const na = nn[0] * a[0] + nn[1] * a[1] + nn[2] * a[2], ddx = -nn[0] + na * a[0], ddy = -nn[1] + na * a[1], ddz = -nn[2] + na * a[2];
   const thc = Math.atan2(ddx * fw[0] + ddy * fw[1] + ddz * fw[2], ddx * dn[0] + ddy * dn[1] + ddz * dn[2]);
-  const NS = 15, TS = 0.65; let thA = 9, thB = -9;
-  for (let m = 0; m < NS; m++) { const th = thc - TS + 2 * TS * m / (NS - 1), c = Math.cos(th), sn = Math.sin(th), ex = c * dn[0] + sn * fw[0], ey = c * dn[1] + sn * fw[1], ez = c * dn[2] + sn * fw[2];
+  // (and seven more each side, at the same spacing, round to 74 deg from its bottom, wherever the ground or a solid under
+  // the reach rises high enough to meet the tread there: a rock's face, a kerb's or a bank's, met by the tread's front
+  // before the patch gets there, is found as it is first touched and not a step later, deep)
+  const NS = 15, TS = 0.65; let thA = 9, thB = -9, ext = 7;
+  if (G.k === 1) { if (!G.cl) ext = 0; } else if (!G.ns) { let hy = -Infinity; const Y = G.y, nn = 3 * G.n; for (let q = 0; q < nn; q++) if (Y[q] > hy) hy = Y[q]; if (hy < C[1] - 0.796 * Rt - 0.04) ext = 0; }
+  for (let m = -ext; m < NS + ext; m++) { const th = thc - TS + 2 * TS * m / (NS - 1), c = Math.cos(th), sn = Math.sin(th), ex = c * dn[0] + sn * fw[0], ey = c * dn[1] + sn * fw[1], ez = c * dn[2] + sn * fw[2];
     for (let jj = 0; jj < 3; jj++) { const j = jj === 0 ? 0 : jj === 1 ? (ny - 1) >> 1 : ny - 1, r = Rt - W.cr[j], e = W.eta[j], py = C[1] + r * ey + e * a[1];
       ftH(G, C[0] + r * ex + e * a[0], C[2] + r * ez + e * a[2], hg); if (hg.h - py > -0.002) { if (th < thA) thA = th; if (th > thB) thB = th; } } }
   if (thA > thB) { ftClear(ft, S); return 0; }
@@ -6741,7 +6745,7 @@ function ftNormal(ft, F, P, G, S, h, K, th0, dth, Rt, Ab, s) {
   for (let i = 0; i < nx; i++) { const x = (2 * i - (nx - 1)) / (nx - 1); W.Ph[i * 3] = 1; W.Ph[i * 3 + 1] = x; W.Ph[i * 3 + 2] = x * x - 1 / 3; W.w0f[i] = W.w[i]; }
   const kfl = F.kfl * Rt * dth, gap = F.gap, ksr = s.kr * Rt * dth; // (the rim flange, row by row: stiff as the sidewall is crushed, giving back about a third as it comes off; the sidewalls' own radial support there)
   let nAct = 0, rq = 1;
-  for (let it = 0; it < 10; it++) {
+  for (let it = 0; it < 16; it++) { // (a few more rounds where a deep contact needs them: an ordinary step settles in two or three)
     let changed = 0; nAct = 0;
     // where each block's tip is with the belt as it stands, and how far into the ground (the ground found once a
     // sub-step; as the tread settles - its tips moving only radially - on its plane there)
@@ -6764,7 +6768,12 @@ function ftNormal(ft, F, P, G, S, h, K, th0, dth, Rt, Ab, s) {
       const e0 = fs >= 0 && fs <= ne - 1 ? Math.min(ne - 2, fs | 0) : -1, tq = fs - e0, okd = e0 >= 0 && ft.Xok[e0] && ft.Xok[e0 + 1];
       for (let j = 0; j < ny_; j++) { const k = i * ny_ + j, dd = (Math.max(0, W.d[ib * ny_ + j]) - Math.max(0, W.d[ia * ny_ + j])) / ((ib - ia) * dth);
         const dOld = okd ? ft.dl[e0 * ny_ + j] * (1 - tq) + ft.dl[(e0 + 1) * ny_ + j] * tq : W.d[k], rate = (Math.max(0, W.d[k]) - Math.max(0, dOld)) / h - om * dd;
-        W.sg[k] = Math.tanh(rate / P.vh); W.dl0r[k] = clamp(rate, -3, 3); } }
+        W.sg[k] = Math.tanh(rate / P.vh); W.dl0r[k] = clamp(rate, -3, 3); }
+      // (the rim flange pinching the sidewall at this row: stiff while the row is being pressed in, giving back about a third
+      // as it comes off - by how fast the tread there is being squashed, as the blocks' own loss is, and held through the
+      // solve so that it sees one spring)
+      let sw = 0, sn = 0, sa = 0; for (let j = 0; j < ny_; j++) { const k = i * ny_ + j, dp = Math.max(0, W.d[k]); sw += dp * W.sg[k]; sn += dp; sa += W.sg[k]; }
+      W.kfr[i] = 0.665 + 0.335 * (sn > 0 ? sw / sn : sa / ny_); }
     rq = 0;
     for (let i = 0; i < nx; i++) {
       W.Lr[i] = 0; W.Lt[i] = 0; W.La[i] = 0; W.Mb[i] = 0; W.A[i] = 0; W.B[i] = 0; W.D[i] = 0; W.At[i] = 0; W.Bt[i] = 0; W.Aa[i] = 0; W.Ba[i] = 0;
@@ -6786,7 +6795,7 @@ function ftNormal(ft, F, P, G, S, h, K, th0, dth, Rt, Ab, s) {
       // (the sidewalls fold as the belt is pushed in, holding it out less than in proportion: a radial characteristic fitted
       // to the tyre's own load against deflection; past the gap the rim flange, pushing the belt back out)
       const ew = -W.w[i]; if (ew > 0 && F.es < 0.5) { const th = Math.tanh(ew / F.es); W.Lr[i] -= ksr * (ew - F.es * th); W.A[i] -= ksr * th * th; }
-      const e = ew - gap; if (e > 0) { const kf = kfl * (-W.w[i] >= -W.w0f[i] - 1e-6 ? 1 : 0.33); W.Lr[i] += kf * e; W.A[i] += kf; }
+      const e = ew - gap; if (e > 0) { const kf = kfl * W.kfr[i]; W.Lr[i] += kf * e; W.A[i] += kf; }
       for (let a1 = 0; a1 < mz; a1++) { let t = 0; for (let b1 = 0; b1 < mz; b1++) t += XK[a1 * mz + b1] * (W.ka[i * mz + b1] - z0[b1]); W.Rz[i * mz + a1] = kkR * t - W.Mz[i * mz + a1]; } // (the shapes' residuals: the belt's hold against the blocks' push)
     }
     // (no block touching with the belt as it stands - as it was last found, or pushed in too far by the last iteration: the
@@ -6817,10 +6826,12 @@ function ftNormal(ft, F, P, G, S, h, K, th0, dth, Rt, Ab, s) {
     const n2r = 2 * nx, JF = W.J;
     for (let i = 0; i < nx; i++) { for (let k = 0; k < nx; k++) { JF[i * n2r + k] = JR[i * nr3 + k]; JF[i * n2r + nx + k] = Jwb[i * nx + k]; JF[(nx + i) * n2r + k] = Jbw[i * nx + k]; JF[(nx + i) * n2r + nx + k] = Jbb[i * nx + k]; } r[i] = rr[i]; r[nx + i] = W.r2[i]; }
     ftLin(JF, r, n2r);
-    let mx = 0;
-    for (let i = 0; i < nx; i++) { let dw = r[i], db = r[nx + i]; const lim = 0.01; if (dw > lim) dw = lim; else if (dw < -lim) dw = -lim; if (db > 0.1) db = 0.1; else if (db < -0.1) db = -0.1;
+    // (the step: whole where it is small, scaled down as a whole - its direction kept - where it would move the belt more
+    // than 1 cm or turn it more than 0.1 rad at a row; the belt's twist held within what its sidewalls allow, 0.35 rad)
+    let mx = 0, su = 1; for (let i = 0; i < nx; i++) su = Math.max(su, Math.abs(r[i]) / 0.01, Math.abs(r[nx + i]) / 0.1); su = 1 / su;
+    for (let i = 0; i < nx; i++) { const dw = r[i] * su, db = clamp(W.be[i] + r[nx + i] * su, -0.35, 0.35) - W.be[i];
       const Mi = W.Mi, mo = i * 36; let dkm = 0; // (the row's inverse, as found for its condensation)
-      for (let a1 = 0; a1 < mz; a1++) { let t = 0; for (let b1 = 0; b1 < mz; b1++) t += Mi[mo + a1 * mz + b1] * (W.Rz[i * mz + b1] + W.Cz[i * mz + b1] * dw + W.Ez[i * mz + b1] * db); W.dz_[i * mz + a1] = -t; dkm = Math.max(dkm, Math.abs(t)); }
+      for (let a1 = 0; a1 < mz; a1++) { let t = 0; for (let b1 = 0; b1 < mz; b1++) t += Mi[mo + a1 * mz + b1] * (W.Rz[i * mz + b1] * su + W.Cz[i * mz + b1] * dw + W.Ez[i * mz + b1] * db); W.dz_[i * mz + a1] = -t; dkm = Math.max(dkm, Math.abs(t)); }
       if (dkm > 0.004) { const sc = 0.004 / dkm; for (let a1 = 0; a1 < mz; a1++) W.dz_[i * mz + a1] *= sc; dkm = 0.004; } // (as the radial give's, a step's change of shape held to a few mm)
       for (let a1 = 0; a1 < mz; a1++) W.ka[i * mz + a1] += W.dz_[i * mz + a1];
       W.w[i] += dw; W.be[i] += db; W.dw_[i] = dw; W.db_[i] = db; mx = Math.max(mx, Math.abs(dw), Math.abs(db) * bt, dkm); }
@@ -7708,11 +7719,11 @@ function stepCar(c, S, inp, dt, T, opts) {
     // goes on over whatever else is under it)
     if (sol.col && sol.col.mob) { const vwx = V[0] + Wv[1] * (Cz - c.z) - Wv[2] * (Cy - c.yb) - wh.Ld * Ex, vwz = V[2] + Wv[0] * (Cy - c.yb) - Wv[1] * (Cx - c.x) - wh.Ld * Ez;
       if (stoneFromTyre(T, c, i, wh, sol, yb, vwx, vwz, hx, hz, D, R0)) sol = solidUnder(T, info.i, Cx, Cz, yb, hx, hz, tw2, R0); }
-    const sy0 = sol.y, sk = sol.k; if (!bog) wh.onRock = false; else if (wh.bSol) wh.surf = wh.bSol === 'bale' ? 'grass' : 'stone';
+    const sy0 = sol.y, sk = sol.k; wh.onSol = false; if (!bog) wh.onRock = false; else if (wh.bSol) wh.surf = wh.bSol === 'bale' ? 'grass' : 'stone';
     if (sy0 > -Infinity) { const yF = solidUnder(T, info.i, Cx + hx * ENV_LS, Cz + hz * ENV_LS, yb, hx, hz, tw2, R0).y, yR = solidUnder(T, info.i, Cx - hx * ENV_LS, Cz - hz * ENV_LS, yb, hx, hz, tw2, R0).y;
       const sr = clamp(((yF > -Infinity ? yF : sy0) - (yR > -Infinity ? yR : sy0)) / (2 * ENV_LS), -1.5, 1.5), rl = Math.hypot(sr, 1), pr = (sy0 - yb) / rl;
       if (pr > pen) { pen = pr; ge = sy0; sa = sr; scr = 0; n[0] = -sr * hx / rl; n[1] = 1 / rl; n[2] = -sr * hz / rl; q[0] = Cx; q[1] = yb; q[2] = Cz;
-        wh.onRock = sk === 'rock'; if (sy0 > wh.gRaw) wh.gRaw = sy0; wh.surf = sk === 'bale' ? 'grass' : 'stone'; } }
+        wh.onRock = sk === 'rock'; wh.onSol = true; if (sy0 > wh.gRaw) wh.gRaw = sy0; wh.surf = sk === 'bale' ? 'grass' : 'stone'; } }
     // and what lies on it there: the day's layers (snow, ice, slush, dirt, loose stones, the swept line; how wet, and any
     // standing water: see makeLayers), as shares of the tyre's patch
     const MX = wh.mix || (wh.mix = { n: 0, k: [], w: [], wet: 0, pool: 0, trk: 0, main: 'gravel' });
@@ -7723,7 +7734,8 @@ function stepCar(c, S, inp, dt, T, opts) {
     // a sudden rise under a wheel (a seam: the road meeting a bridge's deck, a kerb) lifts it; where the ground drops
     // away it falls
     let dg = ge - wh.gPrev; if (dg > 0.4) { wh.L -= dg; pen -= dg * n[1]; dg = 0; } else if (dg < -0.4) dg = 0; wh.gPrev = ge;
-    if (wh.onRock && dg > 0.03) { const hit = dg * au / R0 * (bog ? 2 : 1); if (hit > 2) c.ev.push('rockw:' + hit.toFixed(1) + ':' + i); if (D && hit > 6) dmgHit(c, 'rock', G.lx, 0.2, G.lz, 0, 1, 0, hit, i); } // a wheel thrown up by a rock
+    // (a rock strikes only a tyre on it: a wheel flying over one is not struck by it)
+    if (wh.onRock && dg > 0.03 && pen > 0) { const hit = dg * au / R0 * (bog ? 2 : 1); if (hit > 2) c.ev.push('rockw:' + hit.toFixed(1) + ':' + i); if (D && hit > 6) dmgHit(c, 'rock', G.lx, 0.2, G.lz, 0, 1, 0, hit, i); } // a wheel thrown up by a rock
     // tyre: an elastic sidewall, then (past about 7 cm, five times the static load) the rim crushing the tyre against
     // the ground, which is stiff on the way in and gives almost nothing back on the way out
     const prate = clamp((pen - (wh.penP != null ? wh.penP : pen)) / dt, -20, 20); wh.penP = pen;
@@ -7745,7 +7757,12 @@ function stepCar(c, S, inp, dt, T, opts) {
     if (bog) { const p2 = pen - wh.bLo, F2 = wh.bLo > 0 ? (p2 > 0 ? Math.max(0, tyreLoad(kt, p2) + WH.ct * prate) * dl : 0) : Math.max(0, Fz), F1 = Math.max(0, Fz), Ft = F1 + F2;
       wh.bS = Ft > 0 ? (wh.bLo > 0 ? (wh.bUp > 0 ? F1 : F2) / Ft : 0.5) : 0.5; Fz = Ft; }
     // (the flexible-ring tyre, where it is on: its load comes from its blocks meeting the road, below)
-    wh.ftOn = !!(opts && opts.ft) && !S.tandem && !(DR && (DR.w[i].off || DR.w[i].flat)); wh.pen = pen; if (!wh.ftOn && wh.ft) wh.ft = null; // (not on a vehicle with bogies: one tyre model a vehicle, its axles rolling alike)
+    // (the ring while its tread is on the ground itself. A wheel over on its shoulder - tilted to the ground under it past 20
+    // deg, on a bank's or a ditch's side or with the car tipping - meets it with its sidewall, which only the round tyre has,
+    // and is the round tyre's until it is back under 16 deg; a wheel standing on a rock, a stone or a bale is the round
+    // tyre's while it is on it, as the round tyre climbs and rides them)
+    { const sd = Math.abs(awx * n[0] + awy * n[1] + awz * n[2]); wh.ftSd = sd > (wh.ftSd ? 0.2756 : 0.342); }
+    wh.ftOn = !!(opts && opts.ft) && !S.tandem && !(DR && (DR.w[i].off || DR.w[i].flat)) && !wh.ftSd && !wh.onSol; wh.pen = pen; if (!wh.ftOn && wh.ft) wh.ft = null; // (not on a vehicle with bogies: one tyre model a vehicle, its axles rolling alike)
     wh.Fz = wh.ftOn ? 0 : pen > 0 ? Math.max(0, Fz) : 0;
     if (wh.Fz > 0) anyContact = true; Fzsum += wh.Fz;
     // the frame of the contact: along the wheel's heading over the ground and across it (to the left); how the wheel
@@ -11341,7 +11358,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'B5E2';
+const SR86_BUILD = '9C3E';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
