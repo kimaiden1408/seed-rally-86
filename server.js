@@ -1,4 +1,5 @@
-// Seed Rally 86 on its own website: this runs the race rooms, the players' names and the shared board of stage times,
+// Seed Rally 86 on its own website: this runs the race rooms (with their fast channel for the cars' states, and the
+// signals that set up direct links between the players' browsers), the players' names and the shared board of stage times,
 // and serves the game page too (index.html; the config.js beside it tells a page kept elsewhere, as on GitHub Pages,
 // where this server is, while the page served here talks to this server). Start it with "npm install" and then
 // "npm start". Settings, all optional, from the environment:
@@ -18,6 +19,8 @@ const ROOM_MAX = 16;            // pages in one race room
 const ROOMS_PER = 8;            // race rooms one page may be in at once
 const PRES_MAX = 4096;          // bytes of one page's presence in a room
 const RATE = 60, BURST = 120;   // messages a second a page may send, and in a burst
+const FAST_RATE = 160, FAST_BURST = 320, FAST_MAX = 1024; // the fast channel's: messages a second, in a burst, and bytes in one
+const SIG_MAX = 16 * 1024;      // bytes of one signal (a direct link's offer or answer, or a way to reach a page)
 const DOC_MAX = 48 * 1024, TIMES_MAX = 5000, TIMES_BYTES = 3 * 1024 * 1024; // the board: one player's times, players, all
 const LOBBY = '~lobby', ROOM_RE = /^[a-z0-9][a-z0-9_.-]{0,47}$/, KEY_RE = /^[a-km-np-z2-9]{24}$/, UID_RE = /^u[a-km-np-z2-9]{15}$/;
 const ABC = 'abcdefghijkmnpqrstuvwxyz23456789';
@@ -156,8 +159,26 @@ function hello(ws, m) {
   s.ws = ws; setName(uid, cleanName(m.name));
   if (!resumed) joinRoom(s, LOBBY);
   const list = {}; for (const room of s.pres.keys()) list[room] = roomList(room);
-  out(ws, { t: 'welcome', peer: s.peer, token: s.token, uid, resumed, rooms: list });
+  out(ws, { t: 'welcome', peer: s.peer, token: s.token, uid, resumed, rooms: list, caps: ['fast', 'sig'] });
   return s;
+}
+// the fast channel: a page's binary message to the others in one of its race rooms, passed straight on, as it is (the
+// cars' states: the server reads nothing in it). Up: [0xF1][the room's length][the room][the message]; down, the sending
+// page's id after the room. Not kept, not compressed (they are small, and every millisecond counts)
+const FAST_TAG = 0xF1;
+function fast(s, buf) {
+  if (buf.length < 4 || buf.length > FAST_MAX || buf[0] !== FAST_TAG) return; const rl = buf[1]; if (2 + rl >= buf.length) return;
+  const room = buf.toString('utf8', 2, 2 + rl); if (room === LOBBY || !s.pres.has(room)) return; const S = rooms.get(room); if (!S || S.size < 2) return;
+  const pb = Buffer.from(s.peer, 'utf8'), out = Buffer.allocUnsafe(buf.length + 1 + pb.length);
+  buf.copy(out, 0, 0, 2 + rl); out[2 + rl] = pb.length; pb.copy(out, 3 + rl); buf.copy(out, 3 + rl + pb.length, 2 + rl);
+  for (const o of S) if (o !== s && o.ws && o.ws.readyState === 1) o.ws.send(out, { binary: true, compress: false });
+}
+// a signal from one page to another in the same race room (to set up a direct link between them), passed on
+function signal(s, m) {
+  const room = m.room, to = m.to; if (typeof room !== 'string' || room === LOBBY || !s.pres.has(room) || typeof to !== 'string') return;
+  const t = sessions.get(to); if (!t || !t.pres.has(room) || !t.ws) return;
+  let d; try { d = JSON.stringify(m.d); } catch (e) { return; } if (!d || Buffer.byteLength(d) > SIG_MAX || depth(m.d) > 6) return;
+  out(t.ws, '{"t":"sig","room":' + JSON.stringify(room) + ',"from":' + JSON.stringify(s.peer) + ',"d":' + d + '}');
 }
 // what changed in a page's presence in one room ({ d: keys set, rm: keys removed }, or full: the whole of it), kept and
 // passed on to the others there
@@ -178,6 +199,7 @@ function presence(s, m) {
 function handle(s, m) {
   switch (m.t) {
     case 'pp': presence(s, m); return;
+    case 'sig': signal(s, m); return;
     case 'hb': return;
     case 'ping': reply(s, m, { ok: true }); return;
     case 'join': {
@@ -212,10 +234,12 @@ wss.on('connection', (ws, req) => {
   if (wss.clients.size > MAX_PLAYERS || (perIp.get(ip) || 0) >= PER_IP) { ws.close(1013, 'busy'); return; }
   perIp.set(ip, (perIp.get(ip) || 0) + 1); stats.most = Math.max(stats.most, wss.clients.size);
   const sock = req.socket; ws.sock = sock; ws.sent = sock.bytesWritten;
-  let s = null, budget = BURST, t0 = Date.now(), over = 0; ws.alive = true;
+  let s = null, budget = BURST, t0 = Date.now(), over = 0, fb = FAST_BURST, ft0 = t0; ws.alive = true;
   ws.on('pong', () => { ws.alive = true; });
   ws.on('message', (buf, bin) => {
-    ws.alive = true; if (bin) return;
+    ws.alive = true;
+    // (the fast channel: its own budget; past it a message is dropped, as the next is on its way)
+    if (bin) { if (!s) return; const n = Date.now(); fb = Math.min(FAST_BURST, fb + (n - ft0) * FAST_RATE / 1000); ft0 = n; if (fb < 1) return; fb -= 1; try { fast(s, Buffer.isBuffer(buf) ? buf : Buffer.concat(buf)); } catch (e) { } return; }
     const now = Date.now(); budget = Math.min(BURST, budget + (now - t0) * RATE / 1000); t0 = now;
     if (budget < 1) { if (++over > 3000) ws.terminate(); return; } // (past its budget a message is dropped; a page that keeps on is cut off)
     budget -= 1;
