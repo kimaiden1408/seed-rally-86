@@ -1076,7 +1076,7 @@ html.hsc #hud,html.hsc #replay,html.hsc #reel,html.hsc #flashback{inset:auto;lef
     <div class="assist" role="group" aria-label="Tyre model"><button id="ty_auto" type="button">Auto</button><button id="ty_ring" type="button">Flexible ring</button><button id="ty_classic" type="button">Classic</button></div>
     <p id="tyNote" class="small"></p>
     <h2 class="asth">Graphics</h2>
-    <div class="assist" role="group" aria-label="Graphics quality"><button id="gx_auto" type="button">Auto</button><button id="gx_high" type="button">High</button><button id="gx_medium" type="button">Medium</button><button id="gx_low" type="button">Low</button></div>
+    <div class="assist" role="group" aria-label="Graphics quality"><button id="gx_auto" type="button">Auto</button><button id="gx_high" type="button">High</button><button id="gx_medium" type="button">Medium</button><button id="gx_low" type="button">Low</button><button id="gx_vlow" type="button">Very low</button></div>
     <p id="gfxNote" class="small"></p>
     <h2 class="asth">Detailed wheels</h2>
     <div class="assist" role="group" aria-label="Detailed wheels"><button id="wv_on" type="button">On</button><button id="wv_off" type="button">Off</button></div>
@@ -11458,6 +11458,14 @@ I18N_MORE.zh.push(...["直连", "直连已开启：你的赛车数据直接发�
 I18N_MORE.es.push(...["Conexión directa", "Conexión directa activada: los datos de tu coche van directamente a los navegadores de los demás pilotos, la vía más rápida, por lo que pueden ver tu dirección de internet (IP). Desactívala para que todo pase por el servidor de carreras.", "Conexión directa desactivada: todo pasa por el servidor de carreras, algo más lento, y nadie ve tu dirección de internet.", "{0} ms", "{0} ms, directa"]);
 I18N_MORE.fr.push(...["Liaison directe", "Liaison directe activée : les données de votre voiture vont directement aux navigateurs des autres pilotes, la voie la plus rapide, ils peuvent donc voir votre adresse internet (IP). Désactivez-la pour tout faire passer par le serveur de course.", "Liaison directe désactivée : tout passe par le serveur de course, un peu plus lentement, et personne ne voit votre adresse internet.", "{0} ms", "{0} ms, directe"]);
 I18N_MORE.de.push(...["Direktverbindung", "Direktverbindung an: Die Daten deines Autos gehen direkt an die Browser der anderen Fahrer, der schnellste Weg, daher können sie deine Internetadresse (IP) sehen. Schalte sie aus, damit alles über den Rennserver läuft.", "Direktverbindung aus: Alles läuft über den Rennserver, etwas langsamer, und niemand sieht deine Internetadresse.", "{0} ms", "{0} ms, direkt"]);
+// (the graphics setting for old phones: its name and its note)
+I18N_MORE.k.push(...["Very low", "For old phones and modest computers, drawn as the racing games of the early 2000s drew them: no shadow map (each car on a soft shade of its own), plain wheels, lower resolution, and a steady 30 frames a second when 60 cannot be held."]);
+I18N_MORE.ko.push(...["매우 낮음", "오래된 휴대폰과 보통 사양 컴퓨터용. 2000년대 초 레이싱 게임처럼 그립니다: 그림자 맵 없이(차마다 부드러운 그림자를 따로 깔고), 단순한 바퀴, 낮은 해상도, 초당 60프레임을 유지할 수 없으면 안정적인 30프레임."]);
+I18N_MORE.ja.push(...["最低", "古いスマートフォンや控えめなコンピューター向け。2000年代初めのレースゲームのように描きます：シャドウマップなし（車ごとに柔らかい影を敷く）、シンプルなホイール、低い解像度、毎秒60フレームを保てないときは安定した30フレーム。"]);
+I18N_MORE.zh.push(...["最低", "适合旧手机和配置一般的电脑，按 2000 年代初赛车游戏的方式绘制：不用阴影贴图（每辆车下方各铺一块柔和的阴影）、简化车轮、较低分辨率，无法保持每秒 60 帧时稳定在 30 帧。"]);
+I18N_MORE.es.push(...["Muy bajos", "Para móviles antiguos y ordenadores modestos, dibujado como lo hacían los juegos de carreras de principios de los 2000: sin mapa de sombras (cada coche sobre una sombra suave propia), ruedas sencillas, menos resolución y 30 fotogramas por segundo estables cuando no se pueden mantener 60."]);
+I18N_MORE.fr.push(...["Très bas", "Pour les vieux téléphones et les ordinateurs modestes, dessiné comme les jeux de course du début des années 2000 : pas de carte d'ombres (chaque voiture sur une ombre douce à elle), roues simples, résolution réduite, et 30 images par seconde stables quand 60 ne peuvent pas être tenues."]);
+I18N_MORE.de.push(...["Sehr niedrig", "Für alte Handys und schwächere Computer, gezeichnet wie die Rennspiele der frühen 2000er: keine Schattenkarte (jedes Auto auf einem eigenen weichen Schatten), einfache Räder, geringere Auflösung und gleichmäßige 30 Bilder pro Sekunde, wenn 60 nicht zu halten sind."]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -11618,7 +11626,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = 'A71C';
+const SR86_BUILD = '3F8D';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -11738,55 +11746,139 @@ const BG_ON = new Float32Array([0, 1 / 64, 1 / 36]); // on (1) or off; one over 
 // ---------- renderer ----------
 // The picture is set to what the computer can draw smoothly. Graphics 'auto' (the default) starts from what the browser
 // tells of the graphics chip and memory (a chip built into the processor, as most laptops and office computers have, or
-// a phone's, starts lower) and then, on a stage, watches the frame rate and steps the drawing resolution down when it
-// falls under about 50 frames a second, and back up when there is time to spare. High, medium and low fix the level:
+// a phone's, starts lower; the oldest phones' chips, little memory or drawing in software start at the lowest) and from
+// where it settled the last time on this computer, and then, on a stage, watches the frame rate and steps the drawing
+// resolution down when it falls under about 50 frames a second, then the setting itself, down to the lowest and on it a
+// steady 30 frames a second; and back up when there is time to spare. High, medium, low and very low fix the level:
 //   high: edges smoothed, up to 1.5 pixels to each screen pixel on a sharp screen, soft-edged shadows;
 //   medium: edges smoothed, one pixel to each screen pixel, plain shadows;
 //   low: no edge smoothing (from the next load), the picture drawn at 80% and scaled up, coarser shadows, the glass's
-//     maps (water and dirt on the windscreen) smaller and refreshed less often.
+//     maps (water and dirt on the windscreen) smaller and refreshed less often;
+//   very low (for old phones and modest computers, drawn as the racing games of the early 2000s drew a car on a small
+//     console): no shadow map at all - each car's shadow a soft shade laid on the ground under it and away from the sun,
+//     the rest of the country's shade in its own colours as on every setting - the plain wheels, no running gear under
+//     the car, fewer tufts and plants, the picture drawn at 70% (as low as half) and, when even then 60 frames a second
+//     can't be held, a steady 30.
 // Whatever the level, the lights only night needs (the car's lamps, the start's floodlight, the flares) are left out
-// of daylight stages, and every material is made ready at the start of a stage rather than the first time it shows.
+// of daylight stages, and every material is made ready at the start of a stage rather than the first time it shows. On
+// a screen faster than 60 frames a second, a modest graphics chip draws no more than 60.
 const GFX_LEVELS = {
   high: { name: 'High', aa: true, scale: [1, 1.5], soft: true, shadow: 2048, sbox: 26, glass: 2048, view: 1.5 },
   medium: { name: 'Medium', aa: true, scale: [0.8, 1], soft: false, shadow: 1024, sbox: 14, glass: 1024, view: 1.2 },
-  low: { name: 'Low', aa: false, scale: [0.6, 0.8], soft: false, shadow: 512, sbox: 14, glass: 512, view: 1 }
+  low: { name: 'Low', aa: false, scale: [0.6, 0.8], soft: false, shadow: 512, sbox: 14, glass: 512, view: 1 },
+  vlow: { name: 'Very low', aa: false, scale: [0.5, 0.7], soft: false, shadow: 0, sbox: 14, glass: 256, view: 0.9 }
 };
+const GFX_ORDER = ['high', 'medium', 'low', 'vlow'];
+// what a graphics chip's name says of it: the oldest phones' chips (Mali's 400s and T-series, Adreno's 200s to 400s,
+// PowerVR's SGX) and drawing in software, the lowest; the first of Mali's G-series, Adreno's 500s and its slowest 600s,
+// PowerVR's later ones, low; the rest of the phones' and the chips built into processors, medium; the rest, high
+function gfxTier(r, coarse) {
+  let m;
+  if (/SwiftShader|llvmpipe|Software|Mesa Offscreen|Basic Render/i.test(r)) return 'vlow';
+  if (/Mali-?T\d|Mali-?[2-4]\d\d\b/i.test(r)) return 'vlow';
+  if ((m = /Mali-?G(\d+)/i.exec(r))) return [31, 51, 52, 71, 72].includes(+m[1]) ? 'low' : 'medium';
+  if ((m = /Adreno[^0-9]*(\d{3})/i.exec(r))) { const n = +m[1]; return n < 500 ? 'vlow' : n < 616 ? 'low' : 'medium'; }
+  if (/SGX/i.test(r)) return 'vlow';
+  if (/PowerVR|GE8\d{3}|BXM/i.test(r)) return 'low';
+  if (/Intel|UHD|HD Graphics|Iris|Mali|Adreno|Apple GPU|Xclipse/i.test(r) || coarse) return 'medium';
+  return 'high';
+}
 const Gfx = {
-  pref: ['auto', 'high', 'medium', 'low'].includes(lsGet('sr86.gfx', 'auto')) ? lsGet('sr86.gfx', 'auto') : 'auto',
+  pref: ['auto', 'high', 'medium', 'low', 'vlow'].includes(lsGet('sr86.gfx', 'auto')) ? lsGet('sr86.gfx', 'auto') : 'auto',
   weak: false, level: 'high', scale: 1, ema: 1 / 60, slowT: 0, fastT: 0, lastDown: -1e9, t: 0,
-  // what the browser says about the graphics chip: one inside the processor or a phone's (or drawing in software), or
-  // little memory, counts as modest
+  // (fps30: drawing a steady 30 frames a second, the lowest setting's last step; the frames that come from the screen
+  // and the last one drawn; how long to wait before trying 60 again; the time spent fast at the top of the setting; the
+  // milliseconds a frame's own work takes, smoothed - the game's and the drawing's on the processor)
+  fps30: false, lastF: -1e9, lastRaf: -1e9, rafEma: 16.7, wait60: 30, upT: 0, tier: 'high', busy: 8, pend: false,
+  // what the browser says about the graphics chip (kept from the last visit in this browser: a page that asks for it
+  // makes a drawing surface of its own to do so, which takes a while on a phone): one inside the processor or a phone's
+  // (or drawing in software), or little memory, counts as modest; its tier as gfxTier says, no higher than its memory
+  // allows. On auto the level is the one settled on the last time on this chip, if it was
   probe() {
-    let r = ''; try { const c = document.createElement('canvas'), gl = c.getContext('webgl') || c.getContext('experimental-webgl'); if (gl) { const ext = gl.getExtension('WEBGL_debug_renderer_info'); r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)); const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext(); } } catch (e) { }
-    const coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
-    this.gpu = r; this.weak = /Intel|UHD|HD Graphics|Iris|Mali|Adreno|PowerVR|SwiftShader|llvmpipe|Software|Mesa Offscreen/i.test(r) || (navigator.deviceMemory || 8) <= 4 || coarse;
-    this.level = this.pref === 'auto' ? (this.weak ? 'medium' : 'high') : this.pref; this.scale = this.range()[1];
+    const ua = navigator.userAgent || '', kept = lsGet('sr86.gpu', null); let r = '';
+    if (kept && kept.ua === ua && typeof kept.r === 'string') r = kept.r;
+    else { try { const c = document.createElement('canvas'), gl = c.getContext('webgl') || c.getContext('experimental-webgl'); if (gl) { const ext = gl.getExtension('WEBGL_debug_renderer_info'); r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)); const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext(); } } catch (e) { }
+      lsSet('sr86.gpu', { ua, r }); }
+    const coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches), mem = navigator.deviceMemory || 8;
+    this.gpu = r; this.weak = /Intel|UHD|HD Graphics|Iris|Mali|Adreno|PowerVR|SwiftShader|llvmpipe|Software|Mesa Offscreen/i.test(r) || mem <= 4 || coarse;
+    let t = gfxTier(r, coarse); const cap = mem <= 1 ? 'vlow' : mem <= 2 ? 'low' : mem <= 4 ? 'medium' : 'high'; if (GFX_ORDER.indexOf(cap) > GFX_ORDER.indexOf(t)) t = cap;
+    if (t === 'high' && this.weak) t = 'medium'; this.tier = t;
+    const memo = this.memo(); this.level = this.pref === 'auto' ? (memo ? memo.lv : t) : this.pref; this.fps30 = this.pref === 'auto' && !!(memo && memo.lv === 'vlow' && memo.f30);
+    this.scale = this.range()[1];
     return this;
   },
+  // (on auto, where it settled the last time on this graphics chip: kept as it steps down, and one step up when a whole
+  // minute went by fast at the top of a setting)
+  memo() { const m = lsGet('sr86.gfxAuto', null); return m && m.gpu === this.gpu && GFX_LEVELS[m.lv] ? m : null; },
+  remember() { if (this.pref === 'auto') lsSet('sr86.gfxAuto', { gpu: this.gpu, lv: this.level, f30: this.fps30 }); },
+  // (the lowest setting, or the low)
+  lo() { return this.level === 'low' || this.level === 'vlow'; },
   // the level's lowest and highest drawing resolution (pixels to each screen pixel), never past the screen's own (or 1.5)
   range() { const cap = Math.min(window.devicePixelRatio || 1, 1.5), L = GFX_LEVELS[this.level], hi = Math.min(cap, L.scale[1]); return [Math.min(hi, L.scale[0]), hi]; },
   // edge smoothing is fixed when the drawing surface is made: on, unless low or a modest chip on auto
   aa() { return this.pref === 'auto' ? !this.weak : GFX_LEVELS[this.pref].aa; },
   get L() { return GFX_LEVELS[this.level]; },
-  // the drawing resolution, the shadows' type and size (a change of type rebuilds every material, so it is made only
-  // when the level changes)
+  // the drawing resolution, the shadows' type and size (a change of type, or shadows on or off, rebuilds every material,
+  // so it is made only when the level is chosen or a stage is built, not while driving: then the shadow map is cleared
+  // once and left so - no shadows from it, at no cost - and the car's shade takes its place, see CarShade)
   apply(first, live) {
-    const L = this.L, px = this.scale;
+    const L = this.L, px = this.scale, sm = renderer.shadowMap, on = L.shadow > 0;
     if (renderer.getPixelRatio() !== px) { renderer.setPixelRatio(px); if (!first) resize(); }
+    let re = false;
+    if (!live && sm.enabled !== on) { sm.enabled = on; re = true; }
     const type = L.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     // (the type is not changed while driving: it would rebuild every material at once)
-    if (renderer.shadowMap.type !== type && !live) { renderer.shadowMap.type = type; if (!first) scene.traverse(o => { const m = o.material; if (m) for (const q of Array.isArray(m) ? m : [m]) q.needsUpdate = true; }); }
-    if (sun.shadow.mapSize.x !== L.shadow) { sun.shadow.mapSize.set(L.shadow, L.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+    if (on && sm.type !== type && !live) { sm.type = type; re = true; }
+    if (re && !first) for (const S of [scene, carScene]) S.traverse(o => { const m = o.material; if (m) for (const q of Array.isArray(m) ? m : [m]) if (q) q.needsUpdate = true; });
+    if (on && sun.shadow.mapSize.x !== L.shadow) { sun.shadow.mapSize.set(L.shadow, L.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+    sm.autoUpdate = true; this.pend = false; if (!on && sm.enabled) this.clearShadow();
     { const hb = L.sbox || 14, sc = sun.shadow.camera; if (sc.right !== hb) { sc.left = -hb; sc.right = hb; sc.top = hb; sc.bottom = -hb; sc.updateProjectionMatrix(); } } Light.mode(live);
+    if (!first) this.parts();
   },
-  set(pref) { this.pref = pref; lsSet('sr86.gfx', pref); this.level = pref === 'auto' ? (this.weak ? 'medium' : 'high') : pref; this.scale = this.range()[1]; this.apply(false); this.render(); },
-  // on a stage: the frame time, smoothed; on auto, the resolution follows it (down quickly, up slowly)
+  // (the shadow map with nothing in it, kept so: white is as far as it reaches, so nothing is in shadow. Not made yet - a
+  // new size of it - it is made by the next frame's drawing and cleared after it: see frame)
+  clearShadow() {
+    const sm = renderer.shadowMap, map = sun.shadow.map; this.pend = !map; if (!map) return;
+    const rt = renderer.getRenderTarget(), cc = renderer.getClearColor(new THREE.Color()), ca = renderer.getClearAlpha();
+    renderer.setRenderTarget(map); renderer.setClearColor(0xffffff, 1); renderer.clear(true, true, false); renderer.setRenderTarget(rt); renderer.setClearColor(cc, ca);
+    sm.autoUpdate = false; sm.needsUpdate = false;
+  },
+  // what follows the level as it runs: the cars' running gear (none on the lowest setting; see MechParts)
+  parts() { const vl = this.level === 'vlow'; for (const S of [scene, carScene]) S.traverse(o => { if (o.name === 'RunningGear' && o.isMesh) o.visible = !vl; }); },
+  // (a run started: the level the game stepped down to while driving, now made whole - its shaders and its shadows - if
+  // it is not yet; the run's warming up then builds what that takes)
+  stage() { const g = [4, 3, 2][Light.q()]; if (renderer.shadowMap.enabled !== (this.L.shadow > 0) || renderer.gammaFactor !== g) this.apply(false, false); },
+  set(pref) { this.pref = pref; lsSet('sr86.gfx', pref); const memo = pref === 'auto' ? this.memo() : null; this.level = pref === 'auto' ? (memo ? memo.lv : this.tier) : pref; this.fps30 = !!(memo && memo.lv === 'vlow' && memo.f30); this.upT = 0; this.scale = this.range()[1]; this.apply(false); this.render(); },
+  // a frame left out (true): on a screen faster than about 100 frames a second a modest graphics chip draws no more than
+  // 60; the lowest setting, at its last step, a steady 30 (each frame drawn as the screen's next comes, so they come
+  // evenly). The frames the screen offers are timed as they come, to know how fast it is
+  skip(now) {
+    const d = now - this.lastRaf; this.lastRaf = now; if (d > 2 && d < 100) this.rafEma += (d - this.rafEma) * 0.05;
+    const iv = this.fps30 ? 1000 / 30 : this.weak && this.rafEma < 9.5 ? 1000 / 60 : 0;
+    if (iv && now - this.lastF < iv - 4) return true;
+    this.lastF = now; return false;
+  },
+  // on a stage: the frame time, smoothed; on auto, the resolution follows it (down quickly, up slowly), then the setting,
+  // and on the lowest (on auto or chosen) the frame rate: a steady 30 when even the lowest can't hold 60, tried again at
+  // 60 after half a minute, a minute, two... at a time, and only when a frame's own work leaves room for 60 (11 ms of
+  // the 16). Each step down is kept for the next visit (auto); a minute fast at the top of a setting lets the next visit
+  // start one setting up
   tick(raw, running) {
-    this.t += raw; if (!running || this.pref !== 'auto' || raw > 0.25) return; this.ema += (raw - this.ema) * 0.05;
+    this.t += raw; if (!running || raw > 0.25) return; const iv = this.fps30 ? 1 / 30 : 1 / 60; this.ema += (raw - this.ema) * 0.05;
+    const auto = this.pref === 'auto'; if (!auto && this.level !== 'vlow') return;
     const [lo, hi] = this.range();
-    if (this.ema > 0.0205) { this.slowT += raw; this.fastT = 0; } else if (this.ema < 0.0172) { this.fastT += raw; this.slowT = 0; } else { this.slowT = 0; this.fastT = 0; }
-    if (this.slowT > 2.5) { this.slowT = 0; this.lastDown = this.t; if (this.scale > lo + 1e-3) this.scale = Math.max(lo, Math.round((this.scale - 0.1) * 100) / 100); else if (this.level !== 'low') { this.level = this.level === 'high' ? 'medium' : 'low'; this.scale = Math.min(this.scale, this.range()[1]); } else return; this.apply(false, true); }
-    if (this.fastT > 10 && this.t - this.lastDown > 30 && this.scale < hi - 1e-3) { this.fastT = 0; this.scale = Math.min(hi, Math.round((this.scale + 0.1) * 100) / 100); this.apply(false, true); }
+    if (this.ema > iv * 1.23) { this.slowT += raw; this.fastT = 0; } else if (this.ema < iv * 1.03) { this.fastT += raw; this.slowT = 0; } else { this.slowT = 0; this.fastT = 0; }
+    if (this.slowT > 2.5) { this.slowT = 0; this.lastDown = this.t; this.upT = 0;
+      if (auto && this.scale > lo + 1e-3) this.scale = Math.max(lo, Math.round((this.scale - 0.1) * 100) / 100);
+      else if (auto && this.level !== 'vlow') { this.level = GFX_ORDER[GFX_ORDER.indexOf(this.level) + 1]; this.scale = Math.min(this.scale, this.range()[1]); }
+      else if (this.level === 'vlow' && !this.fps30) { this.fps30 = true; this.ema = 1 / 30; }
+      else return;
+      this.apply(false, true); this.remember(); return; }
+    if (this.fastT > 10 && this.t - this.lastDown > (this.fps30 ? this.wait60 : 30)) { this.fastT = 0;
+      if (this.fps30) { if (this.busy > 11) return; this.fps30 = false; this.ema = 1 / 60; this.lastDown = this.t; this.wait60 = Math.min(240, this.wait60 * 2); this.remember(); }
+      else if (auto && this.scale < hi - 1e-3) { this.scale = Math.min(hi, Math.round((this.scale + 0.1) * 100) / 100); this.apply(false, true); } }
+    if (auto && !this.fps30 && this.scale >= hi - 1e-3 && this.ema < iv * 1.03) { this.upT += raw;
+      if (this.upT > 60) { this.upT = 0; const i = GFX_ORDER.indexOf(this.level), up = GFX_ORDER[Math.max(GFX_ORDER.indexOf(this.tier), i - 1)]; if (up !== this.level) lsSet('sr86.gfxAuto', { gpu: this.gpu, lv: up, f30: false }); } }
   },
   // the lights only night needs: in the scene for a stage run in the dark (or into dusk), left out in daylight, where
   // every lit surface would still work them out at nothing (a change rebuilds the materials, so it is made at the start)
@@ -11834,24 +11926,84 @@ const Gfx = {
     for (const [m, cp] of was) { const pr = P.get(m); if (pr.currentProgram !== cp) { pr.currentProgram = undefined; m.needsUpdate = true; } }
   },
   render() {
-    for (const k of ['auto', 'high', 'medium', 'low']) { const b = $('#gx_' + k); if (b) b.setAttribute('aria-pressed', this.pref === k ? 'true' : 'false'); }
+    for (const k of ['auto', 'high', 'medium', 'low', 'vlow']) { const b = $('#gx_' + k); if (b) b.setAttribute('aria-pressed', this.pref === k ? 'true' : 'false'); }
     const n = $('#gfxNote'); if (!n) return;
-    n.textContent = this.pref === 'auto' ? `Picks the picture for this computer (${GFX_LEVELS[this.level].name.toLowerCase()} now${this.weak ? ', a modest graphics chip' : ''}) and lowers the drawing resolution if the frame rate drops.` : this.pref === 'low' ? 'For modest computers: lower resolution, coarser shadows, no edge smoothing after the next load.' : this.pref === 'medium' ? 'Edges smoothed, full resolution, plain shadows.' : 'Everything at its best: for a strong graphics card.';
+    n.textContent = this.pref === 'auto' ? `Picks the picture for this computer (${GFX_LEVELS[this.level].name.toLowerCase()} now${this.weak ? ', a modest graphics chip' : ''}) and lowers the drawing resolution if the frame rate drops.` : this.pref === 'vlow' ? 'For old phones and modest computers, drawn as the racing games of the early 2000s drew them: no shadow map (each car on a soft shade of its own), plain wheels, lower resolution, and a steady 30 frames a second when 60 cannot be held.' : this.pref === 'low' ? 'For modest computers: lower resolution, coarser shadows, no edge smoothing after the next load.' : this.pref === 'medium' ? 'Edges smoothed, full resolution, plain shadows.' : 'Everything at its best: for a strong graphics card.';
     if (this.aa() !== this.aaOn) n.textContent += ' Edge smoothing changes when the page is next opened.';
   }
 }.probe();
+// ---------- the graphics card spared repeated calls ----------
+// Every call into WebGL goes from the page to the browser's graphics process, and each costs some microseconds of the
+// page's own time (a slow phone's processor, several times that) however little it does. three.js tells the card again,
+// for every object drawn with instances (the trees, the rocks, the grass, the crowd), which buffer each of its vertex
+// attributes reads and how - some three hundred calls a frame that change nothing, as the card holds those already
+// (they are part of the vertex array the object's drawing binds). So the calls that set them are passed on only when
+// they change something: a buffer bound where the same buffer is bound already, an attribute pointed where it already
+// points (in the vertex array bound now) - each is a call the card would carry out as nothing. What the card holds is
+// exactly what it held before; only the empty calls are left out.
+function glQuiet(gl) {
+  if (!gl || gl.__quiet) return; gl.__quiet = true;
+  const AB = 0x8892, EAB = 0x8893, S = new Map(), mk = () => ({ e: undefined, p: [] });
+  // (the vertex array bound now and its state; the array buffer the page has bound, and the one the card has bound -
+  // undefined while not known: a bind of the array buffer is passed on only when something uses it)
+  let cur = mk(), curV = null, want, ab;
+  S.set(null, cur);
+  const bb = gl.bindBuffer, vap = gl.vertexAttribPointer, vaip = gl.vertexAttribIPointer, db = gl.deleteBuffer;
+  let reset = () => { S.clear(); cur = mk(); S.set(null, cur); curV = null; want = undefined; ab = undefined; };
+  const flush = () => { if (want !== ab || ab === undefined) { bb.call(gl, AB, want === undefined ? null : want); ab = want === undefined ? null : want; } };
+  gl.bindBuffer = function (t, b) {
+    if (t === AB) { want = b; return; }
+    if (t === EAB) { if (b === cur.e) return; cur.e = b; }
+    return bb.call(this, t, b);
+  };
+  gl.vertexAttribPointer = function (i, s, t, n, st, o) {
+    const p = cur.p[i];
+    if (p && p.b === want && want !== undefined && p.s === s && p.t === t && p.n === n && p.st === st && p.o === o && !p.i) return;
+    flush(); if (p) { p.b = want; p.s = s; p.t = t; p.n = n; p.st = st; p.o = o; p.i = false; } else cur.p[i] = { b: want, s, t, n, st, o, i: false };
+    return vap.call(this, i, s, t, n, st, o);
+  };
+  if (vaip) gl.vertexAttribIPointer = function (i, s, t, st, o) { flush(); cur.p[i] = { b: want, s, t, n: false, st, o, i: true }; return vaip.call(this, i, s, t, st, o); };
+  // (what reads or writes through the array buffer's binding finds the page's own there)
+  for (const k of ['bufferData', 'bufferSubData', 'getBufferSubData', 'getBufferParameter']) { const f = gl[k]; if (f) gl[k] = function (t, ...a) { if (t === AB) flush(); return f.call(this, t, ...a); }; }
+  { const f = gl.copyBufferSubData; if (f) gl.copyBufferSubData = function (r, w, ...a) { if (r === AB || w === AB) flush(); return f.call(this, r, w, ...a); }; }
+  { const f = gl.getParameter; gl.getParameter = function (pn) { if (pn === 0x8894) flush(); return f.call(this, pn); }; }
+  gl.deleteBuffer = function (b) {
+    // (a buffer deleted is unbound from where it is bound now: the array buffer, and the vertex array bound now)
+    if (b != null) { if (b === want) want = null; if (b === ab) ab = null; if (cur.e === b) cur.e = null; for (const p of cur.p) if (p && p.b === b) p.b = undefined; }
+    return db.call(this, b);
+  };
+  const bindV = (bind, self) => function (v) { const k = v || null; if (k === curV) return; curV = k; cur = S.get(k) || (S.set(k, mk()), S.get(k)); return bind.call(this, v); };
+  const delV = (del) => function (v) { if (v != null) { S.delete(v); if (curV === v) { curV = null; cur = S.get(null); } } return del.call(this, v); };
+  if (gl.bindVertexArray) { gl.bindVertexArray = bindV(gl.bindVertexArray); gl.deleteVertexArray = delV(gl.deleteVertexArray); }
+  else { const ge = gl.getExtension;
+    // (WebGL 1: the vertex arrays come from an extension, the same object each time it is asked for)
+    gl.getExtension = function (nm) { const e = ge.call(this, nm); if (e && nm === 'OES_vertex_array_object' && !e.__quiet) { e.__quiet = true; e.bindVertexArrayOES = bindV(e.bindVertexArrayOES); e.deleteVertexArrayOES = delV(e.deleteVertexArrayOES); } return e; };
+    gl.getExtension('OES_vertex_array_object'); }
+  // (the texture unit made active is passed on only when something uses it: three.js makes each of a material's units
+  // active in turn at every drawing, to bind what is bound there already)
+  { const at = gl.activeTexture; let wu, u;
+    const flushT = () => { if (wu !== u || u === undefined) { if (wu === undefined) return; at.call(gl, wu); u = wu; } };
+    gl.activeTexture = function (t) { wu = t; };
+    for (const k of ['bindTexture', 'texImage2D', 'texSubImage2D', 'copyTexImage2D', 'copyTexSubImage2D', 'compressedTexImage2D', 'compressedTexSubImage2D', 'texParameterf', 'texParameteri', 'getTexParameter', 'generateMipmap',
+      'texImage3D', 'texSubImage3D', 'copyTexSubImage3D', 'compressedTexImage3D', 'compressedTexSubImage3D', 'texStorage2D', 'texStorage3D']) { const f = gl[k]; if (f) gl[k] = function (...a) { flushT(); return f.apply(this, a); }; }
+    const gp = gl.getParameter; gl.getParameter = function (pn) { if (pn === 0x84E0 || pn === 0x8069 || pn === 0x8514 || pn === 0x806A || pn === 0x8C1D) flushT(); return gp.call(this, pn); };
+    const r0 = reset; reset = () => { r0(); wu = undefined; u = undefined; }; }
+  try { gl.canvas.addEventListener('webglcontextlost', () => reset()); gl.canvas.addEventListener('webglcontextrestored', () => reset()); } catch (e) { }
+}
 const canvas = $('#gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: Gfx.aa(), powerPreference: 'high-performance' }); Gfx.aaOn = Gfx.aa();
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: Gfx.aa(), powerPreference: 'high-performance' }); Gfx.aaOn = Gfx.aa(); glQuiet(renderer.getContext());
+// (the chip's name as the game's own drawing surface gives it: kept for the next visit if it differs from the one kept)
+try { const gl = renderer.getContext(), e = gl.getExtension('WEBGL_debug_renderer_info'), r = String(e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)); if (r && r !== Gfx.gpu) lsSet('sr86.gpu', { ua: navigator.userAgent || '', r }); } catch (e) { }
 // (where the browser offers it, shader programs may be compiled on its own threads, several at once: see Gfx.warmBg)
 try { renderer.getContext().getExtension('KHR_parallel_shader_compile'); } catch (e) { }
 renderer.setPixelRatio(Gfx.scale);
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = Gfx.L.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+renderer.shadowMap.enabled = Gfx.L.shadow > 0; renderer.shadowMap.type = Gfx.L.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
 // (the scene itself never moves: left to update its own matrix, it would mark itself changed every frame, and three.js
 // would then work out again the world matrix of everything in it, the stage's frozen objects too, see freezeStatic)
 const scene = new THREE.Scene(); scene.matrixAutoUpdate = false;
 const camera = new THREE.PerspectiveCamera(68, 1, 0.5, 1400);
 const hemi = new THREE.HemisphereLight(0xdfe9f3, 0x4a4030, 0.75); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff1dc, 0.95); sun.castShadow = true; sun.shadow.mapSize.set(Gfx.L.shadow, Gfx.L.shadow);
+const sun = new THREE.DirectionalLight(0xfff1dc, 0.95); sun.castShadow = true; sun.shadow.mapSize.set(Gfx.L.shadow || 512, Gfx.L.shadow || 512);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 120 }); sun.shadow.camera.updateProjectionMatrix(); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; scene.add(sun); scene.add(sun.target);
 // ---------- light: the picture in linear light, through a filmic curve, lit by its own sky ----------
 // Light adds, mixes and fades in proportion to its energy; a screen's colour values are not (sRGB). So the picture is
@@ -12105,20 +12257,27 @@ vec3 hazeC(vec3 c0) { return c0; }
 // the shadow map's own grid (in the sun's frame), so a shadow's edge stays where it is as the square moves with the car,
 // instead of crawling.
 { const hb = Gfx.L.sbox || 14, sc = sun.shadow.camera; sc.left = -hb; sc.right = hb; sc.top = hb; sc.bottom = -hb; sc.updateProjectionMatrix(); }
+// (the detailed wheels as the player has them, but the plain ones on the very low graphics setting: see WheelViz)
+function wvTick(...a) { if (typeof WheelViz === 'undefined') return; const on = WheelViz.on; if (Gfx.level === 'vlow') WheelViz.on = false; try { WheelViz.tick(...a); } finally { WheelViz.on = on; } }
 // ---------- the shade under a car ----------
 // Under a car the ground sees almost none of the sky, and round its edges only part of it: a dark, soft-edged shade that
 // sits the car on the ground in any light (the sun's shadow alone does it only in sunshine, and only on its far side). It
 // lies on the ground itself under each car drawn (the stage's surface found point by point, so it follows the road's
 // camber and the verge), fading out as the car leaves the ground and as it goes over on its side. One small mesh for each
-// car; not on the lowest graphics setting.
+// car; not on the low graphics setting. On the very low, which has no shadow map, a second one is the car's shadow from
+// the sun, as the racing games of the early 2000s laid it: the car's outline on the ground, moved away from the sun as far
+// as the sun throws the shadow of the car's middle and drawn out along that way (the nearer end less, the far end more,
+// as a body's shadow is), as dark as the sun's share of the light, going as the sun goes in or sinks low.
 const CarShade = {
   L: [], f: 0, tex: null, cfg: { a: 0.75 },
   // (its falloff: a rounded oblong, darkest in the middle, fading out over the outer part)
-  texture() {
-    if (this.tex) return this.tex; const N = 64, d = new Uint8Array(N * N * 4);
-    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = Math.abs((i + 0.5) / N * 2 - 1), y = Math.abs((j + 0.5) / N * 2 - 1), r = Math.pow(x * x * x + y * y * y, 1 / 3), a = Math.pow(1 - smooth(0.45, 1, r), 1.3), k = (j * N + i) * 4;
+  // (sun: the sun's shadow's, its edge firmer: the soft part only the outer quarter, about as soft as a shadow's edge on
+  // the ground a metre or two from the body that throws it)
+  texture(sun) {
+    const key = sun ? 'texS' : 'tex'; if (this[key]) return this[key]; const N = 64, d = new Uint8Array(N * N * 4), e0 = sun ? 0.72 : 0.45, pw = sun ? 1 : 1.3;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = Math.abs((i + 0.5) / N * 2 - 1), y = Math.abs((j + 0.5) / N * 2 - 1), r = Math.pow(x * x * x + y * y * y, 1 / 3), a = Math.pow(1 - smooth(e0, 1, r), pw), k = (j * N + i) * 4;
       d[k] = d[k + 1] = d[k + 2] = Math.round(255 * a); d[k + 3] = 255; }
-    const t = new THREE.DataTexture(d, N, N, THREE.RGBAFormat); t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return this.tex = t;
+    const t = new THREE.DataTexture(d, N, N, THREE.RGBAFormat); t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearFilter; t.needsUpdate = true; return this[key] = t;
   },
   // (a car's own: a grid of five by seven points over its footprint and a little beyond, set on the ground every frame,
   // so it follows the ruts)
@@ -12147,12 +12306,25 @@ const CarShade = {
     // (it is the sky's light the car keeps off the ground: in sunshine, where most of the light is the sun's, the shade
     // round its edges is lighter - under it the sun's shadow does the rest)
     const sI = Atmos.moonLight ? 0 : sun.intensity * Math.max(0, Atmos.lightDir.y), sk = hemi.intensity / Math.max(1e-3, hemi.intensity + sI);
-    const up = 1 - 2 * (q.x * q.x + q.z * q.z), a = k * this.cfg.a * (0.55 + 0.45 * sk) * (1 - smooth(0.1, 0.9, p.y - this.at(T, s, p.x, p.z))) * smooth(0.35, 0.8, up);
-    if (a < 0.01) { s.m.visible = false; return; }
-    const P = s.P; let n = 0;
+    const up = 1 - 2 * (q.x * q.x + q.z * q.z), hy = p.y - this.at(T, s, p.x, p.z), a = k * this.cfg.a * (0.55 + 0.45 * sk) * (1 - smooth(0.1, 0.9, hy)) * smooth(0.35, 0.8, up);
+    if (a < 0.01) s.m.visible = false;
+    else { const P = s.P; let n = 0;
+      for (let j = 0; j < s.nz; j++) { const lz = s.zc + (j / (s.nz - 1) * 2 - 1) * s.hz;
+        for (let i = 0; i < s.nx; i++) { const lx = (i / (s.nx - 1) * 2 - 1) * s.hx, x = p.x + fz * lx + fx * lz, z = p.z - fx * lx + fz * lz; P[n++] = x; P[n++] = this.at(T, s, x, z) + 0.03; P[n++] = z; } }
+      s.m.geometry.attributes.position.needsUpdate = true; s.m.material.opacity = a; s.m.visible = true; if (s.m.parent !== scene) scene.add(s.m); }
+    // (the sun's shadow, where there is no shadow map: see above)
+    const sm = renderer.shadowMap; if (sm.enabled && sm.autoUpdate) return;
+    // (as dark as the share of the light the sun gives - all of which a shadow takes away - less as cloud covers it)
+    const L = Atmos.lightDir, el = L.y, sv = Atmos.u && Atmos.u.uSunVis ? Atmos.u.uSunVis.value : 1, b = k * 0.9 * (1 - sk) * sv * smooth(0.05, 0.2, el) * (1 - smooth(0.6, 1.6, hy)) * smooth(0.35, 0.8, up);
+    let u = m.sunK; if (b < 0.01) { if (u && !u.gone) u.m.visible = false; return; }
+    if (!u || u.gone) { u = m.sunK = this.make(m); u.m.material.alphaMap = this.texture(true); u.m.name = 'CarSunShade'; } u.f = this.f; u.idle = 0;
+    // (the shadow of a body from its sills, about 0.3 m up, to its roof, about 1.35 m: the outline's side toward the sun
+    // moved away from it as far as the sun throws the sills' shadow, the far side as far as it throws the roof's)
+    const hl = Math.hypot(L.x, L.z) || 1, c = hl / Math.max(0.05, el), d0 = Math.min(1.2, 0.3 * c), d1 = Math.min(4.5, 1.35 * c), sx = -L.x / hl, sz = -L.z / hl, rr = Math.max(s.hx, s.hz), P = u.P; let n = 0;
     for (let j = 0; j < s.nz; j++) { const lz = s.zc + (j / (s.nz - 1) * 2 - 1) * s.hz;
-      for (let i = 0; i < s.nx; i++) { const lx = (i / (s.nx - 1) * 2 - 1) * s.hx, x = p.x + fz * lx + fx * lz, z = p.z - fx * lx + fz * lz; P[n++] = x; P[n++] = this.at(T, s, x, z) + 0.03; P[n++] = z; } }
-    s.m.geometry.attributes.position.needsUpdate = true; s.m.material.opacity = a; s.m.visible = true; if (s.m.parent !== scene) scene.add(s.m);
+      for (let i = 0; i < s.nx; i++) { const lx = (i / (s.nx - 1) * 2 - 1) * s.hx, dx = fz * lx + fx * lz, dz = -fx * lx + fz * lz, f = d0 + (d1 - d0) * (clamp((dx * sx + dz * sz) / rr, -1, 1) + 1) / 2, x = p.x + dx + sx * f, z = p.z + dz + sz * f;
+        P[n++] = x; P[n++] = this.at(T, s, x, z) + 0.03; P[n++] = z; } }
+    u.m.geometry.attributes.position.needsUpdate = true; u.m.material.opacity = b; u.m.visible = true; if (u.m.parent !== scene) scene.add(u.m);
   },
   // before each frame is drawn: the car driven (or on show in the menu) has its shade; a shade not set this frame is
   // hidden, and after a few seconds unused let go
@@ -12475,7 +12647,7 @@ function iceRoadTex() {
 // (E: the country, whose gravel and tarmac have their own colours)
 function roadTex(kind, E, lo) { // (lo: the coarse one even on an upper setting - a kind the stage's road never has)
   const pal = E && (kind === 'gravel' ? E.gravel : kind === 'tarmac' ? E.tarmac : null), key = kind + (pal ? ':' + pal[0] : '');
-  if (!lo && Gfx.level !== 'low' && ROAD_HI[kind]) return roadTexHi(kind, pal, key).map;
+  if (!lo && !Gfx.lo() && ROAD_HI[kind]) return roadTexHi(kind, pal, key).map;
   if (TEX[key]) return TEX[key];
   if (kind === 'ice') return TEX.ice = iceRoadTex();
   if (kind === 'concrete') return TEX[key] = concreteTex();
@@ -12925,7 +13097,7 @@ const Atmos = {
       // (the sky's shader is built with them or without them now, before the stage's materials are made ready, and kept
       // so through the run: never rebuilt while driving; and without them in the dead of night, when they cannot be seen)
       { const deep = skyAt(this.Rg, this.t, this.moonAge).sunEl / D2R < -8 && skyAt(this.Rg, this.t + 0.42, this.moonAge).sunEl / D2R < -8;
-        const on = this.cirrus > 0 && Gfx.level !== 'low' && !deep, m = this.dome.material;
+        const on = this.cirrus > 0 && !Gfx.lo() && !deep, m = this.dome.material;
         if (!!m.defines.CIRRUS !== on) { if (on) m.defines.CIRRUS = 1; else delete m.defines.CIRRUS; m.needsUpdate = true; } }
       // the mist in the low ground, on some stages of damp country: how thick, lying how high (from below the road's
       // lowest stretches to over its low quarter) and how deep its layer
@@ -13125,7 +13297,7 @@ const Atmos = {
       u.uBkAmb.value.copy(hemi.color).multiplyScalar(hemi.intensity * 0.9); u.uBkSunL.value.copy(sun.color).multiplyScalar(this.moonLight ? 0 : sun.intensity);
       u.uPx.value = 2 * Math.tan(camera.fov * Math.PI / 360) / Math.max(200, (renderer.domElement.height || 720)); }
     // (on the lowest graphics setting the sky is kept plainer: no high streaks, the far country without its patches)
-    u.uBkQ.value = Gfx.level === 'low' ? 0 : 1; u.uCirrus.value = this.cirrus || 0;
+    u.uBkQ.value = Gfx.lo() ? 0 : 1; u.uCirrus.value = this.cirrus || 0;
     // the mist in the low ground: thickest before and just after sunrise, burnt off as the sun climbs, forming again in
     // the evening and lying through the night; still air only (a wind stirs it away), thinned by cloud and rain, thicker
     // on a misty day; lit by the day, whiter in the sun
@@ -13350,7 +13522,7 @@ onmessage = e => { const d = groundDetData(e.data); postMessage(d, [d.buffer]); 
   stage(T, E, FP) {
     const s = E.season, dry = E.dry ? 0.75 : s === 'dry' ? 0.8 : s === 'wet' ? 0.3 : s === 'summer' ? 0.18 : s === 'autumn' ? 0.4 : s === 'lateautumn' ? 0.35 : s === 'winter' ? 0.55 : 0.05;
     const a = FP ? FP.ang : 0; ENV_U.uGrd.value.set(dry, ENV_U.uGrd.value.y, Math.cos(a), Math.sin(a));
-    if (Gfx.level !== 'low') this.detTex(); // (the ground's grain started now, while the stage is built, so it is there for its first frames)
+    if (!Gfx.lo()) this.detTex(); // (the ground's grain started now, while the stage is built, so it is there for its first frames)
   },
   // every frame: the sun's way and its share of the light (none at night: the relief is lit by the sun alone)
   update() {
@@ -13824,7 +13996,7 @@ const Precip = {
     if (!this.lines) return; const cam = camera.position, k = Atmos.precipK, wx = Atmos.wind.x * Atmos.gust, wz = Atmos.wind.y * Atmos.gust;
     this.camV.copy(cam).sub(this.last).divideScalar(Math.max(dt, 1e-3)); if (this.camV.lengthSq() > 2500) this.camV.set(0, 0, 0); const mvx = cam.x - this.last.x, mvy = cam.y - this.last.y, mvz = cam.z - this.last.z; this.last.copy(cam);
     const wrap = (P, i) => { P[i] = ((P[i] - mvx + 22) % 44 + 44) % 44 - 22; P[i + 1] = ((P[i + 1] - mvy + 5) % 22 + 22) % 22 - 5; P[i + 2] = ((P[i + 2] - mvz + 22) % 44 + 44) % 44 - 22; };
-    const fewer = Gfx.level === 'low' ? 0.6 : 1, nr = Math.round(this.NR * clamp(this.rain * k, 0, 1) * fewer); this.lines.visible = nr > 0; // (fewer drops and flakes on a modest chip)
+    const fewer = Gfx.level === 'vlow' ? 0.4 : Gfx.level === 'low' ? 0.6 : 1, nr = Math.round(this.NR * clamp(this.rain * k, 0, 1) * fewer); this.lines.visible = nr > 0; // (fewer drops and flakes on a modest chip)
     if (nr > 0) { const P = this.rp, O = this.rpos, sx = this.camV.x, sz = this.camV.z, sy = this.camV.y;
       for (let i = 0; i < nr; i++) { const j = i * 3; P[j] += wx * dt; P[j + 1] -= this.rv[i] * dt; P[j + 2] += wz * dt; wrap(P, j);
         const x = cam.x + P[j], y = cam.y + P[j + 1], z = cam.z + P[j + 2], L = 0.024 + 0.006 * this.rain; O[i * 6] = x; O[i * 6 + 1] = y; O[i * 6 + 2] = z; O[i * 6 + 3] = x - (wx - sx) * L; O[i * 6 + 4] = y + (this.rv[i] + sy) * L; O[i * 6 + 5] = z - (wz - sz) * L; }
@@ -14309,7 +14481,7 @@ function cullChunks() {
   // the sun's shadow is worked out over a small square round the car: a piece of the stage away from it casts nothing
   // into it (otherwise every tree in sight would be drawn into the shadow map each frame); as of the last frame's shadow,
   // with room to spare
-  const sc = sun.shadow.camera, sh = !!(sun.castShadow && sc);
+  const sc = sun.shadow.camera, sm = renderer.shadowMap, sh = !!(sun.castShadow && sc && sm.enabled && sm.autoUpdate); // (none on the lowest setting)
   if (sh) { sc.updateMatrixWorld(); _cullM.multiplyMatrices(sc.projectionMatrix, sc.matrixWorldInverse); _cullF.setFromProjectionMatrix(_cullM); planesOf(_cullF, _ipS);
     for (const k of stageChunks) { if (k.cast == null) k.cast = k.m.castShadow; if (!k.cast) continue; _cullS.copy(k.s); _cullS.radius += 12; k.m.castShadow = k.m.visible && _cullF.intersectsSphere(_cullS); } }
   cullInstances(sh); cullPools();
@@ -14980,7 +15152,7 @@ function buildStage(T) {
   const bedCol = (out, x, z, y) => { if (!hasWc || y == null || E.snowy) return out; // (in winter the banks lie under the snow, the bed under the ice)
     const wl = wcLevelAt(T, x, z, 2.5, 7); if (wl === null) return out;
     const t = smooth(wl + 0.45, wl - 0.02, y); if (t > 0) { out.lerp(bedC, t * 0.85); lkMix(0, 0.25, 0.75, 0, t * 0.85); } const wet = smooth(wl + 0.7, wl + 0.15, y) * (1 - t); if (wet > 0) out.multiplyScalar(1 - 0.18 * wet); return out; };
-  const gBare = GROUND_BARE[E.id] || null, patchy = Gfx.level !== 'low', SCR = E.scrub || null, SCRC = SCR ? new THREE.Color(SCR[0]) : null, SCRT = SCR ? 0.5 + 0.26 * (0.5 - SCR[1]) : 0;
+  const gBare = GROUND_BARE[E.id] || null, patchy = !Gfx.lo(), SCR = E.scrub || null, SCRC = SCR ? new THREE.Color(SCR[0]) : null, SCRT = SCR ? 0.5 + 0.26 * (0.5 - SCR[1]) : 0;
   const landCol = (out, x, z, steep, y) => {
     const n = fbm(x / 40, z / 40, T.nseed + 21); lkSet(0, 0, 0, 0);
     out.copy(gcol[0]).lerp(gcol[1], clamp(n * 1.6 - 0.3, 0, 1)).lerp(gcol[2], clamp(fbm(x / 13, z / 13, T.nseed + 4) * 1.5 - 0.8, 0, 1));
@@ -15796,7 +15968,7 @@ function buildStage(T) {
     // a tussock is a fan of seven thin blades leaning out from the root
     const bp = []; for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2 + (k % 2) * 0.4, lean = 0.25 + (k % 3) * 0.12, hgt = 0.75 + (k % 4) * 0.1, ca = Math.cos(a), sa = Math.sin(a), w = 0.07; bp.push(-sa * w, 0, -ca * w, sa * w, 0, ca * w, ca * lean, hgt, -sa * lean); }
     const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); tg.setAttribute('normal', new THREE.Float32BufferAttribute(bp.map((v, k) => k % 3 === 1 ? 1 : 0), 3)); /* lit like the ground they grow from */
-    inst(Gfx.level !== 'low' ? grassTuftGeo(Gfx.level === 'high' ? 7 : 5) : tg, grassMat(), gr, (d, t) => { d.position.set(t.x, t.y - 0.03, t.z); d.rotation.set(t.tl * 0.5, t.a, t.tl * 0.3); d.scale.set(t.s, t.h, t.s); });
+    inst(!Gfx.lo() ? grassTuftGeo(Gfx.level === 'high' ? 7 : 5) : tg, grassMat(), gr, (d, t) => { d.position.set(t.x, t.y - 0.03, t.z); d.rotation.set(t.tl * 0.5, t.a, t.tl * 0.3); d.scale.set(t.s, t.h, t.s); });
   }
   // guard rails: steel W-beam on posts along every drop that needs one, the ends turned down into the ground; on hilly
   // country some runs are a low stone wall instead, as are all along a village street (see parapetAt)
@@ -17135,7 +17307,7 @@ const MechParts = {
     for (const p of parts) this.paint(p, cl);
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('normal', new THREE.BufferAttribute(nor, 3).setUsage(THREE.DynamicDrawUsage)); g.setAttribute('color', new THREE.BufferAttribute(cl, 3));
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.4, 0), 3.4);
-    const mat = this.mat || (this.mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })), mesh = new THREE.Mesh(g, mat); mesh.name = 'RunningGear'; mesh.castShadow = false; mesh.receiveShadow = true;
+    const mat = this.mat || (this.mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })), mesh = new THREE.Mesh(g, mat); mesh.name = 'RunningGear'; mesh.castShadow = false; mesh.receiveShadow = true; mesh.visible = Gfx.level !== 'vlow';
     const M = { mesh, P: parts, nv, prop, fd: S.final, ver: -1, B: new THREE.Matrix4(), W: [0, 1, 2, 3].map(() => new THREE.Matrix4()), Sp: [0, 1, 2, 3].map(() => new THREE.Matrix4()), r: new THREE.Matrix4(), v: new THREE.Vector3(), cam: new THREE.Vector3(),
       Rk: new THREE.Matrix4(), rack: { arm: rack.arm, x0: [0, 1].map(i => rig.wheels[i].piv.position.x) }, A: [0, 1, 2, 3].map(() => new THREE.Matrix4()), G: [0, 1, 2, 3].map(() => new THREE.Matrix4()), H: [0, 1, 2, 3].map(() => new THREE.Matrix4()) };
     mesh.onBeforeRender = (renderer, scene, camera) => this.sync(rig, M, camera);
@@ -26851,7 +27023,7 @@ function startRun() {
   showScreen('hud'); $('#count').textContent = ''; $('#delta').textContent = ''; $('#split').textContent = '';
   Atmos.apply(G.T, stageCond(G.T)); Wipers.phase = 0; Wipers.rest = 0; Wipers.extra = 0; Wipers.pos = Wipers.prev = 0; ScreenFx.reset();
   initTyres(G.car, G.T, G.phys, G.rally && G.rally.tw); // (in a rally, worn as far as they have run since service)
-  Gfx.bgSteps = null; Gfx.warm(G.mesh); // (what the menu had not got to yet, now)
+  Gfx.bgSteps = null; Gfx.stage(); Gfx.warm(G.mesh); // (what the menu had not got to yet, now)
   G.calledTo = G.noteK; G.callFrom = []; const first = noteCall(G.T, G.T.startIdx * STEP); CoDriver.lock(); Voice.say((G.rally ? Rally.callName() : MP.phase === 'race' ? 'Race stage ' + G.T.seed : G.T.loop && RX.cfg ? (RX.cfg.label || 'Rallycross') : 'Stage ' + G.T.seed) + '. ' + first);
   if (G.rally) Rally.onStart(); else { G.lead = null; $('#rallyTag').textContent = ''; }
   if (G.T.loop && RX.cfg) RX.begin(); else RX.end(true); // (a rallycross race: the rest of the field on the grid; see RX)
@@ -28256,7 +28428,7 @@ function updateRun(dt) {
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0);
     for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); kpShift(w, wh.delta); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
     ckBogies(m, c); fixPose(m, Fix.pose(), KW); }
-  if (typeof WheelViz !== 'undefined') WheelViz.tick(m, c, S, G.spec, dt, false);
+  wvTick(m, c, S, G.spec, dt, false);
   m.sync(); CarDmg.update(m, c, S, dt); Damage.tick(dt); Debris.update(dt); Stones.update();
   // the banner for a car that cannot go on as it is: upturned (help is at hand) or broken (retire)
   { const dd = $('#dmgDead'), D = c.dmg, tap = G.coarse == null ? (G.coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) : G.coarse,
@@ -28525,7 +28697,7 @@ function render() {
   if (inCar) ScreenFx.draw(renderer, cockCam); renderer.autoClear = true;
 }
 function frame(now) {
-  requestAnimationFrame(frame); G.frameNow = now; // (the moment this frame is for: see MP.frameT)
+  requestAnimationFrame(frame); if (Gfx.skip(now)) return; G.frameNow = now; const w0 = performance.now(); // (the moment this frame is for: see MP.frameT)
   const raw = (now - last) / 1000, dt = Math.min(MP.racing() || MP.phase === 'done' ? 0.25 : 0.05, raw); last = now; Gfx.tick(raw, (G.state === 'run' || G.state === 'countdown') && !G.paused && !document.hidden);
   pollInput(dt); MP.tick(dt);
   if (G.state === 'menu' || G.state === 'rally') { updateFlyover(dt); if (G.demo) runDemo(dt); }
@@ -28534,7 +28706,7 @@ function frame(now) {
   Atmos.update(dt, (G.state === 'run' || G.state === 'countdown') && !G.paused);
   if (G.state === 'menu' || G.state === 'rally') { if (G.show) CarLights.update(dt, G.show.mesh, null, true); ScreenFx.hide(); }
   if (!G.paused) Precip.update(G.state === 'replay' ? Replay.dtR : dt); // (in a replay, as fast as it plays)
-  render();
+  render(); if (Gfx.pend) Gfx.clearShadow(); Gfx.busy += (performance.now() - w0 - Gfx.busy) * 0.05; // (the frame's own work, smoothed: see Gfx.tick)
 }
 
 // ---------- car viewer: the menu steps aside so the car can be turned (drag), zoomed (pinch, wheel) and stepped through ----------
@@ -29132,7 +29304,7 @@ function init() {
   $('#go').addEventListener('click', () => { if (busyThen.wait) busyThen.wait(); // (a stage still to be built from the menu's last change: built now, so the stage that starts is the one the menu shows)
     if (Rally.mode === 'mp') { MP.go(); return; } if (Rally.mode === 'rally') { Rally.go(); return; } if (Rally.mode === 'rx') { if ($('#seed').value && G.T && $('#seed').value !== G.T.seed) setSeed($('#seed').value); RXUI.go(); return; } if (!G.T) return; if (!$('#seed').value) setSeed('1'); else if ($('#seed').value !== G.T.seed) setSeed($('#seed').value); startRun(); });
   $('#copy').addEventListener('click', e => copyChallenge(e.currentTarget));
-  for (const k of ['auto', 'high', 'medium', 'low']) { const bt = $('#gx_' + k); if (bt) bt.addEventListener('click', () => Gfx.set(k)); } Gfx.render();
+  for (const k of ['auto', 'high', 'medium', 'low', 'vlow']) { const bt = $('#gx_' + k); if (bt) bt.addEventListener('click', () => Gfx.set(k)); } Gfx.render();
   for (const [id, m] of [['#au_hp', 'hp'], ['#au_sp', 'sp']]) { const bt = $(id); if (bt) bt.addEventListener('click', () => Snd.listen(m)); } Snd.listenUI(); FullScr.init();
   $('#setupBtn').addEventListener('click', () => { if (G.T && G.state === 'menu') { Inspect.close(); SetupUI.open(G.spec, stageEnv(G.T)); } });
   $('#finCopy').addEventListener('click', e => copyChallenge(e.currentTarget));
@@ -29377,7 +29549,7 @@ function plantGeos() {
   // a tussock: seven thin blades leaning out from the root (lit like the ground they grow from)
   { const bp = []; for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2 + (k % 2) * 0.4, lean = 0.25 + (k % 3) * 0.12, hgt = 0.75 + (k % 4) * 0.1, ca = Math.cos(a), sa = Math.sin(a), w = 0.07; bp.push(-sa * w, 0, -ca * w, sa * w, 0, ca * w, ca * lean, hgt, -sa * lean); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(bp, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(bp.map((v, k) => k % 3 === 1 ? 1 : 0), 3)); G.tuft = g; }
-  if (lo !== 'low') G.tuft = grassTuftGeo(lo === 'high' ? 9 : 7); // (the upper settings' fuller clumps)
+  if (lo !== 'low' && lo !== 'vlow') G.tuft = grassTuftGeo(lo === 'high' ? 9 : 7); // (the upper settings' fuller clumps)
   G.drum = new THREE.CylinderGeometry(1, 1, 1, 12, 1, false); // (a closed drum about its middle: a round bale)
   G.disc = new THREE.CircleGeometry(1, 9); // (a flat disc facing +z: a log's cut end)
   G.ring = new THREE.CylinderGeometry(1, 1, 1, 8, 1, true); // (an open band about its middle: a zebra's stripe)
@@ -29418,7 +29590,7 @@ const SPECIES = {
   spruce(A, o) { const { x, y, z, H, R } = o, tr = 0.08 + H * 0.011, r = H * (0.19 + 0.05 * R()), ry = R() * 6.3;
     A('trunk', x, y - 0.3, z, tr, H * 0.3, tr, ry, 0, 0, pc('#4a3a2c', R));
     const tx = (R() - 0.5) * 0.04, tz = (R() - 0.5) * 0.04; A('cone3', x, y + H * 0.05, z, r, H * 0.95, r, ry, tx, tz, pc(['#2c4530', '#243c28', '#30492f'], R, 0.12));
-    if (o.snow > 0.15) { if (Gfx.level !== 'low') A('cone3', x, y + H * 0.056, z, r * 1.03, H * 0.955, r * 1.03, ry, tx, tz, pc(SNOWC, R, 0.03)); else { const k = o.E.heavySnow ? 0.97 : 0.9; A('cone3', x, y + H * 0.09, z, r * k, H * 0.91, r * k, ry, 0, 0, pc(SNOWC, R, 0.03)); } }
+    if (o.snow > 0.15) { if (!Gfx.lo()) A('cone3', x, y + H * 0.056, z, r * 1.03, H * 0.955, r * 1.03, ry, tx, tz, pc(SNOWC, R, 0.03)); else { const k = o.E.heavySnow ? 0.97 : 0.9; A('cone3', x, y + H * 0.09, z, r * k, H * 0.91, r * k, ry, 0, 0, pc(SNOWC, R, 0.03)); } }
     return tr; },
   // a tall pine with a bare trunk, grey below and orange-brown above, its crown high up
   pine(A, o, v) { const { x, y, z, H, R } = o, tr = 0.09 + H * 0.01, lean = (R() - 0.5) * 0.08, ry = R() * 6.3, cols = v && v.c || ['#3a5a32', '#33502e', '#41603a'];
@@ -30084,7 +30256,7 @@ function bakeLine(B, T, path, kind, col, R, solid, hgt, thk) {
 // A: adds a plant part (fence posts, trees in groves, bales and animals share the plants' parts). Returns the places
 // trees must keep out of (houses and their yards).
 function buildProps(ctx) {
-  const { G, T, E, FP, lakes, A, P, N, posAt, gY, snowy } = ctx, B = new Baker(), BS = new Baker(stoneTex()), BL = new Baker(leafTex()), BHo = { b: null }, BH = () => BHo.b || (BHo.b = Gfx.level !== 'low' ? new AtlasBaker(houseAtlas()) : B), R = mulberry32(strHash('props:' + T.seed)), rr = (a, b) => a + (b - a) * R();
+  const { G, T, E, FP, lakes, A, P, N, posAt, gY, snowy } = ctx, B = new Baker(), BS = new Baker(stoneTex()), BL = new Baker(leafTex()), BHo = { b: null }, BH = () => BHo.b || (BHo.b = !Gfx.lo() ? new AtlasBaker(houseAtlas()) : B), R = mulberry32(strHash('props:' + T.seed)), rr = (a, b) => a + (b - a) * R();
   const keep = new SHash(20), keepAt = (x, z, r) => { let hit = false; keep.query(x, z, r + 15, o => { if (!hit && Math.hypot(o.x - x, o.z - z) < o.r + r) hit = true; }); return hit; };
   const A0 = T.arena, roadGap = (x, z) => { if (A0 && x > A0.x0 && x < A0.x1 && z > A0.z0 && z < A0.z1) return 0; const r = T.fieldAt(x, z); return r.np ? r.nd - r.np.w / 2 : 1e9; }; // (nothing built in a super special's arena)
   const feats = T.feats.filter(f => f.type === 'bridge' || f.type === 'ford' || f.type === 'roundabout' || f.type === 'narrows' || f.type === 'chicane');
@@ -30506,7 +30678,7 @@ function plantStage(ctx) {
   };
   // (a dense forest: more tries; fewer trees in all on a modest graphics chip). The woods stand thick out to about 60 m
   // from the road, where they are seen; beyond, thinner, the haze closing over them.
-  const gq = Gfx.level === 'low' ? 0.55 : Gfx.level === 'medium' ? 0.8 : 1, dk = Math.max(1, F.dens), nm = 6 * F.dens * gq;
+  const gq = Gfx.level === 'vlow' ? 0.4 : Gfx.level === 'low' ? 0.55 : Gfx.level === 'medium' ? 0.8 : 1, dk = Math.max(1, F.dens), nm = 6 * F.dens * gq;
   // (how near the road the trees come is the setting's: in a forest they stand just past the ditch, no run-off at all)
   for (let i = 0; i < N; i += 2) for (const sd of [1, -1]) {
     const p = P[i], nr = Math.min(7.2, (p.sh || 0.6) + (p.dw || 1.8) + setLook(T, p.x, p.z).near);
@@ -30596,7 +30768,7 @@ function farWoods(ctx, inst) {
   const out = { stands: 0, lone: 0, hedges: 0 }; if (!g || T.sss) return out;
   const coverAt = coverFn(T, E, FP, true), lvl = Gfx.level, view = (Gfx.L && Gfx.L.view) || 1, lmk = ctx.lmKeep || [];
   // (how far out: as far as the haze lets the country be seen on a clear day, on this graphics setting)
-  const D0 = 115, D1 = Math.min(1350, (E.fog ? E.fog[1] : 560) * view + 60), CS = lvl === 'low' ? 30 : lvl === 'medium' ? 25 : 22;
+  const D0 = 115, D1 = Math.min(1350, (E.fog ? E.fog[1] : 560) * view + 60), CS = lvl === 'vlow' ? 36 : lvl === 'low' ? 30 : lvl === 'medium' ? 25 : 22;
   // how far each point of the land is from the road: a coarse field of distances (25 m apart), from the cells the road
   // runs through outward (two sweeps, each cell from its neighbours across and corner to corner)
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of P) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
@@ -33801,7 +33973,7 @@ Object.assign(CrewAnim.prototype, {
 // how far off a car's crew are drawn, by the graphics level (metres): the full mesh within the first distance, the light
 // one within the second, none beyond (from further off they are lost behind the glass); the light one is moved 30 times
 // a second, or 15 from beyond half its distance
-const CREW_LOD = { high: [16, 70], medium: [12, 48], low: [9, 30] };
+const CREW_LOD = { high: [16, 70], medium: [12, 48], low: [9, 30], vlow: [5, 24] };
 function crewLevel(d2) { const L = CREW_LOD[typeof Gfx !== 'undefined' ? Gfx.level : 'high'] || CREW_LOD.high; return d2 < L[0] * L[0] ? 0 : d2 < L[1] * L[1] ? 1 : 2; }
 function crewShow(m, lv) { const C = m.crewRig; if (!C) return; C.mesh.visible = lv === 0; if (C.low) C.low.visible = lv === 1; }
 
@@ -35837,7 +36009,7 @@ const Replay = {
     for (let i = 0; i < 4; i++) { const w = m.wheels[i]; if (w.x0 == null) { w.x0 = w.piv.position.x - KW[i].lx; w.z0 = w.piv.position.z - KW[i].lz; } }
     m.root.quaternion.set(Q[0], Q[1], Q[2], Q[3]); m.root.position.set(c.x - off[0], c.yb - off[1], c.z - off[2]); m.tilt.rotation.set(0, 0, 0); m.root.visible = true;
     for (let i = 0; i < 4; i++) { const w = m.wheels[i], wh = c.w[i]; w.piv.position.set(w.x0 + KW[i].lx, hc - rideY - wh.L, w.z0 + KW[i].lz); w.piv.rotation.set(0, wh.delta, -(wh.lb || 0)); kpShift(w, wh.delta); w.a = (w.a || 0) + wh.omega * dt; w.w.rotation.x = w.a; }
-    ckBogies(m, c); if (typeof WheelViz !== 'undefined') WheelViz.tick(m, c, this.S, Rec.spec, dt, true);
+    ckBogies(m, c); wvTick(m, c, this.S, Rec.spec, dt, true);
   },
   // ---- moving through it ----
   // to t: a seek back starts again from the car as it left the start, its damage put right quietly up to t
@@ -41675,7 +41847,7 @@ const ScreenFx = {
     this.spots = { u: f32(S), v: f32(S), r: f32(S), a: f32(S), w: f32(S), k: new Uint8Array(S), e: f32(S), d: f32(S), sd: f32(S), f: f32(S), n: 0 };
     this.flakes = { u: f32(F), v: f32(F), r: f32(F), m: f32(F), sd: f32(F), n: 0 };
     // the cracks: red the cracks, green the crazing
-    [this.cc, this.cg] = Gfx.level === 'low' ? cnv(1024, 512) : cnv(2048, 1024); this.cTex = new THREE.CanvasTexture(this.cc); /* (half the size on a modest chip) */ this.cTex.minFilter = THREE.LinearMipmapLinearFilter; this.cTex.magFilter = THREE.LinearFilter; this.cKey = '';
+    [this.cc, this.cg] = Gfx.lo() ? cnv(1024, 512) : cnv(2048, 1024); this.cTex = new THREE.CanvasTexture(this.cc); /* (half the size on a modest chip) */ this.cTex.minFilter = THREE.LinearMipmapLinearFilter; this.cTex.magFilter = THREE.LinearFilter; this.cKey = '';
     // a smooth noise that tiles (four independent fields): the grain of the dirt, a sheet's ripples, the spots' outlines
     { const N = 128, d = new Uint8Array(N * N * 4), R = mulberry32(9157), base = [];
       for (let c = 0; c < 4; c++) { const g = f32(1024); for (let i = 0; i < 1024; i++) g[i] = R(); base.push(g); }
@@ -41900,7 +42072,7 @@ const ScreenFx = {
     const anyCrack = !!(rig.dv && ((rig.dv.cracks && rig.dv.cracks.length) || (rig.dv.holes && rig.dv.holes.length)));
     this.on = !!(this.drops.n || this.flakes.n || this.spots.n || this.filmAmt > 0.001 || this.mistAmt > 0.005 || this.dirtAmt > 0.0003 || anyCrack || this.dir);
     if (anyCrack || this.cKey !== '') this.cracks(rig);
-    if (this.on) { if (this.dirty && this.t - this.upT > (Gfx.level === 'low' ? 0.12 : 0.03)) { this.upload(); this.upT = this.t; } this.uploadFilm(); }
+    if (this.on) { if (this.dirty && this.t - this.upT > (Gfx.level === 'vlow' ? 0.2 : Gfx.level === 'low' ? 0.12 : 0.03)) { this.upload(); this.upT = this.t; } this.uploadFilm(); }
     if (this.out) this.out.visible = this.on && !this.show;
   },
   // the sheet of water: carried up the glass by the airflow (down it when slow), thinning as it drains and breaking up
