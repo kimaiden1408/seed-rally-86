@@ -735,6 +735,15 @@ html.hsc #hud,html.hsc #replay,html.hsc #reel,html.hsc #flashback{inset:auto;lef
 .cmeter output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 .cnote{font-size:13.5px;color:var(--muted);line-height:1.4;margin:8px 0 0}
 .cwarn{font-size:14px;color:var(--ink);margin:8px 0 0;padding:4px 0 4px 10px;border-left:3px solid var(--marshal)}
+#ctl .cnum{width:6.2em;font:inherit;font-size:16px;font-variant-numeric:tabular-nums;padding:6px 8px;border:2px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink)}
+#ctl .cnote{display:block}
+#ctl .cunit{margin-left:6px;font-weight:700}
+#ctl .vstat{color:var(--ink)}
+#ctl .vcard{padding:10px 0;overflow:hidden}
+#ctl .vcardo{border:3px solid var(--marshal);border-radius:3.5mm;box-sizing:border-box}
+#ctl.peek{background:transparent;place-items:center end}
+#ctl.peek .card{width:min(560px,100%)}
+body[data-tri] #hud{left:33.3333vw;right:33.3333vw}
 @media (max-width:600px){ #ctl{padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))} #ctl .chead{padding:14px 14px 0} #ctl .sbody{padding:6px 14px 10px} #ctl .card>.btns{padding:10px 14px 14px} .crow{grid-template-columns:minmax(0,1fr)} .cbind{justify-content:flex-start} .ctabs button{padding:6px 8px 5px;font-size:14.5px} }
 /* ---------- overlays ---------- */
 .overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,16,12,.45);padding:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
@@ -1282,7 +1291,7 @@ html.hsc #hud,html.hsc #replay,html.hsc #reel,html.hsc #flashback{inset:auto;lef
     <p class="sub">The clock is stopped.</p>
     <p class="sub" id="pTyres"></p>
     <p class="sub" id="pRallyNote" hidden>Retiring ends your day: you can restart tomorrow, and each stage you miss counts as its slowest time plus 5 minutes.</p>
-    <div class="btns"><button id="pResume" class="go" type="button">Resume</button><button id="pFlash" class="ghostbtn" type="button" hidden>Flashback</button><button id="pRestart" class="ghostbtn" type="button">Restart stage</button><button id="pMenu" class="ghostbtn" type="button">Main menu</button><button id="pRetire" class="ghostbtn" type="button" hidden>Retire from this stage</button></div>
+    <div class="btns"><button id="pResume" class="go" type="button">Resume</button><button id="pView" class="ghostbtn" type="button">View</button><button id="pFlash" class="ghostbtn" type="button" hidden>Flashback</button><button id="pRestart" class="ghostbtn" type="button">Restart stage</button><button id="pMenu" class="ghostbtn" type="button">Main menu</button><button id="pRetire" class="ghostbtn" type="button" hidden>Retire from this stage</button></div>
   </div>
 </div>
 
@@ -11466,6 +11475,14 @@ I18N_MORE.zh.push(...["最低", "适合旧手机和配置一般的电脑，按 2
 I18N_MORE.es.push(...["Muy bajos", "Para móviles antiguos y ordenadores modestos, dibujado como lo hacían los juegos de carreras de principios de los 2000: sin mapa de sombras (cada coche sobre una sombra suave propia), ruedas sencillas, menos resolución y 30 fotogramas por segundo estables cuando no se pueden mantener 60."]);
 I18N_MORE.fr.push(...["Très bas", "Pour les vieux téléphones et les ordinateurs modestes, dessiné comme les jeux de course du début des années 2000 : pas de carte d'ombres (chaque voiture sur une ombre douce à elle), roues simples, résolution réduite, et 30 images par seconde stables quand 60 ne peuvent pas être tenues."]);
 I18N_MORE.de.push(...["Sehr niedrig", "Für alte Handys und schwächere Computer, gezeichnet wie die Rennspiele der frühen 2000er: keine Schattenkarte (jedes Auto auf einem eigenen weichen Schatten), einfache Räder, geringere Auflösung und gleichmäßige 30 Bilder pro Sekunde, wenn 60 nicht zu halten sind."]);
+// (the view: the View tab's texts, the pause menu's View)
+I18N_MORE.k.push(...["View", "The view", "The view from the driver’s seat and the bonnet. With the right field of view the world on the screen is life-size from where you sit: bends, braking points and other cars look as far off as they are, and the speed looks what it is.", "Field of view", "driver’s seat and bonnet", "Life-size wherever the screen is big enough for it; on a smaller one, the narrowest view that still shows the road.", "Always life-size, however small the screen.", "The angle you choose, up and down.", "Life-size", "Your own", "Your field of view", "Up and down.", "Life-size on this screen: {0}° up and down, {1}° across.", "In use: {0}° up and down, {1}° across.", "The world looks {0}% of its size: a bigger screen, or sitting nearer, brings it to life-size.", "The world looks {0}% of its size: magnified.", "Your screen", "to work out life-size", "Kind of screen", "Found: {0}.", "Phone", "Tablet", "Laptop", "Monitor", "TV", "Screen size", "Measured with a card (below).", "Its diagonal in inches (one screen’s, with three). Blank: judged from the kind of screen.", "inches", "cm", "mm", "px", "Distance to your eyes", "From your eyes to the screen. Blank: as far as that kind of screen is usually seen from.", "Hold a bank card (or any card that size) flat against the screen at the outline’s corner, and move the slider until the outline is exactly as long as the card.", "Outline", "It matches", "Measured: the screen’s size is now known.", "Measure the screen", "With a bank card: the surest way to know its size.", "Measure", "Forget it", "Screens", "One screen", "Three screens", "Each side screen drawn as its own view, turned as the screen is.", "Stretch the game’s window across all three screens.", "Three screens side by side: the side ones turned in toward you.", "Side screens turned in", "Their angle to the middle one.", "Frame between screens", "Each screen’s own frame at the join.", "Seat", "Seat height", "This car only: where your eyes are in it.", "Seat forward", "This car only.", "Look up or down", "Every car: at 0 the horizon is in the middle of the screen, which is right when the screen’s middle is at the height of your eyes.", "Head and eyes", "driver’s seat", "As a driver’s head and eyes work: steady over bumps, taking up long slopes, looking up the road into bends.", "Calmer still, for anyone the motion bothers.", "The horizon always level and in place: up a steep climb you see the dashboard.", "The view fixed to the car: every bump moves the world.", "Natural", "Steady", "Locked to horizon", "Locked to car", "Head moved by the forces", "Aside in bends, forward under braking, down on landings.", "Still", "Steady against pitching", "How much of the car’s quick pitching the head and eyes take out.", "With the car", "Steady against rolling", "How much of the car’s quick rolling they take out.", "Takes up slopes", "How soon a lasting slope or camber is taken as level. Off: the world’s horizon held always.", "Looks up the road", "The eyes on the road a second ahead: into bends, up rises, over crests.", "Looks into a slide", "Toward where the car is going.", "Road shake", "How much of the road’s jolting reaches your eyes.", "Back to the defaults: the lens, the head and eyes, and this car’s seat. What you told the game about your screen is kept."]);
+I18N_MORE.ko.push(...["시점", "시점", "운전석과 보닛에서 보는 시점입니다. 시야각이 맞으면 화면 속 세상이 앉은 자리에서 실물 크기로 보입니다: 코너, 제동 지점, 다른 차가 실제 거리만큼 떨어져 보이고, 속도도 실제 그대로 보입니다.", "시야각", "운전석과 보닛", "화면이 충분히 크면 실물 크기로, 더 작은 화면에서는 도로가 보이는 가장 좁은 시야로 보여 줍니다.", "화면이 아무리 작아도 항상 실물 크기로 보여 줍니다.", "직접 고른 위아래 각도입니다.", "실물 크기", "직접 설정", "직접 정한 시야각", "위아래 각도.", "이 화면의 실물 크기: 위아래 {0}°, 좌우 {1}°.", "사용 중: 위아래 {0}°, 좌우 {1}°.", "세상이 실제 크기의 {0}%로 보입니다: 더 큰 화면을 쓰거나 더 가까이 앉으면 실물 크기가 됩니다.", "세상이 실제 크기의 {0}%로 보입니다: 확대된 상태입니다.", "내 화면", "실물 크기 계산용", "화면 종류", "감지됨: {0}.", "휴대폰", "태블릿", "노트북", "모니터", "TV", "화면 크기", "카드로 측정했습니다(아래).", "대각선 길이(인치, 화면이 세 개면 하나의 크기). 비워 두면 화면 종류로 추정합니다.", "인치", "cm", "mm", "px", "눈까지의 거리", "눈에서 화면까지. 비워 두면 그 종류의 화면을 보통 보는 거리로 합니다.", "은행 카드(또는 같은 크기의 카드)를 윤곽선 모서리에 맞춰 화면에 평평하게 대고, 윤곽선 길이가 카드와 정확히 같아질 때까지 슬라이더를 움직이세요.", "윤곽선", "딱 맞습니다", "측정 완료: 이제 화면 크기를 압니다.", "화면 측정", "은행 카드로: 화면 크기를 가장 확실하게 아는 방법입니다.", "측정", "측정값 지우기", "화면 수", "화면 1개", "화면 3개", "양쪽 화면은 각각 그 화면이 돌아간 방향대로 따로 그립니다.", "게임 창을 세 화면 모두에 걸쳐 늘리세요.", "나란히 놓인 화면 세 개: 양쪽 화면은 안쪽으로 돌려 놓습니다.", "양쪽 화면 각도", "가운데 화면에 대한 각도.", "화면 사이 테두리", "이음매에 있는 각 화면의 테두리.", "시트", "시트 높이", "이 차에만 적용: 차 안에서 눈의 위치.", "시트 앞뒤", "이 차에만 적용.", "위아래 시선", "모든 차: 0이면 지평선이 화면 가운데에 옵니다. 화면 가운데가 눈높이에 있을 때 맞는 값입니다.", "머리와 눈", "운전석", "실제 드라이버의 머리와 눈처럼: 요철에서도 흔들림이 적고, 긴 경사는 따라가며, 도로 앞쪽과 코너 안을 바라봅니다.", "더 차분하게: 움직임이 불편한 분께.", "지평선이 항상 수평으로 제자리에: 가파른 오르막에서는 대시보드가 보입니다.", "시점이 차에 고정: 모든 요철에 세상이 흔들립니다.", "자연스럽게", "안정적으로", "지평선 고정", "차에 고정", "힘에 따른 머리 움직임", "코너에서는 옆으로, 제동 시 앞으로, 착지 때 아래로.", "고정", "앞뒤 흔들림 안정", "차의 빠른 앞뒤 흔들림을 머리와 눈이 얼마나 상쇄할지.", "차와 함께", "좌우 기울기 안정", "차의 빠른 좌우 기울기를 얼마나 상쇄할지.", "경사 따라가기", "계속되는 경사나 노면 기울기를 얼마나 빨리 수평으로 받아들일지. 끄면 항상 실제 지평선을 유지합니다.", "도로 앞을 봄", "1초 앞의 도로를 봅니다: 코너 안으로, 오르막 위로, 언덕 너머로.", "미끄러지는 쪽을 봄", "차가 실제로 가는 방향으로.", "노면 흔들림", "노면의 충격이 눈까지 얼마나 전해지는지.", "기본값으로 되돌렸습니다: 시야각, 머리와 눈, 이 차의 시트. 화면에 대해 알려 준 내용은 그대로 둡니다."]);
+I18N_MORE.ja.push(...["視点", "視点", "運転席とボンネットからの視点です。視野角が合っていれば、画面の中の世界が座った位置から実物大に見えます。コーナーもブレーキングポイントも他のクルマも実際の距離どおりに見え、スピードも実際どおりに見えます。", "視野角", "運転席とボンネット", "画面が十分に大きければ実物大、小さい画面では道路が見える範囲でいちばん狭い視野にします。", "画面がどんなに小さくても、常に実物大にします。", "自分で選んだ上下の角度です。", "実物大", "自分で設定", "自分の視野角", "上下の角度。", "この画面での実物大：上下{0}°、左右{1}°。", "使用中：上下{0}°、左右{1}°。", "世界が実際の{0}%の大きさに見えます。もっと大きな画面にするか、もっと近くに座ると実物大になります。", "世界が実際の{0}%の大きさに見えます（拡大）。", "使っている画面", "実物大を求めるため", "画面の種類", "検出：{0}。", "スマートフォン", "タブレット", "ノートPC", "モニター", "テレビ", "画面サイズ", "カードで測定済み（下）。", "対角線の長さ（インチ。3画面なら1画面分）。空欄なら画面の種類から推定します。", "インチ", "cm", "mm", "px", "目までの距離", "目から画面まで。空欄なら、その種類の画面をふつう見る距離にします。", "銀行のカード（または同じ大きさのカード）を枠の角に合わせて画面に平らに当て、枠の長さがカードとぴったり同じになるまでスライダーを動かしてください。", "枠", "ぴったり合った", "測定しました：画面の大きさがわかりました。", "画面を測る", "銀行のカードで：画面の大きさを知るいちばん確かな方法です。", "測る", "測定を消す", "画面の数", "1画面", "3画面", "左右の画面は、それぞれ画面の向きどおりの視点で描きます。", "ゲームのウィンドウを3つの画面すべてに広げてください。", "3つの画面を横に並べ、左右の画面をこちらに向けて内側に傾けます。", "左右の画面の角度", "中央の画面に対する角度。", "画面間のフチ", "つなぎ目にある各画面のフチ。", "シート", "シートの高さ", "このクルマだけ：車内での目の位置。", "シートの前後", "このクルマだけ。", "視線の上下", "全車共通：0で地平線が画面の中央に来ます。画面の中央が目の高さにあるときに正しい値です。", "頭と目", "運転席", "本物のドライバーの頭と目のように：凸凹でも安定し、長い坂は受け入れ、道の先やコーナーの奥を見ます。", "さらに穏やかに。動きが気になる人向け。", "地平線が常に水平で同じ位置に：急な上り坂ではダッシュボードが見えます。", "視点をクルマに固定：段差のたびに世界が揺れます。", "ナチュラル", "安定", "地平線に固定", "クルマに固定", "力による頭の動き", "コーナーでは横へ、ブレーキで前へ、着地で下へ。", "動かない", "ピッチングの安定", "クルマの素早いピッチングを頭と目がどれだけ打ち消すか。", "クルマと一緒", "ロールの安定", "クルマの素早いロールをどれだけ打ち消すか。", "坂に合わせる", "続く坂や路面の傾きを、どれだけ早く水平とみなすか。オフ：常に本当の地平線を保ちます。", "道の先を見る", "1秒先の道を見ます：コーナーの奥へ、上り坂の上へ、クレストの向こうへ。", "スライドの先を見る", "クルマが進んでいる方向へ。", "路面の揺れ", "路面の衝撃がどれだけ目まで届くか。", "初期設定に戻しました：視野角、頭と目、このクルマのシート。画面について入力した内容はそのままです。"]);
+I18N_MORE.zh.push(...["视角", "视角", "驾驶座和引擎盖视角。视野正确时，屏幕里的世界从你坐的位置看去是真实大小：弯道、刹车点和其他车辆看上去和实际一样远，速度看上去也和实际一样。", "视野", "驾驶座和引擎盖", "屏幕足够大时为真实大小；屏幕较小时，使用仍能看清道路的最窄视野。", "无论屏幕多小，始终为真实大小。", "你自己选择的上下角度。", "真实大小", "自定", "你的视野", "上下角度。", "此屏幕的真实大小：上下{0}°，左右{1}°。", "当前使用：上下{0}°，左右{1}°。", "世界看上去只有实际大小的{0}%：换更大的屏幕，或坐得更近，就能达到真实大小。", "世界看上去是实际大小的{0}%：被放大了。", "你的屏幕", "用于计算真实大小", "屏幕类型", "检测到：{0}。", "手机", "平板", "笔记本", "显示器", "电视", "屏幕尺寸", "已用卡片测量（见下方）。", "对角线长度（英寸；三块屏幕时为单块屏幕）。留空：按屏幕类型估计。", "英寸", "cm", "mm", "px", "到眼睛的距离", "从眼睛到屏幕的距离。留空：按这类屏幕通常的观看距离。", "把一张银行卡（或同样大小的卡片）平贴在屏幕上，对准轮廓的一角，拖动滑块，直到轮廓与卡片一样长。", "轮廓", "对齐了", "已测量：现在知道屏幕的大小了。", "测量屏幕", "用银行卡：了解屏幕大小最可靠的方法。", "测量", "清除测量", "屏幕数量", "单屏", "三屏", "每块侧屏都按其转动的角度作为独立视角绘制。", "请把游戏窗口拉伸到三块屏幕上。", "三块屏幕并排：两侧的屏幕向内转向你。", "侧屏内转角度", "与中间屏幕的夹角。", "屏幕间边框", "拼接处每块屏幕自身的边框。", "座椅", "座椅高度", "仅此车：你的眼睛在车内的位置。", "座椅前后", "仅此车。", "上下视线", "所有车辆：0 时地平线位于屏幕中间，适合屏幕中心与眼睛同高的情况。", "头部与眼睛", "驾驶座", "像真实车手的头部和眼睛一样：颠簸时保持稳定，长坡时随之调整，目光沿道路看向弯道。", "更加平稳，适合对晃动敏感的人。", "地平线始终水平并固定：陡坡上坡时你会看到仪表台。", "视角固定在车上：每次颠簸都会让世界晃动。", "自然", "平稳", "锁定地平线", "锁定车身", "受力带动的头部移动", "弯道中向侧面，刹车时向前，落地时向下。", "不动", "俯仰稳定", "头部和眼睛抵消车辆快速俯仰的程度。", "随车", "侧倾稳定", "抵消车辆快速侧倾的程度。", "适应坡度", "持续的坡度或路面倾斜多快被当作水平。关闭：始终保持真实地平线。", "注视前方道路", "目光看向一秒后的道路：看进弯道、看上坡、看过坡顶。", "注视侧滑方向", "看向车辆实际前进的方向。", "路面震动", "路面颠簸传到你眼睛的程度。", "已恢复默认：视野、头部与眼睛，以及这辆车的座椅。你提供的屏幕信息保留不变。"]);
+I18N_MORE.es.push(...["Vista", "La vista", "La vista desde el asiento del piloto y desde el capó. Con el campo de visión correcto, el mundo en la pantalla se ve a tamaño real desde donde te sientas: las curvas, los puntos de frenada y los demás coches parecen tan lejos como están, y la velocidad parece la que es.", "Campo de visión", "asiento del piloto y capó", "Tamaño real siempre que la pantalla sea lo bastante grande; en una más pequeña, la vista más estrecha que aún muestra la carretera.", "Siempre a tamaño real, por pequeña que sea la pantalla.", "El ángulo que elijas, de arriba abajo.", "Tamaño real", "A tu gusto", "Tu campo de visión", "De arriba abajo.", "Tamaño real en esta pantalla: {0}° de arriba abajo, {1}° de lado a lado.", "En uso: {0}° de arriba abajo, {1}° de lado a lado.", "El mundo se ve al {0}% de su tamaño: una pantalla más grande, o sentarte más cerca, lo lleva a tamaño real.", "El mundo se ve al {0}% de su tamaño: ampliado.", "Tu pantalla", "para calcular el tamaño real", "Tipo de pantalla", "Detectado: {0}.", "Móvil", "Tableta", "Portátil", "Monitor", "TV", "Tamaño de pantalla", "Medida con una tarjeta (abajo).", "Su diagonal en pulgadas (la de una pantalla, si son tres). En blanco: se estima por el tipo de pantalla.", "pulgadas", "cm", "mm", "px", "Distancia a tus ojos", "De tus ojos a la pantalla. En blanco: la distancia a la que se suele ver ese tipo de pantalla.", "Pon una tarjeta bancaria (o cualquier tarjeta de ese tamaño) plana contra la pantalla, en la esquina del contorno, y mueve el control hasta que el contorno mida exactamente lo mismo que la tarjeta.", "Contorno", "Coincide", "Medida: ahora se conoce el tamaño de la pantalla.", "Medir la pantalla", "Con una tarjeta bancaria: la forma más segura de saber su tamaño.", "Medir", "Olvidarla", "Pantallas", "Una pantalla", "Tres pantallas", "Cada pantalla lateral se dibuja como su propia vista, girada como está la pantalla.", "Estira la ventana del juego por las tres pantallas.", "Tres pantallas una junto a otra: las laterales giradas hacia ti.", "Pantallas laterales giradas", "Su ángulo respecto a la del centro.", "Marco entre pantallas", "El marco de cada pantalla en la unión.", "Asiento", "Altura del asiento", "Solo este coche: dónde están tus ojos dentro de él.", "Asiento adelante", "Solo este coche.", "Mirar arriba o abajo", "Todos los coches: en 0 el horizonte queda en el centro de la pantalla, lo correcto si el centro de la pantalla está a la altura de tus ojos.", "Cabeza y ojos", "asiento del piloto", "Como funcionan la cabeza y los ojos de un piloto: estables en los baches, adaptándose a las pendientes largas, mirando carretera adelante hacia las curvas.", "Aún más tranquila, para quien se marea con el movimiento.", "El horizonte siempre nivelado y en su sitio: en una subida empinada ves el salpicadero.", "La vista fija al coche: cada bache mueve el mundo.", "Natural", "Estable", "Fija al horizonte", "Fija al coche", "Cabeza movida por las fuerzas", "Hacia un lado en las curvas, hacia delante al frenar, hacia abajo al aterrizar.", "Quieta", "Estable ante el cabeceo", "Cuánto del cabeceo rápido del coche anulan la cabeza y los ojos.", "Con el coche", "Estable ante el balanceo", "Cuánto del balanceo rápido del coche anulan.", "Se adapta a las pendientes", "Lo pronto que una pendiente o un peralte duraderos se toman como nivel. Apagado: siempre el horizonte real.", "Mira carretera adelante", "Los ojos en la carretera un segundo por delante: hacia las curvas, cuesta arriba, sobre los cambios de rasante.", "Mira hacia el derrape", "Hacia donde va el coche.", "Vibración de la carretera", "Cuánto de los golpes de la carretera llega a tus ojos.", "Vuelta a los valores por defecto: el campo de visión, la cabeza y los ojos, y el asiento de este coche. Lo que indicaste sobre tu pantalla se conserva."]);
+I18N_MORE.fr.push(...["Vue", "La vue", "La vue depuis le siège du pilote et depuis le capot. Avec le bon champ de vision, le monde à l’écran est grandeur nature depuis là où vous êtes assis : les virages, les points de freinage et les autres voitures paraissent aussi loin qu’ils le sont, et la vitesse paraît ce qu’elle est.", "Champ de vision", "siège du pilote et capot", "Grandeur nature dès que l’écran est assez grand ; sur un plus petit, la vue la plus étroite qui montre encore la route.", "Toujours grandeur nature, si petit que soit l’écran.", "L’angle que vous choisissez, de haut en bas.", "Grandeur nature", "À votre goût", "Votre champ de vision", "De haut en bas.", "Grandeur nature sur cet écran : {0}° de haut en bas, {1}° en largeur.", "Utilisé : {0}° de haut en bas, {1}° en largeur.", "Le monde paraît à {0} % de sa taille : un écran plus grand, ou s’asseoir plus près, le ramène grandeur nature.", "Le monde paraît à {0} % de sa taille : agrandi.", "Votre écran", "pour calculer la grandeur nature", "Type d’écran", "Détecté : {0}.", "Téléphone", "Tablette", "Portable", "Moniteur", "TV", "Taille de l’écran", "Mesurée avec une carte (ci-dessous).", "Sa diagonale en pouces (celle d’un écran, avec trois). Vide : estimée d’après le type d’écran.", "pouces", "cm", "mm", "px", "Distance à vos yeux", "De vos yeux à l’écran. Vide : la distance d’où l’on regarde d’habitude ce type d’écran.", "Posez une carte bancaire (ou toute carte de cette taille) à plat contre l’écran, au coin du contour, et déplacez le curseur jusqu’à ce que le contour soit exactement aussi long que la carte.", "Contour", "Ça correspond", "Mesuré : la taille de l’écran est maintenant connue.", "Mesurer l’écran", "Avec une carte bancaire : le moyen le plus sûr de connaître sa taille.", "Mesurer", "L’oublier", "Écrans", "Un écran", "Trois écrans", "Chaque écran latéral est dessiné comme sa propre vue, tournée comme l’écran.", "Étendez la fenêtre du jeu sur les trois écrans.", "Trois écrans côte à côte : ceux des côtés tournés vers vous.", "Écrans latéraux tournés", "Leur angle par rapport à celui du milieu.", "Bord entre les écrans", "Le bord de chaque écran à la jonction.", "Siège", "Hauteur du siège", "Cette voiture seulement : où sont vos yeux dans l’habitacle.", "Siège vers l’avant", "Cette voiture seulement.", "Regard vers le haut ou le bas", "Toutes les voitures : à 0, l’horizon est au milieu de l’écran, ce qui est juste quand le milieu de l’écran est à hauteur de vos yeux.", "Tête et yeux", "siège du pilote", "Comme la tête et les yeux d’un pilote : stables sur les bosses, s’adaptant aux longues pentes, regardant la route vers les virages.", "Plus calme encore, pour ceux que le mouvement dérange.", "L’horizon toujours droit et à sa place : dans une forte montée, vous voyez le tableau de bord.", "La vue fixée à la voiture : chaque bosse fait bouger le monde.", "Naturel", "Stable", "Fixée à l’horizon", "Fixée à la voiture", "Tête déplacée par les forces", "Sur le côté dans les virages, vers l’avant au freinage, vers le bas aux réceptions.", "Immobile", "Stable face au tangage", "La part du tangage rapide de la voiture que la tête et les yeux compensent.", "Avec la voiture", "Stable face au roulis", "La part du roulis rapide de la voiture qu’ils compensent.", "Suit les pentes", "La rapidité avec laquelle une pente ou un dévers durables sont pris pour l’horizontale. Désactivé : l’horizon du monde toujours tenu.", "Regarde la route devant", "Les yeux sur la route une seconde plus loin : dans les virages, en haut des montées, par-dessus les bosses.", "Regarde dans la glisse", "Vers là où va la voiture.", "Secousses de la route", "La part des secousses de la route qui atteint vos yeux.", "Retour aux valeurs par défaut : le champ de vision, la tête et les yeux, et le siège de cette voiture. Ce que vous avez indiqué sur votre écran est conservé."]);
+I18N_MORE.de.push(...["Sicht", "Die Sicht", "Die Sicht vom Fahrersitz und von der Motorhaube. Mit dem richtigen Sichtfeld ist die Welt auf dem Bildschirm von deinem Platz aus lebensgroß: Kurven, Bremspunkte und andere Autos wirken so weit entfernt, wie sie sind, und die Geschwindigkeit wirkt so, wie sie ist.", "Sichtfeld", "Fahrersitz und Motorhaube", "Lebensgroß, wo immer der Bildschirm groß genug dafür ist; auf einem kleineren die engste Sicht, die die Straße noch zeigt.", "Immer lebensgroß, wie klein der Bildschirm auch ist.", "Der Winkel, den du wählst, von oben nach unten.", "Lebensgroß", "Eigene", "Dein Sichtfeld", "Von oben nach unten.", "Lebensgroß auf diesem Bildschirm: {0}° von oben nach unten, {1}° in der Breite.", "In Gebrauch: {0}° von oben nach unten, {1}° in der Breite.", "Die Welt wirkt in {0} % ihrer Größe: Ein größerer Bildschirm oder näher davor zu sitzen macht sie lebensgroß.", "Die Welt wirkt in {0} % ihrer Größe: vergrößert.", "Dein Bildschirm", "um Lebensgröße zu berechnen", "Art des Bildschirms", "Erkannt: {0}.", "Handy", "Tablet", "Laptop", "Monitor", "TV", "Bildschirmgröße", "Mit einer Karte gemessen (unten).", "Die Diagonale in Zoll (bei dreien die eines Bildschirms). Leer: nach der Art des Bildschirms geschätzt.", "Zoll", "cm", "mm", "px", "Abstand zu deinen Augen", "Von deinen Augen bis zum Bildschirm. Leer: so weit, wie man diese Art von Bildschirm meist ansieht.", "Halte eine Bankkarte (oder eine gleich große Karte) flach an den Bildschirm, an die Ecke des Umrisses, und bewege den Regler, bis der Umriss genau so lang ist wie die Karte.", "Umriss", "Passt genau", "Gemessen: Die Größe des Bildschirms ist jetzt bekannt.", "Bildschirm messen", "Mit einer Bankkarte: der sicherste Weg, seine Größe zu kennen.", "Messen", "Vergessen", "Bildschirme", "Ein Bildschirm", "Drei Bildschirme", "Jeder seitliche Bildschirm wird als eigene Sicht gezeichnet, so gedreht wie der Bildschirm.", "Zieh das Fenster des Spiels über alle drei Bildschirme.", "Drei Bildschirme nebeneinander: die seitlichen zu dir hin gedreht.", "Seitliche Bildschirme gedreht", "Ihr Winkel zum mittleren.", "Rahmen zwischen den Bildschirmen", "Der eigene Rahmen jedes Bildschirms an der Nahtstelle.", "Sitz", "Sitzhöhe", "Nur dieses Auto: wo deine Augen darin sind.", "Sitz nach vorn", "Nur dieses Auto.", "Blick nach oben oder unten", "Alle Autos: Bei 0 liegt der Horizont in der Bildschirmmitte, richtig, wenn die Mitte des Bildschirms auf Augenhöhe ist.", "Kopf und Augen", "Fahrersitz", "Wie Kopf und Augen eines Fahrers arbeiten: ruhig über Bodenwellen, lange Steigungen übernehmend, mit dem Blick die Straße hinauf in die Kurven.", "Noch ruhiger, für alle, denen die Bewegung zu schaffen macht.", "Der Horizont immer waagerecht und an seinem Platz: an einer steilen Steigung siehst du das Armaturenbrett.", "Die Sicht fest am Auto: Jede Bodenwelle bewegt die Welt.", "Natürlich", "Ruhig", "Am Horizont fixiert", "Am Auto fixiert", "Kopf von den Kräften bewegt", "Zur Seite in Kurven, nach vorn beim Bremsen, nach unten bei Landungen.", "Still", "Ruhig gegen Nicken", "Wie viel vom schnellen Nicken des Autos Kopf und Augen ausgleichen.", "Mit dem Auto", "Ruhig gegen Rollen", "Wie viel vom schnellen Rollen des Autos sie ausgleichen.", "Übernimmt Steigungen", "Wie schnell eine anhaltende Steigung oder Querneigung als waagerecht gilt. Aus: immer der Horizont der Welt.", "Blickt die Straße hinauf", "Die Augen eine Sekunde voraus auf der Straße: in Kurven hinein, Anstiege hinauf, über Kuppen.", "Blickt in den Drift", "Dorthin, wohin das Auto fährt.", "Straßenrütteln", "Wie viel vom Rütteln der Straße deine Augen erreicht.", "Zurück auf Standard: das Sichtfeld, Kopf und Augen und der Sitz dieses Autos. Was du dem Spiel über deinen Bildschirm gesagt hast, bleibt."]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -11626,7 +11643,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '3F8D';
+const SR86_BUILD = '8E3A';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -18290,7 +18307,7 @@ class RallyCarKit {
       // under a low roof the driver sits further down in the seat, cy) nor more than 18 cm over it.
       const seatZ = CP.seatZ != null ? CP.seatZ + zOff : ws.zTop - 0.62, roofS = topAt(seatZ - 0.08), f0 = lowAt(seatZ).f + 0.04;
       let xd = 0.37, xc = -0.37; // (the seats' centres across the car: closer together in a narrow cabin, below)
-      const eyeT = Math.min(Math.max(roofS - 0.26, ws.yBase + 0.12), roofS - 0.22), floorY = Math.min(f0 + 0.18, Math.max(f0, eyeT - 0.9));
+      const eyeT = Math.min(Math.max(roofS - 0.26, ws.yBase + 0.12), roofS - 0.22), floorY = Math.min(f0 + ((typeof CABFLOOR34 !== 'undefined' && CABFLOOR34[id]) || 0.18), Math.max(f0, eyeT - 0.9));
       const cy = Math.min(0, roofS - 0.22 - (floorY + 0.88)), eyeY = floorY + 0.9 + cy, eyeLift = 0;
       const dTop = Math.min(ws.yBase - 0.04, eyeY - 0.2), dashRear = CP.seatZ != null ? Math.min(seatZ + 0.72, ws.zBase - 0.1) : seatZ + 0.72, hoopZ = seatZ - 0.39, inW = Math.min(axles[0][1], axles[1][1]) - 0.42;
       // the body's inside, for fitting the cage to it: inside(x, y, z) is how far (x, y) lies within the body's section at z
@@ -18555,13 +18572,13 @@ class RallyCarKit {
       // of the car's era placed for them; the seats are built round them
       const CE = crewEra(S), CDR = CREW_DRIVE[CE.era], LEV = crewLever(S, CP);
       const wy = Math.max(floorY + 0.45, Math.min(dTop - 0.04, eyeY - 0.3)), wz = seatZ + CE.hub; steerAt = { pos: [xd, wy, wz], rot: [CE.tilt, 0, 0] };
-      const LA = CP.leverAt, lvB = LA ? [LA[0][0], floorY + LA[0][1], seatZ + LA[0][2]] : LEV === 'seq' ? [0.15, floorY + 0.2, seatZ + 0.44] : [0.12, floorY + 0.19, seatZ + 0.5], lvT = LA ? [LA[1][0], floorY + LA[1][1], seatZ + LA[1][2]] : LEV === 'seq' ? [0.19, wy - 0.07, seatZ + 0.36] : [0.12, floorY + 0.46, seatZ + 0.45];
+      const LA = CP.leverAt, lvB = LA ? [LA[0][0], floorY + LA[0][1], seatZ + LA[0][2]] : LEV === 'seq' ? [0.15, floorY + 0.2, seatZ + 0.44] : [0.12, floorY + 0.19, seatZ + 0.5], lvT = LA ? [LA[1][0], floorY + LA[1][1], seatZ + LA[1][2]] : LEV === 'seq' ? [Math.min(0.17, xd - 0.21), wy - 0.09, seatZ + 0.37] : [0.12, floorY + 0.46, seatZ + 0.45];
       // (a design may place the handbrake's lever: CP.hbAt, its base and top as leverAt's: [x, over the floor, ahead of the
       // seat]; or make it a knob pulled out of the dash's face, CP.hbAt.dash: [across from the driver, down from the dash's top])
       const HA = CP.hbAt, HB = HA && HA.dash ? { kind: 'knob', base: [xd + HA.dash[0], dTop + HA.dash[1], dashRear - 0.004], top: [xd + HA.dash[0], dTop + HA.dash[1], dashRear - 0.05] }
         : HA ? { kind: 'lever', base: [HA[0][0], floorY + HA[0][1], seatZ + HA[0][2]], top: [HA[1][0], floorY + HA[1][1], seatZ + HA[1][2]] }
-        : S.cls === 'G4' || CP.road ? { kind: 'lever', base: [0.17, floorY + 0.23, seatZ + 0.36], top: [0.17, floorY + 0.37, seatZ + 0.09] } : { kind: 'hyd', base: [0.2, floorY + 0.2, seatZ + 0.25], top: [0.2, floorY + 0.56, seatZ + 0.3] };
-      const CR = crewBuild({ era: CE, drv: CDR, lever: LEV, xd, xc, eye: [xd, eyeY, seatZ + 0.09], floorY, cabF, zFA, wheel: { pos: steerAt.pos, tilt: CE.tilt, R: CE.wheel.r, t: CE.wheel.t, dish: CE.wheel.dish, style: CE.wheel.style },
+        : S.cls === 'G4' || CP.road ? { kind: 'lever', base: [0.17, floorY + 0.23, seatZ + 0.36], top: [0.17, floorY + 0.37, seatZ + 0.09] } : { kind: 'hyd', base: [Math.min(0.2, xd - 0.185), floorY + 0.2, seatZ + 0.22], top: [Math.min(0.2, xd - 0.185), floorY + 0.52, seatZ + 0.27] };
+      const CR = crewBuild({ era: CE, drv: CDR, lever: LEV, xd, xc, eye: [xd, eyeY, seatZ + 0.09], floorY, cabF, zFA, roofY: (x, z) => topAtX(z, x) - 0.012, wheel: { pos: steerAt.pos, tilt: CE.tilt, R: CE.wheel.r, t: CE.wheel.t, dish: CE.wheel.dish, style: CE.wheel.style },
         leverBase: lvB, leverTop: lvT, hb: HB, look: crewLook(S, D.crewLivery ? Object.assign({}, L, D.crewLivery) : L, CE), kc: 0.95 + ((S.num || 0) % 7) * 0.012 });
       crewR = Object.assign(CR, { era: CE, drv: CDR, lever: LEV, leverBase: lvB, leverTop: lvT, hb: HB, xd, xc, wheelR: CE.wheel.r, wheelT: CE.wheel.t });
       // the seats: a bucket under each of them, the cushion from the seat's base on the floor, the back reclined along
@@ -19061,7 +19078,7 @@ class RallyCarKit {
         crewMesh = new THREE.SkinnedMesh(R.geo.build(), crewMat); crewMesh.name = 'CrewMesh'; crewMesh.receiveShadow = true; bodyG.add(crewMesh); crewBones = bn; R.geo = null;
         // (the light mesh for further off: drawn instead of the full one beyond a few car lengths, on the same skeleton)
         crewLow = new THREE.SkinnedMesh(R.geoLow.build(), crewMat); crewLow.name = 'CrewMeshLow'; crewLow.receiveShadow = true; crewLow.visible = false; bodyG.add(crewLow); R.geoLow = null; }
-      eye = new THREE.Object3D(); eye.name = 'CockpitCamera'; eye.position.set(eyeAt[0], eyeAt[1], eyeAt[2]); bodyG.add(eye);
+      eye = new THREE.Object3D(); eye.name = 'CockpitCamera'; { const E = crewR && crewR.J && crewR.J.D && crewR.J.D.eye || eyeAt, o = (typeof SEAT34 !== 'undefined' && SEAT34[id]) || [0, 0]; eye.position.set(E[0], E[1] + o[0], E[2] + o[1]); } bodyG.add(eye);
       hood = new THREE.Object3D(); hood.name = 'BonnetCamera'; hood.position.set(hoodAt[0], hoodAt[1], hoodAt[2]); bodyG.add(hood);
       tail = new THREE.Object3D(); tail.name = 'TailCamera'; tail.position.set(tailAt[0], tailAt[1], tailAt[2]); bodyG.add(tail);
       I.cabBone = cabBone;
@@ -27408,6 +27425,132 @@ function emit(dt) {
   }
   Skids.flush();
 }
+// ---------- the view: a lens that shows the world life-size on the player's own screen ----------
+// A picture shows the world at its true size when it fills the same angle at the player's eye as that much of the world
+// would: a picture h high seen from d away needs a vertical field of view of 2 atan(h / 2d). Then a bend, a braking
+// point or a car ahead looks as far off as it is, and the speed looks what it is. Too wide a lens (the usual default)
+// puts everything further off: the car seems faster, bends come sooner than they look and the braking comes late. Too
+// narrow, everything seems near and slow, and the braking comes early. The game works the lens out from the screen: how
+// big it is (measured against a bank card held to it, or its size as the player gives it, or judged from the kind of
+// device and how many pixels it has), the shape of the window, and how far the player's eyes are from it (as given, or
+// as far as that kind of screen is usually seen from). With three screens round the player, each side screen turned in,
+// each is drawn as its own view from where the player sits (View.views3). A screen too small for its distance to show
+// enough of the road at true size (a phone, a small laptop) gets the narrowest lens that still shows it: 20 degrees up
+// and down and 36 across. View.s: the player's choices, kept in this browser.
+const VIEW_R2D = 180 / Math.PI;
+const VIEW_DEF = { v: 1, fov: 'auto', man: 40, scr: 'auto', diag: 0, ppmm: 0, dist: 0, tri: 0, side: 60, bezel: 12, tilt: 0, head: 'natural', hd: null, seat: {} };
+// each kind of screen: CSS pixels to the inch as such screens usually have them, and how far off it is usually seen (cm)
+const SCREEN_KIND = { phone: [150, 35], tablet: [135, 45], laptop: [118, 55], monitor: [100, 65], tv: [40, 230] };
+// the least lens anywhere (degrees up and down, and across), however small the screen
+const VIEW_MIN = { v: 20, h: 36 };
+// the driver's head and eyes, as sets (see cockpitCamera): g how far the car's forces carry the head; pitch and roll how
+// much of the car's quick pitching and rolling the neck and eyes take out (1: all of it); follow how soon the head takes
+// a lasting slope or camber as level (0: never, the world's horizon held); look how far the eyes turn to the road ahead;
+// slide how far toward where the car is going in a slide; shake how much of the road's jolting reaches the eyes
+const HEAD_SET = {
+  natural: { g: 0.6, pitch: 0.85, roll: 0.85, follow: 0.4, look: 0.8, slide: 0.3, shake: 0.15 },
+  steady: { g: 0.3, pitch: 0.95, roll: 0.95, follow: 0.35, look: 0.75, slide: 0.15, shake: 0 },
+  horizon: { g: 0.6, pitch: 1, roll: 1, follow: 0, look: 0, slide: 0, shake: 0.3 },
+  car: { g: 0.6, pitch: 0, roll: 0, follow: 1, look: 0, slide: 0, shake: 0.3 }
+};
+const View = {
+  s: null, k: null,
+  load() {
+    const d = JSON.parse(JSON.stringify(VIEW_DEF)), o = lsGet('sr86.view', null); this.s = d;
+    if (o && typeof o === 'object') {
+      if (['auto', 'life', 'manual'].includes(o.fov)) d.fov = o.fov;
+      if (o.scr === 'auto' || SCREEN_KIND[o.scr]) d.scr = o.scr;
+      for (const [k, lo, hi] of [['man', 10, 100], ['diag', 0, 120], ['ppmm', 0, 40], ['dist', 0, 400], ['side', 0, 80], ['bezel', 0, 60], ['tilt', -12, 8]]) if (typeof o[k] === 'number' && isFinite(o[k])) d[k] = clamp(o[k], lo, hi);
+      d.tri = o.tri ? 1 : 0;
+      if (o.head === 'custom' || HEAD_SET[o.head]) d.head = o.head;
+      if (o.hd && typeof o.hd === 'object') { d.hd = Object.assign({}, HEAD_SET.natural); for (const k in d.hd) if (typeof o.hd[k] === 'number' && isFinite(o.hd[k])) d.hd[k] = clamp(o.hd[k], 0, 1); }
+      if (o.seat && typeof o.seat === 'object') for (const id in o.seat) { const v = o.seat[id]; if (Array.isArray(v) && v.length === 2 && v.every(x => typeof x === 'number' && isFinite(x))) d.seat[id] = [clamp(v[0], -0.06, 0.06), clamp(v[1], -0.08, 0.08)]; }
+    }
+    if (d.head === 'custom' && !d.hd) d.head = 'natural';
+    return d;
+  },
+  save() { lsSet('sr86.view', this.s); },
+  // the kind of screen: as the player set it, or judged from the device (a television's browser, a phone, a tablet, a
+  // laptop's own screen - small in CSS pixels, or dense - or a monitor)
+  kind() { return this.s.scr !== 'auto' && SCREEN_KIND[this.s.scr] ? this.s.scr : this.guess(); },
+  guess() {
+    if (this.k) return this.k;
+    const ua = navigator.userAgent || '', mq = q => !!(window.matchMedia && matchMedia(q).matches), sw = screen.width || innerWidth, sh = screen.height || innerHeight, lo = Math.min(sw, sh), hi = Math.max(sw, sh), dpr = window.devicePixelRatio || 1;
+    const touch = mq('(pointer:coarse)') && !mq('(any-pointer:fine)');
+    let k;
+    if (/SMART-TV|SmartTV|Tizen|Web0S|webOS|HbbTV|CrKey|BRAVIA|GoogleTV|Android TV|AFT[A-Z]|PlayStation|Xbox|Nintendo/i.test(ua)) k = 'tv';
+    else if (/iPhone|iPod|Android.*Mobile|Mobile.*Firefox|Windows Phone/i.test(ua) || (touch && lo < 500)) k = 'phone';
+    else if (/iPad|Tablet|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) || touch) k = 'tablet';
+    else k = hi <= 1366 || (hi <= 1700 && dpr >= 1.25) ? 'laptop' : 'monitor';
+    return (this.k = k);
+  },
+  // one screen's size in CSS pixels: three screens joined into one display (far wider than any single screen, 32:9
+  // included) are taken a third at a time, as the size the player gives is one screen's
+  onePx() { let sw = screen.width || innerWidth; const sh = screen.height || innerHeight; if (sw >= 4.2 * sh) sw /= 3; return [sw, sh]; },
+  // CSS pixels to the millimetre on the screen: measured, from the size given, or as that kind of screen usually has them
+  pxmm() { const s = this.s; if (s.ppmm > 0) return s.ppmm; if (s.diag > 0) { const [sw, sh] = this.onePx(); return Math.hypot(sw, sh) / (s.diag * 25.4); } return SCREEN_KIND[this.kind()][0] / 25.4; },
+  // the eye's distance from the screen (cm): as given, else the usual (a monitor behind a wheel is set a little further)
+  distCm() { const s = this.s; if (s.dist > 0) return s.dist; const k = this.kind(); return k === 'monitor' && typeof Ctl !== 'undefined' && Ctl.dev === 'wheel' ? 75 : SCREEN_KIND[k][1]; },
+  // three screens: chosen, and the window stretched across them (much wider than tall)
+  trio() { return !!this.s.tri && innerWidth >= 2.4 * Math.max(1, innerHeight); },
+  // the picture's size on the screen (mm): the window's, one screen's third of it with three
+  picMM() { const k = this.pxmm(), n = this.trio() ? 3 : 1; return [innerWidth / n / k, innerHeight / k]; },
+  aspect() { return (this.trio() ? innerWidth / 3 : innerWidth) / Math.max(1, innerHeight); },
+  // the lens that shows the world life-size (degrees up and down)
+  lifeV() { const h = this.picMM()[1]; return 2 * Math.atan(h / 2 / (this.distCm() * 10)) * VIEW_R2D; },
+  // the narrowest lens that still shows enough of the road on this shape of picture
+  minV() { const a = this.aspect(); return clamp(Math.max(VIEW_MIN.v, 2 * Math.atan(Math.tan(VIEW_MIN.h * D2R / 2) / a) * VIEW_R2D), VIEW_MIN.v, 80); },
+  // the lens in the driver's seat and on the bonnet: life-size where the screen allows (auto), always (life), or the
+  // player's own (manual)
+  near() { const s = this.s, L = this.lifeV(); return Math.round((s.fov === 'manual' ? s.man : s.fov === 'life' ? clamp(L, 5, 110) : clamp(Math.max(L, this.minV()), 5, 110)) * 100) / 100; },
+  // across, for a lens up and down
+  across(v) { return 2 * Math.atan(Math.tan(v * D2R / 2) * this.aspect()) * VIEW_R2D; },
+  // how big the world looks against its true size with the lens v (1: life-size)
+  scale(v) { return Math.tan(this.lifeV() * D2R / 2) / Math.tan(v * D2R / 2); },
+  // a chase camera's lens: its own height of view (fv), kept to between 70 and 110 degrees across on very narrow and
+  // very wide pictures (a phone held upright, a super-wide monitor)
+  chase(fv) { const a = this.aspect(), h = 2 * Math.atan(Math.tan(fv * D2R / 2) * a) * VIEW_R2D;
+    if (h < 70) fv = 2 * Math.atan(Math.tan(35 * D2R) / a) * VIEW_R2D; else if (h > 110) fv = 2 * Math.atan(Math.tan(55 * D2R) / a) * VIEW_R2D; return Math.round(clamp(fv, 30, 88) * 100) / 100; },
+  // the head and eyes in use
+  headSet() { const s = this.s; return s.head === 'custom' && s.hd ? s.hd : HEAD_SET[s.head] || HEAD_SET.natural; },
+  // the player's seat for this car: [up, forward] (m) from where the driver sits
+  seatOf(S) { const v = S && this.s.seat[S.id]; return v || [0, 0]; },
+  // The three screens' views as the eye sees them (the eye at the origin looking down -z, the middle screen square on to
+  // it): each { yaw (rad, + to the left), l, r, b, t: its picture's edges as tangents on its own axis }, left to right.
+  // A side screen stands at the middle one's outer edge, its frame (bezel, mm) beside the middle one's, turned in toward
+  // the player by side degrees; the gap of the two frames is not drawn, as it is not seen. For a lens wider than life the
+  // screens are taken as seen from as much nearer. Also the frustum that takes in all three: u (its half-width as a
+  // tangent) and w (its half-height), for what is drawn at all.
+  views3(fovV) {
+    const [W, H] = this.picMM(), D = H / 2 / Math.tan(clamp(fovV, 5, 120) * D2R / 2), b = this.s.bezel, a = this.s.side * D2R, out = [];
+    const sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]], dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2], nrm = p => { const l = Math.hypot(p[0], p[1], p[2]) || 1; return [p[0] / l, p[1] / l, p[2] / l]; };
+    const view = (pa, pb, pc) => { const vr = nrm(sub(pb, pa)), vu = nrm(sub(pc, pa)), vn = [vr[1] * vu[2] - vr[2] * vu[1], vr[2] * vu[0] - vr[0] * vu[2], vr[0] * vu[1] - vr[1] * vu[0]], d = -dot(pa, vn);
+      return { yaw: Math.atan2(vn[0], vn[2]), l: dot(vr, pa) / d, r: dot(vr, pb) / d, b: dot(vu, pa) / d, t: dot(vu, pc) / d }; };
+    let u = 0, w = H / 2 / D;
+    for (const sd of [1, 0, -1]) {
+      if (!sd) { out.push({ yaw: 0, l: -W / 2 / D, r: W / 2 / D, b: -H / 2 / D, t: H / 2 / D }); continue; }
+      // (its inner and outer edges: from the hinge at the middle screen's frame (x: sd 1 the left, -x), out along the
+      // screen turned in toward the eye by a, past its own frame)
+      const ix = -sd * (W / 2 + b + b * Math.cos(a)), iz = -D + b * Math.sin(a), ox = ix - sd * W * Math.cos(a), oz = iz + W * Math.sin(a);
+      // (left screen, sd 1: its outer edge is its left; right screen: its inner edge is its left)
+      const L = sd > 0 ? [ox, oz] : [ix, iz], R = sd > 0 ? [ix, iz] : [ox, oz];
+      out.push(view([L[0], -H / 2, L[1]], [R[0], -H / 2, R[1]], [L[0], H / 2, L[1]]));
+      const dz = Math.max(0.1 * D, -oz); u = Math.max(u, Math.abs(ox) / dz); w = Math.max(w, H / 2 / dz);
+    }
+    return { views: out, u: Math.min(u, 11.4), w: Math.min(w, 1.7) }; // (u: at most 85 degrees out each side)
+  },
+  // after a change: saved, and the view put right at once (also while paused)
+  changed() { this.save(); if (typeof G !== 'undefined' && G.car && G.mesh && (G.state === 'run' || G.state === 'countdown' || G.state === 'replay')) { try { updateCamera(0); } catch (e) { } } document.body.toggleAttribute('data-tri', this.trio()); },
+  init() { this.load(); addEventListener('resize', () => { this.k = null; document.body.toggleAttribute('data-tri', this.trio()); }); document.body.toggleAttribute('data-tri', this.trio()); }
+};
+View.load(); // (the choices read at once: anything drawn before the game starts finds them)
+// The seats as the view from them needs (round 34). SEAT34: the view's place against the driver's eye at rest, [up,
+// forward] (m), in the cars with the lowest roofs: the crew there can sit no higher with their helmets clear of the roof,
+// and the view is taken as the driver sees it sitting up and leaning in a little to look over the bonnet. CABFLOOR34: how
+// far a cab's floor may stand over the body's floor line (m; a car's 18 cm) where the driver's seat needs it higher: a
+// van's cab over its frame
+const SEAT34 = { vespera_sc: [0.045, 0.03], xebec_24v: [0.03, 0.02], halberd_x4: [0.03, 0.02], lugger_18: [0.03, 0.02], sentai_gt4: [0.015, 0.01] };
+const CABFLOOR34 = { palanquin_25d: 0.3 };
 // ---------- camera ----------
 // The views as real cameras and a real driver's eyes would give them. The chase cameras are flown behind the car the way
 // a camera drone follows it: smooth and unhurried (damped springs on their heading, their distance and the point they
@@ -27421,10 +27564,12 @@ function emit(dt) {
 // back between the seats is shut off (LOOK_OUT) its driver looks back out of the side window instead.
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), _cv = new THREE.Vector3(), _cq = new THREE.Quaternion(), _cz = new THREE.Vector3(0, 0, 1);
 // each view: distance behind and height (the chase cameras), and its lens (the vertical field of view, degrees)
-const CAM = { chase: { d: 7.5, h: 2.4, fov: 68 }, far: { d: 12.5, h: 4.2, fov: 66 }, cockpit: { fov: 74 }, bonnet: { fov: 70 }, tail: { fov: 76 } };
+// (the driver's seat and the bonnet have no lens of their own: View.near works it out from the screen)
+const CAM = { chase: { d: 7.5, h: 2.4, fov: 68 }, far: { d: 12.5, h: 4.2, fov: 66 }, tail: { fov: 76 } };
 const Cam = { ok: false, mode: -1, yaw: 0, yawV: 0, s: 6.3, sV: 0, rx: 0, rz: 0, rvx: 0, rvz: 0, vxF: 0, vzF: 0, y: 0, yV: 0, vyF: 0, lift: 0, pull: 1, stamp: 0,
   back: false, bT: 0, fT: 0, lb: 0, lbV: 0, kx: 0, ky: 0, kvx: 0, kvy: 0, sh: 0, look: false,
-  nk: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, yawV: 0 } }; // (the driver's neck: the head's offset and turn, and their rates)
+  nk: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, yawV: 0 }, // (the driver's neck: the head's offset and turn, and their rates)
+  hd: { ok: false, hp: 0, hr: 0, yaw: 0, yawV: 0, gp: 0, gpV: 0 } }; // (the head's horizon - pitch, roll - and the eyes' turn and lift, and their rates: see cockpitCamera)
 function camLens(fov) { if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); } }
 // The cars whose view back from the driver's seat, turned round between the seats, is shut off: a bulkhead or the engine
 // cover right behind the seats (the mid- and rear-engined cars, and those whose rear window sits too high and small to
@@ -27526,10 +27671,10 @@ function chaseCamera(dt, car) {
   // (the view dips under braking and lifts under power, as the car's nose does: Ctl.feel.pitch)
   { const pt = clamp(c.ax || 0, -12, 12) * 0.03 * (Ctl.ok ? Ctl.feel.pitch : 0); Cam.pk = dt > 0 ? (Cam.pk || 0) + (pt - (Cam.pk || 0)) * (1 - Math.exp(-dt / 0.12)) : pt; }
   camPos.set(px - Cam.kx * fz, py + Cam.ky, pz + Cam.kx * fx); camLook.set(Cam.rx + fx * 4, ay + Cam.pk, Cam.rz + fz * 4);
-  camera.position.copy(camPos); camera.up.set(0, 1, 0); camera.lookAt(camLook); camLens(V.fov);
+  camera.position.copy(camPos); camera.up.set(0, 1, 0); camera.lookAt(camLook); camLens(View.chase(V.fov));
   G.camYaw = yw;
 }
-function snapCamera() { if (!G.car) return; Object.assign(Cam, { ok: false, back: false, bT: 0, fT: 0, lb: 0, lbV: 0, kx: 0, ky: 0, kvx: 0, kvy: 0, sh: G.shake }); Object.assign(Cam.nk, { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, yawV: 0 }); Cam.mode = G.camMode; updateCamera(0); }
+function snapCamera() { if (!G.car) return; Object.assign(Cam, { ok: false, back: false, bT: 0, fT: 0, lb: 0, lbV: 0, kx: 0, ky: 0, kvx: 0, kvy: 0, sh: G.shake }); Object.assign(Cam.nk, { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, yaw: 0, yawV: 0 }); Cam.hd.ok = false; Cam.mode = G.camMode; updateCamera(0); }
 const _q = new THREE.Quaternion(), _qy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI), _qe = new THREE.Quaternion(), _eu = new THREE.Euler(0, 0, 0, 'YXZ');
 const head = { x: 0, y: 0, yaw: 0, j: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, p: new THREE.Vector3(), v: new THREE.Vector3(), t: -1 } };
 const _hv = new THREE.Vector3(), _hd = new THREE.Vector3(), _hq = new THREE.Quaternion();
@@ -27557,53 +27702,106 @@ function crewJolt(dt, span) {
   for (const b of [m.I.head, m.I.cohead]) if (b) { b.position.set(J.x, J.y, J.z); b.rotation.set(J.z * 2.2, 0, -J.x * 1.8); }
 }
 const _hp = new THREE.Vector3();
-// The driver's eyes. The head rides on the neck (a damped spring, about two swings a second): pressed aside by the
-// cornering, forward under braking and back under power, down when the car lands, jostled by a rough road; it tilts
-// against the car's roll and pitch to keep the horizon steadier than the car does (as heads do), and turns to look into
-// the corner. Reversing or looking back, the driver turns round over the inside shoulder and leans in to look back
-// between the seats; in a car where that view is shut off (LOOK_OUT), round over the outside shoulder, leaning to the
-// side window to look back out of it along the car's flank. Blows throw the head about in the harness on top of all that
-// (crewJolt).
+// The driver's eyes, as a driver's head and eyes see the road - the view sim drivers ask for, which none of the usual
+// choices alone gives: a view bolted to the car shakes the whole world about with every bump; a view locked to the
+// horizon is steady, but stares at the dashboard up a steep climb and at the roof lining down one. Here the head rides on
+// the neck, carried about by the car's forces (a damped spring, about two swings a second: aside in a bend, forward under
+// braking, down on a landing; View head g). The neck and the eyes keep it level against the car's quick pitching and
+// rolling (head pitch, roll: the share of it taken out), and take up a slope or a camber as level only as it lasts (head
+// follow: about a second at the start, from 0, the world's horizon held always, to 1, the car's at once): over a crest or
+// a bump the world stays put and the car moves round the eyes; up a long climb the view looks up the road. The eyes hold
+// on the road ahead, a second's travel or so up it (head look): into a bend before the car turns, up a rise, down over a
+// crest; in a slide toward where the car is going (head slide). Into a bend the head tilts a little toward its inside, as
+// drivers' heads do. What is left of the road's jolting is head shake. Reversing or looking back, the driver turns round
+// over the inside shoulder as before (or out of the side window, LOOK_OUT); blows throw the head about in the harness on
+// top of it all (crewJolt). The eye is the driver's own (the seat moved as the player has set it, View.seatOf), and the
+// eyes go round with the head about the top of the neck when it turns.
+const _hq1 = new THREE.Quaternion(), _hq2 = new THREE.Quaternion(), _hq3 = new THREE.Quaternion(), _hX = new THREE.Vector3(1, 0, 0), _hY = new THREE.Vector3(0, 1, 0), _hZ = new THREE.Vector3(0, 0, 1);
+const _hf = new THREE.Vector3(), _hl = new THREE.Vector3(), _hu = new THREE.Vector3(), _ht = new THREE.Vector3(), _hr = new THREE.Vector3(), _hk = new THREE.Vector3();
+// the point L metres up the road from the car (the way it is going, or at a crawl the way it faces) on the road's middle,
+// into out: null off the road, across it, or past either end
+function roadAhead(c, T, L, out) {
+  const I = c.info; if (!I || !T || !T.pts || !(I.w > 0)) return null; if (Math.abs(I.lat) > I.w / 2 + 6) return null;
+  const P = T.pts, N = P.length, LP = T.loop ? N - 1 : 0, s0 = Math.sin(c.psi), c0 = Math.cos(c.psi), vx = c.u * s0 + c.v * c0, vz = c.u * c0 - c.v * s0, sp = Math.hypot(vx, vz);
+  const along = sp > 2 ? (vx * Math.sin(I.h) + vz * Math.cos(I.h)) / sp : Math.cos(c.psi - I.h); if (Math.abs(along) < 0.35) return null;
+  let f = I.s + I.t + (along > 0 ? 1 : -1) * L / STEP; if (LP) f = ((f % LP) + LP) % LP; else if (f < 0 || f > N - 1.001) return null;
+  const k = Math.floor(f), t = f - k, A = P[k], B = P[Math.min(N - 1, k + 1)];
+  return out.set(A.x + (B.x - A.x) * t, roadYAt(T, f * STEP), A.z + (B.z - A.z) * t);
+}
 function cockpitCamera(dt) {
   const c = G.car, m = G.mesh; if (!m || !m.eye) return false;
-  m.root.updateMatrixWorld(true); m.eye.getWorldPosition(camera.position); m.body.getWorldQuaternion(_q);
-  const sp = Math.hypot(c.u, c.v), N = Cam.nk, J = head.j, side = Math.sign(m.eye.position.x) || 1, back = camReverse(c, dt) || Cam.look;
+  m.root.updateMatrixWorld(true); m.body.getWorldQuaternion(_q);
+  const P = View.headSet(), H = Cam.hd, N = Cam.nk, J = head.j, sp = Math.hypot(c.u, c.v), side = Math.sign(m.eye.position.x) || 1, back = camReverse(c, dt) || Cam.look;
+  // the eye: the driver's own, the seat moved as the player has set it
+  const st = View.seatOf(G.spec), e = m.eye.position; camera.position.set(e.x, e.y + st[0], e.z + st[1]).applyMatrix4(m.body.matrixWorld);
+  // the car's pitch (its nose up +) and roll (its left side up +) against the world, and how upright it is: the neck
+  // keeps the head level only while the car is near the right way up (on its side or its roof the head goes with it)
+  _hf.set(0, 0, 1).applyQuaternion(_q); _hl.set(1, 0, 0).applyQuaternion(_q); _hu.set(0, 1, 0).applyQuaternion(_q);
+  const cp = Math.asin(clamp(_hf.y, -1, 1)), cr = Math.asin(clamp(_hl.y, -1, 1)), hold = smooth(0.45, 0.8, _hu.y);
+  // the horizon the head takes as level: the car's own, as it lasts (follow), or the world's (follow 0)
+  const fo = P.follow, tau = fo > 0.001 ? 0.25 / Math.pow(fo, 1.5) : 0;
+  const fresh = !H.ok; if (fresh) { H.ok = true; H.hp = fo > 0.001 ? cp : 0; H.hr = fo > 0.001 ? cr : 0; }
+  else if (dt > 0) { if (fo > 0.001) { const k = 1 - Math.exp(-dt / tau); H.hp += (cp - H.hp) * k; H.hr += (cr - H.hr) * k; } else { H.hp = 0; H.hr = 0; } }
+  // the head's pitch and roll in the world: its horizon, with what the neck and eyes leave of the car's quick moves, and
+  // a tilt toward the inside of a bend (lateral g)
+  const lean = -clamp(c.ay || 0, -15, 15) * 0.004 * P.g;
+  const ph = H.hp + (1 - P.pitch) * (cp - H.hp), rh = H.hr + (1 - P.roll) * (cr - H.hr) + lean;
+  const dP = clamp((ph - cp) * hold, -0.45, 0.45), dR = clamp((rh - cr) * hold, -0.55, 0.55);
+  // where the eyes look: up the road, a second's travel ahead (12 to 45 m), and as high as the road there is against
+  // where it would be on the level; in a slide, toward where the car is going
+  let ty = 0, tp = 0, road = false;
+  if (P.look > 0 && G.T && !c.over) { const L = clamp(8 + sp * 0.9, 12, 45), p = roadAhead(c, G.T, L, _ht);
+    if (p) { _hk.copy(p).sub(camera.position); const hd = Math.hypot(_hk.x, _hk.z); _hk.applyQuaternion(_hq1.copy(_q).invert());
+      const yw = Math.atan2(_hk.x, _hk.z);
+      if (Math.abs(yw) < 2.2) { ty += P.look * yw; road = true;
+        const he = Math.max(0.6, camera.position.y - (c.info ? c.info.y : camera.position.y - 1.2)), elw = Math.atan2(p.y - camera.position.y, Math.max(1, hd)), lvl = -Math.atan2(he, L);
+        tp = P.look * clamp(elw - ph - lvl, -0.16, 0.16); } } }
+  // (off the road, or with nowhere along it to look: into the turn the wheels are making)
+  if (!road && P.look > 0 && !c.over) ty += P.look * clamp((c.delta || 0) * 0.9, -0.5, 0.5);
+  // (where the road ahead already draws the eyes round toward the car's way in a slide, the slide adds only half as much)
+  if (sp > 4 && P.slide > 0 && !c.over) ty += P.slide * (road ? 0.5 : 1) * clamp(Math.atan2(c.v, Math.abs(c.u)), -0.9, 0.9);
+  ty = clamp(ty * hold, -1.25, 1.25); tp *= hold;
+  // where the neck carries the head: g-forces (m/s² to metres), as much as head g says
+  const kg = P.g / 0.6, tx = clamp(-(c.ay || 0) * 0.0045 * kg, -0.05, 0.05), tz = clamp(-(c.ax || 0) * 0.004 * kg, -0.035, 0.035), tyv = clamp(-(c.lf - 1) * 0.03 * kg, -0.05, 0.04);
   const rough = c.surfName === 'ice' ? 0.1 : (c.surfName === 'tarmac' || c.surfName === 'stone') ? 0.25 : 1;
-  // where the neck carries the head: g-forces (m/s² to metres), the corner's look, and the turn to look back
-  const tx = clamp(-(c.ay || 0) * 0.0045, -0.05, 0.05), tz = clamp(-(c.ax || 0) * 0.004, -0.035, 0.035), ty = clamp(-(c.lf - 1) * 0.03, -0.05, 0.04);
-  const tyaw = clamp((c.delta || 0) * 0.55 + (sp > 4 ? Math.atan2(c.v, Math.abs(c.u)) * 0.35 : 0), -0.35, 0.35);
+  if (fresh) { H.yaw = ty; H.yawV = 0; H.gp = tp; H.gpV = 0; }
   if (dt > 0) {
-    const n = Math.ceil(dt / 0.005), h = dt / n, w = 2 * Math.PI * 2.1, wl = 6, jig = rough * smooth(3, 30, sp) * 0.35;
+    const n = Math.ceil(dt / 0.005), h = dt / n, w = 2 * Math.PI * 2.1, wl = 6, jig = rough * smooth(3, 30, sp) * 0.35 * P.shake / 0.3, wy = 6.5, wp = 4;
     for (let i = 0; i < n; i++) {
-      N.vx += (w * w * (tx - N.x) - 1.3 * w * N.vx) * h; N.vy += (w * w * (ty - N.y) - 1.3 * w * N.vy) * h + (Math.random() - 0.5) * jig * Math.sqrt(h) * 2.2; N.vz += (w * w * (tz - N.z) - 1.3 * w * N.vz) * h;
+      N.vx += (w * w * (tx - N.x) - 1.3 * w * N.vx) * h; N.vy += (w * w * (tyv - N.y) - 1.3 * w * N.vy) * h + (Math.random() - 0.5) * jig * Math.sqrt(h) * 2.2; N.vz += (w * w * (tz - N.z) - 1.3 * w * N.vz) * h;
       N.x += N.vx * h; N.y += N.vy * h; N.z += N.vz * h;
-      N.yawV += (16 * (tyaw - N.yaw) - 8 * N.yawV) * h; N.yaw += N.yawV * h;
+      H.yawV += (wy * wy * (ty - H.yaw) - 2 * wy * H.yawV) * h; H.yawV = clamp(H.yawV, -4, 4); H.yaw += H.yawV * h;
+      H.gpV += (wp * wp * (tp - H.gp) - 2 * wp * H.gpV) * h; H.gp += H.gpV * h;
       Cam.lbV += (wl * wl * ((back ? 1 : 0) - Cam.lb) - 2 * wl * Cam.lbV) * h; Cam.lbV = clamp(Cam.lbV, -1.7, 1.7); Cam.lb = clamp(Cam.lb + Cam.lbV * h, 0, 1);
     }
     N.y = clamp(N.y, -0.07, 0.06);
   }
-  // the eye: turned round over the inside shoulder, sitting up, it leans in to the gap between the seat backs at the car's
-  // middle, to look out through the rear window (bx, by, bz: how far it moves, in the body's frame); or, where that is
-  // shut off, turned round over the outside shoulder and leaning out of the side window - past the glass (where it is at
+  // the eye turned round to look back: over the inside shoulder, sitting up, leaning in to the gap between the seat backs
+  // at the car's middle to look out through the rear window (bx, by, bz: how far it moves, in the body's frame); or,
+  // where that is shut off, round over the outside shoulder and out of the side window - past the glass (where it is at
   // the eye's height: between the body's width over its arches at the waist and its roof's) and past the widest of the
-  // body behind it (a van's or a truck's) - a little up and forward of the seat back, looking back along the flank and
-  // a little out from it, as a driver without mirrors does
-  const lb = Cam.lb, e = m.eye.position, out = LOOK_OUT.has(G.spec && G.spec.id);
+  // body behind it (a van's or a truck's) - a little up and forward of the seat back, looking back along the flank and a
+  // little out from it, as a driver without mirrors does
+  const lb = Cam.lb, out = LOOK_OUT.has(G.spec && G.spec.id);
   let bx = -e.x, by = 0.06, bz = -0.14, byaw = -side * (Math.PI - 0.04), bp = -0.05;
-  if (out) { const H = carShape(G.spec), f = clamp((e.y - H.belt) / Math.max(0.1, H.roof - H.belt), 0, 1), xs = H.hw + (H.rw - H.hw) * f;
-    bx = side * Math.max(xs + 0.06, H.hw + 0.12) - e.x; by = 0.05; bz = 0.12; byaw = side * (Math.PI - 0.32); bp = -0.02; }
-  const yaw = N.yaw * (1 - lb) + byaw * lb;
-  // the head keeps the horizon steadier than the car: a quarter of the car's pitch against the road taken out
-  const rp = c.info ? (c.pitch || 0) - Math.atan(c.info.grade || 0) * Math.cos(c.psi - (c.info.h || 0)) : 0;
+  if (out) { const SH = carShape(G.spec), f = clamp((e.y - SH.belt) / Math.max(0.1, SH.roof - SH.belt), 0, 1), xs = SH.hw + (SH.rw - SH.hw) * f;
+    bx = side * Math.max(xs + 0.06, SH.hw + 0.12) - e.x; by = 0.05; bz = 0.12; byaw = side * (Math.PI - 0.32); bp = -0.02; }
+  const yaw = H.yaw * (1 - lb) + byaw * lb, fw = 1 - lb;
   // (leaning down to a parking brake's knob by the door: the view goes with the head, forward, down and toward it)
   const rk = (m.crewAnim && m.crewAnim.reachK) || 0;
-  _eu.set(-0.05 + bp * lb - J.z * 1.6 - 0.25 * clamp(rp, -0.2, 0.2) * (1 - lb) - 0.3 * rk, yaw + side * 0.36 * rk, J.x * 1.4); _qe.setFromEuler(_eu);
-  camera.quaternion.copy(_q).multiply(_qy).multiply(_qe);
-  // ... and a third of its roll
-  _cv.set(1, 0, 0).applyQuaternion(camera.quaternion); camera.quaternion.multiply(_cq.setFromAxisAngle(_cz, -0.33 * Math.asin(clamp(_cv.y, -1, 1))));
+  // the head's turn against the car: levelled about the car's own axes (dP, dR), then the eyes' turn about its up
+  _hq1.setFromAxisAngle(_hX, -dP * fw); _hq2.setFromAxisAngle(_hZ, dR * fw); _hq3.multiplyQuaternions(_hq2, _hq1);
+  camera.quaternion.copy(_q).multiply(_hq3).multiply(_qy);
+  _eu.set(View.s.tilt * D2R * fw + H.gp * fw + bp * lb - J.z * 1.6 - 0.3 * rk, yaw + side * 0.36 * rk, J.x * 1.4); _qe.setFromEuler(_eu); camera.quaternion.multiply(_qe);
+  // (a head turned to look across a slope keeps the horizon as level as it was: the roll its turn about the car's tilted
+  // up would bring is taken out, as the inner ear keeps a head upright - as much as the neck steadies the roll)
+  if (P.roll > 0 && hold > 0) { _hk.set(1, 0, 0).applyQuaternion(camera.quaternion); const rNow = -Math.asin(clamp(_hk.y, -1, 1)), rWant = rh * Math.cos(yaw) - J.x * 1.4; // (a blow's throw of the head kept)
+    camera.quaternion.multiply(_hq1.setFromAxisAngle(_hZ, -(rWant - rNow) * hold * fw * P.roll)); }
+  // (the eyes go round with the head about the top of the neck, 11 cm under them and 7 cm behind)
+  _hr.set(0, 0.11, 0.07); _hk.copy(_hr).applyAxisAngle(_hY, yaw * fw).applyQuaternion(_hq3).sub(_hr);
   camKnock(dt, 7, 0.02);
-  camera.position.add(_v1.set(N.x + J.x + bx * lb + Cam.kx + side * 0.04 * rk, N.y + J.y + by * lb + Cam.ky - 0.06 * rk, N.z + J.z + bz * lb + 0.1 * rk).applyQuaternion(_q));
-  camLens(CAM.cockpit.fov);
+  camera.position.add(_v1.set(_hk.x + N.x + J.x + bx * lb + Cam.kx + side * 0.04 * rk, _hk.y + N.y + J.y + by * lb + Cam.ky - 0.06 * rk, _hk.z + N.z + J.z + bz * lb + 0.1 * rk).applyQuaternion(_q));
+  camLens(View.near());
   Atmos.place(c.x, c.y, c.z);
   return true;
 }
@@ -27617,7 +27815,7 @@ function bonnetCamera(dt) {
   if (back) { _eu.set(-0.2, 0, 0); _qe.setFromEuler(_eu); camera.quaternion.copy(_q).multiply(_qe); } // (a camera looks down its own -z: the body's rearward)
   else { _eu.set(-0.035, 0, 0); _qe.setFromEuler(_eu); camera.quaternion.copy(_q).multiply(_qy).multiply(_qe); }
   camKnock(dt, 11, 0.035); camera.position.add(_v1.set(Cam.kx, Cam.ky, 0).applyQuaternion(camera.quaternion));
-  camLens(back ? CAM.tail.fov : CAM.bonnet.fov);
+  camLens(back ? View.chase(CAM.tail.fov) : View.near());
   G.camYaw = c.psi; Atmos.place(c.x, c.y, c.z);
   return true;
 }
@@ -28660,18 +28858,52 @@ function glassLook(inCar) {
 const bgScene = new THREE.Scene();
 // (warm: drawn now whatever the far country, so that the sky's and the far country's shaders are made ready as this pass
 // has them - a scene without the world's lights has its own - before the run rather than in its first frame)
-function renderBg(warm) {
+function renderBg(warm, part) {
   const d = Atmos.dome, ring = Atmos.ring, cv = renderer.domElement, W = cv.width, H = cv.height;
   if (!d || !d.parent || !ring || !scene.fog || !W || !H || (!warm && !ring.visible)) { BG_ON[0] = 0; return; }
   const w = Math.max(16, Math.round(W / 4)), h = Math.max(16, Math.round(H / 4)); if (BG_RT.width !== w || BG_RT.height !== h) BG_RT.setSize(w, h);
+  // (three screens: each view's sky into its own third of the small picture, where its pixels will look for it)
+  if (part) { const x0 = Math.round(part[0] * w / part[1]), x1 = Math.round((part[0] + 1) * w / part[1]); BG_RT.viewport.set(x0, 0, x1 - x0, h); BG_RT.scissor.copy(BG_RT.viewport); BG_RT.scissorTest = true; }
   const par = d.parent, rt = renderer.getRenderTarget(), rv = ring.visible; bgScene.add(d); d.updateMatrixWorld(); if (warm) ring.visible = true;
   const tmK = renderer.toneMapping; renderer.toneMapping = THREE.NoToneMapping; renderer.setRenderTarget(BG_RT); renderer.render(bgScene, camera); renderer.setRenderTarget(rt); renderer.toneMapping = tmK; par.add(d); ring.visible = rv;
+  if (part) { BG_RT.viewport.set(0, 0, w, h); BG_RT.scissor.copy(BG_RT.viewport); BG_RT.scissorTest = false; }
   BG_ON[0] = warm ? 0 : 1; BG_ON[1] = 1 / W; BG_ON[2] = 1 / H;
+}
+// Three screens (View.trio): on a stage and in a replay each screen is drawn as its own view from the player's eye (its
+// own direction and its own lopsided frustum: View.views3), so a side screen turned in shows the world as the player
+// sees it through that screen, not a flat picture stretched across all three. What is drawn at all is taken from one
+// frustum round all three; each view is then drawn into its own third of the window: the world, the close pass of the
+// car, and last the windscreen's drops over each. The camera is left as the middle screen's view.
+const _t3 = { q: new THREE.Quaternion(), r: new THREE.Quaternion(), fov: 60, aspect: 1, on: false };
+const trioOn = () => View.trio() && (G.state === 'run' || G.state === 'countdown' || G.state === 'replay' || G.state === 'finish');
+function trioView(cam, V, near, far) { cam.quaternion.copy(_t3.q).multiply(_t3.r.setFromAxisAngle(_hY, V.yaw)); cam.updateMatrixWorld();
+  cam.projectionMatrix.makePerspective(V.l * near, V.r * near, V.t * near, V.b * near, near, far); cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert(); }
+function renderTrio(T3, close, inCar, onHood) {
+  const near = camera.near, far = camera.far, sm = renderer.shadowMap, au = sm.autoUpdate, n = T3.views.length, X = k => Math.round(k * innerWidth / n);
+  camera.fov = _t3.fov; camera.aspect = _t3.aspect; cockCam.fov = _t3.fov; cockCam.aspect = _t3.aspect; cockCam.position.copy(camera.position);
+  if (close) { carSun.position.copy(sun.position); carSun.target.position.copy(sun.target.position); }
+  renderer.setScissorTest(true);
+  T3.views.forEach((V, i) => {
+    const x = X(i), w = X(i + 1) - x; renderer.setViewport(x, 0, w, innerHeight); renderer.setScissor(x, 0, w, innerHeight);
+    trioView(camera, V, near, far); ROAD_LAY.uCamW.value.copy(camera.matrixWorld);
+    renderBg(false, [i, n]); renderer.render(scene, camera); BG_ON[0] = 0; sm.autoUpdate = false; // (the sun's shadow drawn once, for the first)
+    if (close) { trioView(cockCam, V, cockCam.near, cockCam.far); renderer.autoClear = false; renderer.clearDepth();
+      if (onHood) { carScene.add(G.mesh.root); renderer.render(carScene, cockCam); scene.add(G.mesh.root); } else renderer.render(carScene, cockCam); renderer.autoClear = true; }
+  });
+  sm.autoUpdate = au;
+  if (inCar && ScreenFx.on) { renderer.autoClear = false; T3.views.forEach((V, i) => { const x = X(i), w = X(i + 1) - x; renderer.setViewport(x, 0, w, innerHeight); renderer.setScissor(x, 0, w, innerHeight); trioView(cockCam, V, cockCam.near, cockCam.far); ScreenFx.draw(renderer, cockCam, i > 0); }); renderer.autoClear = true; }
+  renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight);
+  trioView(camera, T3.views[1], near, far); ROAD_LAY.uCamW.value.copy(camera.matrixWorld);
 }
 function render() {
   // the view's far plane at the haze's end (and a little more): nothing past it could be seen, and three.js leaves out
   // whatever lies beyond (the sky is drawn at the far plane itself, see SKY_VS)
   { const f = clamp((scene.fog ? scene.fog.far : 1400) * 1.06 + 40, 260, 1400); if (Math.abs(camera.far - f) > 4) { camera.far = f; camera.updateProjectionMatrix(); } }
+  // (three screens: the frustum for what is drawn at all taken round all three views, the middle one's lens kept)
+  const T3 = trioOn() ? View.views3(camera.fov) : null;
+  if (T3) { _t3.q.copy(camera.quaternion); _t3.fov = camera.fov; _t3.aspect = View.aspect(); camera.fov = 2 * Math.atan(T3.w) * VIEW_R2D; camera.aspect = T3.u / T3.w; camera.updateProjectionMatrix(); }
+  else if (_t3.on) { camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix(); }
+  _t3.on = !!T3;
   Env.update(); cullChunks(); camera.updateMatrixWorld(); ROAD_LAY.uCamW.value.copy(camera.matrixWorld); MIST_EYE.set(camera.matrixWorld.elements.slice(12, 15));
   if (RaceLine.mesh && RaceLine.mesh.visible && G.state !== 'run' && G.state !== 'countdown') RaceLine.hide(); // (the racing line belongs to a stage run)
   if (Moves.on && G.state !== 'run' && G.state !== 'countdown') Moves.stop();
@@ -28686,7 +28918,9 @@ function render() {
   // water and dirt, drawn before the frame
   if (ScreenFx.on && G.T) { const el = Atmos.sunEl == null ? 30 : Atmos.sunEl, sf = G.T.surface;
     ScreenFx.light(camera, Atmos.u.uSun.value, Atmos.moonLight ? 0 : Atmos.u.uSunVis.value * smooth(-2, 5, el), 0.05 + 0.95 * (1 - Atmos.dark), SCREEN_MUD[sf] || SCREEN_MUD.gravel, DUST[sf] || DUST.gravel); ScreenFx.prepare(renderer); }
-  CarShade.frame(); renderBg();
+  CarShade.frame();
+  if (T3) { renderTrio(T3, close, inCar, onHood); return; }
+  renderBg();
   if (!close) { renderer.render(scene, camera); BG_ON[0] = 0; return; }
   renderer.render(scene, camera); BG_ON[0] = 0;
   carSun.position.copy(sun.position); carSun.target.position.copy(sun.target.position);
@@ -29045,24 +29279,29 @@ const ControlsUI = {
     let ov = $('#ctl'); if (!ov) { ov = el('div', { id: 'ctl', class: 'overlay' }); document.body.append(ov);
       ov.addEventListener('keydown', e => { if (this.listen) return; if (e.key === 'Escape') { e.preventDefault(); this.close(); } if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && e.target && e.target.tagName !== 'INPUT') e.stopPropagation(); });
       ov.addEventListener('pointerdown', e => { if (e.target === ov) this.close(); }); }
+    { const p = $('#pause'); this.unpause = !!(p && !p.hidden); if (this.unpause) p.hidden = true; }
     this.ov = ov; ov.hidden = false; this.render(); const f = ov.querySelector('.ctabs [aria-selected="true"]'); if (f) setTimeout(() => f.focus({ preventScroll: true }), 30);
     cancelAnimationFrame(this.raf); const loop = () => { if (!this.ov || this.ov.hidden) return; this.poll(); this.raf = requestAnimationFrame(loop); }; this.raf = requestAnimationFrame(loop);
   },
-  close() { this.listen = null; if (this.ov) { this.ov.hidden = true; this.ov.textContent = ''; } cancelAnimationFrame(this.raf); renderDriving(); renderBoard(); touchLayout(); },
+  close() { this.listen = null; this.measure = 0; if (this.ov) { this.ov.hidden = true; this.ov.textContent = ''; } cancelAnimationFrame(this.raf); renderDriving(); renderBoard(); touchLayout();
+    if (this.unpause) { this.unpause = false; const p = $('#pause'); if (p && G.paused) p.hidden = false; } }, // (opened from the pause menu: back to it)
   set(fn) { fn(); Ctl.save(); },
   render() {
     const ov = this.ov; if (!ov) return; this.mt = null; this.padLine = null; const keepScroll = ov.querySelector('.sbody'), st = keepScroll ? keepScroll.scrollTop : 0; ov.textContent = '';
     const card = el('section', { class: 'card', role: 'dialog', 'aria-labelledby': 'ctlH', 'aria-modal': 'true' }), head = el('div', { class: 'chead' }), body = el('div', { class: 'sbody' });
-    head.append(el('p', { class: 'rkick', text: 'Controls and feel' }), el('h2', { id: 'ctlH', text: this.tab === 'feel' ? 'What you feel' : this.tab === 'driving' ? 'Driving assists' : DEV_NAME[this.tab] }));
+    head.append(el('p', { class: 'rkick', text: 'Controls and feel' }), el('h2', { id: 'ctlH', text: this.tab === 'feel' ? 'What you feel' : this.tab === 'view' ? 'The view' : this.tab === 'driving' ? 'Driving assists' : DEV_NAME[this.tab] }));
+    // (the view's tab on a stage: the view itself left to be seen beside it)
+    ov.classList.toggle('peek', this.tab === 'view' && !!G.car && (G.state === 'run' || G.state === 'countdown'));
     const tabs = el('div', { class: 'ctabs', role: 'tablist', 'aria-label': 'Settings' });
-    for (const t of ['driving'].concat(DEVS, ['feel'])) { const b = el('button', { type: 'button', role: 'tab', 'aria-selected': t === this.tab ? 'true' : 'false', onclick: () => { this.tab = t; this.listen = null; this.note = ''; this.render(); } }, t === 'feel' ? 'Feel' : t === 'driving' ? 'Assists' : DEV_NAME[t].replace(' and pedals', ''));
+    for (const t of ['driving'].concat(DEVS, ['feel', 'view'])) { const b = el('button', { type: 'button', role: 'tab', 'aria-selected': t === this.tab ? 'true' : 'false', onclick: () => { this.tab = t; this.listen = null; this.note = ''; this.measure = 0; this.render(); } }, t === 'feel' ? 'Feel' : t === 'view' ? 'View' : t === 'driving' ? 'Assists' : DEV_NAME[t].replace(' and pedals', ''));
       if (t === Ctl.dev) { b.append(el('span', { class: 'cuse', title: 'In use' })); b.setAttribute('aria-label', DEV_NAME[t] + ' (in use)'); } tabs.append(b); }
     head.append(tabs); card.append(head, body); ov.append(card);
-    if (this.tab === 'feel') this.feelTab(body); else if (this.tab === 'driving') this.drivingTab(body); else this.devTab(body, this.tab);
+    if (this.tab === 'feel') this.feelTab(body); else if (this.tab === 'view') this.viewTab(body); else if (this.tab === 'driving') this.drivingTab(body); else this.devTab(body, this.tab);
     const btns = el('div', { class: 'btns' });
     btns.append(el('button', { type: 'button', class: 'go', onclick: () => this.close() }, 'Done'));
     if (this.tab === 'driving') btns.append(el('button', { type: 'button', class: 'ghostbtn', onclick: () => { Ctl.drive = DRIVE_DEF(); Ctl.save(); this.note = 'Back to the defaults: the preset follows the controller in use until you pick one.'; this.render(); } }, 'Back to the defaults'));
-    else if (this.tab !== 'feel') btns.append(el('button', { type: 'button', class: 'ghostbtn', onclick: () => { Ctl.reset(this.tab); this.note = `${DEV_NAME[this.tab]} set back to how it started.`; this.render(); } }, 'Reset this controller'));
+    else if (this.tab !== 'feel' && this.tab !== 'view') btns.append(el('button', { type: 'button', class: 'ghostbtn', onclick: () => { Ctl.reset(this.tab); this.note = `${DEV_NAME[this.tab]} set back to how it started.`; this.render(); } }, 'Reset this controller'));
+    else if (this.tab === 'view') btns.append(el('button', { type: 'button', class: 'ghostbtn', onclick: () => { const V = View.s, D = VIEW_DEF; Object.assign(V, { fov: D.fov, man: D.man, tilt: D.tilt, head: D.head, hd: null }); if (G.spec) delete V.seat[G.spec.id]; View.changed(); this.note = 'Back to the defaults: the lens, the head and eyes, and this car’s seat. What you told the game about your screen is kept.'; this.render(); } }, 'Back to the defaults'));
     else btns.append(el('button', { type: 'button', class: 'ghostbtn', onclick: () => { Ctl.feel = Object.assign({}, FEEL_DEF); Ctl.save(); this.render(); } }, 'Reset'));
     card.append(btns); body.scrollTop = st;
   },
@@ -29198,6 +29437,56 @@ const ControlsUI = {
       P.bind[L.a] = L.add ? Array.from(new Set((P.bind[L.a] || []).concat([got]))) : [got]; Ctl.save();
       this.note = moved ? `${padBindName(got, L.dev === 'wheel')} was taken from “${moved}”.` : ''; this.listen = null; for (const b in padPrev) padPrev[b] = true; this.render(); }
   },
+  // the view: the lens (life-size from the screen, the narrowest that still shows the road where the screen is too small
+  // for that, or the player's own), the screen it is worked out from (its kind and size - measured against a bank card -
+  // the distance to the player's eyes, one screen or three), the seat (this car's), and the driver's head and eyes
+  viewTab(body) {
+    const V = View.s, S = G.spec, num = (get, set, lo, hi, step, ph, label) => { const i = el('input', { type: 'number', min: lo, max: hi, step, inputmode: 'decimal', placeholder: ph, 'aria-label': label, class: 'cnum' }); const v = get(); i.value = v > 0 ? String(v) : '';
+      i.addEventListener('change', () => { const x = parseFloat(i.value); set(isFinite(x) && x > 0 ? clamp(x, lo, hi) : 0); View.changed(); this.render(); }); return i; };
+    const chg = fn => v => { fn(v); View.changed(); };
+    if (this.note) body.append(el('p', { class: 'cwarn', role: 'status', text: this.note }));
+    body.append(el('p', { class: 'cnote', text: 'The view from the driver’s seat and the bonnet. With the right field of view the world on the screen is life-size from where you sit: bends, braking points and other cars look as far off as they are, and the speed looks what it is.' }));
+    // ---- the lens ----
+    this.sec(body, 'Field of view', 'driver’s seat and bonnet');
+    const hint = { auto: 'Life-size wherever the screen is big enough for it; on a smaller one, the narrowest view that still shows the road.', life: 'Always life-size, however small the screen.', manual: 'The angle you choose, up and down.' }[V.fov];
+    this.row(body, 'Field of view', hint, this.seg([['auto', 'Auto'], ['life', 'Life-size'], ['manual', 'Your own']], () => V.fov, chg(v => { if (v === 'manual') V.man = Math.round(View.near()); V.fov = v; }), 'Field of view'), true);
+    if (V.fov === 'manual') this.row(body, 'Your field of view', 'Up and down.', this.range(() => V.man, chg(v => { V.man = v; }), 10, 100, 1, v => v + '°', null));
+    const L = View.lifeV(), Nv = View.near(), sc = View.scale(Nv), f0 = v => Math.round(v);
+    const st = el('p', { class: 'cnote vstat', role: 'status' });
+    st.append(el('span', { text: `Life-size on this screen: ${f0(L)}° up and down, ${f0(View.across(L))}° across.` }), ' ', el('span', { text: `In use: ${f0(Nv)}° up and down, ${f0(View.across(Nv))}° across.` }));
+    if (Math.abs(sc - 1) > 0.04) st.append(' ', el('span', { text: sc < 1 ? `The world looks ${Math.round(sc * 100)}% of its size: a bigger screen, or sitting nearer, brings it to life-size.` : `The world looks ${Math.round(sc * 100)}% of its size: magnified.` }));
+    body.append(st);
+    // ---- the screen ----
+    this.sec(body, 'Your screen', 'to work out life-size');
+    const kd = View.guess(), KN = { phone: 'Phone', tablet: 'Tablet', laptop: 'Laptop', monitor: 'Monitor', tv: 'TV' };
+    this.row(body, 'Kind of screen', V.scr === 'auto' ? `Found: ${kd === 'tv' ? 'TV' : KN[kd].toLowerCase()}.` : null, this.seg([['auto', 'Auto'], ['phone', 'Phone'], ['tablet', 'Tablet'], ['laptop', 'Laptop'], ['monitor', 'Monitor'], ['tv', 'TV']], () => V.scr, chg(v => { V.scr = v; }), 'Kind of screen'), true);
+    const est = Math.hypot(...View.onePx()) / View.pxmm() / 25.4;
+    this.row(body, 'Screen size', V.ppmm > 0 ? 'Measured with a card (below).' : 'Its diagonal in inches (one screen’s, with three). Blank: judged from the kind of screen.', el('div', { class: 'cbind' }, num(() => V.diag, v => { V.diag = v; }, 3, 120, 0.1, `\u2248 ${est.toFixed(est < 10 ? 1 : 0)}`, 'Screen size'), el('span', { class: 'cunit', text: 'inches' })));
+    this.row(body, 'Distance to your eyes', 'From your eyes to the screen. Blank: as far as that kind of screen is usually seen from.', el('div', { class: 'cbind' }, num(() => V.dist, v => { V.dist = v; }, 15, 400, 1, `\u2248 ${Math.round(View.distCm())}`, 'Distance to your eyes'), el('span', { class: 'cunit', text: 'cm' })));
+    // (measuring: a card's outline on the screen, sized until it matches a bank card held to the glass)
+    if (this.measure) { const cw = this.measure, box = el('div', { class: 'vcard' }), card = el('div', { class: 'vcardo' }); card.style.width = cw + 'px'; card.style.height = (cw * 53.98 / 85.6) + 'px'; box.append(card);
+      body.append(el('p', { class: 'cnote', text: 'Hold a bank card (or any card that size) flat against the screen at the outline’s corner, and move the slider until the outline is exactly as long as the card.' }), box);
+      this.row(body, 'Outline', null, this.range(() => this.measure, v => { this.measure = v; card.style.width = v + 'px'; card.style.height = (v * 53.98 / 85.6) + 'px'; }, 80, 700, 1, v => v + ' px', null));
+      this.row(body, '', null, el('div', { class: 'cbind' }, el('button', { type: 'button', class: 'ghostbtn', onclick: () => { V.ppmm = this.measure * (UIFit.us || 1) / 85.6; V.diag = 0; this.measure = 0; View.changed(); this.note = 'Measured: the screen’s size is now known.'; this.render(); } }, 'It matches'), el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.measure = 0; this.render(); } }, 'Cancel'))); }
+    else this.row(body, 'Measure the screen', 'With a bank card: the surest way to know its size.', el('div', { class: 'cbind' }, el('button', { type: 'button', class: 'ghostbtn', onclick: () => { this.measure = Math.round(85.6 * View.pxmm() / (UIFit.us || 1)); this.render(); } }, 'Measure'), V.ppmm > 0 ? el('button', { type: 'button', class: 'ghostbtn', onclick: () => { V.ppmm = 0; View.changed(); this.render(); } }, 'Forget it') : null));
+    this.row(body, 'Screens', V.tri ? (View.trio() ? 'Each side screen drawn as its own view, turned as the screen is.' : 'Stretch the game’s window across all three screens.') : 'Three screens side by side: the side ones turned in toward you.', this.seg([[0, 'One screen'], [1, 'Three screens']], () => V.tri, chg(v => { V.tri = v; }), 'Screens'));
+    if (V.tri) { this.row(body, 'Side screens turned in', 'Their angle to the middle one.', this.range(() => V.side, chg(v => { V.side = v; }), 0, 80, 1, v => v + '°', VIEW_DEF.side));
+      this.row(body, 'Frame between screens', 'Each screen’s own frame at the join.', this.range(() => V.bezel, chg(v => { V.bezel = v; }), 0, 40, 1, v => v + ' mm', VIEW_DEF.bezel)); }
+    // ---- the seat ----
+    this.sec(body, 'Seat', S ? S.name : '');
+    const seat = () => View.seatOf(S).slice(), setSeat = (k, v) => { const a = seat(); a[k] = v; if (S) { if (!a[0] && !a[1]) delete V.seat[S.id]; else V.seat[S.id] = a; } };
+    this.row(body, 'Seat height', 'This car only: where your eyes are in it.', this.range(() => Math.round(seat()[0] * 100), chg(v => setSeat(0, v / 100)), -6, 6, 1, v => (v > 0 ? '+' : '') + v + ' cm', 0));
+    this.row(body, 'Seat forward', 'This car only.', this.range(() => Math.round(seat()[1] * 100), chg(v => setSeat(1, v / 100)), -8, 8, 1, v => (v > 0 ? '+' : '') + v + ' cm', 0));
+    this.row(body, 'Look up or down', 'Every car: at 0 the horizon is in the middle of the screen, which is right when the screen’s middle is at the height of your eyes.', this.range(() => V.tilt, chg(v => { V.tilt = v; }), -12, 8, 0.5, v => (v > 0 ? '+' : '') + v + '°', 0));
+    // ---- the head and eyes ----
+    this.sec(body, 'Head and eyes', 'driver’s seat');
+    const hh = { natural: 'As a driver’s head and eyes work: steady over bumps, taking up long slopes, looking up the road into bends.', steady: 'Calmer still, for anyone the motion bothers.', horizon: 'The horizon always level and in place: up a steep climb you see the dashboard.', car: 'The view fixed to the car: every bump moves the world.', custom: 'Your own mix, below.' }[V.head];
+    this.row(body, 'Head and eyes', hh, this.seg([['natural', 'Natural'], ['steady', 'Steady'], ['horizon', 'Locked to horizon'], ['car', 'Locked to car']].concat(V.head === 'custom' ? [['custom', 'Your own']] : []), () => V.head, chg(v => { V.head = v; }), 'Head and eyes'), true);
+    const setH = (k, v) => { if (V.head !== 'custom') { V.hd = Object.assign({}, View.headSet()); V.head = 'custom'; } V.hd[k] = v; };
+    for (const [k, name, h, zero] of [['g', 'Head moved by the forces', 'Aside in bends, forward under braking, down on landings.', 'Still'], ['pitch', 'Steady against pitching', 'How much of the car’s quick pitching the head and eyes take out.', 'With the car'], ['roll', 'Steady against rolling', 'How much of the car’s quick rolling they take out.', 'With the car'], ['follow', 'Takes up slopes', 'How soon a lasting slope or camber is taken as level. Off: the world’s horizon held always.', 'Off'], ['look', 'Looks up the road', 'The eyes on the road a second ahead: into bends, up rises, over crests.', 'Off'], ['slide', 'Looks into a slide', 'Toward where the car is going.', 'Off'], ['shake', 'Road shake', 'How much of the road’s jolting reaches your eyes.', 'Off']])
+    { const r = this.range(() => View.headSet()[k], v => { setH(k, v); View.changed(); }, 0, 1, 0.05, v => v ? this.pct(v) : zero, (HEAD_SET[V.head] || HEAD_SET.natural)[k]);
+      r.querySelector('input').addEventListener('change', () => { if (V.head === 'custom') this.render(); }); this.row(body, name, h, r); }
+  },
   feelTab(body) {
     const F = Ctl.feel;
     body.append(el('p', { class: 'cnote', text: 'What a driver sees and feels: the screen while driving, the wheel, the seat and the tyres’ sound, given by the game in the ways it can. For every controller.' }));
@@ -29279,7 +29568,7 @@ const FullScr = {
 function init() {
   Particles.init(); CrowdFx.init(); Skids.init(); Atmos.init(); Precip.init(); CarLights.init(); ScreenFx.init(); resize(); addEventListener('resize', () => { resize(); if (G.state === 'menu') drawMap($('#mapPrev'), false); });
   { const mq = window.matchMedia && matchMedia('(pointer:coarse)'); if (mq && mq.addEventListener) mq.addEventListener('change', () => UIFit.fit()); } // (a touch screen's laptop folded into a tablet, and back)
-  Ctl.load(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init(); Tyres.init(); if (typeof WheelViz !== 'undefined') WheelViz.init(); Hard.init();
+  Ctl.load(); View.init(); dropSelfDrivenTimes(); renderCars(); bindTouch(); bindDrivingUI(); Voice.init(); Inspect.init(); orbitInit(); Damage.init(); Tyres.init(); if (typeof WheelViz !== 'undefined') WheelViz.init(); Hard.init();
   // the sound starts on the first touch or key (browsers allow it no sooner), so its models are warmed up by the time a
   // stage starts
   const wake = () => { removeEventListener('pointerdown', wake, true); removeEventListener('keydown', wake, true); Snd.init(); };
@@ -29312,6 +29601,7 @@ function init() {
   $('#finReplay').addEventListener('click', () => Replay.open()); $('#finHigh').addEventListener('click', () => Replay.openReel());
   $('#finMenu').addEventListener('click', () => toMenu());
   $('#pResume').addEventListener('click', () => togglePause());
+  $('#pView').addEventListener('click', () => ControlsUI.open('view'));
   $('#pFlash').addEventListener('click', () => { if (G.paused) togglePause(); Flash.open(); });
   $('#pRestart').addEventListener('click', () => { G.paused = false; Snd.mute(false); startRun(); });
   $('#pMenu').addEventListener('click', () => toMenu());
@@ -32306,8 +32596,9 @@ function crowdReset() {
 //   golden (Group B, Group A, the kit cars): a smaller, thick suede rim on power-assisted, quicker racks (2.2 to 2.8
 //     turns). Hand-over-hand still, twice as quick, a fierce grip and constant corrections, the wheel let slide back
 //     through the hands as the car straightens.
-//   modern (World Rally Cars, Rally2): a compact flat-bottomed wheel with buttons and dials on a very quick rack (1.6 to
-//     1.8 turns): the hands stay at quarter to three and roll within half a turn, letting go only in a hairpin.
+//   modern (World Rally Cars, Rally2): a compact round wheel with buttons and dials on a very quick rack (1.6 to 1.8
+//     turns): the hands stay fixed at quarter to three and turn with the wheel well past a quarter turn, the arms
+//     crossing, and go hand over hand only in a hairpin.
 // The helmets are of the era too: open-faced in the 1970s and 1980s (a boom microphone for the intercom from the
 // 1980s), full-faced for the driver from the 1990s, a head-and-neck restraint on the shoulders of the modern crews.
 
@@ -32331,9 +32622,9 @@ const CREW_ERA = {
 // ('out': beside the fingers, outside the rim; 'wrap': round the rim; 'spoke': hooked over the spoke); kick: how hard
 // a rough road kicks back through the wheel (rad); elbow: how far out the elbows are carried
 const CREW_DRIVE = {
-  classic: { home: [0.52, 2.62], win: [-1.35, 2.45], cross: true, xfer: 0.27, rate: [13, 21], slide: true, grip: 'out', kick: 0.05, elbow: 0.75, shift: 0.24 },
-  golden: { home: [0.08, 3.06], win: [-1.2, 2.25], cross: true, xfer: 0.15, rate: [18, 30], slide: true, grip: 'wrap', kick: 0.03, elbow: 0.55, shift: 0.17 },
-  modern: { home: [0, Math.PI], win: [-1.95, 2.05], cross: false, xfer: 0.12, rate: [15, 26], slide: false, grip: 'spoke', kick: 0.012, elbow: 0.4, shift: 0.11 }
+  classic: { home: [0.52, 2.62], win: [-1.1, 2.45], cross: true, xfer: 0.27, rate: [13, 21], slide: true, grip: 'out', kick: 0.05, elbow: 0.75, shift: 0.24 },
+  golden: { home: [0.08, 3.06], win: [-1.05, 2.25], cross: true, xfer: 0.15, rate: [18, 30], slide: true, grip: 'wrap', kick: 0.03, elbow: 0.55, shift: 0.17 },
+  modern: { home: [0, Math.PI], win: [-1.25, 2.45], cross: true, xfer: 0.12, rate: [15, 26], slide: false, grip: 'spoke', kick: 0.012, elbow: 0.4, shift: 0.11 }
 };
 // (a special vehicle carries its own: a truck's big flat wheel and slow steering, S.crewEra)
 const crewEra = S => (S && S.crewEra) || CREW_ERA[S && S.cls] || CREW_ERA.B;
@@ -32368,7 +32659,7 @@ function crewIK(s, t, a, b, pole) {
 // trunk: hip joints' centre to the base of the neck (C7) along the back; the head held upright on the neck (atlas: the
 // joint the head nods on); arms and legs; the hand (wrist to the knuckles, the fingers' joints)
 const CREW_BODY = {
-  trunk: 0.53, hipW: 0.085, neck: 0.085, shoulder: [0.175, -0.065, 0.015], upper: 0.29, fore: 0.255, thigh: 0.43, shin: 0.42,
+  trunk: 0.53, hipW: 0.085, neck: 0.085, shoulder: [0.183, -0.065, 0.015], upper: 0.29, fore: 0.255, thigh: 0.43, shin: 0.42,
   eye: [0.085, 0.045], helm: [0.015, 0.07], palm: 0.092,
   // fingers: [across, along (the knuckle), first joint, second (to the tip)], index to little finger (right hand: index
   // on the thumb side, +x)
@@ -32490,8 +32781,8 @@ function crewGeo(lod) {
   // a flat strip along a path of points, each { p, side (unit: across the strip), w }: a belt, a strap (pt: the pattern
   // at a point's edge, given which edge (-1, 1) and how far along the strip it lies)
   g.strip = (pts, wd, k, rh, pt) => { let prev = null, along = 0;
-    pts.forEach((q, i) => { if (i) along += cv3.len(cv3.sub(q.p, pts[i - 1].p));
-      const a = g.v(cv3.madd(q.p, q.side, -wd / 2), k, rh, q.w, pt ? pt(-1, along) : null), b = g.v(cv3.madd(q.p, q.side, wd / 2), k, rh, q.w, pt ? pt(1, along) : null); if (prev) g.quad(prev[0], a, b, prev[1]); prev = [a, b]; }); };
+    pts.forEach((q, i) => { if (i) along += cv3.len(cv3.sub(q.p, pts[i - 1].p)); const w2 = (q.wd || wd) / 2;
+      const a = g.v(cv3.madd(q.p, q.side, -w2), k, rh, q.w, pt ? pt(-1, along) : null), b = g.v(cv3.madd(q.p, q.side, w2), k, rh, q.w, pt ? pt(1, along) : null); if (prev) g.quad(prev[0], a, b, prev[1]); prev = [a, b]; }); };
   g.build = () => {
     const G = new THREE.BufferGeometry(), u8 = A => Uint8Array.from(A, v => Math.max(0, Math.min(255, Math.round(v * 255))));
     G.setAttribute('position', new THREE.Float32BufferAttribute(g.p, 3)); G.setAttribute('color', new THREE.Float32BufferAttribute(g.c, 3));
@@ -32924,6 +33215,18 @@ function crewFaceZ(x, y) {
   { const t = Math.max(0, Math.min(1, (0.014 - y) / 0.03)), lx = 0.016 + 0.012 * t, ly = 0.014 - 0.03 * t; if (y < 0.016 && y > -0.044) z -= 0.0016 * Math.exp(-Math.pow(ax - lx, 2) / 0.000012) * Math.sin(Math.PI * t); } // (the folds from nose to mouth)
   return z;
 }
+// the trunk's sections, up its back from under the seat of the suit (the trunk's frame, metres for a person of scale 1):
+// [up the back, half its width, half its depth, how far forward its middle stands, how square it is] - the chest a
+// little trimmer than the shoulders' span, so that an arm hangs close beside it rather than through it
+const CREW_TRUNK = [[-0.045, 0.172, 0.125, -0.02, 0.5], [0.02, 0.17, 0.122, 0, 0.45], [0.1, 0.155, 0.108, 0.006, 0.45], [0.17, 0.148, 0.104, 0.01, 0.45],
+  [0.25, 0.152, 0.113, 0.016, 0.45], [0.33, 0.16, 0.12, 0.017, 0.45], [0.405, 0.168, 0.116, 0.012, 0.5], [0.465, 0.166, 0.1, 0.002, 0.55], [0.505, 0.122, 0.078, -0.008, 0.5], [0.535, 0.07, 0.06, -0.006, 0.2]];
+// (the section at a height up the back: [half-width, half-depth, the middle's forward offset, squareness])
+function crewTrunkAt(y) { const T = CREW_TRUNK; if (y <= T[0][0]) return [T[0][1], T[0][2], T[0][3], T[0][4]];
+  for (let i = 0; i + 1 < T.length; i++) if (y <= T[i + 1][0]) { const a = T[i], b = T[i + 1], u = (y - a[0]) / (b[0] - a[0]); return [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, a[3] + (b[3] - a[3]) * u, a[4] + (b[4] - a[4]) * u]; }
+  const e = T[T.length - 1]; return [e[1], e[2], e[3], e[4]]; }
+// a point's distance from a segment
+function crewSegDist(p, a, b) { const d = cv3.sub(b, a), L2 = cv3.dot(d, d), u = L2 > 1e-12 ? Math.max(0, Math.min(1, cv3.dot(cv3.sub(p, a), d) / L2)) : 0; return cv3.len(cv3.sub(p, cv3.madd(a, d, u))); }
+const crewSq = v => v * v;
 // one person: their joints at rest (J, with the arms and legs placed: elbows, wrists, hands' frames, knees, ankles,
 // feet's frames), their bones (bi: names to bone numbers, prefix P: 'D' driver, 'C' co-driver) and their look (L:
 // suit, band, stripe, glove, boot, helmet, helmet stripe, visor, skin, lips, brow, belt, iris; helmet: 'open' or
@@ -32937,8 +33240,7 @@ function crewPerson(g, J, P, bi, L) {
     return (cs, sn) => { const o = cv3.add(cv3.mul(xx, cs), cv3.mul(yy, sn)); return [cv3.dot(o, Lr), cv3.dot(o, Ur)]; }; };
   // ---- the trunk: from under the seat of the suit up to the collar, a rounded box in section (the trunk's frame:
   // across, along the back, forward); its panels are the paint's (CREW_GLSL: the yoke, side panels, zip, badges)
-  const T = [[-0.045, 0.172, 0.125, -0.02, 0.5], [0.02, 0.17, 0.122, 0, 0.45], [0.1, 0.155, 0.108, 0.006, 0.45], [0.17, 0.15, 0.104, 0.01, 0.45],
-    [0.25, 0.16, 0.113, 0.016, 0.45], [0.33, 0.174, 0.12, 0.017, 0.45], [0.405, 0.183, 0.116, 0.012, 0.5], [0.465, 0.175, 0.1, 0.002, 0.55], [0.505, 0.125, 0.078, -0.008, 0.5], [0.535, 0.07, 0.06, -0.006, 0.2]];
+  const T = CREW_TRUNK;
   const wT = y => y < 0.06 ? [[b('Hips'), 1]] : y < 0.14 ? [[b('Hips'), 1 - sm(0.06, 0.14, y)], [b('Spine'), sm(0.06, 0.14, y)]] : y < 0.22 ? [[b('Spine'), 1]] : y < 0.31 ? [[b('Spine'), 1 - sm(0.22, 0.31, y)], [b('Chest'), sm(0.22, 0.31, y)]] : y < 0.52 ? [[b('Chest'), 1]] : [[b('Chest'), 0.6], [b('Neck'), 0.4]];
   g.pal = suitPal;
   g.loft((lo ? T.filter((r, i) => i % 2 === 0 || i === T.length - 1) : T).map(([y, hw, hd, f, sq]) => ({ c: cv3.at(J.H, X, U, F, 0, y * k, f * k), X, Y: F, rx: hw * k, ry: hd * k, sq, rh: SUIT, w: wT(y), k: L.suit,
@@ -33053,7 +33355,9 @@ const CREW_HELM = {
   // (the openings: the eye port and the neck's opening of a full-faced helmet, the face and the rim of an open one)
   port: d => d[2] > 0.25 && Math.pow(Math.abs(d[0]) / 0.7, 5) + Math.pow(Math.abs(d[1] + 0.02) / 0.215, 5) < 1,
   face: d => d[2] > 0 && Math.pow(Math.abs(d[0]) / 0.7, 4) + Math.pow(Math.abs(d[1] + 0.4) / 0.57, 4) < 1,
-  rim: d => d[1] < -0.66 + 0.3 * Math.max(0, d[2])
+  rim: d => d[1] < -0.66 + 0.3 * Math.max(0, d[2]),
+  // (the full-faced one's neck opening: the half-angle of its cone round straight down and a little back)
+  neck: 0.66
 };
 const crewSlerp = (a, b, t) => { const d = Math.max(-1, Math.min(1, cv3.dot(a, b))), om = Math.acos(d); if (om < 1e-6) return a.slice(); const s0 = Math.sin((1 - t) * om) / Math.sin(om), s1 = Math.sin(t * om) / Math.sin(om); return cv3.norm([a[0] * s0 + b[0] * s1, a[1] * s0 + b[1] * s1, a[2] * s0 + b[2] * s1]); };
 function crewHelmetShell(g, o) {
@@ -33064,7 +33368,7 @@ function crewHelmetShell(g, o) {
     const out = []; for (let j = 0; j < N; j++) { const want = L[M] * j / N; let i = 1; while (i < M && L[i] < want) i++; out.push(((i - 1) + (want - L[i - 1]) / ((L[i] - L[i - 1]) || 1)) / M); } return out; };
   let cols, path, ends;
   if (!o.open) {
-    const D = cv3.norm([0, -1, -0.3]), e1 = [1, 0, 0], e2 = cv3.mul(cv3.cross(D, e1), -1), rn = 0.52, Fc = cv3.norm([0, -0.02, 1]), n = cv3.norm(cv3.sub(Fc, D)), mv = cv3.cross(n, e1);
+    const D = cv3.norm([0, -1, -0.3]), e1 = [1, 0, 0], e2 = cv3.mul(cv3.cross(D, e1), -1), rn = CREW_HELM.neck, Fc = cv3.norm([0, -0.02, 1]), n = cv3.norm(cv3.sub(Fc, D)), mv = cv3.cross(n, e1);
     const portAt = s => { const cs = Math.cos(s), sn = Math.sin(s), rho = 1 / Math.pow(Math.pow(Math.abs(cs) / 0.7, 5) + Math.pow(Math.abs(sn) / 0.215, 5), 0.2), x = rho * cs, y = -0.02 + rho * sn; return [x, y, Math.sqrt(Math.max(0, 1 - x * x - y * y))]; };
     const neckAt = s => cv3.norm(cv3.add(cv3.mul(D, Math.cos(rn)), cv3.mul(cv3.add(cv3.mul(e1, Math.cos(s)), cv3.mul(e2, Math.sin(s))), Math.sin(rn))));
     const midAt = s => cv3.add(cv3.mul(e1, Math.cos(s)), cv3.mul(mv, Math.sin(s)));
@@ -33102,7 +33406,7 @@ function crewHead(g, J, P, bi, L) {
   const sm = (a, c, v) => { const t = Math.max(0, Math.min(1, (v - a) / (c - a))); return t * t * (3 - 2 * t); }, Hd = b('Head');
   const mixc = (a, c, t) => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t, a[2] + (c[2] - a[2]) * t];
   // ---- the helmet ----
-  const open = L.helmetType === 'open', hc = open ? hd(0, 0.07, 0.0) : hd(0, 0.046, 0.01), rx = open ? 0.119 : 0.124, ry = open ? 0.142 : 0.166, rz = open ? 0.142 : 0.157;
+  const open = L.helmetType === 'open', hc = open ? hd(0, 0.07, 0.0) : hd(0, 0.056, 0.01), rx = open ? 0.119 : 0.124, ry = open ? 0.142 : 0.156, rz = open ? 0.142 : 0.157;
   g.pal = [L.hstripe, L.hthird];
   crewHelmetShell(g, { c: hc, rx: rx * k, ry: ry * k, rz: rz * k, k, open, st, w: [[Hd, 1]], col: L.helmet });
   g.pal = null;
@@ -33137,26 +33441,51 @@ function crewHead(g, J, P, bi, L) {
   // the neck restraint (from 2005 in the World Rally Cars): a carbon yoke lying on the shoulders and up behind the
   // neck, tethered to the helmet's sides
   if (L.hans) { const X = J.X, U = J.U, F = J.F, tr = (x, y, z) => cv3.at(J.H, X, U, F, x * k, y * k, z * k);
-    for (const sd of [1, -1]) { const P0 = [[0.068, 0.44, 0.112], [0.094, 0.5, 0.07], [0.098, 0.535, -0.005], [0.07, 0.56, -0.07], [0.028, 0.585, -0.098]].map(q => [sd * q[0], q[1], q[2]]);
+    for (const sd of [1, -1]) { const P0 = [[0.068, 0.44, 0.112], [0.094, 0.5, 0.07], [0.098, 0.528, -0.005], [0.07, 0.535, -0.072], [0.03, 0.535, -0.104]].map(q => [sd * q[0], q[1], q[2]]);
       const R = P0.map((q, i) => { const c = tr(...q), dn = cv3.sub(tr(...P0[Math.min(i + 1, 4)]), tr(...P0[Math.max(i - 1, 0)])), d = cv3.norm(dn), up = cv3.norm(cv3.sub(c, tr(0, q[1] - 0.15, 0))), x = cv3.norm(cv3.cross(d, up));
         return { c: cv3.madd(c, up, 0.006 * k), X: x, Y: cv3.cross(d, x), rx: 0.03 * k, ry: 0.009 * k, sq: 0.9, rh: 0.35, w: [[b('Chest'), 1]], k: L.hansK }; });
       g.loft(lo ? [R[0], R[2], R[4]] : R, lo ? 6 : 8, sd > 0 ? true : false, false); }
     // (its collar standing up behind the neck, and the tethers)
-    g.loft([[0.58, 0.035], [0.66, 0.033]].map(([y, r]) => ({ c: tr(0, y, -0.1), X: [1, 0, 0], Y: J.F, rx: r * 1.6 * k, ry: 0.012 * k, sq: 0.8, rh: 0.35, w: [[b('Chest'), 1]], k: L.hansK })), lo ? 6 : 8, true, true);
-    if (!lo) for (const sd of [1, -1]) { const a0 = tr(sd * 0.05, 0.645, -0.09), a1 = hd(sd * 0.128, 0.02, -0.01), side = cv3.norm(cv3.cross(cv3.sub(a1, a0), [sd, 0, 0]));
+    g.loft([[0.5, 0.035], [0.556, 0.033]].map(([y, r]) => ({ c: tr(0, y, -0.108), X: [1, 0, 0], Y: J.F, rx: r * 1.6 * k, ry: 0.012 * k, sq: 0.8, rh: 0.35, w: [[b('Chest'), 1]], k: L.hansK })), lo ? 6 : 8, true, true);
+    if (!lo) for (const sd of [1, -1]) { const a0 = tr(sd * 0.05, 0.548, -0.1), a1 = hd(sd * 0.128, 0.02, -0.01), side = cv3.norm(cv3.cross(cv3.sub(a1, a0), [sd, 0, 0]));
       g.strip([0, 0.5, 1].map(t => ({ p: cv3.lerp(a0, a1, t), side, w: t === 0 ? [[b('Chest'), 1]] : t === 1 ? [[Hd, 1]] : [[b('Chest'), 0.5], [Hd, 0.5]] })), 0.018 * k, L.tether, 0.8); } }
 }
 // the six-point harness: the shoulder straps from the harness bar behind the seat over the shoulders (over the neck
 // restraint's yoke where there is one) down to the buckle, the lap straps from the seat's sides, the crotch straps from
 // the cushion's front; stitched webbing, a metal adjuster on each shoulder strap over the chest and on each lap strap,
 // the loose ends hanging from them; the round buckle
+// (the trunk's surface as a function: under 1 inside its sections (each m larger all round), over 1 outside; above its
+// top ring, outside within two centimetres)
+function crewTrunkF(x, y, z, m) { const S = crewTrunkAt(Math.min(y, 0.535)), p = 2 / (1 - S[3] * 0.55); let v = Math.pow(Math.abs(x) / (S[0] + m), p) + Math.pow(Math.abs(z - S[2]) / (S[1] + m), p); if (y > 0.535) v += crewSq((y - 0.535) / 0.02); return v; }
+// (its outward direction there)
+function crewTrunkN(x, y, z) { const h = 0.002, f = (a, b, c) => crewTrunkF(a, b, c, 0); return cv3.norm([f(x + h, y, z) - f(x - h, y, z), f(x, y + h, z) - f(x, y - h, z), f(x, y, z + h) - f(x, y, z - h)]); }
+// (a point of the trunk's frame (person's scale) moved out onto the suit's surface, if it lay in it, and m clear of
+// it: out from the trunk's middle, or - over the shoulders' tops - up)
+function crewOnTrunk(x, y, z, m) {
+  const F = (xx, yy, zz) => crewTrunkF(xx, yy, zz, m);
+  if (y < -0.04 || y > 0.534 || F(x, y, z) >= 1) return [x, y, z];
+  if (y > 0.45) { let yy = y; while (yy < 0.56 && F(x, yy, z) < 1) yy += 0.002; if (F(x, yy, z) >= 1) return [x, yy, z]; }
+  const S = crewTrunkAt(y); let lo = 1, hi = 2; for (let i = 0; i < 24; i++) { const t = (lo + hi) / 2; if (F(x * t, y, S[2] + (z - S[2]) * t) < 1) lo = t; else hi = t; }
+  return [x * hi, y, S[2] + (z - S[2]) * hi];
+}
+// (two bones' weights, mixed)
+const crewMixW = (a, b, t) => { const m = new Map(); for (const [n, w] of a) m.set(n, (m.get(n) || 0) + w * (1 - t)); for (const [n, w] of b) m.set(n, (m.get(n) || 0) + w * t); return [...m.entries()].filter(e => e[1] > 1e-3).sort((p, q) => q[1] - p[1]).slice(0, 4); };
 function crewHarness(g, J, P, bi, L, fix) {
   const k = J.k, b = n => bi[P + n], X = J.X, U = J.U, F = J.F, tr = (x, y, z) => cv3.at(J.H, X, U, F, x * k, y * k, z * k), up = L.hans ? 0.017 : 0, lo = g.lod > 0, KS = crewKind('strap', 0);
-  // (a strap's path: its points with their sides, lying flat on the body)
-  const lay = pts => { const P0 = pts.map(q => ({ p: tr(q[0], q[1], q[2]), w: q[3] }));
-    return P0.map((q, i) => { const d = cv3.norm(cv3.sub(P0[Math.min(i + 1, P0.length - 1)].p, P0[Math.max(i - 1, 0)].p)), out = cv3.norm(cv3.sub(q.p, tr(0, cv3.dot(cv3.sub(q.p, J.H), U) / k, -0.01)));
-      return { p: q.p, side: cv3.norm(cv3.cross(d, out)), out, d, w: q.w }; }); };
-  const run = (pts, wd) => { const Q = lay(pts); g.strip(lo ? Q.filter((q, i) => i % 2 === 0 || i === Q.length - 1) : Q, wd * k, L.belt, 0.8, (e, a) => [e, 0, a, KS]); return Q; };
+  const dir = v => cv3.at([0, 0, 0], X, U, F, v[0], v[1], v[2]);
+  // (a strap's path: its points a few centimetres apart, each on the body's surface with both its edges clear of it,
+  // lying flat on it - its face square to the surface's own outward direction, over the shoulders' slope as well)
+  const lay = (pts, wf, wd0) => { const D = [];
+    for (let i = 0; i < pts.length; i++) { const q = pts[i]; if (i === 0) { D.push(q); continue; } const o = pts[i - 1], n = Math.max(1, Math.ceil(Math.hypot(q[0] - o[0], q[1] - o[1], q[2] - o[2]) / 0.03));
+      for (let j = 1; j <= n; j++) { const t = j / n; D.push([o[0] + (q[0] - o[0]) * t, o[1] + (q[1] - o[1]) * t, o[2] + (q[2] - o[2]) * t, j === n ? q[3] : crewMixW(o[3], q[3], t), wf ? wf(o, q, t) : null]); } }
+    const Lc = D.map(q => { const body = q[3].some(e => e[0] !== fix); return { l: body ? crewOnTrunk(q[0], q[1], q[2], 0.0045) : [q[0], q[1], q[2]], body, w: q[3], wd: q[4] || null }; });
+    return Lc.map((q, i) => { const dL = cv3.norm(cv3.sub(Lc[Math.min(i + 1, Lc.length - 1)].l, Lc[Math.max(i - 1, 0)].l));
+      let n = q.body ? crewTrunkN(q.l[0], q.l[1], q.l[2]) : cv3.norm([q.l[0], 0, q.l[2] + 0.01]); n = cv3.norm(cv3.sub(n, cv3.mul(dL, cv3.dot(n, dL)))); const sL = cv3.norm(cv3.cross(dL, n));
+      if (q.body) { const half = (q.wd || wd0) / 2; let push = 0;
+        for (let it = 0; it < 15; it++) { const c = cv3.madd(q.l, n, push); if ([-1, 1].every(sg => { const e = cv3.madd(c, sL, sg * half); return crewTrunkF(e[0], e[1], e[2], 0.003) >= 1; })) break; push += 0.002; }
+        q.l = cv3.madd(q.l, n, push); }
+      return { p: tr(q.l[0], q.l[1], q.l[2]), side: dir(sL), out: dir(n), d: dir(dL), w: q.w, wd: q.wd ? q.wd * k : null }; }); };
+  const run = (pts, wd, wf) => { const Q = lay(pts, wf, wd); g.strip(lo ? Q.filter((q, i) => i % 2 === 0 || i === Q.length - 1) : Q, wd * k, L.belt, 0.8, (e, a) => [e, 0, a, KS]); return Q; };
   // (an adjuster: a metal frame lying on the strap at a share u along its run, and the strap's loose end hanging from it)
   const adj = (Q, u, wd, hang) => { const f = u * (Q.length - 1), i = Math.min(Q.length - 2, Math.floor(f)), t = f - i, p = cv3.lerp(Q[i].p, Q[i + 1].p, t), q = Q[i], w = q.w;
     const ou = cv3.norm(cv3.sub(q.out, cv3.mul(q.d, cv3.dot(q.out, q.d)))), sdv = cv3.cross(q.d, ou), c = cv3.madd(p, ou, 0.004 * k); g.box(c, sdv, q.d, ou, [wd * 0.6 * k, 0.014 * k, 0.003 * k], L.metal, 0.16, w);
@@ -33164,11 +33493,14 @@ function crewHarness(g, J, P, bi, L, fix) {
       g.strip([0, 0.5, 1].map(h => ({ p: cv3.add(cv3.madd(e, dn, h * hang * k), cv3.mul(ou, 0.004 * h * k)), side: sd2, w })), wd * 0.92 * k, L.belt, 0.8, (e2, a) => [e2, 0, a, KS]); } };
   const Ch = [[b('Chest'), 1]], Sp = [[b('Spine'), 1]], Hp = [[b('Hips'), 1]], Fx = [[fix, 1]];
   for (const sd of [1, -1]) {
-    const sh = run([[sd * 0.075, 0.6, -0.24, Fx], [sd * 0.083, 0.57, -0.13, [[fix, 0.5], [b('Chest'), 0.5]]], [sd * 0.088, 0.543 + up, -0.05, Ch], [sd * 0.084, 0.515 + up, 0.035, Ch], [sd * 0.074, 0.45 + up * 0.5, 0.11 + up, Ch], [sd * 0.062, 0.33, 0.126, Ch], [sd * 0.045, 0.21, 0.118, [[b('Spine'), 0.6], [b('Chest'), 0.4]]], [sd * 0.026, 0.1, 0.116, Sp], [sd * 0.014, 0.045, 0.127, Hp]], 0.068);
+    // (over a neck restraint the shoulder straps are two inches wide down to the chest, three below)
+    const sh = run([[sd * 0.075, 0.6, -0.24, Fx], [sd * 0.083, 0.57, -0.13, [[fix, 0.5], [b('Chest'), 0.5]]], [sd * 0.088, 0.543 + up, -0.05, Ch], [sd * 0.084, 0.515 + up, 0.035, Ch], [sd * 0.074, 0.45 + up * 0.5, 0.11 + up, Ch], [sd * 0.062, 0.33, 0.126, Ch], [sd * 0.045, 0.21, 0.118, [[b('Spine'), 0.6], [b('Chest'), 0.4]]], [sd * 0.026, 0.1, 0.116, Sp], [sd * 0.014, 0.045, 0.127, Hp]], 0.068,
+      L.hans ? (o, q, t) => { const y = o[1] + (q[1] - o[1]) * t; return y > 0.4 ? 0.05 : y > 0.34 ? 0.05 + 0.018 * (0.4 - y) / 0.06 : 0.068; } : null);
     adj(sh, 0.58, 0.068, 0.07);
     const lp = run([[sd * 0.205, -0.03, -0.07, Fx], [sd * 0.178, 0.0, 0.02, [[fix, 0.4], [b('Hips'), 0.6]]], [sd * 0.135, 0.028, 0.095, Hp], [sd * 0.07, 0.04, 0.128, Hp], [sd * 0.02, 0.044, 0.134, Hp]], 0.068);
     adj(lp, 0.45, 0.068, 0.05);
-    run([[sd * 0.032, -0.1, 0.24, Fx], [sd * 0.03, -0.055, 0.2, [[fix, 0.5], [b('Hips'), 0.5]]], [sd * 0.026, -0.005, 0.155, Hp], [sd * 0.016, 0.03, 0.135, Hp]], 0.044); }
+    // (the crotch straps from the 1980s: a 1970s rally car's belts are four-point)
+    if (!L.four) run([[sd * 0.032, -0.1, 0.24, Fx], [sd * 0.03, -0.055, 0.2, [[fix, 0.5], [b('Hips'), 0.5]]], [sd * 0.026, -0.005, 0.155, Hp], [sd * 0.016, 0.03, 0.135, Hp]], 0.044); }
   g.blob(tr(0, 0.045, 0.134), cv3.mul(X, 0.036 * k), cv3.mul(F, 0.008 * k), cv3.mul(U, 0.036 * k), lo ? 8 : 14, lo ? 4 : 5, L.buckle, 0.18, Hp);
   if (!lo) g.blob(tr(0, 0.045, 0.142), cv3.mul(X, 0.017 * k), cv3.mul(F, 0.004 * k), cv3.mul(U, 0.017 * k), 10, 4, L.belt, 0.5, Hp, (x, y, z) => z > -0.2);
 }
@@ -33195,7 +33527,7 @@ function crewBook(g, c, X, Y, Z, bk, pg, L) {
 function crewControls(g, R0, o, bi, L) {
   const W = o.wheel, wl = (x, y, z) => cv3.add(W.pos, crewRx([x, y, z], W.tilt)), wd = v => crewRx(v, W.tilt), Wb = [[bi.Wheel, 1]], st = W.style;
   // the rim: a tube round the wheel (the modern one flat across its foot), its thickness and colour round it
-  const rimAt = th => { const x = Math.cos(th) * W.R, y = Math.sin(th) * W.R; return st === 'modern' ? [x, Math.max(y, -W.R * 0.74)] : [x, y]; };
+  const rimAt = th => [Math.cos(th) * W.R, Math.sin(th) * W.R];
   const lo = g.lod > 0, N = lo ? 20 : 40, NS = lo ? 5 : 8, rows = [];
   for (let i = 0; i < N; i++) { const th = i / N * Math.PI * 2, p = rimAt(th), q = rimAt(th + 0.02), tg = cv3.norm([q[0] - p[0], q[1] - p[1], 0]), out = [tg[1], -tg[0], 0];
     const top = Math.abs(th - Math.PI / 2) < 0.09, grip = st === 'modern' && Math.abs(Math.sin(th)) < 0.42, t = W.t * (grip ? 1.13 : st === 'modern' ? 0.92 : 1);
@@ -33210,8 +33542,8 @@ function crewControls(g, R0, o, bi, L) {
   else if (st === 'modern') {
     // a carbon plate across from the grips, down to the flat foot; buttons, two dials, the yellow mark at the top
     const pz = hubZ * 0.35;
-    g.box(wl(0, 0.004, pz), wd([1, 0, 0]), wd([0, 1, 0]), wd([0, 0, 1]), [W.R - 0.01, 0.034, 0.006], L.carbon, 0.35, Wb);
-    g.box(wl(0, -0.07, pz * 0.6), wd([1, 0, 0]), wd([0, 1, 0]), wd([0, 0, 1]), [0.026, 0.05, 0.006], L.carbon, 0.35, Wb);
+    g.box(wl(0, 0.004, pz), wd([1, 0, 0]), wd([0, 1, 0]), wd([0, 0, 1]), [W.R - 0.03, 0.034, 0.006], L.carbon, 0.35, Wb);
+    { const y1 = -(W.R - W.t * 0.4), y0 = -0.022; g.box(wl(0, (y0 + y1) / 2, pz * 0.6), wd([1, 0, 0]), wd([0, 1, 0]), wd([0, 0, 1]), [0.022, (y0 - y1) / 2, 0.006], L.carbon, 0.35, Wb); }
     const btn = (x, y, kk, r) => g.loft([[0.0, r], [-0.006, r * 0.9]].map(([z, rr]) => ({ c: wl(x, y, pz - 0.006 + z), X: wd([1, 0, 0]), Y: wd([0, 1, 0]), rx: rr, ry: rr, rh: 0.4, w: Wb, k: kk })), 8, false, true);
     [[0.07, 0.016, L.btnR], [0.07, -0.014, L.btnY], [0.1, 0.002, L.btnB], [-0.07, 0.016, L.btnG], [-0.07, -0.014, L.btnW], [-0.1, 0.002, L.btnY]].forEach(([x, y, kk]) => btn(x, y, kk, 0.0085));
     btn(0.03, -0.05, L.dial, 0.013); btn(-0.03, -0.05, L.dial, 0.013); btn(0, -0.088, L.btnR, 0.009);
@@ -33269,21 +33601,36 @@ const crewRx = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return [v[0],
 // under the thighs; the brackets it is bolted down with. o: { x (the seat's middle across), floorY, cushion (its top),
 // back (where its back stands at the cushion), front, a (the recline), Lb (the back's length), sideU, archU (how far out
 // from the car's middle the back and the cushion may reach), J (the person's joints), style }
-function crewSeats(CR, o) { for (const g of [CR.geo, CR.geoLow]) if (g) crewSeat3D(g, o, CR.bi.Fix, CR.look); }
-function crewSeat3D(g, o, fix, Lk) {
-  const kind = typeof o.style === 'string' ? o.style : null, sd = Math.sign(o.x) || 1, u = Math.abs(o.x), ca = Math.cos(o.a), sa = Math.sin(o.a), lo = g.lod > 0, st = kind ? (kind === 'car' ? 1 : 0) : o.style, KS = crewKind('seat', st), w = [[fix, 1]];
-  const O = [o.x, o.cushion - 0.04, o.back], bd = [0, ca, -sa], fd = [0, sa, ca], J = o.J;
-  // (a point of the back: a across (+ outward), v up it from the cushion, f out in front of it)
-  const onB = (a, v, f) => [o.x + sd * a, O[1] + v * ca + f * sa, O[2] - v * sa + f * ca], vOf = p => cv3.dot(cv3.sub(p, O), bd);
-  const vSh = vOf(J.shL), vHelm = vOf(J.helm), vSlot = kind ? 9 : vOf(cv3.at(J.H, J.X, J.U, J.F, 0, 0.565 * J.k, -0.115 * J.k)), Lb = o.Lb; // (no harness slots in a road seat)
-  const outMax = Math.min(0.26, o.sideU - u - 0.006), inMax = 0.27;
-  // the back's rows: [v, the inner half-width between the wings, the wings' depth]
+function crewSeats(CR, o) { for (const g of [CR.geo, CR.geoLow]) if (g) crewSeat3D(g, o, CR.bi.Fix, CR.look); (CR.seatG || (CR.seatG = {}))[o.J === CR.J.D ? 'D' : 'C'] = crewSeatG(o); }
+// a seat's back as the arms meet it: its frame (O at the cushion's back, bd up the back, fd forward), and its rows
+// [up the back, the inner half-width between the wings, the wings' depth] (as crewSeat3D builds them)
+function crewSeatRows(o) {
+  const kind = typeof o.style === 'string' ? o.style : null, st = kind ? (kind === 'car' ? 1 : 0) : o.style, ca = Math.cos(o.a), sa = Math.sin(o.a);
+  const O = [o.x, o.cushion - 0.04, o.back], bd = [0, ca, -sa], J = o.J, vOf = p => cv3.dot(cv3.sub(p, O), bd), vSh = vOf(J.shL), vHelm = vOf(J.helm), Lb = o.Lb;
   let rows = kind === 'plain' ? [[0, 0.22, 0.02], [0.18, 0.22, 0.03], [vSh - 0.06, 0.22, 0.03], [Math.min(Lb, vSh + 0.02), 0.21, 0.025], [Lb, 0.2, 0.02]]
     : kind === 'car' ? [[0, 0.21, 0.035], [0.12, 0.2, 0.06], [0.26, 0.205, 0.07], [vSh - 0.08, 0.215, 0.06], [vSh + 0.02, 0.19, 0.035], [Math.min(Lb, vSh + 0.06), 0.15, 0.025], [Lb, 0.14, 0.02]]
-    : st === 2 ? [[0, 0.2, 0.05], [0.1, 0.19, 0.1], [0.24, 0.2, 0.13], [vSh - 0.13, 0.215, 0.14], [vSh - 0.02, 0.238, 0.125], [vSh + 0.065, 0.15, 0.06], [vHelm - 0.08, 0.156, 0.17], [vHelm + 0.05, 0.156, 0.2], [Lb, 0.14, 0.12]]
-    : st === 1 ? [[0, 0.2, 0.05], [0.1, 0.19, 0.09], [0.24, 0.2, 0.12], [vSh - 0.13, 0.212, 0.12], [vSh - 0.02, 0.235, 0.1], [vSh + 0.065, 0.14, 0.05], [Lb - 0.04, 0.13, 0.05], [Lb, 0.12, 0.035]]
-    : [[0, 0.2, 0.04], [0.12, 0.19, 0.07], [0.26, 0.2, 0.09], [vSh - 0.1, 0.21, 0.08], [vSh, 0.22, 0.06], [Math.min(Lb, vSh + 0.08), 0.15, 0.04], [Lb, 0.13, 0.03]];
+    : st === 2 ? [[0, 0.2, 0.05], [0.1, 0.19, 0.1], [0.24, 0.2, 0.13], [vSh - 0.13, 0.215, 0.14], [vSh - 0.02, 0.25, 0.125], [vSh + 0.065, 0.16, 0.06], [vHelm - 0.08, 0.17, 0.17], [vHelm + 0.05, 0.17, 0.2], [Lb, 0.15, 0.12]]
+    : st === 1 ? [[0, 0.2, 0.05], [0.1, 0.19, 0.09], [0.24, 0.2, 0.12], [vSh - 0.13, 0.212, 0.12], [vSh - 0.02, 0.247, 0.1], [vSh + 0.065, 0.15, 0.05], [Lb - 0.04, 0.14, 0.05], [Lb, 0.13, 0.035]]
+    : [[0, 0.2, 0.04], [0.12, 0.19, 0.07], [0.26, 0.2, 0.09], [vSh - 0.1, 0.21, 0.08], [vSh, 0.232, 0.06], [Math.min(Lb, vSh + 0.08), 0.15, 0.04], [Lb, 0.13, 0.03]];
   rows = rows.filter(r => r[0] <= Lb + 1e-3).filter((r, i, A) => i === 0 || r[0] > A[i - 1][0] + 0.03); if (rows[rows.length - 1][0] < Lb - 0.03) rows.push([Lb, rows[rows.length - 1][1] * 0.9, rows[rows.length - 1][2] * 0.6]);
+  return { O, bd, fd: [0, sa, ca], rows, st, kind, vSh, vHelm, Lb };
+}
+function crewSeatG(o) { const r = crewSeatRows(o), u = Math.abs(o.x); return Object.assign(r, { x: o.x, sd: Math.sign(o.x) || 1, outMax: Math.min(0.26, o.sideU - u - 0.006), inMax: 0.285, th: 0.028 }); }
+// how deep a ball (p, radius r) lies in one of a seat's wings (> 0)
+function crewWing(S, p, r) { const q = cv3.sub(p, S.O), v = cv3.dot(q, S.bd), f = cv3.dot(q, S.fd), a = (p[0] - S.x) * S.sd, R = S.rows; if (v < 0.03 || v > S.Lb + r) return 0;
+  let i = 0; while (i + 1 < R.length && R[i + 1][0] < v) i++; const A = R[i], B = R[Math.min(i + 1, R.length - 1)], t = B[0] > A[0] ? Math.max(0, Math.min(1, (v - A[0]) / (B[0] - A[0]))) : 0, hw = A[1] + (B[1] - A[1]) * t, wd = A[2] + (B[2] - A[2]) * t;
+  if (f < 0.02 - r || f > wd + r * 0.5) return 0;
+  const lim = a > 0 ? Math.min(hw, S.outMax - S.th) : Math.min(hw, S.inMax - S.th), m = Math.abs(a); if (m < lim - r || m > lim + S.th + r) return 0;
+  return Math.min(m - (lim - r), lim + S.th + r - m); }
+function crewSeat3D(g, o, fix, Lk) {
+  const kind = typeof o.style === 'string' ? o.style : null, sd = Math.sign(o.x) || 1, u = Math.abs(o.x), ca = Math.cos(o.a), sa = Math.sin(o.a), lo = g.lod > 0, st = kind ? (kind === 'car' ? 1 : 0) : o.style, KS = crewKind('seat', st), w = [[fix, 1]];
+  const SR = crewSeatRows(o), O = SR.O, bd = SR.bd, fd = SR.fd, J = o.J;
+  // (a point of the back: a across (+ outward), v up it from the cushion, f out in front of it)
+  const onB = (a, v, f) => [o.x + sd * a, O[1] + v * ca + f * sa, O[2] - v * sa + f * ca], vOf = p => cv3.dot(cv3.sub(p, O), bd);
+  const vSh = SR.vSh, vHelm = SR.vHelm, vSlot = kind ? 9 : vOf(cv3.at(J.H, J.X, J.U, J.F, 0, 0.565 * J.k, -0.115 * J.k)), Lb = o.Lb; // (no harness slots in a road seat)
+  const outMax = Math.min(0.26, o.sideU - u - 0.006), inMax = 0.285;
+  // the back's rows: [v, the inner half-width between the wings, the wings' depth]
+  let rows = SR.rows;
   if (lo) rows = rows.filter((r, i) => i % 2 === 0 || i === rows.length - 1);
   const tb = 0.045, th = 0.028;
   // (the profile round the back at a row, from the inner wing's tip round to the outer wing and back round the shell:
@@ -33341,7 +33688,10 @@ function crewPads3D(g, segs, CR) {
 // own children in the wheel's frame }), and the rest pose the animation works from (the joints, the hands' and feet's
 // frames, the pedals, the book)
 function crewBuild(o) {
-  const B = CREW_BODY, E = o.era, DR = o.drv, seat = crewSeat({ eye: o.eye, floorY: o.floorY }), W = o.wheel;
+  const B = CREW_BODY, E = o.era, DR = o.drv, W = o.wheel; let seat = crewSeat({ eye: o.eye, floorY: o.floorY });
+  // (the room over each helmet: o.roofY(x, z), the body's shell over that point; short of 3.5 cm, both sit lower)
+  if (o.roofY) { let dy = 0; for (const [x, k] of [[o.xd, 1], [o.xc, o.kc || 1]]) { const Jt = crewJoints(x, seat.Hy, seat.Hz, seat.a, k); for (const dx of [-0.08, -0.04, 0, 0.04, 0.08]) dy = Math.max(dy, Jt.atlas[1] + (0.07 + 0.144 * Math.sqrt(1 - crewSq(dx / 0.12))) * k - (o.roofY(x + dx, Jt.atlas[2] - 0.02) - 0.035)); }
+    if (dy > 0.001) seat = crewSeat({ eye: [o.eye[0], o.eye[1] - Math.min(0.06, dy), o.eye[2]], floorY: o.floorY }); }
   const wl = v => cv3.add(W.pos, crewRx(v, W.tilt)), wd = v => crewRx(v, W.tilt);
   const people = {};
   // the pedals: the driver's feet reach them with the knees bent some 120 degrees, no further forward than the floor
@@ -33354,7 +33704,9 @@ function crewBuild(o) {
   const kneeAt = (sd, az, ax) => { const hp = [o.xd + sd * B.hipW, seat.Hy, seat.Hz], an = [ax, ankY, az]; return crewIK(hp, an, B.thigh, B.shin, cv3.add(cv3.lerp(hp, an, 0.5), [sd * 0.18, 0.8, 0.3])); };
   let ankZ = seat.Hz + Math.sqrt(Math.max(0.05, Math.pow(legReach(122), 2) - dyA * dyA));
   for (let deg = 122; deg < 162; deg += 4) { const r = legReach(deg); ankZ = seat.Hz + Math.sqrt(Math.max(0.05, r * r - dyA * dyA));
-    if (ankZ >= zMax || Math.min(rimGap(kneeAt(1, ankZ, o.xd + 0.2)), rimGap(kneeAt(-1, ankZ, o.xd - 0.13))) > 0.065) break; }
+    // (the knee's middle 6.5 cm from the rim, and the thigh's top along it 9)
+    const clear = (sd, ax) => { const kn = kneeAt(sd, ankZ, ax), hp = [o.xd + sd * B.hipW, seat.Hy, seat.Hz]; let m = rimGap(kn) - 0.065; for (const t of [0.55, 0.7, 0.85]) m = Math.min(m, rimGap(cv3.lerp(hp, kn, t)) - 0.09); return m; };
+    if (ankZ >= zMax || Math.min(clear(1, o.xd + 0.2), clear(-1, o.xd - 0.13)) > 0) break; }
   ankZ = Math.min(ankZ, zMax);
   const fa = 0.96, footZ = [0, Math.sin(fa), Math.cos(fa)], footY = [0, Math.cos(fa), -Math.sin(fa)];
   const padOf = x => cv3.add([x, ankY, ankZ], cv3.add(cv3.mul(footZ, 0.13), cv3.mul(footY, -0.052)));
@@ -33422,12 +33774,13 @@ function crewLook(S, L, E) {
     const bala = col(pick(modern ? ['#1b1b1e', '#1b1b1e', '#232427', '#ebeae4', '#55585d'] : ['#ebeae4', '#ebeae4', '#e4e2da', '#1e1e21', '#ebeae4', '#9ea3aa'], n + 5));
     return { skin, blush: mix(skin, [0.78, 0.3, 0.27], dark ? 0.18 : 0.32), under: mix(skin, [0.32, 0.22, 0.26], 0.3), lid: mix(skin, [0, 0, 0], 0.1), lash: mix(skin, [0.06, 0.04, 0.03], 0.75),
       lips: mix(skin, [0.55, 0.16, 0.14], dark ? 0.28 : 0.42), brow: hair, stub: roll(n + 2) < 0.45 ? mix(skin, mix(hair, [0.25, 0.25, 0.26], 0.4), 0.55) : null, iris: col(pick(IRIS, n + 3)),
-      nail: mix(skin, [0.95, 0.8, 0.78], 0.45), bala, hem: mix(bala, [0.45, 0.45, 0.45], 0.35), helmetType: type, mic, hans: E.hans, style }; };
-  const D = person(1, (h >>> 3) % 8, E.helmet[0], E.mic[0]), C = person(9, (h >>> 11) % 8, E.helmet[1], E.mic[1]); D.seed = (h ^ 0x9e3779b9) >>> 0; C.seed = (Math.imul(h, 31) ^ 0x7f4a7c15) >>> 0;
+      nail: mix(skin, [0.95, 0.8, 0.78], 0.45), bala, hem: mix(bala, [0.45, 0.45, 0.45], 0.35), helmetType: type, mic, hans: E.hans, style, four: E.era === 'classic' }; };
+  const dOpen = E.helmet[0] === 'full' && !E.colors && (E.era === 'modern' ? roll(14) < 0.7 : E.era === 'golden' ? roll(14) < 0.45 : false);
+  const D = person(1, (h >>> 3) % 8, dOpen ? 'open' : E.helmet[0], dOpen || E.mic[0]), C = person(9, (h >>> 11) % 8, E.helmet[1], E.mic[1]); D.seed = (h ^ 0x9e3779b9) >>> 0; C.seed = (Math.imul(h, 31) ^ 0x7f4a7c15) >>> 0;
   for (const P of [D, C]) { const r = k => ((P.seed >>> k) & 255) / 255; P.var = [0.4 + 0.45 * r(3), 0.88 + 0.24 * r(9), 0.95 + 0.35 * r(15), 0.85 + 0.3 * r(21)]; }
   // (the driver's helmet in the car's band colour with its base colour's stripes, a full-face one; open-faced helmets
   // white with the band colour's stripes)
-  D.helmet = E.helmet[0] === 'full' ? band : white; D.hstripe = E.helmet[0] === 'full' ? base : band; D.hthird = E.helmet[0] === 'full' ? (modern ? white : pin) : base;
+  const dFull = D.helmetType === 'full'; D.helmet = dFull ? band : white; D.hstripe = dFull ? base : band; D.hthird = dFull ? (modern ? white : pin) : base;
   C.helmet = white; C.hstripe = band; C.hthird = base;
   // (the co-driver mostly bare-handed, a watch on the left wrist: a steel or black case, a black or white dial)
   C.bare = roll(4) < 0.75; C.watch = C.bare; const dialW = roll(6) < 0.3;
@@ -33462,7 +33815,7 @@ function crewLook(S, L, E) {
 const _cq1 = new THREE.Quaternion(), _cq2 = new THREE.Quaternion(), _cm1 = new THREE.Matrix4(), _cm2 = new THREE.Matrix4(), _cm3 = new THREE.Matrix4(), _cv1 = new THREE.Vector3(), _cv2 = new THREE.Vector3(), _cv3 = new THREE.Vector3();
 // finger shapes: [thumb round to the palm, thumb bent, index (first, second joint), middle, ring, little]
 const CREW_HANDS = {
-  wrap: [0.95, 0.85, 1.22, 1.42, 1.28, 1.45, 1.32, 1.45, 1.36, 1.4], spoke: [0.62, 0.22, 1.15, 1.38, 1.2, 1.42, 1.26, 1.42, 1.3, 1.38], out: [0.18, 0.12, 1.28, 1.5, 1.32, 1.52, 1.36, 1.5, 1.38, 1.46],
+  wrap: [0.95, 0.85, 1.22, 1.42, 1.28, 1.45, 1.3, 1.4, 1.18, 1.2], spoke: [0.62, 0.22, 1.15, 1.38, 1.2, 1.42, 1.24, 1.38, 1.14, 1.18], out: [0.18, 0.12, 1.28, 1.5, 1.32, 1.52, 1.34, 1.45, 1.2, 1.25],
   loose: [0.45, 0.3, 0.55, 0.62, 0.6, 0.65, 0.66, 0.66, 0.7, 0.66], open: [0.35, 0.18, 0.22, 0.3, 0.26, 0.32, 0.3, 0.34, 0.34, 0.36], flat: [-0.7, 0.05, 0.04, 0.04, 0.04, 0.04, 0.05, 0.04, 0.06, 0.05],
   knob: [0.75, 0.45, 0.9, 1.05, 0.95, 1.08, 1.0, 1.1, 1.05, 1.1], stick: [1.0, 0.95, 1.32, 1.5, 1.38, 1.52, 1.42, 1.52, 1.45, 1.48], fist: [1.05, 1.05, 1.6, 1.85, 1.62, 1.88, 1.64, 1.86, 1.66, 1.82],
   point: [1.0, 0.9, 0.04, 0.05, 1.6, 1.85, 1.62, 1.86, 1.64, 1.82], thumb: [-0.1, -0.05, 1.6, 1.85, 1.62, 1.88, 1.64, 1.86, 1.66, 1.82], book: [0.3, 0.15, 0.6, 0.55, 0.62, 0.56, 0.66, 0.58, 0.7, 0.58],
@@ -33494,14 +33847,28 @@ class CrewAnim {
     face: { jaw: 0, smile: 0, brow: 0, lid: 0, wide: 0 }, faceT: { jaw: 0, smile: 0, brow: 0, lid: 0, wide: 0 }, blinkT: 1 + Math.random() * 3, blink: 0, talk: 0, look: 0, lookT: 3,
     eye: { yaw: 0, pitch: 0, ty: 0, tp: 0, fixT: 0, jy: 0, jp: 0, word: 0, line: 0 }, breath: Math.random() * 6.3, rate: 0.25, ph: [Math.random() * 6.3, Math.random() * 6.3, Math.random() * 6.3] }; }
   // ---- the rim: a point on it at angle a (round from nine o'clock) in the wheel's own frame (the modern wheel's foot flat)
-  rimLocal(a) { const R = this.R.wheelR, x = Math.cos(a) * R, y = Math.sin(a) * R; return this.E.wheel.style === 'modern' ? [x, Math.max(y, -R * 0.74), 0] : [x, y, 0]; }
+  rimLocal(a) { const R = this.R.wheelR; return [Math.cos(a) * R, Math.sin(a) * R, 0]; }
   // the body frame from the wheel's frame (turned by rho, or not)
   fromWheel(v, rho, dir) { const c = Math.cos(rho), s = Math.sin(rho), w = [v[0] * c - v[1] * s, v[0] * s + v[1] * c, v[2]], q = crewRx(w, this.E.tilt); if (dir) return q; const p = this.wheel.parent.position; return [q[0] + p.x, q[1] + p.y, q[2] + p.z]; }
   // a hand's hold on the rim at angle a (in the wheel's frame) with the wheel turned by rho: wrist and axes in the body frame
+  // (loose: 0 a firm hold to 1 a loose one, the rim running through the fingers. A firm hold is turned to suit the
+  // forearm as it comes to it - the palm rolled round the rim and the knuckles set across it at a slant, as far as a
+  // hand holds a rim so: fit(E) gives the hold for an elbow at E; the pose itself is fitted to the elbow as it stood)
   holdPose(sd, a, rho, loose) {
-    const R = this.R.wheelR, t = this.R.wheelT, h = crewHold(R, t, a, sd, loose ? -0.75 : -0.42), rl = this.rimLocal(a), fix = [rl[0] - Math.cos(a) * R, rl[1] - Math.sin(a) * R, 0];
-    const off = loose ? cv3.mul(h.Z, -0.012) : [0, 0, 0];
-    return { W: this.fromWheel(cv3.add(cv3.add(h.W, fix), off), rho), X: this.fromWheel(h.X, rho, true), Y: this.fromWheel(h.Y, rho, true), Z: this.fromWheel(h.Z, rho, true) };
+    const R = this.R.wheelR, t = this.R.wheelT, lz = loose === true ? 1 : loose || 0, psi0 = -0.42 - 0.33 * lz, h = crewHold(R, t, a, sd, psi0), rl = this.rimLocal(a), fix = [rl[0] - Math.cos(a) * R, rl[1] - Math.sin(a) * R, 0];
+    const X0 = this.fromWheel(h.X, rho, true), Y0h = this.fromWheel(h.Y, rho, true), Z0 = this.fromWheel(h.Z, rho, true), P = this.fromWheel(cv3.add(h.P, fix), rho), tz = t + 0.017, w = 1 - lz;
+    const rr = this.fromWheel([Math.cos(a), Math.sin(a), 0], rho, true), nn = this.fromWheel([0, 0, 1], rho, true), tg = this.fromWheel([-Math.sin(a), Math.cos(a), 0], rho, true);
+    const at = (X, Y, Z) => ({ W: cv3.madd(cv3.sub(cv3.sub(P, cv3.mul(Z, tz)), cv3.mul(Y, 0.072)), Z, -0.012 * lz), X, Y, Z });
+    const base = at(X0, Y0h, Z0), wr = v => Math.atan2(Math.sin(v - psi0), Math.cos(v - psi0));
+    base.fit = E => { if (w <= 0 || !E) return base; const d2 = cv3.norm(cv3.sub(base.W, E)), ca = cv3.dot(rr, d2), cb = cv3.dot(nn, d2), R0 = Math.hypot(ca, cb); let psi = psi0;
+      // (the palm rolled until the wrist is a little back from straight)
+      if (R0 > 0.2) { const del = Math.atan2(cb, ca), m = Math.acos(crewClamp(-0.22 / R0, -1, 1)), u1 = wr(del + m), u2 = wr(del - m); psi = psi0 + crewClamp(Math.abs(u1) < Math.abs(u2) ? u1 : u2, -0.6, 0.35) * w; }
+      const Z = cv3.norm(cv3.add(cv3.mul(rr, -Math.cos(psi)), cv3.mul(nn, -Math.sin(psi)))); let Y0 = cv3.norm(cv3.cross(Z, cv3.mul(tg, -sd))); if (cv3.dot(Y0, nn) < 0) Y0 = cv3.mul(Y0, -1);
+      // (and the knuckles slanted across the rim toward the forearm's line)
+      const yd = cv3.sub(d2, cv3.mul(Z, cv3.dot(d2, Z))); let g = 0; if (cv3.len(yd) > 0.1) { const yn = cv3.norm(yd); g = Math.atan2(cv3.dot(cv3.cross(Y0, yn), Z), cv3.dot(Y0, yn)); }
+      const Y = cv3.norm(cv3.rot(Y0, Z, crewClamp(g, -0.42, 0.42) * w)); return at(cv3.cross(Y, Z), Y, Z); };
+    const E = this.elbowAt ? this.elbowAt['D' + (sd > 0 ? 'L' : 'R')] : null; if (!E) return base;
+    const f = base.fit(E); f.fit = base.fit; return f;
   }
 }
 // ---- frames and bones ----
@@ -33520,8 +33887,9 @@ Object.assign(CrewAnim.prototype, {
   bodyPos(bone) { this.bodyMat(bone, _cm3); const e = _cm3.elements; return [e[12], e[13], e[14]]; },
   // set a bone's turn so that its turn in the body frame is q (its parent's as it stands)
   setBodyQuat(bone, q) { this.bodyQuat(bone.parent, _cq1); _cq1.invert(); bone.quaternion.copy(_cq1.multiply(q)); },
-  // ---- an arm reaching a hand to a pose { W: the wrist, X, Y, Z: the hand's axes } (body frame) ----
-  reach(P, s, pose, pole) {
+  // ---- an arm reaching a hand to a pose { W: the wrist, X, Y, Z: the hand's axes } (body frame); grip: holding
+  // something (the wrist best a little back and toward the little finger) ----
+  reach(P, s, pose, grip) {
     const sd = s === 'L' ? 1 : -1, J = this.R.J[P], k = J.k, a = CREW_BODY.upper * k, bl = CREW_BODY.fore * k, rs = this.rest;
     const arm = this.b(P + 'Arm' + s), fore = this.b(P + 'Fore' + s), hand = this.b(P + 'Hand' + s);
     arm.quaternion.identity(); fore.quaternion.identity(); const S = this.bodyPos(arm);
@@ -33529,16 +33897,76 @@ Object.assign(CrewAnim.prototype, {
     const clav = this.b(P + 'Clav' + s), dd = cv3.len(cv3.sub(pose.W, S)), ex = Math.max(0, Math.min(0.05, dd - (a + bl) * 0.96));
     clav.quaternion.identity();
     if (ex > 0.002) { const sc = this.bodyPos(clav), v0 = cv3.sub(S, sc), v1 = cv3.add(v0, cv3.mul(cv3.norm(cv3.sub(pose.W, S)), ex)); _cv1.set(...cv3.norm(v0)); _cv2.set(...cv3.norm(v1)); _cq2.setFromUnitVectors(_cv1, _cv2); this.setBodyQuat(clav, _cq2); }
-    const S2 = this.bodyPos(arm), E = crewIK(S2, pose.W, a, bl, cv3.add(S2, pole));
+    const S2 = this.bodyPos(arm), EL = this.elbow(P, s, S2, pose, a, bl, grip), E = EL.E; if (EL.pose) pose = EL.pose;
     const d1 = cv3.norm(cv3.sub(E, S2)), W = cv3.madd(E, cv3.norm(cv3.sub(pose.W, E)), bl), d2 = cv3.norm(cv3.sub(W, E));
-    let n = cv3.cross(d1, d2); n = cv3.len(n) < 1e-4 ? cv3.norm(cv3.cross(d1, cv3.sub(pole, cv3.mul(d1, cv3.dot(pole, d1))))) : cv3.norm(n);
+    let n = cv3.cross(d1, d2); n = cv3.len(n) < 1e-4 ? cv3.norm(cv3.cross(EL.eo, d1)) : cv3.norm(n);
+    if (P === 'D') (this.elbowAt || (this.elbowAt = {}))[P + s] = E;
     const S0 = rs[P + 'Arm' + s], E0 = rs[P + 'Fore' + s], W0 = rs[P + 'Hand' + s], d10 = cv3.norm(cv3.sub(E0, S0)), d20 = cv3.norm(cv3.sub(W0, E0)), n0 = cv3.norm(cv3.cross(d10, d20));
     crewTurn(crewAim(d1, n), crewAim(d10, n0), _cq2); this.setBodyQuat(arm, _cq2);
     // (the forearm turns half as far as the hand round its length: the wrist's end with the hand, the elbow's with the hinge)
     const H0 = J['hand' + s], tw = (X, d, nn) => { const x = cv3.sub(X, cv3.mul(d, cv3.dot(X, d))), xs = cv3.dot(x, nn) < 0 ? cv3.mul(x, -1) : x; return cv3.norm(cv3.add(cv3.norm(xs), nn)); };
     crewTurn(crewAim(d2, tw(pose.X, d2, n)), crewAim(d20, tw(H0.X, d20, n0)), _cq2); this.setBodyQuat(fore, _cq2);
     crewTurn([pose.X, pose.Y, pose.Z], [H0.X, H0.Y, H0.Z], _cq2); this.setBodyQuat(hand, _cq2);
-    return W;
+    return { W, X: pose.X, Y: pose.Y, Z: pose.Z };
+  },
+  // The elbow: the one free choice an arm has, its place on the circle round the line from the shoulder to the wrist,
+  // made as a person makes it - the wrist near its easy bend, the forearm near its middle turn (palm neither up nor down
+  // beyond what the hand's hold asks), the elbow hanging and carried out by the era's habit, never up with the hand low
+  // nor in toward the chest, and clear of the trunk, the thighs and the seat's wings. A few places round the circle are
+  // tried each frame, the best taken, and the elbow eased toward it - quick, but never snapping across. Returns { E, eo:
+  // the elbow's direction off the line }
+  elbow(P, s, S, pose, a, b, grip) {
+    const sd = s === 'L' ? 1 : -1, key = P + s, W = pose.W, C = this.frameOf(this.b(P + 'Chest')), out = cv3.mul(C.X, sd), q = crewSq;
+    let ax = cv3.sub(W, S); const L0 = cv3.len(ax); ax = L0 > 1e-6 ? cv3.mul(ax, 1 / L0) : cv3.mul(C.Y, -1);
+    const L = Math.min((a + b) * 0.999, Math.max(Math.abs(a - b) + 1e-3, L0)), x = (a * a - b * b + L * L) / (2 * L), h = Math.sqrt(Math.max(0, a * a - x * x)), c0 = cv3.madd(S, ax, x);
+    // (round the circle from down, a little back and out (0), toward the outside)
+    // (the circle's zero carried over from the last frame, square to the line as it now runs, and eased back toward the
+    // down-and-out direction while that is well defined - with the hand overhead it is not, and must not flip)
+    const st = this.swv || (this.swv = {}), prev = st[key], pj = v => cv3.sub(v, cv3.mul(ax, cv3.dot(v, ax)));
+    const ref = cv3.add(cv3.add(cv3.mul(C.Y, -1), cv3.mul(C.Z, -0.35)), cv3.mul(out, 0.35)), rc = pj(ref), lc = cv3.len(rc); let r0 = null;
+    if (prev && prev.r0) { const t = pj(prev.r0); if (cv3.len(t) > 1e-3) r0 = cv3.norm(t); }
+    if (!r0) r0 = lc > 1e-4 ? cv3.norm(rc) : cv3.norm(pj(out)); else if (lc > 0.35) r0 = cv3.norm(cv3.add(r0, cv3.mul(cv3.norm(rc), 0.12 * Math.min(1, (lc - 0.35) / 0.3))));
+    const r1 = sd > 0 ? cv3.cross(ax, r0) : cv3.cross(r0, ax);
+    const dirAt = p => cv3.add(cv3.mul(r0, Math.cos(p)), cv3.mul(r1, Math.sin(p)));
+    const FT = grip ? -0.25 : 0, DT = grip ? -0.12 : 0, pref = P === 'D' ? 0.1 + this.DR.elbow * 0.45 : 0.12, lw = crewClamp((0.03 - cv3.dot(cv3.sub(W, S), C.Y)) / 0.12, 0, 1), low = lw * lw * (3 - 2 * lw), ob = this.obstacles(P);
+    const cost = p => { const eo = dirAt(p), E = cv3.madd(c0, eo, h), d1 = cv3.norm(cv3.sub(E, S)), ps = pose.fit ? pose.fit(E) : pose, d2 = cv3.norm(cv3.sub(ps.W, E)), rad = sd > 0 ? cv3.mul(ps.X, -1) : ps.X;
+      const dy = cv3.dot(d2, ps.Y), fl = Math.atan2(-cv3.dot(d2, ps.Z), dy), dv = Math.atan2(-cv3.dot(d2, rad), dy);
+      let n = cv3.cross(d1, d2); n = cv3.norm(cv3.len(n) < 0.05 ? cv3.cross(eo, d1) : n);
+      const z0 = cv3.cross(n, d2), u = cv3.sub(rad, cv3.mul(d2, cv3.dot(rad, d2))), th = Math.atan2(cv3.dot(cv3.cross(z0, u), d2), cv3.dot(z0, u)), pr = sd > 0 ? th : -th;
+      let c = q((fl - FT) / 0.8) + q((dv - DT) / 0.45) + q(pr / 1.05) + 6 * (q(Math.max(0, Math.abs(pr) - 1.4) / 0.35) + q(Math.max(0, fl - 1.2) / 0.26) + q(Math.max(0, -fl - 1.1) / 0.26) + q(Math.max(0, dv - 0.4) / 0.17) + q(Math.max(0, -dv - 0.62) / 0.17));
+      const up = cv3.dot(eo, C.Y), inw = -cv3.dot(eo, out);
+      c += 0.3 * q((p - pref) / 1.3) + 4 * q(Math.max(0, inw - 0.2)) + low * 3 * q(Math.max(0, up - 0.25)) + (1 - low) * 0.6 * q(Math.max(0, up - 0.8));
+      return c + 220 * ob(E, cv3.lerp(S, E, 0.55), cv3.lerp(E, W, 0.45), cv3.lerp(S, E, 0.3)); };
+    // (the best near where it stands, and the best anywhere: it swings across to another only for a much better one -
+    // quickly, as an elbow does when the hand's hold has left it awkward)
+    // (the whole circle tried every third frame - every fourth on the lower graphics settings - and whenever the
+    // elbow's place has become a poor one; in between, only round where it stands)
+    const every = typeof Gfx !== 'undefined' && (Gfx.level === 'low' || Gfx.level === 'vlow') ? 4 : 3, scan = !prev || !(prev.n % every) || prev.c > 6;
+    const CC = []; if (scan) for (let i = 0; i < 18; i++) { const p = -1.05 + i * 0.2; CC.push([p, cost(p)]); }
+    const near = prev ? prev.p : pref; let bl = near, cl = cost(near) + 1e-6, bg = near, cg = cl;
+    for (const [p, c] of CC) { if (Math.abs(p - near) <= 0.45 && c < cl) { cl = c; bl = p; } if (c < cg) { cg = c; bg = p; } }
+    const far = prev && cg < cl - 6, cand = far ? bg : bl; let best = cand, bc = far ? cg : cl;
+    for (const dp of [-0.1, 0.1, -0.05, 0.05]) { const c = cost(best + dp); if (c < bc) { bc = c; best += dp; } }
+    let p = best; if (prev) { const dt = this.dtA || 1 / 60, mx = (far ? 14 : 10) * dt; p = prev.p + crewClamp((best - prev.p) * Math.min(1, dt * (far ? 22 : 18)), -mx, mx); }
+    st[key] = { p, r0, n: (prev ? prev.n : 0) + 1, c: bc }; const eo = dirAt(p), E = cv3.madd(c0, eo, h); return { E, eo, pose: pose.fit ? pose.fit(E) : null };
+  },
+  // what an arm keeps clear of: the person's trunk (as it stands at rest about the chest), thighs and seat's wings; a
+  // function of the elbow and the middles of the upper arm and forearm, giving how deep they go in (m)
+  obstacles(P) {
+    const J = this.R.J[P], k = J.k, C = this.frameOf(this.b(P + 'Chest')), c0 = this.rest[P + 'Chest'], seat = this.R.seatG && this.R.seatG[P];
+    const th = ['L', 'R'].map(s => [this.bodyPos(this.b(P + 'Thigh' + s)), this.bodyPos(this.b(P + 'Shin' + s))]), RAD = [0.045, 0.05, 0.04, 0.045];
+    // (the driver's forearm and elbow clear of the gear lever and the handbrake as they stand)
+    const caps = []; if (P === 'D') { const R = this.R, on = (n, b0, p) => { const F = this.frameOf(this.b(n)), v = cv3.sub(p, b0); return cv3.at(F.o, F.X, F.Y, F.Z, v[0], v[1], v[2]); };
+      if (R.lever === 'H' || R.lever === 'seq' || R.lever === 'auto') caps.push([on('Lever', R.leverBase, R.leverBase), on('Lever', R.leverBase, R.leverTop), 0.016]);
+      if (R.hb.kind !== 'knob') caps.push([on('HB', R.hb.base, R.hb.base), on('HB', R.hb.base, R.hb.top), 0.019]); }
+    return (...pts) => { let d = 0;
+      for (let i = 0; i < pts.length; i++) { const p = pts[i], r = RAD[i] * k, w = cv3.sub(p, C.o), pr = cv3.add(c0, [cv3.dot(w, C.X), cv3.dot(w, C.Y), cv3.dot(w, C.Z)]), hh = cv3.sub(pr, J.H);
+        const ty = cv3.dot(hh, J.U) / k, tx = cv3.dot(hh, J.X) / k, tz = cv3.dot(hh, J.F) / k;
+        if (ty > 0.04 && ty < 0.53) { const S = crewTrunkAt(ty), v = crewSq(tx / (S[0] + r / k)) + crewSq((tz - S[2]) / (S[1] + r / k)); if (v < 1) d += (1 - Math.sqrt(v)) * Math.min(S[0], S[1]) * k; }
+        for (const [A, B] of th) d += Math.max(0, 0.068 * k + r - crewSegDist(p, A, B));
+        if (seat) d += crewWing(seat, p, r);
+        for (const c of caps) d += Math.max(0, c[2] + r - crewSegDist(p, c[0], c[1])); }
+      return d; };
   },
   // the fingers in a shape (CREW_HANDS' list, or a mix of two)
   fingers(P, s, c) {
@@ -33572,7 +34000,7 @@ Object.assign(CrewAnim.prototype, {
 const CREW_EASE = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
 Object.assign(CrewAnim.prototype, {
   update(dt, s) {
-    dt = Math.min(Math.max(dt || 0, 0), 0.08); this.t += dt; this.s = s;
+    dt = Math.min(Math.max(dt || 0, 0), 0.08); this.t += dt; this.s = s; this.dtA = dt;
     this.sense(dt); this.steer(dt, s); this.jobs(dt, s); this.wheelHands(dt, s); this.acts(dt, s); this.bodies(dt, s); this.faces(dt, s); this.gaze(dt, s); this.apply(dt, s);
   },
   // how the car moves: its acceleration in the body frame (smoothed, for the bodies' lean), blows (sudden changes of
@@ -33602,12 +34030,17 @@ Object.assign(CrewAnim.prototype, {
   onWheel(h) { return h.mode === 'wheel' || h.mode === 'slide'; },
   // start a hand moving: to a hold on the rim at angle a round the dash (a stays put as the wheel turns), or to a pose
   // got from a function; T seconds; cross: over the other arm
-  moveTo(h, tgt, T, cross, curl) { h.mv = { from: h.pose ? { W: h.pose.W.slice(), X: h.pose.X.slice(), Y: h.pose.Y.slice(), Z: h.pose.Z.slice() } : null, fromCurl: h.curl.slice(), tgt, t: 0, T: Math.max(0.06, T), cross: !!cross, curl, a0: h.mode === 'wheel' || h.mode === 'slide' ? (h.mode === 'slide' ? h.slideA : h.phi + this.rho) : null }; h.mode = 'move'; },
+  moveTo(h, tgt, T, cross, curl) { const fromJob = h.mode === 'job';
+    // (no quicker than a hand goes: some three metres a second over the way it has to go)
+    if (h.pose) { let d = 0; try { const to = tgt.rim != null ? this.holdPose(h.sd, tgt.rim - this.rho, this.rho) : tgt.pose(); d = cv3.len(cv3.sub(to.W, h.pose.W)); } catch (e) { }
+      if ((h.mode === 'wheel' || h.mode === 'slide') && tgt.rim != null && !cross) d = Math.max(d, Math.abs(tgt.rim - (h.mode === 'slide' ? h.slideA : h.phi + this.rho)) * this.R.wheelR);
+      T = Math.max(T, 0.07 + d / 3.2); }
+    h.mv = { fromJob, from: h.pose ? { W: h.pose.W.slice(), X: h.pose.X.slice(), Y: h.pose.Y.slice(), Z: h.pose.Z.slice() } : null, fromCurl: h.curl.slice(), tgt, t: 0, T: Math.max(0.06, T), cross: !!cross, curl, a0: h.mode === 'wheel' || h.mode === 'slide' ? (h.mode === 'slide' ? h.slideA : h.phi + this.rho) : null }; h.mode = 'move'; },
   regrip(h, dir, urgent) {
     const DR = this.DR, [lo, hi] = this.win(h.sd), o = this.hand[h.sd > 0 ? 'R' : 'L'], home = DR.home[h.sd > 0 ? 0 : 1];
     const f = DR.cross ? 0.12 : 0.58; let a = dir > 0 ? lo + (home - lo) * f : hi - (hi - home) * f;
     const T = DR.xfer * (0.7 + 0.3 * Math.min(1, Math.abs(a - (h.phi + this.rho)) / Math.PI)) / (1 + (urgent || 0));
-    if (this.onWheel(o)) { const oa = (o.mode === 'slide' ? o.slideA : o.phi + this.rho) + this.w * T; if (Math.abs(a - oa) < 0.5) a = oa + (a > oa ? 0.5 : -0.5); }
+    if (this.onWheel(o)) { const oa = (o.mode === 'slide' ? o.slideA : o.phi + this.rho) + this.w * T; if (Math.abs(a - oa) < 0.6) a = oa + (a > oa ? 0.6 : -0.6); }
     // (crossing: the hand's new hold lies beyond the other hand: it goes over that arm)
     const oa0 = this.onWheel(o) ? (o.mode === 'slide' ? o.slideA : o.phi + this.rho) : null, cross = oa0 != null && (h.sd > 0 ? a > oa0 : a < oa0);
     this.moveTo(h, { rim: a }, T, cross);
@@ -33631,7 +34064,7 @@ Object.assign(CrewAnim.prototype, {
           const oOk = o.mode === 'wheel' && oa > l2 - 0.02 && oa < h2 + 0.02, oComing = o.mode === 'move' && o.mv && o.mv.tgt.rim != null;
           // (the other hand on its way back to the rim: this one holds on, stretched, until it is there; the other hand busy
           // with the lever or the handbrake: this one shuffles alone)
-          if (oOk || (!oComing && o.mode !== 'wheel' && o.mode !== 'slide' && Math.abs(over) > 0.45)) this.regrip(h, Math.sign(w) || Math.sign(over), Math.min(1.5, Math.abs(w) / DR.rate[0]));
+          if (oOk) this.regrip(h, Math.sign(w) || Math.sign(over), Math.min(1.5, Math.abs(w) / DR.rate[0]));
           else if (Math.abs(over) > 0.85) { h.mode = 'slide'; h.slideA = a - over * 0.2; }
         } else if (this.calm > 0.35 && o.mode === 'wheel' && Math.abs(a - DR.home[h.sd > 0 ? 0 : 1]) > 0.55 && (k === 'L' || Math.abs(o.phi + this.rho - DR.home[0]) < 0.4)) this.moveTo(h, { rim: DR.home[h.sd > 0 ? 0 : 1] }, DR.xfer * 1.4);
       } else if (h.mode === 'slide') {
@@ -33662,7 +34095,7 @@ Object.assign(CrewAnim.prototype, {
   // sequential lever's handle or the hydraulic handbrake's grip; the old handbrake gripped from above, the thumb on its button
   leverPose() { const R = this.R, q = this.leverQ(_cq2), lb = R.leverBase, lt = R.leverTop;
     if (this.lever === 'H') { const k = this.onLever(lb, lt, q, 1.03), Z = cv3.norm([-0.1, -0.78, 0.62]), Y = cv3.norm(cv3.sub([-0.22, -0.18, 1], cv3.mul(Z, cv3.dot([-0.22, -0.18, 1], Z)))), X = cv3.cross(Y, Z);
-      return { W: cv3.sub(cv3.sub(k, cv3.mul(Z, 0.034)), cv3.mul(Y, 0.052)), X, Y, Z }; }
+      return { W: cv3.sub(cv3.sub(k, cv3.mul(Z, 0.042)), cv3.mul(Y, 0.052)), X, Y, Z }; }
     const top = this.onLever(lb, lt, q, 1), lo = this.onLever(lb, lt, q, 0.88), d = cv3.norm(cv3.sub(top, lo)), c = cv3.madd(top, d, -0.004);
     return this.handshake(c, d, 0.016); },
   handshake(c, d, r) { const Z0 = [1, 0, 0.25], Z = cv3.norm(cv3.sub(Z0, cv3.mul(d, cv3.dot(Z0, d)))), Y = cv3.norm(cv3.cross(Z, d)), Yf = Y[2] < 0 ? cv3.mul(Y, -1) : Y, X = cv3.cross(Yf, Z);
@@ -33707,9 +34140,9 @@ Object.assign(CrewAnim.prototype, {
       if (L === 'paddle') this.paddle[up ? 'R' : 'L'] = 0.17; else if (L !== 'auto') { this.want = s.gear; this.wantUp = up; } }
     for (const k of ['L', 'R']) if (this.paddle[k] > 0) this.paddle[k] = Math.max(0, this.paddle[k] - dt);
     let J = this.job;
-    if (!J && !this.busyR && !this.jobL && (this.onWheel(h) || (h.mode === 'move' && h.mv.tgt.rim != null))) {
-      if (s.hb) { J = this.job = { k: 'hb', st: 'reach', t: 0 }; this.moveTo(h, { pose: () => this.hbPose() }, DR.xfer * 0.9, false, 'stick'); }
-      else if (L !== 'paddle' && L !== 'auto' && (this.want != null || this.anticipate(s) || (s.mode === 'grid' && s.cd < 4.5))) { J = this.job = { k: 'gear', st: 'reach', t: 0, ready: this.want == null, grid: s.mode === 'grid' }; this.moveTo(h, { pose: () => this.leverPose() }, DR.xfer * 1.05, false, L === 'H' ? 'knob' : 'stick'); }
+    if (!J && !this.busyR && !this.jobL && this.onWheel(this.hand.L) && (this.onWheel(h) || (h.mode === 'move' && h.mv.tgt.rim != null))) {
+      if (s.hb) { J = this.job = { k: 'hb', st: 'reach', t: 0 }; this.moveTo(h, { pose: () => this.hbPose(), via: 0.06 }, DR.xfer * 0.9, false, 'stick'); }
+      else if (L !== 'paddle' && L !== 'auto' && (this.want != null || this.anticipate(s) || (s.mode === 'grid' && s.cd < 4.5))) { J = this.job = { k: 'gear', st: 'reach', t: 0, ready: this.want == null, grid: s.mode === 'grid' }; this.moveTo(h, { pose: () => this.leverPose(), via: 0.05 }, DR.xfer * 1.05, false, L === 'H' ? 'knob' : 'stick'); }
     }
     if (J) { J.t += dt;
       if (J.k === 'gear') {
@@ -33835,11 +34268,13 @@ Object.assign(CrewAnim.prototype, {
     const to = M.tgt.rim != null ? this.holdPose(h.sd, M.tgt.rim - this.rho, this.rho) : M.tgt.pose();
     let P;
     if (!M.from) P = to;
-    else if (M.tgt.rim != null && M.a0 != null && !M.cross) { const a = M.a0 + (M.tgt.rim - M.a0) * u, q = this.holdPose(h.sd, a - this.rho, this.rho, true), back = this.fromWheel([0, 0, -1], 0, true);
+    else if (M.tgt.rim != null && M.a0 != null && !M.cross) { const a = M.a0 + (M.tgt.rim - M.a0) * u, q = this.holdPose(h.sd, a - this.rho, this.rho, 0.6 * lift), back = this.fromWheel([0, 0, -1], 0, true);
       P = { W: cv3.madd(q.W, back, 0.03 * lift), X: q.X, Y: q.Y, Z: q.Z }; }
     else { const back = this.fromWheel([0, 0, -1], 0, true), up = [0, 1, 0];
       crewPoseQ(M.from, _cq1); crewPoseQ(to, _cq2); _cq1.slerp(_cq2, u); const [X, Y, Z] = crewQAxes(_cq1);
-      P = { W: cv3.madd(cv3.madd(cv3.lerp(M.from.W, to.W, u), back, (M.cross ? 0.1 : 0.045) * lift), up, (M.cross ? 0.05 : 0.02) * lift), X, Y, Z }; }
+      // (over the other arm when crossing; up off a lever or handbrake before going, and down onto one from above)
+      const rise = (M.fromJob ? 0.07 * Math.sin(Math.PI * Math.min(1, u * 1.6)) * (1 - u) * 1.6 : 0) + (M.tgt.via ? M.tgt.via * Math.pow(Math.sin(Math.PI * u), 0.6) : 0);
+      P = { W: cv3.madd(cv3.madd(cv3.madd(cv3.lerp(M.from.W, to.W, u), back, (M.cross ? 0.05 : 0.045) * lift), up, (M.cross ? 0.1 : 0.02) * lift + rise), [h.sd, 0, 0], (M.tgt.out || 0) * lift), X, Y, Z }; }
     // (the fingers: opened as it leaves, closed on what it takes)
     const open = CREW_HANDS.open, cn = typeof M.curl === 'function' ? M.curl() : M.curl, end = CREW_HANDS[cn || (M.tgt.rim != null ? this.DR.grip : 'open')] || CREW_HANDS.open, v = Math.min(1, M.t / M.T);
     for (let i = 0; i < 10; i++) h.curl[i] = v < 0.5 ? M.fromCurl[i] + (open[i] - M.fromCurl[i]) * CREW_EASE(v * 2) : open[i] + (end[i] - open[i]) * CREW_EASE(v * 2 - 1);
@@ -33849,10 +34284,10 @@ Object.assign(CrewAnim.prototype, {
   apply(dt, s) {
     const R = this.R, rs = this.rest, b = this.b, DR = this.DR;
     if (!this.loc0) { this.loc0 = {}; for (const d of R.bones) { const bn = this.B[R.bi[d.name]]; if (bn && bn !== this.wheel) this.loc0[d.name] = bn.position.clone(); } }
-    const L0 = this.loc0, hang = Math.min(0, this.up[1]) * 0.035, uS = this.upS || (this.upS = this.up.slice()), ku = Math.min(1, dt / 0.4);
+    const L0 = this.loc0, hang = Math.min(0, this.up[1]) * 0.02, uS = this.upS || (this.upS = this.up.slice()), ku = Math.min(1, dt / 0.4);
     for (let i = 0; i < 3; i++) uS[i] += (this.up[i] - uS[i]) * ku;
     // (the heads kept nearer level with the horizon than the car is, as drivers do: against its slower roll and pitch)
-    const lvl = -Math.atan2(uS[0], Math.max(0.25, Math.abs(uS[1]))) * 0.42, lvp = Math.atan2(uS[2], Math.max(0.25, Math.abs(uS[1]))) * 0.25;
+    const lvK = crewClamp((uS[1] - 0.5) / 0.4, 0, 1), lvl = -Math.atan2(uS[0], Math.max(0.25, Math.abs(uS[1]))) * 0.42 * lvK, lvp = Math.atan2(uS[2], Math.max(0.25, Math.abs(uS[1]))) * 0.25 * lvK;
     // ---- the trunks, necks and heads ----
     for (const P of ['D', 'C']) { const p = this.P[P], h0 = L0[P + 'Hips'], ph = p.ph, t = this.t;
       // (upside down they hang in their belts toward the roof)
@@ -33879,12 +34314,11 @@ Object.assign(CrewAnim.prototype, {
     // ---- the driver's arms ----
     for (const k of ['L', 'R']) { const h = this.hand[k], sd = h.sd; let pose;
       if (h.mode === 'wheel') pose = this.holdPose(sd, h.phi, this.rho);
-      else if (h.mode === 'slide') pose = this.holdPose(sd, h.slideA - this.rho, this.rho, true);
+      else if (h.mode === 'slide') pose = this.holdPose(sd, h.slideA - this.rho, this.rho, 0.7);
       else if (h.mode === 'move') pose = this.movePose(h, dt);
       else pose = h.tgt();
       if (h.mode === 'job' || h.mode === 'act') { const w = CREW_HANDS[typeof h.shape === 'function' ? h.shape() : h.shape] || CREW_HANDS.open; for (let i = 0; i < 10; i++) h.curl[i] += (w[i] - h.curl[i]) * Math.min(1, dt * 16); }
-      h.pose = pose; const sh = this.bodyPos(b('DArm' + k));
-      this.reach('D', k, pose, [sd * (0.3 + DR.elbow * 0.35), -0.75 + Math.max(0, pose.W[1] - sh[1]) * 3, -0.05]); this.fingers('D', k, h.curl); }
+      h.pose = this.reach('D', k, pose, h.mode === 'wheel' || h.mode === 'slide' || h.mode === 'job' || (h.mode === 'move' && h.mv && h.mv.tgt.rim != null)); this.fingers('D', k, h.curl); }
     // ---- the co-driver's arms: holding the notes (the right hand turning a page), or busy with an action ----
     const away = k => { const h = this.coHand[k]; return h.mode === 'act' || (h.mode === 'move' && h.mv && h.mv.then === 'act'); };
     this.book.lap = (this.book.lap || 0) + ((away('L') && away('R') ? 1 : 0) - (this.book.lap || 0)) * Math.min(1, dt * 6);
@@ -33896,12 +34330,14 @@ Object.assign(CrewAnim.prototype, {
         // (the right thumb marks the place: it slides down the page's edge as the notes are read, back to the top with
         // the page turned)
         if (k === 'R') { const B = this.book, want = B.turn ? 0 : Math.min(0.1, 0.0115 * (this.notes % 9)); B.slide = (B.slide || 0) + (want - (B.slide || 0)) * Math.min(1, dt * 5); pose = { W: cv3.madd(pose.W, F.Y, -B.slide), X: pose.X, Y: pose.Y, Z: pose.Z }; }
-        if (k === 'R' && this.book.turn) { const T = this.book.turn, th = this.book.page, hinge = cv3.madd(F.c, F.Y, 0.104), corner = cv3.add(hinge, cv3.rot(cv3.add(cv3.mul(F.Y, -0.2), cv3.mul(F.X, 0.055)), F.X, -Math.min(th, 2.2)));
-          const Z = cv3.rot(cv3.mul(F.Z, -1), F.X, -Math.min(th, 2.2)), Y = cv3.rot(F.Y, F.X, -Math.min(th, 2.2)), X = cv3.cross(Y, Z), pc = { W: cv3.sub(cv3.sub(corner, cv3.mul(Y, 0.075)), cv3.mul(Z, 0.02)), X, Y, Z };
-          const u = T.t < 0.22 ? CREW_EASE(T.t / 0.22) : T.t > 0.66 ? 1 - CREW_EASE((T.t - 0.66) / 0.29) : 1;
+        // (the thumb flicks the page's corner up off the pad - the hand lifting it a little toward the reader, the wrist
+        // rolling back - and the page goes over the spiral on its own)
+        if (k === 'R' && this.book.turn) { const T = this.book.turn, sp = Math.sin(Math.PI * Math.min(1, T.t / 0.45));
+          const X = cv3.rot(pose.X, pose.X, 0), Y = cv3.rot(pose.Y, pose.X, -0.25 * sp), Z = cv3.rot(pose.Z, pose.X, -0.25 * sp), pc = { W: cv3.madd(cv3.madd(pose.W, F.Z, 0.028 * sp), F.Y, 0.012 * sp), X, Y, Z };
+          const u = T.t < 0.45 ? 1 : 0;
           crewPoseQ(pose, _cq1); crewPoseQ(pc, _cq2); _cq1.slerp(_cq2, u); const [qx, qy, qz] = crewQAxes(_cq1); pose = { W: cv3.lerp(pose.W, pc.W, u), X: qx, Y: qy, Z: qz }; want = CREW_HANDS.point; } }
       if (want) for (let i = 0; i < 10; i++) h.curl[i] += (want[i] - h.curl[i]) * Math.min(1, dt * 14);
-      h.pose = pose; this.reach('C', k, pose, [h.sd * 0.45, -0.7 + Math.max(0, pose.W[1] - this.rest['CArm' + k][1]) * 3, -0.15]); this.fingers('C', k, h.curl); }
+      h.pose = this.reach('C', k, pose, false); this.fingers('C', k, h.curl); }
     { const bk = b('CBook'); crewTurn([F.X, F.Y, F.Z], [R.J.C.book.X, R.J.C.book.Y, R.J.C.book.Z], _cq2); this.bodyMat(b('CHips'), _cm2); _cm2.invert();
       _cm1.compose(_cv1.set(F.c[0], F.c[1], F.c[2]), _cq2, _cv2.set(1, 1, 1)); _cm2.multiply(_cm1); _cm2.decompose(bk.position, bk.quaternion, bk.scale);
       const X0 = R.J.C.book.X; b('CPage').quaternion.setFromAxisAngle(_cv1.set(X0[0], X0[1], X0[2]), -this.book.page); }
@@ -33997,11 +34433,16 @@ Object.assign(CrewAnim.prototype, {
   // a point in a person's trunk (across to their left, up the back, forward), as the trunk stands now
   trunk(P, x, y, z) { const F = this.frameOf(this.b(P + 'Chest')), J = this.R.J[P], c0 = this.rest[P + 'Chest'], q = cv3.sub(cv3.at(J.H, J.X, J.U, J.F, x, y, z), c0); return cv3.at(F.o, F.X, F.Y, F.Z, q[0], q[1], q[2]); },
   dirOf(P, v) { const F = this.frameOf(this.b(P + 'Chest')); return cv3.at([0, 0, 0], F.X, F.Y, F.Z, v[0], v[1], v[2]); },
+  // a pose brought within the arm's reach (the hand stopping short along the line from the shoulder)
+  inReach(P, s, pose) { const J = this.R.J[P], S = this.bodyPos(this.b(P + 'Arm' + s)), L = (CREW_BODY.upper + CREW_BODY.fore) * J.k * 0.97, d = cv3.sub(pose.W, S), l = cv3.len(d);
+    return l <= L ? pose : { W: cv3.madd(S, d, L / l), X: pose.X, Y: pose.Y, Z: pose.Z }; },
+  // a hand flat against the dash's face before a person (x across)
+  dashFace(x) { const c = this.rig.cab; return [x, (c.dTop || c.eyeY - 0.2) - 0.05, (c.dashRear || c.seatZ + 0.72) - 0.016]; },
   startAct(P, a) {
     const old = this.act[P]; this.act[P] = Object.assign({ t: 0, pri: 1, hands: {} }, a);
     const hands = P === 'D' ? this.hand : this.coHand;
     for (const k of ['L', 'R']) { const h = hands[k], want = a.hands[k];
-      if (want) { h.tgt = want.pose; h.shape = want.shape || 'open'; if (h.mode === 'job' && P === 'D') this.dropJob(); this.moveTo(h, { pose: want.pose }, want.T || 0.25, false, want.shape); h.mv.then = 'act'; }
+      if (want) { const fn = () => this.inReach(P, k, want.pose()); h.tgt = fn; h.shape = want.shape || 'open'; if (h.mode === 'job' && P === 'D') this.dropJob(); this.moveTo(h, { pose: fn, out: want.out, via: want.via }, want.T || 0.25, false, want.shape); h.mv.then = 'act'; }
       else if (old && old.hands[k] && (h.mode === 'act' || h.mode === 'move')) this.handBack(P, k); }
     if (P === 'D') this.busyR = !!a.hands.R;
   },
@@ -34025,11 +34466,11 @@ function crewActs(A, dt, s) {
   if (A.flipT > 0) {
     const roof = s.stuck && up < -0.3;
     if (roof ? !(A.act.D && A.act.D.k === 'roof') : pri('D') < 4) {
-      const strap = (P, sd) => () => A.palm(A.trunk(P, -sd * 0.07, 0.41, 0.15), A.dirOf(P, [0, 1, 0.2]), A.dirOf(P, [0, 0, -1]));
-      const roofHand = (P, sd) => () => { const x = J[P].H[0] + sd * 0.13, r = A.roofAt(x); return A.palm(r, [0, 0, 1], [0, 1, 0]); };
-      for (const P of ['D', 'C']) A.startAct(P, roof ? { k: 'roof', pri: 4, hands: { L: { pose: roofHand(P, 1), shape: 'flat', T: 0.4 }, R: { pose: roofHand(P, -1), shape: 'flat', T: 0.4 } }, face: CREW_FACES.cross, look: t => ({ yaw: Math.sin(t * 0.8) * 0.4, pitch: -0.1 }) }
-        : P === 'D' ? { k: 'roll', pri: 4, hands: { L: { pose: strap('D', 1), shape: 'strap', T: 0.18 }, R: { pose: strap('D', -1), shape: 'strap', T: 0.18 } }, face: CREW_FACES.grimace, look: () => ({ yaw: 0, pitch: 0.25 }) }
-        : { k: 'roll', pri: 4, hands: { R: { pose: strap('C', -1), shape: 'strap', T: 0.18 } }, face: CREW_FACES.grimace, look: () => ({ yaw: 0, pitch: 0.3 }) });
+      const strap = (P, sd) => () => A.palm(A.trunk(P, sd * 0.08, 0.4, 0.152), A.dirOf(P, [-sd * 0.55, 1, 0.15]), A.dirOf(P, [0, 0, -1]));
+      const roofHand = (P, sd) => () => { const x = J[P].H[0] + sd * 0.22, r = cv3.add(A.roofAt(x), [0, 0, 0.2]); return A.palm(r, [sd * 0.4, 0, 1], [0, 1, 0]); };
+      for (const P of ['D', 'C']) A.startAct(P, roof ? { k: 'roof', pri: 4, hands: { L: { pose: roofHand(P, 1), shape: 'flat', T: 0.45, out: 0.12 }, R: { pose: roofHand(P, -1), shape: 'flat', T: 0.45, out: 0.12 } }, face: CREW_FACES.cross, look: t => ({ yaw: Math.sin(t * 0.8) * 0.4, pitch: -0.1 }) }
+        : P === 'D' ? { k: 'roll', pri: 4, hands: { L: { pose: strap('D', 1), shape: 'strap', T: 0.18 }, R: { pose: strap('D', -1), shape: 'strap', T: 0.18 } }, face: CREW_FACES.grimace, look: () => ({ yaw: 0, pitch: 0.08 }) }
+        : { k: 'roll', pri: 4, hands: { R: { pose: strap('C', -1), shape: 'strap', T: 0.18 } }, face: CREW_FACES.grimace, look: () => ({ yaw: 0, pitch: 0.12 }) });
     }
     B.in = Math.min(1, (B.in || 0) + dt * 5);
     return;
@@ -34041,12 +34482,12 @@ function crewActs(A, dt, s) {
     A.P.D.fright = A.P.C.fright = Math.min(1.2, 0.4 + kn * 0.08);
     if (kn > 5 && pri('D') < 3) { const fly = k => { const h0 = A.hand[k].pose; return t => () => { const u = Math.sin(Math.PI * Math.min(1, t() / 0.4)); return { W: cv3.madd(h0.W, d, -0.14 * u), X: h0.X, Y: h0.Y, Z: h0.Z }; }; }, tt = () => A.act.D ? A.act.D.t : 1;
       if (A.hand.L.pose && A.hand.R.pose) A.startAct('D', { k: 'hit', pri: 3, dur: 0.55, hands: { L: { pose: fly('L')(tt), shape: 'open', T: 0.06 }, R: { pose: fly('R')(tt), shape: 'open', T: 0.06 } }, face: CREW_FACES.fright }); }
-    if (pri('C') < 3) A.startAct('C', { k: 'brace', pri: 3, dur: 0.9 + Math.min(0.8, kn * 0.05), hands: { L: { pose: () => A.palm(A.dashAt(xc + 0.13), [0, -0.2, 1], [0, -1, 0.2]), shape: 'flat', T: 0.12 } }, face: CREW_FACES.fright }); }
+    if (pri('C') < 3) A.startAct('C', { k: 'brace', pri: 3, dur: 0.9 + Math.min(0.8, kn * 0.05), hands: { L: { pose: () => A.palm(A.dashFace(xc + 0.12), [0, 1, 0.1], [0, 0.1, 1]), shape: 'flat', T: 0.12 } }, face: CREW_FACES.fright }); }
   // ---- in the air over a jump: the co-driver braces on the dash with the notes held to the chest; the driver holds the
   // wheel firm, eyes on the landing ----
   A.air = s.air != null ? s.air : (A.acc[1] < -6.5 ? (A.air || 0) + dt : 0);
   if (A.air > 0.22) { B.in = Math.min(0.6, (B.in || 0) + dt * 4);
-    if (pri('C') < 2) A.startAct('C', { k: 'air', pri: 2, hands: { L: { pose: () => A.palm(A.dashAt(xc + 0.13), [0, -0.2, 1], [0, -1, 0.2]), shape: 'flat', T: 0.15 } }, face: CREW_FACES.tense, look: () => ({ yaw: 0, pitch: -0.05 }) });
+    if (pri('C') < 2) A.startAct('C', { k: 'air', pri: 2, hands: { L: { pose: () => A.palm(A.dashFace(xc + 0.12), [0, 1, 0.1], [0, 0.1, 1]), shape: 'flat', T: 0.15 } }, face: CREW_FACES.tense, look: () => ({ yaw: 0, pitch: -0.05 }) });
     if (pri('D') < 2) A.startAct('D', { k: 'air', pri: 2, hands: {}, firm: true, face: CREW_FACES.tense }); }
   else { B.in = Math.max(0, (B.in || 0) - dt * 2); for (const P of ['D', 'C']) if (A.act[P] && A.act[P].k === 'air') { A.act[P].dur = A.act[P].t + (P === 'C' ? 0.5 : 0.1); A.act[P].k = 'landed'; } }
   // ---- the notes: a page turned every nine calls ----
@@ -34055,7 +34496,7 @@ function crewActs(A, dt, s) {
   // ---- the start: the co-driver counts the last five seconds down on the fingers of the hand nearer the driver, and
   // signals go; the driver's right hand on the lever, first gear in ----
   if (s.mode === 'grid' && s.cd < 5.6 && s.cd > -0.6 && pri('C') < 1.5) {
-    const cnt = () => A.palm([xc + 0.3, J.C.eye[1] - 0.1, J.C.H[2] + 0.46], [0.1, 1, 0.15], [1, 0, -0.35]);
+    const cnt = () => A.palm([xc + 0.3, J.C.eye[1] - 0.1, J.C.H[2] + 0.46], [0.05, 1, 0.1], [0.55, 0, 0.83]);
     A.startAct('C', { k: 'count', pri: 1.5, hands: { L: { pose: cnt, shape: 'c5', T: 0.3 } }, look: () => ({ yaw: 0.25, pitch: -0.05 }), face: CREW_FACES.talk });
   }
   if (A.act.C && A.act.C.k === 'count') { const n = Math.ceil(s.cd), h = A.coHand.L; if (h.mode === 'act') h.shape = n >= 1 && n <= 5 ? 'c' + n : 'flat';
@@ -34067,7 +34508,7 @@ function crewActs(A, dt, s) {
   else { A.finT = 0; A.finDone = false; }
   // ---- on show: the engine started (the driver's hand to the starter on the dash, a word to the co-driver); then they
   // wait, fidget, talk ----
-  if (s.crank && !(A.act.D && A.act.D.k === 'start')) A.startAct('D', { k: 'start', pri: 1.2, hands: { R: { pose: () => A.palm(A.dashAt(xd - 0.24), [0, 0.1, 1], [0, -0.3, 1]), shape: 'point', T: 0.3 } }, look: () => ({ yaw: -0.2, pitch: 0.25 }) });
+  if (s.crank && !(A.act.D && A.act.D.k === 'start')) A.startAct('D', { k: 'start', pri: 1.2, hands: { R: { pose: () => A.palm(cv3.add(A.dashFace(xd - 0.24), [0, 0.02, -0.03]), [0, 0.15, 1], [0.6, 0, 0.3]), shape: 'point', T: 0.3 } }, look: () => ({ yaw: -0.2, pitch: 0.25 }) });
   if (!s.crank && A.act.D && A.act.D.k === 'start') A.endAct('D');
   if (s.mode === 'show' && pri('D') < 1 && pri('C') < 1) { A.idleT = (A.idleT == null ? 1 + Math.random() * 2 : A.idleT) - dt;
     if (A.idleT <= 0) { A.idleT = 2.5 + Math.random() * 4; crewIdle(A, Math.floor(Math.random() * 5)); } }
@@ -34079,7 +34520,7 @@ function crewFinish(A, mood) {
   const J = A.R.J, m = A.mid(), T = P => A.act[P] ? A.act[P].t : 0;
   // (a fist shaken up over the shoulder nearer the middle, under the roof)
   const fist = (P, sd, ph) => () => { const t = T(P), r = A.rig.cab.roof || J[P].eye[1] + 0.2, p = [J[P].H[0] + sd * 0.17, Math.min(r - 0.085, J[P].eye[1] + 0.1) - 0.06 * Math.max(0, Math.sin(t * 13 + ph)), J[P].H[2] + 0.2]; return A.palm(p, [sd * 0.15, 1, 0.1], [-sd, 0, -0.3]); };
-  const five = (P, sd) => () => { const u = Math.min(1, Math.max(0, (T(P) - 0.2) / 0.3)), p = cv3.add(m, [sd * (0.03 + 0.07 * (1 - u)), 0.02, 0]); return A.palm(p, [-sd * 0.3, 1, 0.25], [-sd, 0, 0]); };
+  const five = (P, sd) => () => { const u = Math.min(1, Math.max(0, (T(P) - 0.2) / 0.3)), p = cv3.add(m, [sd * (0.03 + 0.07 * (1 - u)), 0.02, 0]); return A.palm(p, [-sd * 0.3, 1, 0.25], [-sd * 0.8, 0, 0.6]); };
   const clap = sd => () => { const F = A.frameOf(A.b('CChest')), u = Math.abs(Math.sin(T('C') * 9)); return A.palm(cv3.at(F.o, F.X, F.Y, F.Z, sd * (0.012 + 0.05 * u), 0.15, 0.29), cv3.at([0, 0, 0], F.X, F.Y, F.Z, 0, 1, 0.5), cv3.at([0, 0, 0], F.X, F.Y, F.Z, -sd, 0, 0)); };
   if (mood === 'best') {
     const hi5 = P => ({ k: 'five', pri: 1, dur: 0.9, hands: { [P === 'D' ? 'R' : 'L']: { pose: five(P, P === 'D' ? 1 : -1), shape: 'flat', T: 0.2 } }, face: CREW_FACES.cheer, look: () => ({ yaw: P === 'D' ? -0.75 : 0.75, pitch: 0 }) });
@@ -34089,13 +34530,15 @@ function crewFinish(A, mood) {
       then: () => Object.assign(hi5('C'), { then: () => ({ k: 'clap', pri: 1, dur: 2.2, hands: { L: { pose: clap(1), shape: 'flat', T: 0.25 }, R: { pose: clap(-1), shape: 'flat', T: 0.25 } }, face: CREW_FACES.cheer, look: () => ({ yaw: 0.4, pitch: 0 }) }) }) });
   } else if (mood === 'bad') {
     const slap = () => { const t = T('D'), top = A.fromWheel(A.rimLocal(Math.PI / 2 - A.rho), A.rho), u = Math.abs(Math.sin(Math.min(t, 1.2) * Math.PI * 2.4)); return A.palm(cv3.add(top, [0, 0.03 + 0.1 * u, -0.02]), [0, 0, 1], [0, -1, 0]); };
-    const helm = sd => () => { const F = A.frameOf(A.b('DHead')); return A.palm(cv3.at(F.o, F.X, F.Y, F.Z, sd * 0.14, 0.09, 0.0), cv3.at([0, 0, 0], F.X, F.Y, F.Z, 0, 1, -0.3), cv3.at([0, 0, 0], F.X, F.Y, F.Z, -sd, 0, 0)); };
+    const helm = sd => () => { const F = A.frameOf(A.b('DHead')); return A.palm(cv3.at(F.o, F.X, F.Y, F.Z, sd * 0.055, 0.21, 0.04), cv3.at([0, 0, 0], F.X, F.Y, F.Z, sd * 0.15, 0.25, -1), cv3.at([0, 0, 0], F.X, F.Y, F.Z, -sd * 0.2, -1, 0.1)); };
     A.startAct('D', { k: 'slap', pri: 1, dur: 1.25, hands: { R: { pose: slap, shape: 'flat', T: 0.2 } }, face: CREW_FACES.cross, look: () => ({ yaw: 0, pitch: 0.15 }),
-      then: () => ({ k: 'despair', pri: 1, dur: 2.4, hands: { L: { pose: helm(1), shape: 'open', T: 0.35 }, R: { pose: helm(-1), shape: 'open', T: 0.35 } }, face: CREW_FACES.grimace, look: t => ({ yaw: Math.sin(t * 6) * 0.3 * Math.max(0, 1 - t / 2), pitch: 0.35 }) }) });
+      then: () => ({ k: 'despair', pri: 1, dur: 2.4, hands: { L: { pose: helm(1), shape: 'open', T: 0.35 }, R: { pose: helm(-1), shape: 'open', T: 0.35 } }, face: CREW_FACES.grimace, look: t => ({ yaw: Math.sin(t * 6) * 0.3 * Math.max(0, 1 - t / 2), pitch: 0.18 }) }) });
     A.startAct('C', { k: 'look', pri: 1, dur: 0.7, hands: {}, face: CREW_FACES.sorry, look: () => ({ yaw: 0.6, pitch: 0 }),
-      then: () => ({ k: 'console', pri: 1, dur: 3, hands: { L: { pose: () => { const t = T('C'), sh = A.bodyPos(A.b('DArmR')); return A.palm(cv3.add(sh, [0.0, 0.06 + 0.015 * Math.max(0, Math.sin(t * 9)), -0.02]), [1, 0, -0.2], [0, -1, 0]); }, shape: 'open', T: 0.45 } }, face: CREW_FACES.sorry, look: () => ({ yaw: 0.8, pitch: 0.05 }) }) });
+      // (the hand on the driver's upper arm, by the shoulder, patting it)
+      then: () => ({ k: 'console', pri: 1, dur: 3, hands: { L: { pose: () => { const t = T('C'), sh = A.bodyPos(A.b('DArmR')), el = A.bodyPos(A.b('DForeR')), d = cv3.norm(cv3.sub(el, sh)); let up = cv3.sub([0, 1, 0], cv3.mul(d, d[1])); up = cv3.norm(up);
+        return A.palm(cv3.madd(cv3.lerp(sh, el, 0.3), up, 0.062 + 0.012 * Math.max(0, Math.sin(t * 9))), d, cv3.mul(up, -1)); }, shape: 'open', T: 0.45 } }, face: CREW_FACES.sorry, look: () => ({ yaw: 0.8, pitch: 0.05 }) }) });
   } else {
-    const thumb = sd => () => A.palm(cv3.add(A.mid(), [sd * 0.1, 0.0, -0.05]), [-sd, 0.15, 0.3], [0, -0.4, -1]);
+    const thumb = sd => () => A.palm(cv3.add(A.mid(), [sd * 0.1, 0.0, -0.05]), [-sd, 0.15, 0.3], [0, -0.2, 1]);
     A.startAct('C', { k: 'thumb', pri: 1, dur: 2.2, hands: { L: { pose: thumb(-1), shape: 'thumb', T: 0.35 } }, face: CREW_FACES.smile, look: () => ({ yaw: 0.7, pitch: 0 }) });
     A.startAct('D', { k: 'nod', pri: 1, dur: 2.2, hands: {}, face: CREW_FACES.smile, look: t => ({ yaw: -0.55, pitch: 0.15 * Math.max(0, Math.sin(t * 7)) }) });
   }
@@ -34104,8 +34547,8 @@ function crewFinish(A, mood) {
 // looks over and talks, or points out something in the notes
 function crewIdle(A, k) {
   const talk = (P, yaw) => ({ k: 'chat', pri: 0.5, dur: 1.6 + Math.random() * 1.5, hands: {}, face: t => ({ jaw: 0.1 + 0.18 * Math.max(0, Math.sin(t * 24) * Math.sin(t * 5.5 + 1)), smile: 0.35, brow: 0.3, lid: 0.1, wide: 0 }), look: () => ({ yaw, pitch: 0.02 }) });
-  if (k === 0) A.startAct('D', talk('D', -0.75));
-  else if (k === 1) A.startAct('C', talk('C', 0.75));
+  if (k === 0) A.startAct('D', talk('D', -0.6));
+  else if (k === 1) A.startAct('C', talk('C', 0.6));
   else if (k === 2) { if (!A.book.turn) A.book.turn = { t: 0 }; }
   else if (k === 3) { const F = () => A.bookFrame(); A.startAct('C', { k: 'point', pri: 0.5, dur: 1.4, hands: { R: { pose: () => { const f = F(); return A.palm(cv3.add(cv3.madd(f.c, f.Z, 0.03), cv3.mul(f.Y, -0.02)), f.Y, cv3.mul(f.Z, -1)); }, shape: 'point', T: 0.3 } }, look: () => ({ yaw: 0, pitch: 0.5 }) }); A.startAct('D', talk('D', -0.6)); }
   else A.flex = 0.6;
@@ -42415,9 +42858,10 @@ const ScreenFx = {
     renderer.setRenderTarget(rt); renderer.setClearColor(this._cc, ca); renderer.autoClear = ac;
   },
   // the driver's view, after the cockpit is drawn: copy what is behind the glass, then draw the glass over it
-  draw(renderer, cam) {
+  // (keep: the picture behind the glass as copied for an earlier view of three)
+  draw(renderer, cam, keep) {
     if (!this.on || !this.mesh || !this.wRT) return; const sz = renderer.getDrawingBufferSize(this._sz), U = this.U;
-    if (this.bgOk !== false) {
+    if (this.bgOk !== false && !keep) {
       if (!this.bg) this.bg = new THREE.WebGLRenderTarget(sz.x, sz.y, { format: THREE.RGBFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, stencilBuffer: false, generateMipmaps: false });
       if (!this.bgInit || this.bg.width !== sz.x || this.bg.height !== sz.y) { this.bg.setSize(sz.x, sz.y); const rt = renderer.getRenderTarget(); renderer.setRenderTarget(this.bg); renderer.setRenderTarget(rt); this.bgInit = true; }
       const gl = renderer.getContext(); if (this.bgOk == null) for (let i = 0; i < 8 && gl.getError(); i++);
