@@ -11990,7 +11990,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '3D6B';
+const SR86_BUILD = '6E9C';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -42773,7 +42773,7 @@ function ChassisDSPDef() {
     constructor(i) {
       this.i = i; this.front = i < 2; this.tg = { on: 0, s: 0, ld: 1, vr: 0, vs: 0, rho: 0, dv: 0, fl: 0, gl: 0.7, gr: 0.7, ga: 1 };
       this.wt = new Float64Array(8); this.vr = 0; this.vs = 0; this.rho = 0; this.ld = 1; this.dv = 0; this.gl = 0.7; this.gr = 0.7; this.ga = 1; this.on = 0; this.fl = 0;
-      this.studH = new BQ(); this.studB = new BQ(); this.sg = 0; this.aStud = 0; this.pStud = 0; this.roar = new BQ(); this.bedH = new BQ(); this.bedL = new BQ(); this.crB = new BQ(); this.crM = new BQ(); this.scrub = new BQ(); this.dmp = new BQ(); this.grind = new BQ(); this.wetF = new BQ(); this.sprF = new BQ();
+      this.studH = new BQ(); this.studB = new BQ(); this.sg = 0; this.aStud = 0; this.pStud = 0; this.roar = new BQ(); this.bedH = new BQ(); this.bedL = new BQ(); this.crB = new BQ(); this.crM = new BQ(); this.scrub = new BQ(); this.dmp = new BQ(); this.grind = new BQ(); this.wetF = new BQ(); this.sprF = new BQ(); this.airF = new BQ(); this.pitF = new BQ(); this.tyM = new BQ(); this.cavF = new BQ(); this.grH = new BQ(); this.grB = new BQ(); this.gg = 0; this.pGr = 0; this.aAir = 0; this.aPit = 0; this.pk = 1; this.pt = 1; this.shA = new BQ(); this.shF = new BQ(); this.shH = new BQ(); this.sh = 0; this.pSh = 0; this.spF = new BQ(); this.crP = new BQ(); this.gu = 0; this.gt = 0; this.gud = 0.999; this.pGu = 0; this.sl41 = 0; this.pCr = 0; this.cg = 0; this.cl1 = 0; this.aCp = 0;
       this.rb1 = 0; this.rb2 = 0; this.wph = 0; this.cob = 0;
       // per block: levels and rates
       this.aRoar = 0; this.aBed = 0; this.aCrn = 0; this.aScrub = 0; this.aRum = 0; this.aDmp = 0; this.aGrind = 0; this.aWet = 0; this.aSpray = 0; this.pS = 0; this.pD = 0; this.snowK = 0; this.cobR = 0; this.flapR = 0;
@@ -42866,8 +42866,13 @@ function ChassisDSPDef() {
     stone(w, k) {
       const r = this.rnd();
       if (w.snowK > 0.5) { const sp = Math.min(1.4, (w.vr + 2 * w.vs) / 22) + 0.25; this.burst('lp', 230 + 120 * this.rnd(), 0.8, 0.003, 0.025, (0.012 + 0.1 * r * r * r) * sp * k, w.pan, 0.1, 1); return; }
-      if (r < 0.13) this.tick(520 + this.rnd() * 600, 2, (0.09 + 0.11 * this.rnd()) * k, 0.04 + 0.04 * this.rnd(), w.pan, 0.5, 2.1);
-      else this.tick(1800 + this.rnd() * 4400, 4, (0.035 + 0.08 * this.rnd()) * k, 0.008 + 0.02 * this.rnd(), w.pan, 0.9, 2.1);
+      // its size: most are grit, some pebbles, a few stones; then the blow itself and the panel it struck (see the top)
+      const big = r < 0.1 ? 2 : r < 0.4 ? 1 : 0, kk = k * (big === 2 ? 1.3 : big === 1 ? 0.9 : 0.55), p = w.pan, R = () => this.rnd(), r2 = R();
+      this.tick((big === 2 ? 1500 + 900 * R() : big === 1 ? 2600 + 1500 * R() : 4200 + 2600 * R()), 1.2, (big === 2 ? 0.09 : 0.038) * kk, 0.0035 + 0.003 * R(), p, 0.9, 3);
+      if (r2 < 0.46) { this.tick(700 + 500 * R(), 5, (0.03 + 0.03 * R()) * kk, 0.012 + 0.012 * R(), p, 0.8, 1.3); this.tick(1500 + 900 * R(), 6, 0.022 * kk, 0.008 + 0.008 * R(), p, 0.8, 1); }
+      else if (r2 < 0.76) { this.tick(190 + 160 * R(), 3, (0.05 + 0.04 * R()) * kk, 0.02 + 0.02 * R(), p, 0.35, 2); this.tick(430 + 250 * R(), 3.5, 0.03 * kk, 0.012 + 0.01 * R(), p, 0.4, 2.2); }
+      else if (r2 < 0.88) this.tick(1900 + 1300 * R(), 7, (0.03 + 0.02 * R()) * kk, 0.006 + 0.006 * R(), p, 0.7, 1.2);
+      else { this.tick(480 + 260 * R(), 9, (0.035 + 0.03 * R()) * kk, 0.05 + 0.04 * R(), p, 0.8, 1.9); this.tick(1150 + 500 * R(), 10, 0.02 * kk, 0.035 + 0.02 * R(), p, 0.8, 1.6); }
     }
     // n stones and clods thrown up at once (by a landing, a blow, a roll) coming down on the car over the next spread
     // seconds, most of them early; wi: from that wheel, else from all four
@@ -43143,12 +43148,15 @@ function ChassisDSPDef() {
       // tarmac: the tread's roar, climbing with speed (hushed when wet), and on a wet road the hiss of the water
       // (clear ice is smooth: the tread barely roars on it)
       w.roar.set('bp', (380 + 9 * Math.min(vc, 60)) | 0, 0.8, sr); w.aRoar = on * (hard * (1 - 0.25 * wetK) + 0.3 * I) * 0.07 * fast3 * ld;
+      w.aAir = w.aRoar * 0.55 * cl(vc / 28, 0, 1.6); if (w.aAir > 1e-6) w.airF.set('bp', (1100 + 8 * Math.min(vc, 60)) | 0, 1.2, sr);
+      w.aPit = w.aRoar * 0.3 * (1 - 0.6 * wetK); if (w.aPit > 1e-6) w.pitF.set('bp', cl(vc / 0.034, 120, 3200) | 0, 7, sr);
       w.aWet = on * wetK * (hard * 0.21 + loose * 0.056) * sm(2, 28, vc); if (w.aWet > 1e-6) w.wetF.set('bp', (1500 + 25 * Math.min(vc, 50)) | 0, 0.8, sr);
       w.cobR = on * C * v / 0.14;
       // loose ground: a hiss of grit (duller on grass and snow) and over it a grainy crunch, more of both in a slide or spin
-      w.aBed = on * loose * soft * (0.34 * fast + 0.3 * slip) * 0.7;
-      w.aCrn = on * loose * soft * (0.12 * fast + 0.42 * slip) * 0.7;
-      if (w.aBed > 1e-6) { w.bedH.set('hp', 300, 0.7, sr); w.bedL.set('lp', Gr > 0.5 ? 1400 : Sn + Sb > 0.5 ? 1800 : 3600, 0.6, sr);
+      w.aBed = on * loose * soft * (0.34 * fast + (0.3 - 0.15 * Gv / Math.max(loose, 1e-3)) * slip) * 0.7 * (1 - 0.25 * Gv / Math.max(loose, 1e-3));
+      w.aCrn = on * loose * soft * (0.12 * fast + (0.42 - 0.17 * Gv / Math.max(loose, 1e-3)) * slip) * 0.7;
+      w.pGr = w.aCrn > 1e-6 && Gv > 0.02 ? Math.min(0.3, Gv * (50 + 14 * Math.min(vc, 40) + 700 * slip) / sr) : 0; if (w.pGr > 0) { w.grH.set('hp', 1800, 0.7, sr); w.grB.set('bp', 650, 1.1, sr); }
+      if (w.aBed > 1e-6) { w.bedH.set('hp', 300, 0.7, sr); w.bedL.set('lp', Gr > 0.5 ? 1400 : Sn + Sb > 0.5 ? 1800 : 5200, 0.6, sr);
         w.crB.set('bp', ((Gr > 0.5 ? 900 : 1700) + 30 * Math.min(vc, 40)) | 0, 0.9, sr); w.crM.set('lp', (15 + 2.2 * Math.min(vc, 45) + 40 * slip) | 0, 0.7, sr); }
       // snow thrown up by the tread against the arch liners: a rushing hiss, loudest inside
       w.aSpray = on * (Sn + 0.7 * Sb) * 0.015 * cl(v / 10, 0, 4) * ld; if (w.aSpray > 1e-6) w.sprF.set('bp', (1300 + 25 * Math.min(v, 40)) | 0, 0.5, sr);
@@ -43161,6 +43169,11 @@ function ChassisDSPDef() {
       // stones flung against the floor and arch, by the speed and the slip (fewer from grass and snow); a little grit on tarmac
       w.pS = on * (loose * sm(2, 12, vc) * (5 + 0.7 * Math.min(vc, 40) + 50 * slip) * (1 - 0.8 * (Sn + Sb + Gr) / Math.max(loose, 1e-3)) * 0.25) / sr;
       w.pD = on * hard * sm(5, 30, vc) * 0.15 / sr;
+      w.pSh = on * Gv * sm(4, 16, vc) * (30 + 12 * Math.min(vc, 45) + 600 * slip) / sr; if (w.pSh > 0 || w.gt > 1e-4) { w.shA.set('bp', 950, 3.5, sr); w.shF.set('bp', 300, 2.5, sr); w.shH.set('hp', 2500, 0.7, sr); }
+      // (from the clips) gravel thrown by the handful when the tyre slides or spins: how often a handful comes, how hard
+      w.sl41 = slip; w.pGu = on * Gv * sm(1, 10, vc) * (0.15 + 2.2 * slip) / sr; if (w.pGu > 0) w.spF.set('bp', 1500, 0.5, sr);
+      // (from the clips) the stones under a slow tyre popping one by one
+      w.pCr = on * Gv * sm(0.3, 2, vc) * (6 + 2.6 * Math.min(vc, 30)) * (1 + 1.5 * slip) / sr; const CR41 = 0.26; w.aCp = CR41 * (0.55 + 0.03 * Math.min(vc, 30)) * ld; if (w.pCr > 0) w.crP.set('bp', 800, 1.4, sr);
       // the squeal: on a hard surface, a tyre sliding or spinning (sound only once it is really going), or a locked one
       if (hard > 0.01 && on > 0.01) { this.sqS += on * hard * Math.max(slide * sm(2, 8, vc), spin * sm(0.5, 5, v)) * 0.25; this.sqK += on * hard * locked * 0.25; }
       const r3 = cl((w.rho - 0.55) / 0.5, 0, 1);
@@ -43171,7 +43184,9 @@ function ChassisDSPDef() {
       const cue = this.P.cue || 0; if (cue > 0) { const rc = cl((w.rho - 0.7) / 0.35, 0, 1); w.aScrub += on * cue * (hard * 0.012 + loose * 0.011 + I * 0.01) * rc * rc * (3 - 2 * rc) * cl(vs / 4, 0.35, 1.5) * ld; }
       if (w.aScrub > 1e-6) w.scrub.set('bp', (hard > 0.5 ? 1500 : I > 0.5 ? 2700 : 900) * (cue > 0 ? (w.front ? 1.2 : 0.85) : 1), 0.7, sr);
       // through the structure: the rumble of the road (rougher, louder), the dampers' oil
-      w.aRum = on * (0.008 + 0.03 * cl(e.rough, 0, 1.5)) * cl(v / 12, 0, 1.6) * (hard * 1.6 + loose + 0.5 * I) * ld;
+      const RUM41 = 2.6, RO41 = 0.25 + 0.75 * e.ins; w.gv41 = Gv; // (the loose ground's rumble is the cabin's: little of it outside)
+      w.aRum = on * (0.008 + 0.03 * cl(e.rough, 0, 1.5)) * cl(v / 12, 0, 1.6) * (hard * 1.6 + (loose + RUM41 * Gv) * RO41 + 0.5 * I) * ld;
+      if (w.aRum > 1e-6) { w.tyM.set('bp', 82, 2.5, sr); w.cavF.set('bp', 212, 9, sr); }
       const adv = Math.abs(w.dv); w.aDmp = 0.045 * Math.max(0, adv - 0.22); if (w.aDmp > 1e-6) w.dmp.set('bp', (520 + 300 * Math.min(adv, 2)) | 0, 0.7, sr);
       // a flat tyre slapping once a turn and its rim on the road; a hub grinding with the wheel gone
       w.flapR = w.fl === 1 ? v / (TAU * 0.31) : 0; w.aGrind = (w.fl === 2 ? 0.05 : w.fl === 3 ? 0.042 : w.fl === 1 ? 0.012 : 0) * cl(v / 10, 0, 3); if (w.aGrind > 1e-6) w.grind.set('bp', w.fl === 2 ? 1900 : w.fl === 3 ? 2250 : 2600, 1.6, sr);
@@ -43213,7 +43228,7 @@ function ChassisDSPDef() {
       for (const b of this.BU) b.on = false; for (const c of this.K) c.on = false; this.react = 0; this.sizG = 0;
       for (const q of this.Sg) q.on = false; for (const h of this.Hn) h.on = false; for (const j of this.JT) { j.on = false; j.cid = -1; } this.bzPh = 0; this.bzZ = 0; this.pend.length = 0; for (const q of this.TK) q.on = false; this.sqA = 0; this.sqG = 0;
       Object.assign(this.P, this.P0); Object.assign(this.e, this.E0);
-      for (const w of this.W) { Object.assign(w.tg, w.T0); w.on = 0; w.vr = 0; w.vs = 0; w.rho = 0; w.ld = 1; w.dv = 0; w.fl = 0; w.wt.fill(0); w.rb1 = 0; w.rb2 = 0; w.ph = 0; w.sqF = 0; w.fl1 = 0; w.fl2 = 0; w.wph = 0; w.cob = 0; }
+      for (const w of this.W) { Object.assign(w.tg, w.T0); w.on = 0; w.vr = 0; w.vs = 0; w.rho = 0; w.ld = 1; w.dv = 0; w.fl = 0; w.wt.fill(0); w.rb1 = 0; w.rb2 = 0; w.gu = 0; w.gt = 0; w.cg = 0; w.cl1 = 0; w.sh = 0; w.gg = 0; w.lt1 = 0; w.lt2 = 0; w.ph = 0; w.sqF = 0; w.fl1 = 0; w.fl2 = 0; w.wph = 0; w.cob = 0; }
       this.rgE[0] = 0; this.rgE[1] = 0; this.rfE = 0; this.rainLo = 0; this.scG = 1; this.scGT = 1; this.scT = 0; this.scSG = 0; this.scSGT = 0; this.scST = 0; this.leafS[0] = 1; this.leafS[1] = 1; for (const w of this.W) w.sg = 0;
       this.windL = 0; this.windR = 0; this.cabLo = 0; this.scLo = 0; this.wdF = 0; this.clapE = 0; this.dropA = 0; this.bl[0] = 0; this.bl[1] = 0; this.rumF[0] = 0; this.scK = -1; this.gustE = 1; this.slosh = 1;
       const nx = this.next; nx.bird = this.tt + 2; nx.owl = this.tt + 8; nx.horn = this.tt + 3; nx.whistle = this.tt + 2;
@@ -43250,27 +43265,44 @@ function ChassisDSPDef() {
     uni(U, m) { let s = this.seed | 0; for (let j = 0; j < m; j++) { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; U[j] = (s >>> 0) / 4294967296; } this.seed = s; }
     // ---- the tyres: what each makes through the air and through the structure, then placed where the wheel is ----
     tyre(w, m) {
+      const SH41 = 0.55, TL41 = [2.2, 0.3, 0.03], GR41 = 0.45 * (0.2 + 0.8 * this.e.ins), GUR41 = 7000, BR41 = 0.23, TG = this.TG41 || (this.TG41 = new Float32Array(this.TS.length)); TG.fill(0, 0, m);
       if (w.on < 0.002 && w.aGrind <= 0 && w.flapR <= 0 && w.aDmp <= 0) return;
       const sr = this.sr, TA = this.TA, TS = this.TS, N = this.N, N2 = this.N2, U = this.U, T1 = this.T1, T2 = this.T2;
       TA.fill(0); TS.fill(0);
       // tarmac's roar: through the air, and much of it through the floor too
       if (w.aRoar > 1e-6) { this.noise(N, m); w.roar.proc(N, T1, m); const a = w.aRoar; for (let j = 0; j < m; j++) { const y = T1[j] * a; TA[j] += y * 0.75; TS[j] += y * 0.45; } }
+      if (w.aAir > 1e-6) { this.noise(N, m); w.airF.add(N, TA, m, w.aAir); }
+      if (w.aPit > 1e-6) { this.noise(N, m); w.pitF.proc(N, T1, m); const a = w.aPit; for (let j = 0; j < m; j++) { const y = T1[j] * a; TA[j] += y * 0.6; TS[j] += y * 0.5; } }
       if (w.aWet > 1e-6) { this.noise(N, m); w.wetF.proc(N, T1, m); const a = w.aWet; for (let j = 0; j < m; j++) { const y = T1[j] * a; TA[j] += y; TS[j] += y * 0.5; } } // the water off the tread drums in the arch
       // loose ground: the hiss of grit, and the crunch (band noise whose strength is itself a slow noise, so it comes in grains)
       if (w.aBed > 1e-6) {
-        this.noise(N, m); w.bedH.proc(N, T1, m); w.bedL.proc(T1, T2, m); const a = w.aBed; for (let j = 0; j < m; j++) { const y = T2[j] * a; TA[j] += y * 1.2; TS[j] += y * 1.5; }
-        this.noise(N, m); this.noise(N2, m); w.crB.proc(N, T1, m); w.crM.proc(N2, T2, m); const c = w.aCrn * 5; for (let j = 0; j < m; j++) { const y = T1[j] * T2[j] * c; TA[j] += y * 1.2; TS[j] += y * 1.6; }
+        this.noise(N, m); w.bedH.proc(N, T1, m); w.bedL.proc(T1, T2, m); const a = w.aBed; for (let j = 0; j < m; j++) { const y = T2[j] * a; TA[j] += y * 1.2; TG[j] += y * 1.5; }
+        this.noise(N, m); this.noise(N2, m); w.crB.proc(N, T1, m); w.crM.proc(N2, T2, m); const c = w.aCrn * 5; for (let j = 0; j < m; j++) { const y = T1[j] * T2[j] * c; TA[j] += y * 1.2; TG[j] += y * 1.6; }
       }
+      if (w.pGr > 0) { const X = this.X; this.uni(U, m); this.noise(N, m); let g = w.gg; const p = w.pGr, gd = Math.exp(-1 / (0.0012 * sr)); for (let j = 0; j < m; j++) { const u = U[j]; if (u < p) { const s = u / p; g += 0.25 + 1.6 * s * s * s; } X[j] = N[j] * g; g *= gd; } w.gg = g;
+        w.grH.proc(X, T1, m); w.grB.proc(X, T2, m); const a = w.aCrn * 0.25; for (let j = 0; j < m; j++) { const y = (T1[j] + T2[j] * 0.7) * a; TA[j] += y; TG[j] += y * 1.3; } }
+      if (w.pCr > 0 || w.cg > 1e-5) { const X = this.X; this.uni(U, m); this.noise(N, m); let g = w.cg, l = w.cl1; const p = w.pCr, gd = Math.exp(-1 / (0.004 * sr)), al = 1 - Math.exp(-6.2832 * 2600 / sr), a = w.aCp;
+        for (let j = 0; j < m; j++) { const u = U[j]; if (u < p) { const s = u / p, s2 = s * s; g += 0.2 + 1.5 * s2 * s2 * s; } X[j] = N[j] * g; g *= gd; } w.cg = g < 1e-9 ? 0 : g;
+        w.crP.proc(X, T1, m); for (let j = 0; j < m; j++) { l += (T1[j] - l) * al; const y = (l + 0.05 * X[j]) * a; TA[j] += y; TG[j] += y * 0.8; } w.cl1 = Math.abs(l) < 1e-9 ? 0 : l; }
       if (w.aSpray > 1e-6) { this.noise(N, m); w.sprF.proc(N, T1, m); const a = w.aSpray; for (let j = 0; j < m; j++) { const y = T1[j] * a; TA[j] += y * 0.3; TS[j] += y; } }
       if (w.aStud > 1e-6) { const X = this.X; this.uni(U, m); this.noise(N, m); let g = w.sg; const p = w.pStud, gd = this.stD, gn = this.stN; for (let j = 0; j < m; j++) { const u = U[j]; if (u < p) g += (0.4 + 0.6 * u / p) * gn; X[j] = N[j] * g; g *= gd; } w.sg = g; w.studH.proc(X, T1, m); w.studB.proc(X, T2, m); const a = w.aStud; for (let j = 0; j < m; j++) { const y = (T1[j] + T2[j] * 0.45) * a; TA[j] += y; TS[j] += y * 1.5; } }
       if (w.aScrub > 1e-6) { this.noise(N, m); w.scrub.add(N, TA, m, w.aScrub); }
-      if (w.aRum > 1e-6) { this.noise(N, m); let r1 = w.rb1, r2 = w.rb2; const a = w.aRum * 9; for (let j = 0; j < m; j++) { r1 += (N[j] - r1) * 0.012; r2 += (r1 - r2) * 0.012; TS[j] += r2 * a; } w.rb1 = r1; w.rb2 = r2; }
+      if (w.aRum > 1e-6) { this.noise(N, m); let r1 = w.rb1, r2 = w.rb2; const a = w.aRum * 9; for (let j = 0; j < m; j++) { r1 += (N[j] - r1) * 0.012; r2 += (r1 - r2) * 0.012; TS[j] += (r2 + GR41 * (w.gv41 || 0) * r1) * a; T1[j] = r1; } w.rb1 = r1; w.rb2 = r2; w.tyM.add(T1, TS, m, a * 0.5); w.cavF.add(N, TS, m, a * 0.25); }
       if (w.aDmp > 1e-6) { this.noise(N, m); w.dmp.add(N, TS, m, w.aDmp); }
+      if (w.pSh > 0 || w.gt > 1e-4 || w.gu > 1e-4) { const X = this.X, T3 = this.N2, Y = this.Y; this.uni(U, m); this.noise(N, m); let g = w.sh, gu = w.gu, gt = w.gt, gud = w.gud; const p0 = w.pSh * w.pk, pg = w.pGu, sl = w.sl41, gd = Math.exp(-1 / (0.0005 * sr)), ga = 1 - Math.exp(-1 / (0.003 * sr)), GR = GUR41 / sr;
+        for (let j = 0; j < m; j++) { const u = U[j];
+          if (u > 1 - pg) { const s = (1 - u) / pg, q = s * 7.31 % 1; gt += (0.3 + 1.1 * sl) * (0.3 + 1.7 * s * s); gud = Math.exp(-1 / ((0.03 + 0.09 * q) * sr)); } // a handful arrives
+          gt *= gud; gu += (gt - gu) * ga; const p = Math.min(0.45, p0 + gu * GR);
+          if (u < p) { const s = u / p, s2 = s * s; g += 0.2 + 1.4 * s2 * s2; } X[j] = N[j] * g; g *= gd; U[j] = gu > 1.5 ? 1.5 : gu; }
+        w.sh = g < 1e-9 ? 0 : g; w.gu = gu < 1e-6 ? 0 : gu; w.gt = gt < 1e-6 ? 0 : gt; w.gud = gud;
+        const a = SH41 * Math.min(1.5, w.ld) * (0.12 + 0.05 * Math.min(w.vr || 0, 30)), io = 0.2 + 0.8 * this.e.ins; w.shA.proc(X, T1, m); w.shF.proc(X, T2, m); w.shH.proc(X, T3, m); w.spF.proc(X, Y, m);
+        for (let j = 0; j < m; j++) { const gk = U[j], k = a / (1 + 2 * gk), h = (T1[j] * 0.5 + T3[j] * 0.2) * k, f = T2[j] * k, b = Y[j] * a * BR41 * gk / (0.4 + 0.6 * gk); TA[j] += (h + f * 0.3) * 0.5 + b * 0.5; TG[j] += (h + f * io) * 2; TS[j] += b; } }
       // stones flung up (and on tarmac now and then a bit of grit): each its own tick
-      if (w.pS > 0 || w.pD > 0) { this.uni(U, m); const p = w.pS, q = p + w.pD; for (let j = 0; j < m; j++) { const u = U[j]; if (u < q) { this.j0 = j; this.stone(w, u < p ? 1 : 0.5); } } this.j0 = 0; }
+      if (w.pS > 0 || w.pD > 0) { if (this.rnd() < 0.05) w.pt = 0.25 + 2.3 * this.rnd() * this.rnd(); w.pk += (w.pt - w.pk) * 0.15; this.uni(U, m); const p = w.pS * w.pk, q = p + w.pD, kv = 0.4 + 0.04 * Math.min(w.vr || 0, 30); for (let j = 0; j < m; j++) { const u = U[j]; if (u < q) { this.j0 = j; this.stone(w, (u < p ? 1 : 0.5) * kv); } } this.j0 = 0; }
       if (w.cobR > 0) { let c = w.cob; const r = w.cobR / sr; for (let j = 0; j < m; j++) { c += r; if (c >= 1) { c -= 1 - 0.25 * this.rnd(); this.j0 = j; const k = Math.min(1.5, w.ld) * Math.min(1, w.vr / 10); this.burst('lp', 85 + 25 * this.rnd(), 0.7, 0.0015, 0.025, 0.03 * k, w.pan, 0.5, 0.9); this.tick(900 + 700 * this.rnd(), 2.5, 0.025 * k, 0.015 + 0.015 * this.rnd(), w.pan, 0.7, 0.6); } } w.cob = c; this.j0 = 0; }
       if (w.flapR > 0) { let c = w.wph; const r = w.flapR / sr; for (let j = 0; j < m; j++) { c += r; if (c >= 1) { c -= 1; this.j0 = j; const k = 0.18 * Math.min(1, w.vr / 12); this.burst('lp', 120, 0.7, 0.004, 0.03, 0.4 * k, w.pan, 0.7, 0.8); this.burst('bp', 650, 1, 0.002, 0.012, 0.25 * k, w.pan, 0.7, 0.8); } } w.wph = c; this.j0 = 0; }
       if (w.aGrind > 1e-6) { this.noise(N, m); w.grind.proc(N, T1, m); const a = w.aGrind; for (let j = 0; j < m; j++) { const g = Math.tanh(T1[j] * 4) * a; TA[j] += g; TS[j] += g * 0.5; } }
+      if (w.aBed > 1e-6 || w.pSh > 0 || w.lt1 || w.lt2) { let y1 = w.lt1 || 0, y2 = w.lt2 || 0; const a1 = 1 - Math.exp(-6.2832 * 220 / sr), a2 = 1 - Math.exp(-6.2832 * 1400 / sr), g = Math.min(1, w.gv41 || 0) * this.e.ins, h = 1 - g; for (let j = 0; j < m; j++) { const x = TG[j]; y1 += (x - y1) * a1; y2 += (x - y2) * a2; TS[j] += h * x + g * 0.55 * (TL41[0] * y1 + TL41[1] * y2 + TL41[2] * x); } w.lt1 = Math.abs(y1) < 1e-9 ? 0 : y1; w.lt2 = Math.abs(y2) < 1e-9 ? 0 : y2; }
       const gal = w.gl * w.ga, gar = w.gr * w.ga, gl = w.gl, gr = w.gr, AL = this.AL, AR = this.AR, SL = this.SL, SR = this.SR;
       for (let j = 0; j < m; j++) { const a = TA[j], s = TS[j]; AL[j] += a * gal; AR[j] += a * gar; SL[j] += s * gl; SR[j] += s * gr; }
     }
