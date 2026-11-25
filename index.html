@@ -10539,6 +10539,9 @@ function exAfWord(B) {
   return { lvl, fl, cut: A.cut * A.burn > 0.3 };
 }
 CU_KEYS.push(...CU36_KEYS);
+// (round 40) resT: the resonator's kind; pmat: the pipe's metal
+const CU40_KEYS = [['resT', ['helm', 'quarter', 'bottle']], ['pmat', ['steel', 'stainless', 'ti']]], CU40_DEF = { resT: 'helm', pmat: 'steel' };
+CU_KEYS.push(...CU40_KEYS);
 
 // the engine's parts (after its valves and induction in a build's code: a code made before them lacks them, and they
 // are the body's own): its block, crankshaft and V angle; its exhaust manifold or headers, the crossover between two
@@ -10670,7 +10673,7 @@ function cuStockBuild(S0) {
     const E = cuEngine(C), e = Math.abs(E.tmax / pk - 1) + Math.abs(E.pmax / pw - 1); if (!best || e < best[1]) best = [tu, e]; } B.tune = best[0]; }
   else { if (cls === 'SP') B.tune = 'sport'; let lo = 0.2, hi = 2.6; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (cuEngine(Object.assign({}, B, { boost: m })).tmax < pk) lo = m; else hi = m; } B.boost = cuR((lo + hi) / 2, 0.05); }
   B.rev = clamp(cuR(S0.redline - cuEngine(Object.assign({}, B, { rev: 0 })).red0, 50), -2500, 1500);
-  Object.assign(B, CU35_DEF, CU36_DEF);
+  Object.assign(B, CU35_DEF, CU36_DEF, CU40_DEF);
   // its engine's parts as its own sound and exhaust have them (after the fit above, which is as it was before the parts
   // had their own choices: the silencer as the exhaust's choice and nothing else, so a code made before then reads back
   // the same engine)
@@ -11104,7 +11107,7 @@ function cuWords(B, S, E) {
 function cuCode(B) { const C = cuClean(B); if (!C) return ''; return 'C' + CU_V + '.' + btoa(unescape(encodeURIComponent(JSON.stringify(CU_KEYS.map(([k]) => C[k]))))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function cuDecode(s) {
   try { if (typeof s !== 'string' || s.length > 3200) return null; const m = s.trim().match(/^C(\d+)\.([A-Za-z0-9_-]+)$/); if (!m || +m[1] !== CU_V) return null;
-    const a = JSON.parse(decodeURIComponent(escape(atob(m[2].replace(/-/g, '+').replace(/_/g, '/'))))); if (!Array.isArray(a) || a.length > CU_KEYS.length || a.length < CU_KEYS.length - CU_TECHK.length - CU_PARTK.length) return null; // (a code made before the valves and induction, or the engine's parts, were added lacks them: they are the body's own)
+    const a = JSON.parse(decodeURIComponent(escape(atob(m[2].replace(/-/g, '+').replace(/_/g, '/'))))); if (!Array.isArray(a) || a.length > CU_KEYS.length || a.length < CU_KEYS.length - CU_TECHK.length - CU_PARTK.length - CU40_KEYS.length) return null; // (a code made before the valves and induction, or the engine's parts, were added lacks them: they are the body's own)
     const B = {}; CU_KEYS.forEach(([k], i) => { B[k] = a[i]; }); return cuClean(B); } catch (e) { return null; }
 }
 // A quick estimate of a car's pace in a straight line on dry tarmac, for the workshop's figures: from rest, launched at
@@ -11819,6 +11822,14 @@ I18N_MORE.zh.push(...["每项作业的用时都会计入赛段时间。还剩1�
 I18N_MORE.es.push(...["Cada trabajo suma su tiempo al crono del tramo. Queda una rueda de repuesto.", "Cada trabajo suma su tiempo al crono del tramo. No quedan ruedas de repuesto.", "Cada trabajo suma su tiempo al crono del tramo. Quedan {0} ruedas de repuesto.", "Atar con cinchas la esquina {0} rota y montar la de repuesto", "Atar la esquina {0} rota con cinchas de carraca y alambre", "Montar la de repuesto: {0} (pinchazo)", "Montar la de repuesto: {0} (llanta doblada)", "Enderezar a palanca, más o menos, la suspensión {0} doblada", "Enderezar a martillazos el brazo de dirección doblado", "Tapar el radiador agujereado con cinta y masilla epoxi", "Traer agua del arroyo, a {0} m, para llenar el radiador", "Llenar el radiador con la cerveza de los espectadores", "Echar tu agua de beber al radiador (2 de los {0} litros que le faltan)", "Echar tus bebidas al radiador (un litro)", "Traer agua del arroyo, a {0} m, para llenar el radiador, cuando se enfríe lo bastante para abrirlo", "Llenar el radiador con la cerveza de los espectadores, cuando se enfríe lo bastante para abrirlo", "Echar tu agua de beber al radiador (2 de los {0} litros que le faltan), cuando se enfríe lo bastante para abrirlo", "Echar tus bebidas al radiador (un litro), cuando se enfríe lo bastante para abrirlo", "Tapar con masilla el cárter agujereado y echar el litro de aceite de repuesto", "Echar el litro de aceite de repuesto", "Volver a encajar el manguito de sobrealimentación y encintar el tubo del intercooler rajado", "Quitar las bujías y girar el motor para sacar el agua de los cilindros", "Sacar a golpes las peores abolladuras ({0})", "Sujetar con cinchas el panel suelto ({0})", "Volver a sujetar con alambre el escape roto", "{0} en el crono.", "Nada marcado.", "Sin arreglo en la cuneta: {0}. Eso espera a la asistencia.", "la caja de cambios", "un palier roto", "el ventilador del radiador", "Empezar las reparaciones", "Reparaciones en curso", "Volver al coche", "El acelerador te devuelve al coche.", "El acelerador o {0} te devuelven al coche.", "Cruceta: elegir · A: marcar · X: empezar · B: atrás", "Marca los trabajos y empieza.", "↑ ↓ elegir · Space: marcar · Enter: empezar · Esc o {0}: atrás", "Trabajo {0} de {1}: quedan {2}.", "Trabajo {0} de {1}: quedan {2}, {3} en total.", "Reparaciones: toca aquí", "Primero vuelve a poner el coche sobre sus ruedas (Recuperar)", "Para el coche para reparar", "De vuelta al coche: {0} de {1} trabajos hechos", "Reparaciones hechas: {0} en el crono", "Reparaciones: {0} en el crono", "O arréglalo aquí: toca Reparaciones.", "O arréglalo aquí: pulsa {0}.", "El tiempo cambia: el cielo se despeja", "El tiempo cambia: se acerca {0}", "El tiempo cambia: entra {0}", "¡Atención: ovejas en la carretera!", "¡Atención: vacas en la carretera!", "¡Atención: caballos en la carretera!", "¡Atención: ciervos en la carretera!", "¡Atención: renos en la carretera!", "¡Atención: jabalíes en la carretera!", "¡Atención: un alce en la carretera!", "¡Atención: un perro suelto en la carretera!", "¡Atención: cabras en la carretera!", "¡Atención: un tractor averiado en la carretera!", "¡Atención: un árbol caído cruzado en la carretera!", "¡Atención: rocas caídas en la carretera!", "¡Atención: un coche parado en la carretera, su equipo muestra OK!", "¡Atención: espectadores en la carretera!", "Atención, espectadores en la carretera.", "¡Atención: troncos en la carretera!", "¡Atención: balas de paja en la carretera!", "Atención, ovejas en la carretera.", "Atención, vacas en la carretera.", "Atención, caballos en la carretera.", "Atención, ciervos en la carretera.", "Atención, renos en la carretera.", "Atención, jabalíes en la carretera.", "Atención, alce en la carretera.", "Atención, perro en la carretera.", "Atención, cabras en la carretera.", "Atención, tractor en la carretera.", "Atención, árbol cruzado en la carretera.", "Atención, rocas en la carretera.", "Atención, coche parado, equipo OK.", "Atención, troncos en la carretera.", "Atención, balas en la carretera.", "Esperando a que todos los pilotos lleguen a la línea de salida", "Esperando a que todos los pilotos lleguen a la línea de salida: {0} de {1} ya están", "Todos los pilotos están en la línea de salida", "Lo pilota {0}", "Lo pilota {0}. Construido en el Taller.", "Imprevistos en los tramos: animales, rocas, árboles caídos, coches parados y más, como en un tramo de verdad. Tu copiloto canta cada uno."]);
 I18N_MORE.fr.push(...["Chaque travail ajoute son temps au chrono de la spéciale. Il reste une roue de secours.", "Chaque travail ajoute son temps au chrono de la spéciale. Plus de roue de secours.", "Chaque travail ajoute son temps au chrono de la spéciale. Il reste {0} roues de secours.", "Sangler le train {0} cassé et monter la roue de secours", "Sangler le train {0} cassé avec les sangles à cliquet et du fil de fer", "Monter la roue de secours : {0} (crevaison)", "Monter la roue de secours : {0} (jante voilée)", "Redresser à peu près au levier la suspension {0} tordue", "Redresser au marteau le bras de direction tordu", "Colmater le radiateur percé avec du ruban et du mastic époxy", "Aller chercher de l'eau au ruisseau, à {0} m, pour remplir le radiateur", "Remplir le radiateur avec la bière des spectateurs", "Verser votre eau à boire dans le radiateur (2 des {0} litres qui manquent)", "Verser vos boissons dans le radiateur (un litre)", "Aller chercher de l'eau au ruisseau, à {0} m, pour remplir le radiateur, une fois assez refroidi pour l'ouvrir", "Remplir le radiateur avec la bière des spectateurs, une fois assez refroidi pour l'ouvrir", "Verser votre eau à boire dans le radiateur (2 des {0} litres qui manquent), une fois assez refroidi pour l'ouvrir", "Verser vos boissons dans le radiateur (un litre), une fois assez refroidi pour l'ouvrir", "Boucher le carter percé au mastic et verser le litre d'huile de secours", "Verser le litre d'huile de secours", "Remettre la durite de suralimentation et scotcher le tuyau d'échangeur fendu", "Démonter les bougies et lancer le moteur pour chasser l'eau des cylindres", "Débosseler les pires enfoncements ({0})", "Sangler le panneau qui bat ({0})", "Rattacher l'échappement cassé avec du fil de fer", "{0} au chrono.", "Rien de coché.", "Irréparable au bord de la route : {0}. Cela attendra l'assistance.", "la boîte de vitesses", "un cardan cassé", "le ventilateur du radiateur", "Commencer les réparations", "Réparations en cours", "Remonter en voiture", "L'accélérateur vous remet en voiture.", "L'accélérateur ou {0} vous remet en voiture.", "Croix : choisir · A : cocher · X : commencer · B : retour", "Cochez les travaux, puis commencez.", "↑ ↓ choisir · Space : cocher · Enter : commencer · Esc ou {0} : retour", "Travail {0} sur {1} : encore {2}.", "Travail {0} sur {1} : encore {2}, {3} en tout.", "Réparations : touchez ici", "Remettez d'abord la voiture sur ses roues (Récupérer)", "Arrêtez la voiture pour réparer", "De retour en voiture : {0} travaux sur {1} faits", "Réparations terminées : {0} au chrono", "Réparations : {0} au chrono", "Ou réparez sur place : touchez Réparations.", "Ou réparez sur place : appuyez sur {0}.", "Le temps tourne : le ciel se dégage", "Le temps tourne : {0} en approche", "Le temps tourne : {0} arrive", "Attention : des moutons sur la route !", "Attention : des vaches sur la route !", "Attention : des chevaux sur la route !", "Attention : des cerfs sur la route !", "Attention : des rennes sur la route !", "Attention : des sangliers sur la route !", "Attention : un élan sur la route !", "Attention : un chien en liberté sur la route !", "Attention : des chèvres sur la route !", "Attention : un tracteur en panne sur la route !", "Attention : un arbre tombé en travers de la route !", "Attention : des rochers tombés sur la route !", "Attention : une voiture arrêtée sur la route, son équipage montre OK !", "Attention : des spectateurs sur la route !", "Attention, spectateurs sur la route.", "Attention : des grumes sur la route !", "Attention : des bottes de paille sur la route !", "Attention, moutons sur la route.", "Attention, vaches sur la route.", "Attention, chevaux sur la route.", "Attention, cerfs sur la route.", "Attention, rennes sur la route.", "Attention, sangliers sur la route.", "Attention, élan sur la route.", "Attention, chien sur la route.", "Attention, chèvres sur la route.", "Attention, tracteur sur la route.", "Attention, arbre en travers de la route.", "Attention, rochers sur la route.", "Attention, voiture arrêtée, équipage OK.", "Attention, grumes sur la route.", "Attention, bottes de paille sur la route.", "En attente que tous les pilotes soient sur la ligne de départ", "En attente que tous les pilotes soient sur la ligne de départ : {0} sur {1} y sont", "Tous les pilotes sont sur la ligne de départ", "Pilotée par {0}", "Pilotée par {0}. Construite à l'Atelier.", "Aléas dans les spéciales : animaux, rochers, arbres tombés, voitures arrêtées et plus, comme dans une vraie spéciale. Votre copilote annonce chacun."]);
 I18N_MORE.de.push(...["Jede Arbeit kostet Zeit auf der Prüfungsuhr. Ein Ersatzrad übrig.", "Jede Arbeit kostet Zeit auf der Prüfungsuhr. Kein Ersatzrad mehr.", "Jede Arbeit kostet Zeit auf der Prüfungsuhr. {0} Ersatzräder übrig.", "Die gebrochene Ecke {0} festzurren und das Ersatzrad montieren", "Die gebrochene Ecke {0} mit Ratschengurten und Draht festzurren", "Ersatzrad montieren: {0} (Reifenschaden)", "Ersatzrad montieren: {0} (verbogene Felge)", "Die verbogene Aufhängung {0} mit dem Hebel ungefähr gerade richten", "Den verbogenen Lenkhebel mit dem Hammer fast gerade schlagen", "Den durchlöcherten Kühler mit Klebeband und Epoxidkitt flicken", "Wasser aus dem Bach in {0} m Entfernung holen und den Kühler füllen", "Den Kühler mit dem Bier der Zuschauer füllen", "Dein Trinkwasser in den Kühler gießen (2 der {0} fehlenden Liter)", "Deine Getränke in den Kühler gießen (ein Liter)", "Wasser aus dem Bach in {0} m Entfernung holen und den Kühler füllen, sobald er zum Öffnen genug abgekühlt ist", "Den Kühler mit dem Bier der Zuschauer füllen, sobald er zum Öffnen genug abgekühlt ist", "Dein Trinkwasser in den Kühler gießen (2 der {0} fehlenden Liter), sobald er zum Öffnen genug abgekühlt ist", "Deine Getränke in den Kühler gießen (ein Liter), sobald er zum Öffnen genug abgekühlt ist", "Die durchlöcherte Ölwanne mit Kitt abdichten und den Reserveliter Öl einfüllen", "Den Reserveliter Öl einfüllen", "Den Ladedruckschlauch wieder aufstecken und das gerissene Ladeluftrohr abkleben", "Zündkerzen herausdrehen und das Wasser aus den Zylindern kurbeln", "Die schlimmsten Dellen ausbeulen ({0})", "Das lose Karosserieteil festzurren ({0})", "Den abgerissenen Auspuff mit Draht wieder hochbinden", "{0} auf der Uhr.", "Nichts ausgewählt.", "Am Straßenrand nicht zu richten: {0}. Das wartet auf den Service.", "das Getriebe", "eine gebrochene Antriebswelle", "der Kühlerlüfter", "Reparaturen beginnen", "Reparaturen laufen", "Zurück ins Auto", "Mit dem Gas geht es zurück ins Auto.", "Mit dem Gas oder {0} geht es zurück ins Auto.", "Steuerkreuz: wählen · A: ankreuzen · X: starten · B: zurück", "Arbeiten ankreuzen, dann starten.", "↑ ↓ wählen · Space: ankreuzen · Enter: starten · Esc oder {0}: zurück", "Arbeit {0} von {1}: noch {2}.", "Arbeit {0} von {1}: noch {2}, insgesamt {3}.", "Reparaturen: hier tippen", "Erst das Auto wieder auf die Räder stellen (Bergen)", "Zum Reparieren das Auto anhalten", "Zurück im Auto: {0} von {1} Arbeiten erledigt", "Reparaturen fertig: {0} auf der Uhr", "Reparaturen: {0} auf der Uhr", "Oder hier richten: Reparaturen antippen.", "Oder hier richten: {0} drücken.", "Das Wetter schlägt um: Der Himmel klart auf", "Das Wetter schlägt um: {0} zieht auf", "Das Wetter schlägt um: {0} zieht herein", "Achtung: Schafe auf der Straße!", "Achtung: Kühe auf der Straße!", "Achtung: Pferde auf der Straße!", "Achtung: Wild auf der Straße!", "Achtung: Rentiere auf der Straße!", "Achtung: Wildschweine auf der Straße!", "Achtung: ein Elch auf der Straße!", "Achtung: ein freilaufender Hund auf der Straße!", "Achtung: Ziegen auf der Straße!", "Achtung: ein liegengebliebener Traktor auf der Straße!", "Achtung: ein umgestürzter Baum quer über der Straße!", "Achtung: Felsbrocken auf der Straße!", "Achtung: ein stehendes Auto auf der Straße, die Crew zeigt OK!", "Achtung: Zuschauer auf der Straße!", "Achtung, Zuschauer auf der Straße.", "Achtung: Baumstämme auf der Straße!", "Achtung: Strohballen auf der Straße!", "Achtung, Schafe auf der Straße.", "Achtung, Kühe auf der Straße.", "Achtung, Pferde auf der Straße.", "Achtung, Wild auf der Straße.", "Achtung, Rentiere auf der Straße.", "Achtung, Wildschweine auf der Straße.", "Achtung, Elch auf der Straße.", "Achtung, Hund auf der Straße.", "Achtung, Ziegen auf der Straße.", "Achtung, Traktor auf der Straße.", "Achtung, Baum quer über der Straße.", "Achtung, Felsbrocken auf der Straße.", "Achtung, stehendes Auto, Crew OK.", "Achtung, Baumstämme auf der Straße.", "Achtung, Ballen auf der Straße.", "Warten, bis alle Fahrer an der Startlinie stehen", "Warten, bis alle Fahrer an der Startlinie stehen: {0} von {1} sind da", "Alle Fahrer stehen an der Startlinie", "Gefahren von {0}", "Gefahren von {0}. In der Werkstatt gebaut.", "Zwischenfälle auf den Prüfungen: Tiere, Felsbrocken, umgestürzte Bäume, stehende Autos und mehr, wie auf einer echten Prüfung. Dein Beifahrer sagt jeden an."]);
+// (round 40: the resonator's kind, the pipe's metal)
+I18N_MORE.k.push(...["Resonator kind", "Pipe metal", "Chamber", "Quarter-wave pipe", "Mild steel", "Stainless", "Titanium", "A chamber on a neck beside the pipe: takes out one note, the drone at cruising revs", "A capped pipe a quarter of the drone’s wave long: cancels it and its odd overtones, nothing else", "A straight tube through packing: takes the rasp off right across the revs, the drone stays", "Mild steel, thick walled: a dull, deep note; it rusts", "Stainless, thinner walled: a brighter, harder note", "Titanium, thin and stiff: a sharp metallic ring; it blues with the heat"]);
+I18N_MORE.ko.push(...["레조네이터 종류", "파이프 재질", "챔버", "4분의 1 파장 파이프", "연강", "스테인리스", "티타늄", "파이프 옆에 목으로 이어진 챔버: 한 음, 곧 순항 회전수의 웅웅거림만 없앱니다", "웅웅거림 파장의 4분의 1 길이인 막힌 파이프: 그 음과 홀수 배음만 지웁니다", "흡음재 속을 지나는 곧은 관: 전 회전 영역에서 거친 소리를 줄이지만 웅웅거림은 남습니다", "두꺼운 연강: 둔하고 깊은 소리, 녹이 습니다", "더 얇은 스테인리스: 더 밝고 단단한 소리", "얇고 단단한 티타늄: 날카로운 금속성 울림, 열로 푸르게 변합니다"]);
+I18N_MORE.ja.push(...["レゾネーターの種類", "パイプの材質", "チャンバー", "1/4波長パイプ", "軟鋼", "ステンレス", "チタン", "パイプ脇に首でつながる室：巡航回転のこもり音という一つの音だけを消します", "こもり音の波長の4分の1の長さの止まり管：その音と奇数倍音だけを打ち消します", "吸音材の中を通る直管：全回転域でざらつきを抑えますが、こもり音は残ります", "肉厚の軟鋼：鈍く深い音。錆びます", "薄肉のステンレス：より明るく硬い音", "薄く硬いチタン：鋭い金属的な響き。熱で青く焼けます"]);
+I18N_MORE.zh.push(...["谐振器类型", "排气管材质", "谐振腔", "四分之一波长管", "低碳钢", "不锈钢", "钛", "排气管旁带颈的腔体：只消除一个音，即巡航转速的嗡鸣", "长度为嗡鸣波长四分之一的封口管：只抵消该音及其奇次泛音", "穿过吸音材料的直管：在整个转速范围内削弱粗糙声，嗡鸣仍在", "厚壁低碳钢：沉闷低沉的声音；会生锈", "壁更薄的不锈钢：更明亮、更硬的声音", "又薄又硬的钛：尖锐的金属鸣响；受热会发蓝"]);
+I18N_MORE.es.push(...["Tipo de resonador", "Metal del tubo", "Cámara", "Tubo de cuarto de onda", "Acero dulce", "Inoxidable", "Titanio", "Una cámara con cuello junto al tubo: quita una sola nota, el zumbido a régimen de crucero", "Un tubo ciego de un cuarto de la onda del zumbido: lo anula a él y a sus armónicos impares, nada más", "Un tubo recto entre material absorbente: quita la aspereza a cualquier régimen; el zumbido se queda", "Acero dulce de pared gruesa: una nota sorda y grave; se oxida", "Inoxidable de pared más fina: una nota más brillante y dura", "Titanio, fino y rígido: un timbre metálico agudo; se azula con el calor"]);
+I18N_MORE.fr.push(...["Type de résonateur", "Métal du tube", "Chambre", "Tube quart d'onde", "Acier doux", "Inox", "Titane", "Une chambre sur un col à côté du tube : elle supprime une seule note, le bourdonnement en croisière", "Un tube bouché long d'un quart de l'onde du bourdonnement : il l'annule, avec ses harmoniques impairs, rien d'autre", "Un tube droit dans de la laine : il adoucit le son à tous les régimes, le bourdonnement reste", "Acier doux à paroi épaisse : un son sourd et grave ; il rouille", "Inox à paroi plus fine : un son plus clair et plus dur", "Titane, fin et rigide : un tintement métallique aigu ; il bleuit à la chaleur"]);
+I18N_MORE.de.push(...["Resonator-Bauart", "Rohrmaterial", "Kammer", "Viertelwellenrohr", "Baustahl", "Edelstahl", "Titan", "Eine Kammer an einem Hals neben dem Rohr: nimmt einen Ton heraus, das Dröhnen bei Reisedrehzahl", "Ein verschlossenes Rohr, ein Viertel der Dröhnwelle lang: löscht sie und ihre ungeraden Obertöne, sonst nichts", "Ein gerades Rohr in Dämmwolle: nimmt das Rasseln über den ganzen Drehzahlbereich, das Dröhnen bleibt", "Dickwandiger Baustahl: ein dumpfer, tiefer Ton; er rostet", "Dünnwandiger Edelstahl: ein hellerer, härterer Ton", "Titan, dünn und steif: ein scharfes metallisches Klingen; es läuft in der Hitze blau an"]);
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -11979,7 +11990,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '5C81';
+const SR86_BUILD = '3D6B';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -18296,8 +18307,8 @@ class RallyCarKit {
     // 0.3 behind it, its roof 0.16 over the wheels' centres (the axle rises with its wheels) and well under the belt;
     // none where the floor is that high already. kickAt(z): the floor's height in it at z (-9 outside); tunAt(z, key):
     // the channel's half-width or floor there
-    const solidR = !!(S.suspT && /^(live|beam|leaf)$/.test(S.suspT[1])), kick = (solidR ? [axles[1][0]] : []).map(z => ({ z0: z + 0.3, z1: z - 0.3, open: false,
-      y: Math.min(R + 0.16, Math.min(lowAt(z + 0.3).b, lowAt(z - 0.3).b) - 0.2) })).filter(q => q.y > Math.max(lowAt(q.z0).f, lowAt(q.z1).f) + 0.06 && q.z0 <= st[0] - 0.05 && q.z1 >= st[st.length - 1] + 0.05);
+    const solidR = !!(S.suspT && /^(live|beam|leaf)$/.test(S.suspT[1])), kh39 = solidR ? 0.3 : 0.34, ka39 = solidR ? 0.3 : S.suspT && S.suspT[1] === 'semi' ? 0.42 : 0.2, kick = (solidR || und39Irs(S, D, epos, solidR) ? [axles[1][0]] : []).map(z => ({ z0: z + ka39, z1: z - kh39, open: false,
+      y: Math.min(R + (solidR ? 0.16 : 0.12), Math.min(lowAt(z + ka39).b, lowAt(z - kh39).b) - 0.2) })).filter(q => q.y > Math.max(lowAt(q.z0).f, lowAt(q.z1).f) + 0.06 && q.z0 <= st[0] - 0.05 && q.z1 >= st[st.length - 1] + 0.05);
     const kickAt = z => { for (const q of kick) if (!q.open && z <= q.z0 + 1e-9 && z >= q.z1 - 1e-9) return q.y; return -9; }, inKick = z => kick.some(q => z < q.z0 && z > q.z1);
     const tunAt = (z, key) => { let i = 0; while (i < st.length - 2 && st[i + 1] > z) i++; return ckLerp(tun[i][key], tun[i + 1][key], Math.max(0, Math.min(1, (st[i] - z) / ((st[i] - st[i + 1]) || 1)))); };
     // ---- shell and glass: one closed surface wound by construction ----
@@ -18375,7 +18386,7 @@ class RallyCarKit {
         } else {
         const FA = fl(tun[i], PA, zA), FB = fl(tun[i + 1], PB, zB); for (let j = 0; j < 5; j++) if (j !== 2) body.quad(FA[j], FB[j], FB[j + 1], FA[j + 1], C.dark);
         // (the channel's floor, less where it is raised over an axle)
-        const cut = [zA, ...kick.flatMap(q => [q.z0, q.z1]).filter(z => z < zA && z > zB), zB].sort((x, y) => y - x), on = (Q, Q2, z) => { const t = (zA - z) / ((zA - zB) || 1); return [Q[0] + (Q2[0] - Q[0]) * t, Q[1] + (Q2[1] - Q[1]) * t, z]; };
+        const n39 = Math.max(1, Math.ceil((zA - zB) / 0.08)), cut = [...new Set([zA, ...kick.flatMap(q => [q.z0, q.z1]).filter(z => z < zA && z > zB), ...Array.from({ length: n39 - 1 }, (_, k) => zA + (zB - zA) * (k + 1) / n39), zB])].sort((x, y) => y - x), on = (Q, Q2, z) => { const t = (zA - z) / ((zA - zB) || 1); return [Q[0] + (Q2[0] - Q[0]) * t, Q[1] + (Q2[1] - Q[1]) * t, z]; };
         for (let j = 0; j < cut.length - 1; j++) { const za = cut[j], zb = cut[j + 1]; if (inKick((za + zb) / 2)) continue; body.quad(on(FA[2], FB[2], za), on(FA[2], FB[2], zb), on(FA[3], FB[3], zb), on(FA[3], FB[3], za), C.dark); } } }
       const topSink = k === 'ws' || k === 'rw' ? glass : body; // centre stripe or glass, straight across
       if (!openRoof(k, zA, zB)) topSink.quad(pA(10, 1), pB(10, 1), pB(10, -1), pA(10, -1), topSink === glass ? K0 : k === 'roof' ? C.roof : C.hood);
@@ -18497,7 +18508,7 @@ class RallyCarKit {
     if (!custom) { const zp0 = zf - 0.1, zp1 = zf - 0.24; const pl = (x0, x1, z0, z1, k, up) => { const y0 = topAt(z0) + up, y1 = topAt(z1) + up; body.begin('panel', [0, 0, (z0 + z1) / 2], false); body.quad([x0, y0, z0], [x1, y0, z0], [x1, y1, z1], [x0, y1, z1], k); body.end(); };
       pl(-0.23, 0.23, zp0, zp1, C.white, 0.008); pl(-0.23, 0.23, zp0, zp0 - 0.035, C.band, 0.01); }
     if (!custom) { const py = Math.max((brY + (rl ? rl[1] : 0.8)) / 2 + 0.02, bumpR.y1 + 0.075), pz = faceR(py, 0.12) - 0.008; body.begin('panel', [0, py, pz + 1], false); body.quad([-0.22, py - 0.06, pz], [0.22, py - 0.06, pz], [0.22, py + 0.06, pz], [-0.22, py + 0.06, pz], C.white); body.end(); occupy(busyR, 0, py, 0.44, 0.12, pz); }
-    if (!D.noSkid) { const z0f = axles[0][0], zFront = zf - 0.08; ckBox(trim, [0, lowAt(z0f).f - 0.015, (zFront + z0f - 0.3) / 2], [front.ws * 0.55, 0.025, zFront - z0f + 0.3], K0); }
+    if (!D.noSkid && (D.mech || S.cls === 'SP')) { const z0f = axles[0][0], zFront = zf - 0.08; ckBox(trim, [0, lowAt(z0f).f - 0.015, (zFront + z0f - 0.3) / 2], [front.ws * 0.55, 0.025, zFront - z0f + 0.3], K0); }
     // ---- door number roundels: seven-segment digits on a white panel ----
     const wsT = wsInfo ? wsInfo.zTop : 0, wsB = wsInfo ? wsInfo.zBase : 0.5;
     if (!(D.lk && D.lk.num !== 'own'))
@@ -19329,8 +19340,9 @@ class RallyCarKit {
             if (z0 - z1 > 0.3) { const zm = (z0 + z1) / 2; out.prop = { r: 1, a: [0, y0, z0], b: live ? null : out.drive.r.nose, ym: yp(zm), zm }; out.front.push('propshaft'); } }
           if (fwd && epos !== 'front' && (ER || EF) && rwd && out.drive.f) { const E2 = ER || EF, z0 = E2.z0 + 0.02, nb = out.drive.f.nose || [0, yD, zA - 0.2];
             if (nb[2] - z0 > 0.3) { const zm = (z0 + nb[2]) / 2; out.prop = { r: 0, a: [0, yD, z0], b: nb, ym: Math.min(yp(zm), yD + 0.05), zm }; out.rear.push('propshaft'); } }
+          und39Join({ tube, bx, out, E: EF, ER, yD, trans, epos, fwd, zA, BC, steel, prims, under, body, tunAt, dark: C.dark, kick, R }); und39Open(body, tunAt, [EF, ER]);
           // (the sump guard: a plate under the engine, front to back of it)
-          const E = EF || ER; if (E) { const z0 = E.z0 + 0.05, z1 = E.z1 - 0.05, hx = Math.min(0.42, reach(z0, z1) - 0.08), y = Math.min(under(z0), under(z1)) - 0.012; if (hx > 0.2 && z0 - z1 > 0.2) { bx(-hx, hx, y - 0.012, y, z0, z1, guard); (EF ? out.front : out.rear).push('sump guard'); } }
+          const E = EF || ER; if (E) { const [z0, z1] = und39Guard(E, EF ? out.drive.f : out.drive.r, !!(EF && !trans)), hx = Math.min(0.42, reach(z0, z1) - 0.08), y = und39GuardY(Math.min(under(z0), under(z1)) - 0.012, EF && out.drive.f, z0, z1); if (hx > 0.2 && z0 - z1 > 0.2) { bx(-hx, hx, y - 0.012, y, z0, z1, guard); (EF ? out.front : out.rear).push('sump guard'); } }
           // (the exhaust: out of the engine's manifold - on its exhaust side, both sides of a vee or a flat engine, across the
           // back of one set across the car - down to the floor, back in its lane beside the propshaft through a box (the
           // catalyst or a resonator) to the silencer, and from it into the front end of each tailpipe, a branch to each of a
@@ -19340,12 +19352,12 @@ class RallyCarKit {
           // and boxes, for the checks that it does and that it meets nothing)
           if (E && !exAt) {
             const xs = pipes.reduce((a, x) => a + x, 0) / pipes.length, sx = Math.sign(xs || exX) || -1, xr = sx * (live ? 0.25 : 0.22), zT = zr + 0.08, yF = z => under(z) + 0.005, P = (x, z, dy) => [x, yF(z) + (dy || 0), z];
-            const runs = [], boxes = [], seg = (a, b) => { if (Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.005) return; ex36Pipe(body, a, b, ex36.X.r, null, pipe, 7, true, true); runs.push([a, b]); }, box = (x0, x1, y0, y1, z0, z1, kind) => { const on = ex36Can(body, Object.assign({}, ex36.X, { ends: pipes }), kind || 'sil', x0, x1, y0, y1, z0, z1, ex36.X.r); if (on) boxes.push([x0, x1, y0, y1, z0, z1]); return on; };
+            const runs = [], boxes = [], seg = (a, b) => { if (Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.005) return; ex36Pipe(body, a, b, ex36.X.r, null, ex40K(pipe, ex36.X, runs.length), 7, true, true); runs.push([a, b]); }, box = (x0, x1, y0, y1, z0, z1, kind) => { const on = ex36Can(body, Object.assign({}, ex36.X, { ends: pipes }), kind || 'sil', x0, x1, y0, y1, z0, z1, ex36.X.r); if (on) boxes.push([x0, x1, y0, y1, z0, z1]); return on; };
             // (what it meets in its lane past the rear axle, each [ahead, behind, bottom, top]: the rear subframe's crossmember,
             // the rear driveshafts' inner joints, the rear anti-roll bar, a semi-trailing arm's inner pivot - where the running
             // gear puts them, see MechParts)
             const ob = [], sbR = out.sub && out.sub[1];
-            if (sbR) ob.push([sbR.zc + 0.03, sbR.zc - 0.03, sbR.y0, sbR.y1]);
+            /* (the pipe passes an undriven axle's crossmember at the floor's line, not up into the floor over it) */
             if (out.drive.r) ob.push([zB + 0.06, zB - 0.06, yD - 0.05, yD + 0.07]);
             if (live) ob.push([zB + 0.16, zB - 0.16, R - 0.24, R + 0.13]); // (a live axle's diff, its axle dropping under it)
             if (!solidR) { const zb = zB + MechParts.arbSide(1, out.drive.r && out.drive.r.nose, epos, out.cabR == null ? 9 : out.cabR - zB) * 0.24, yb = MechParts.arbY(R, sbR, out.fl[1]); ob.push([zb + 0.02, zb - 0.02, yb - 0.012, yb + 0.012]); }
@@ -19404,7 +19416,7 @@ class RallyCarKit {
                 let e = [x, at[1], at[2]]; if (inRZ(at[2]) && zB - 0.38 - zT > 0.06) { const e2 = [x, Math.max(at[1], hiR), zB - 0.38]; seg(e, e2); e = e2; }
                 const m = [x, (e[1] + exY) / 2, Math.min(e[2] - 0.04, zT + 0.12)]; if (e[2] - zT > 0.12) { seg(e, m); seg(m, tip); } else seg(e, tip); out.exhaust.ends.push(tip); }
             }
-            out.rear.push('exhaust'); }
+            out.rear.push('exhaust'); ex40Fit({ body, bx, out, X: ex36.X, under, kick, r: ex36.X.r }); }
         }
         // (where each axle's struts reach up to, for the running gear: the top of its strut tower, under the panels there -
         // the same place over an axle with no tower, so no strut stands up through a bonnet, a boot lid or a wing - with
@@ -24657,12 +24669,13 @@ function ws36Tab(W, add, B, S, S0) {
   { const g = el('div', { class: 'assist wsSeg', role: 'group', 'aria-label': 'Pipe bore', 'data-k': 'pipeD' }), D0 = F ? F.I.D0 : 57;
     g.append(el('button', { type: 'button', 'aria-pressed': B.pipeD === 'own' ? 'true' : 'false', text: 'Auto', onclick: () => W.set('pipeD', 'own') }));
     for (const d of EX_SIZES) if (Math.abs(EX_SIZES.indexOf(d) - EX_SIZES.indexOf(D0)) <= 3) g.append(el('button', { type: 'button', 'aria-pressed': B.pipeD === d ? 'true' : 'false', text: d + ' mm', onclick: () => W.set('pipeD', d) }));
-    add(sec('Pipe'), row('Bore', g, F ? F.fit : null),
+    add(sec('Pipe'), row('Bore', g, F ? F.fit : null), row('Pipe metal', seg('pmat', 'Pipe metal'), WS40_NOTES.pmat[B.pmat]),
       row('Tailpipes', seg('tail', 'Tailpipes'), B.tail === 2 ? (two ? 'Two: one for each bank' : B.cyl === 6 ? 'Two: the front and back three kept apart' : 'Two pipes out') : 'One pipe out'),
       row('Ends', seg('exit', 'Where the pipe ends'), WS36_NOTES.exit[B.exit])); }
   add(sec('Along the pipe'),
     row('Catalyst', seg('cat', 'Catalyst'), { none: 'None: the rawest sound, for competition', sport: 'High-flow: takes a little of the edge off', stock: 'A road catalyst: softens the sound; about 2% less power' }[B.cat]),
     row('Resonators', seg('res', 'Resonators'), ['None: it drones at cruising revs', 'One, tuned against the drone at cruising revs', 'Two: a cleaner, quieter cruise'][B.res]),
+    B.res ? row('Resonator kind', seg('resT', 'Resonator kind'), WS40_NOTES.resT[B.resT]) : null,
     row('Silencer', seg('muff', 'Silencer'), { stock: 'A road silencer: quiet, about 4% less power', turbo: 'A turbo silencer: quiet; the turbo already muffles it', chamber: 'Chambers that bounce the sound back: a deep bark', straight: 'A straight tube in packing: loud and raw', none: 'None: very loud, about 3% more power' }[B.muff]));
   if (ecu) add(sec('Off the throttle'), row('Overrun', seg('ovr', 'Fuel on the overrun'), WS36_NOTES.ovr[B.ovr]));
   else if (!dz) add(el('p', { class: 'small', text: B.feed === 'carb' ? 'Carburettors go on feeding fuel when you lift: it pops on the overrun once the exhaust is hot.' : 'Mechanical injection still feeds its idle fuel when you lift: it pops on the overrun once the exhaust is hot.' }));
@@ -24723,7 +24736,7 @@ const WS36_SPOT = (() => {
   put('tailLow', 'diffu'); put('tail', 'tailL', 'boot', 'bumpR', 'spare'); put('wing', 'wingR', 'wingA', 'aero'); put('roof', 'vortex'); put('wheel', 'rimD', 'rimK', 'tyreF', 'lk:rim', 'lk:rimC', 'lk:lip'); put('wheelR', 'tyreR');
   put('brake', 'pads', 'brakes', 'lk:cal', 'lk:disc'); put('suspF', 'suspF'); put('suspR', 'suspR'); put('stance', 'rideH', 'arb', 'susp');
   put('engine', 'eng', 'pos', 'mount', 'layout', 'cyl', 'litres', 'fuel', 'cams', 'tech', 'tune', 'asp', 'tsize', 'tkind', 'tseq', 'boost', 'als', 'restr', 'rev', 'cool', 'fly', 'vvt', 'vlift', 'vsw', 'vim', 'itb', 'feed', 'block', 'crank', 'vang', 'hdr', 'vgear', 'lifter', 'valves', 'camdrv', 'acc', 'bal', 'filter', 'ecu', 'ic', 'rad', 'oilc', 'batt');
-  put('tip', 'tail', 'pipeD', 'exit', 'ovr', 'exh', 'lk:tip', 'lk:tipF'); put('under', 'cat', 'res', 'xover', 'guard', 'drive', 'split', 'cdiff', 'fdiff', 'hbcut', 'box', 'gears', 'spread', 'gearing'); put('underR', 'muff', 'rdiff');
+  put('tip', 'tail', 'pipeD', 'exit', 'ovr', 'exh', 'lk:tip', 'lk:tipF'); put('under', 'resT', 'pmat', 'cat', 'res', 'xover', 'guard', 'drive', 'split', 'cdiff', 'fdiff', 'hbcut', 'box', 'gears', 'spread', 'gearing'); put('underR', 'muff', 'rdiff');
   put('lampsF', 'lk:head', 'lk:hs', 'lk:fg'); put('lampsR', 'lk:tail', 'lk:ts'); put('mirror', 'lk:mirror'); put('glassS', 'lk:louvS', 'lk:names', 'lk:dname', 'lk:cname', 'lk:nat', 'glass'); put('glassR', 'lk:louvR'); put('screen', 'lk:screen'); put('door', 'lk:num', 'lk:side', 'lk:spons', 'doors');
   put('inSeat', 'lk:seat', 'lk:seatC', 'lk:cover', 'lk:belt'); put('inWheel', 'lk:wheel'); put('inKnob', 'lk:knob'); put('inMats', 'lk:mats', 'lk:matC'); put('inDash', 'lk:gauges', 'lk:shift'); put('inCage', 'lk:cage', 'lk:pad', 'cage');
   return M;
@@ -24966,7 +24979,8 @@ function ws35Tab(W, tab, add, B, S, S0, sp) {
 // Returns { top, ex: where its exhaust ends, for the pipe under the car to start from } or null (the kit draws its
 // plain engine: a modest graphics setting, or a kind this does not draw)
 function bay36Parts(D, S) { return D.bay36 || (typeof cuBare === 'function' && typeof cuBody === 'function' && cuBody(S.id) ? cuBare(S).B : null); }
-function bay36Engine(o) {
+function bay36Engine(o) { const r = bay36Engine0(o); return r && r.P39 ? und39Out(r, r.P39) : r; }
+function bay36Engine0(o) {
   const { body, toW, L, W, vE, vI, y0, H, eKind, BC, S, D, along, gear } = o, Q = bay36Parts(D, S);
   if (!Q || (typeof Gfx !== 'undefined' && Gfx.level === 'vlow') || (Q.fuel === 'diesel' && S.cls === 'SP')) return null;
   const rot = Q.layout === 'rotary', n = o.nCyl, turbo = Q.asp === 'turbo' || Q.asp === 'biturbo' || Q.asp === 'twin', blower = Q.asp === 'sc' || Q.asp === 'twin', two = Q.asp === 'biturbo';
@@ -24980,7 +24994,7 @@ function bay36Engine(o) {
   const box = (u0, u1, w0, w1, ya, yb, k) => { const a = P(u0, w0, ya), b = P(u1, w1, yb); ckBox(body, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2], [Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2])], k); };
   const cyl = (a, b, r, k, m, r1) => ex36Pipe(body, P(a[0], a[1], a[2]), P(b[0], b[1], b[2]), r, r1 == null ? r : r1, k, m || 8, true, true);
   const run = (pts, r, k, m) => ex36Run(body, pts.map(p => P(p[0], p[1], p[2])), r, k, m || 6, true, true);
-  const out = { top: 0, ex: null };
+  const out = { top: 0, ex: null, P39: P };
   // the belt round two pulleys (a flat band: its two straight runs)
   const belt = (a, ra, b, rb, k) => { for (const sg of [1, -1]) run([[a[0], a[1], a[2] + sg * ra], [b[0], b[1], b[2] + sg * rb]], 0.006, k, 4); };
   if (eKind === 'inline') {
@@ -25153,10 +25167,10 @@ function bay36Extras(o) {
     if (b) { const xc = (b.x0 + b.x1) / 2, zc = (b.z0 + b.z1) / 2, y = Math.min(b.top - 0.15, b.yb + 0.12); ckCyl(body, [xc, y, zc], [xc, y + 0.11, zc], 0.05, C.white, 9, true); ckCyl(body, [xc, y + 0.11, zc], [xc, y + 0.128, zc], 0.026, [0.06, 0.06, 0.06], 8, true); o.rec.push('header tank'); } }
   // the induction's pipes
   const zN = zFront + 0.0, yLow = E.y0 + 0.14, rH = Q.ic === 'big' ? 0.03 : 0.024;
-  if (e36.cOut) { e36.cOut.forEach((pp, i) => { const a = pp[1], sd = Math.sign(a[0] - (E.x0 + E.x1) / 2) || exSd, xo = sd * Math.min(Math.abs(a[0]) + 0.03, reach(zN, zN - 0.2) - 0.05);
+  if (e36.cOut) { e36.cOut.forEach((pp, i) => { const a = pp[1], sd = Math.sign(a[0] - (E.x0 + E.x1) / 2) || exSd, xo = sd * Math.min(und39Round(a, E), reach(zN, zN - 0.2) - 0.05);
       ex36Run(body, [pp[0], a, [xo, a[1] + 0.01, Math.min(a[2] + 0.08, zN - 0.12)], [xo, Math.min(a[1], E.y0 + 0.36), zN - 0.03], [xo * 0.92, yLow + 0.02, zN + 0.01]], rH, C.hose, 7, true, true); });
     // (and back from the intercooler to the throttle)
-    if (e36.thr) { const t = e36.thr, sd = -exSd, xo = sd * Math.min(Math.abs(E.x0 + E.x1) / 2 + (E.x1 - E.x0) / 2 + 0.04, reach(zN, zN - 0.2) - 0.05); ex36Run(body, [[xo * 0.9, yLow + 0.02, zN + 0.01], [xo, Math.min(t[1], E.y0 + 0.36), zN - 0.03], [xo, t[1], Math.min(zN - 0.1, t[2] + 0.12)], [t[0] + (xo - t[0]) * 0.3, t[1], t[2]], t], rH, C.hose, 7, true, true); }
+    if (e36.thr) { const t = e36.thr, [sd, in39] = und39Thr(t, E, exSd, e36), xo = sd * (Math.min(Math.abs(E.x0 + E.x1) / 2 + (E.x1 - E.x0) / 2 + 0.04, reach(zN, zN - 0.2) - 0.05) - in39); ex36Run(body, [[xo * 0.9, yLow + 0.02, zN + 0.01], [xo, Math.min(t[1], E.y0 + 0.36), zN - 0.03], [xo, t[1], Math.min(zN - 0.1, t[2] + 0.12)], [t[0] + (xo - t[0]) * 0.3, t[1], t[2]], t], rH, C.hose, 7, true, true); }
     o.rec.push('charge pipes'); }
   // (the air filter: on the compressor's inlet, or on the throttle of an engine that breathes for itself)
   const ins = e36.cIn && e36.cIn.length ? e36.cIn : !e36.cOut && e36.thr ? [e36.thr] : [];
@@ -25210,7 +25224,7 @@ function ex36Run(s, pts, r, k, n, capA, capB) {
 // has them. d: the pipe's bore (mm); r: the pipe as drawn (its outside radius, m)
 function ex36Of(D, S, nPipes) {
   let X = D.ex36; if (!X) { const B = typeof cuBare === 'function' && typeof cuBody === 'function' && cuBody(S.id) ? cuBare(S).B : null;
-    X = B ? { cat: B.cat, res: B.res, muff: B.muff, exit: 'own', d: 0, hdr: B.hdr } : { cat: 'none', res: 0, muff: 'straight', exit: 'own', d: 0 }; }
+    X = B ? { cat: B.cat, res: B.res, muff: B.muff, exit: 'own', d: 0, hdr: B.hdr, resT: B.resT, pmat: B.pmat } : { cat: 'none', res: 0, muff: 'straight', exit: 'own', d: 0 }; }
   let d = X.d; if (!d) { let P = 0; for (let r = 1000; r <= S.redline; r += 100) P = Math.max(P, engineCurve(S, r) * r * Math.PI / 30); d = typeof exAutoBore === 'function' ? exAutoBore({ fuel: S.fuel === 'diesel' ? 'diesel' : 'petrol', asp: S.boost === 'na' || S.boost === 'sc' ? 'na' : 'turbo', tail: nPipes > 1 ? 2 : 1 }, P) : 57; }
   const L = D.lk || {}; return Object.assign({}, X, { d, r: Math.max(0.021, Math.min(0.048, d / 2000 + 0.002)), tip: L.tip || 'own', tipF: L.tipF || 'own' });
 }
@@ -31239,6 +31253,164 @@ function rev38Marshal(RE, T, e, E) {
 }
 // (the weather's name inside a sentence: lower case in English, the language's own word elsewhere)
 const rev38Wx = W => I18N.lang === 'en' ? W.name.toLowerCase() : I18N.text(W.name);
+// ---------- round 39: what is under the car, joined up as a real car's is ----------
+// The engine's own points (its throttle, its compressors' outlets and inlets) were kept in the engine's frame and read
+// as the body's, so a turbocharged car's charge pipes ran off to a place under the car: they are given in the body's.
+function und39Out(out, P) { if (!out) return out; if (out.thr) out.thr = P(out.thr[0], out.thr[1], out.thr[2]); if (out.cOut) out.cOut = out.cOut.map(pp => pp.map(p => P(p[0], p[1], p[2]))); if (out.cIn) out.cIn = out.cIn.map(p => P(p[0], p[1], p[2])); return out; }
+// A driven rear axle on independent suspension under a front-engined car: the floor is raised over it, as a real car's
+// is, so its diff and driveshafts are under the body, not in the boot (a solid axle has always had its recess)
+function und39Irs(S, D, epos, solidR) { return !solidR && S.fs < 1 && epos === 'front' && !D.mech && S.cls !== 'SP'; }
+// The floor's channel is open under the engine and its gearbox, as a real car's engine bay is open to the road: the
+// shell's faces that lie on the channel's floor there (found by where they lie: on the floor's line, between the
+// channel's sides, facing down) folded away against the channel's side. A sump guard, where a car carries one, is then
+// what is under the engine. tunAt(z, key): the channel's floor ('lo') and half-width ('x') at z
+function und39Open(body, tunAt, Es) {
+  const R = []; for (const E of Es) { if (!E) continue; let z0 = E.z0, z1 = E.z1; if (E.gb && !E.gb.along) { z0 = Math.max(z0, E.gb.z0); z1 = Math.min(z1, E.gb.z1); } R.push([z0 + 0.03, z1 - 0.03]); }
+  return und39Fold(body, tunAt, R);
+}
+function und39Fold(body, tunAt, R) {
+  if (!R.length) return 0; let n = 0; const p = body.p;
+  for (let t = 0; t < p.length; t += 9) { const zm = (p[t + 2] + p[t + 5] + p[t + 8]) / 3; if (!R.some(r => zm < r[0] && zm > r[1])) continue; let ok = true, xm = -9;
+    for (let v = 0; v < 9 && ok; v += 3) { const x = p[t + v], y = p[t + v + 1], z = p[t + v + 2]; if (Math.abs(y - tunAt(z, 'lo')) > 0.004 || Math.abs(x) > tunAt(z, 'x') + 0.004) ok = false; xm = Math.max(xm, x); }
+    if (!ok) continue; for (let v = 0; v < 9; v += 3) if (p[t + v] < xm - 0.004) p[t + v] = xm - 0.003; n++; }
+  return n;
+}
+// A transverse engine's final drive, which its gearbox carries: the diff's case under the gearbox's end on the shafts'
+// line, its flange to each inner joint - the far one by a shaft across under the engine, in a bearing bolted to the
+// block - and, on a car that drives its rear wheels too, the transfer box behind it that the propshaft comes out of.
+// A longitudinal engine's front diff (four-wheel drive) is driven by a shaft forward from the gearbox, alongside the sump
+function und39Join(o) {
+  const { tube, bx, out, E, yD, trans, epos, fwd, zA, BC, steel, prims } = o; if (!out.drive) return;
+  const f = out.drive.f;
+  if (E && trans && epos === 'front' && fwd && f) {
+    const gb = E.gb, sg = gb ? (Math.sign((gb.x0 + gb.x1) / 2) || 1) : 1, z = f.z, y = f.y, xi = sg * 0.06, xo = sg * 0.2;
+    tube([xi, y, z], [xo, y, z], 0.088, BC.iron); tube([xi - sg * 0.035, y, z], [xi, y, z], 0.06, BC.alu); // (the diff's case and its cover)
+    if (gb && gb.y0 > y + 0.05) bx(Math.min(xi, xo) + 0.01, Math.max(xi, xo) - 0.01, y + 0.04, gb.y0 + 0.01, Math.min(gb.z0, z + 0.07), Math.max(gb.z1, z - 0.07), BC.alu); // (the case's neck up to the gearbox)
+    tube([xi - sg * 0.035, y, z], [-xo, y, z], 0.014, steel); tube([-sg * 0.165, y, z], [-sg * 0.125, y, z], 0.032, BC.alu); // (the shaft across, and its bearing)
+    if (E.y0 > y + 0.03) bx(-sg * 0.145 - 0.02, -sg * 0.145 + 0.02, y + 0.02, E.y0 + 0.005, z + 0.02, z - 0.02, BC.alu);
+    prims.push({ k: 'diff', t: [[xi, y, z], [xo, y, z]], r: 0.088 }); out.front.push('final drive');
+    const p = out.prop; if (p && p.r === 1 && p.a) { tube([0, y, z], [0, p.a[1], p.a[2] + 0.005], 0.058, BC.alu); tube([-0.03 * sg, y, z], [xi, y, z], 0.07, BC.alu); out.front.push('transfer box'); }
+  }
+  // a longitudinal front engine's gearbox, which the kit left out (the propshaft began in mid-air where its tail would
+  // be): the bellhousing on the engine's back, the case and its tail to the propshaft's joint, in the tunnel - a
+  // channel of sheet steel over it, open to the road as a real car's is, so the cabin's floor is closed round it
+  // (a front-driven car's too, its gearbox and final drive one case behind the engine)
+  const a39 = !E || trans || epos !== 'front' || E.gb ? null : out.prop && out.prop.r === 1 && out.prop.a ? out.prop.a : f && f.nose ? [0, f.y, E.z1 - 0.28] : null;
+  if (a39) {
+    const a = a39, zb = E.z1, len = zb - a[2];
+    if (len > 0.12) { const yc = Math.max(a[1], Math.min(E.y0 + 0.13, a[1] + 0.1)), yAt = z => a[1] + (yc - a[1]) * (z - a[2]) / len, z1 = zb - Math.min(0.1, len * 0.3), z2 = a[2] + Math.min(0.1, len * 0.33);
+      tube([0, yAt(zb + 0.012), zb + 0.012], [0, yAt(z1), z1], 0.15, BC.alu); tube([0, yAt(z1), z1], [0, yAt(z2), z2], 0.1, BC.alu); tube([0, yAt(z2), z2], [0, a[1], a[2] - 0.004], 0.06, BC.alu);
+      for (let k = 0; k < 3; k++) { const z = z1 - (z1 - z2) * (k + 0.5) / 3; tube([0, yAt(z), z + 0.006], [0, yAt(z), z - 0.006], 0.108, BC.iron); } // (its ribs)
+      und39Slot(o.body, o.tunAt, bx, zb - 0.03, a[2] - 0.02, 0.2, yc + 0.17, o.dark);
+      E.gb = { x0: -0.16, x1: 0.16, z0: zb, z1: a[2], y0: yc - 0.15, top: yc + 0.15, along: true }; prims.push({ k: 'diff', t: [[0, yAt(z1), z1], [0, yAt(z2), z2]], r: 0.1 }); out.front.push('gearbox', 'tunnel'); } }
+  // (a mid or rear engine's propshaft to the front: its joint on the gearbox's front, joined to it)
+  { const R = o.ER, p = out.prop; if (R && p && p.a && p.r === 0) { const zc = Math.max(R.z1, Math.min(R.z0, p.a[2])), g = Math.abs(p.a[2] - zc); if (g > 0.008 && g < 0.25) { tube(p.a, [p.a[0], p.a[1], zc + Math.sign(zc - p.a[2]) * 0.02], 0.055, BC.alu); out.rear.push('transfer box'); } } }
+  { const p = out.prop, q = (o.kick || [])[0]; if (p && p.r === 1 && !p.b && q && p.zm != null && p.zm - q.z0 > 0.1) { und39Slot(o.body, o.tunAt, bx, p.zm + 0.05, q.z0 + 0.03, 0.085, o.R + 0.07, o.dark); out.rear.push('propshaft tunnel'); } }
+  if (E && !trans && epos === 'front' && f && f.nose && E.gb) {
+    // (the shaft to the front diff: from the gearbox's side forward beside the sump to the diff's nose)
+    const gb = E.gb, n = f.nose, zg = Math.min(gb.z0 - 0.05, n[2] - 0.05), xs = 0.11, yg = Math.max(n[1], Math.min(gb.y0 + 0.05, n[1] + 0.08));
+    if (zg < n[2] - 0.04) { tube(n, [xs, yg, zg], 0.02, steel); tube([xs, yg, zg + 0.03], [xs, yg, zg - 0.05], 0.045, BC.alu); if (gb.x0 > xs - 0.02) bx(xs - 0.03, gb.x0 + 0.02, yg - 0.03, yg + 0.03, zg + 0.02, zg - 0.05, BC.alu); out.front.push('front propshaft'); }
+  }
+}
+// The sump guard: a plate under the engine's sump, from its front back to short of the shafts' line where the final
+// drive hangs under the engine (a transverse engine's, a mid or rear engine's), so the guard is under the sump and the
+// drive is what a real car shows behind it
+function und39Guard(E, d, along) { let z0 = E.z0 + 0.05, z1 = E.z1 - 0.05; if (d && !along && d.z < z0 - 0.1 && d.z > z1 - 0.05) { if (d.z < (z0 + z1) / 2) z1 = Math.max(z1, d.z + 0.13); else z0 = Math.min(z0, d.z - 0.13); } return [z0, z1]; }
+// (a sump guard no higher than under a front diff that hangs below the engine)
+function und39GuardY(y, d, z0, z1) { return d && d.nose && d.z < z0 && d.z > z1 ? Math.min(y, d.y - 0.128) : y; }
+// A slot in the floor from z0 back to z1, hw either side of the centre line: the floor's faces there folded away and
+// the floor laid again outside the slot, with a channel of sheet steel over it up to yT (a tunnel, open to the road)
+function und39Slot(body, tunAt, bx, z0, z1, hw, yT, k) {
+  if (z0 - z1 < 0.06) return; und39Fold(body, tunAt, [[z0, z1]]); const n = Math.max(1, Math.ceil((z0 - z1) / 0.1)), e = 0.045;
+  for (let i = 0; i < n; i++) { const za = z0 + e - (z0 - z1 + 2 * e) * i / n, zb = z0 + e - (z0 - z1 + 2 * e) * (i + 1) / n, y = Math.min(tunAt(za, 'lo'), tunAt(zb, 'lo')), x = Math.min(tunAt(za, 'x'), tunAt(zb, 'x')); if (x > hw + 0.01) for (const sd of [1, -1]) bx(sd > 0 ? hw : -x, sd > 0 ? x : -hw, y - 0.01, y + 0.002, za, zb, k); }
+  const yF = Math.min(tunAt(z0, 'lo'), tunAt(z1, 'lo')) - 0.002; if (yT > yF + 0.03) { bx(-hw - 0.012, hw + 0.012, yT, yT + 0.012, z0 + e, z1 - e, k); for (const sd of [1, -1]) bx(sd * (hw + 0.006) - 0.006, sd * (hw + 0.006) + 0.006, yF - 0.008, yT, z0 + e, z1 - e, k); }
+}
+// (the pipe back from the intercooler comes along the side its throttle is on, not across the top of the engine; inside
+// the compressor's own pipe where that runs along the same side)
+function und39Thr(t, E, exSd, e36) { const c = (E.x0 + E.x1) / 2, sd = Math.abs(t[0] - c) > 0.05 ? Math.sign(t[0] - c) : -exSd, same = (e36.cOut || []).some(pp => (Math.sign(pp[1][0] - c) || exSd) === sd); return [sd, same ? 0.065 : 0]; }
+// (a compressor behind an engine set across the car: its pipe to the nose goes round the engine's end, not over its top)
+function und39Round(a, E) { const g = E.gb, across = g && !g.along && (g.x0 >= E.x1 - 0.02 || g.x1 <= E.x0 + 0.02); return across ? Math.max(Math.abs(a[0]) + 0.03, Math.abs(E.x0 + E.x1) / 2 + (E.x1 - E.x0) / 2 + 0.04) : Math.abs(a[0]) + 0.03; }
+// ---------- round 40: the exhaust's parts as a real system has them, and what each does to the sound ----------
+// Two more choices for a build: the resonator's kind and the pipe's metal (CU40_KEYS, in the core). On every car the pipe
+// gets what holds a real one together and up: a braided flex joint behind the manifold, flanges with their bolts where
+// its sections meet, band clamps at the boxes, and hangers - a rod off the pipe in a rubber block under the floor.
+const WS40_NOTES = {
+  resT: { helm: 'A chamber on a neck beside the pipe: takes out one note, the drone at cruising revs', quarter: 'A capped pipe a quarter of the drone’s wave long: cancels it and its odd overtones, nothing else', bottle: 'A straight tube through packing: takes the rasp off right across the revs, the drone stays' },
+  pmat: { steel: 'Mild steel, thick walled: a dull, deep note; it rusts', stainless: 'Stainless, thinner walled: a brighter, harder note', ti: 'Titanium, thin and stiff: a sharp metallic ring; it blues with the heat' }
+};
+Object.assign(WS36_WORDS, { resT: [['helm', 'Chamber'], ['quarter', 'Quarter-wave pipe'], ['bottle', 'Straight-through']], pmat: [['steel', 'Mild steel'], ['stainless', 'Stainless'], ['ti', 'Titanium']] });
+// the pipe's colour as its metal has it: mild steel rusted brown; stainless bright, straw-gold near the engine;
+// titanium grey, blue then purple where it runs hottest (n: how many sections back from the manifold)
+function ex40K(pipe, X, n) { const m = X && X.pmat; return m === 'stainless' ? (n < 3 ? [0.5, 0.42, 0.27] : [0.58, 0.59, 0.6]) : m === 'ti' ? (n < 2 ? [0.2, 0.26, 0.52] : n < 5 ? [0.42, 0.33, 0.48] : [0.46, 0.46, 0.5]) : pipe; }
+// the hardware along the pipe (o: the kit's sinks and helpers, the pipe's runs and boxes as it was laid)
+function ex40Fit(o) {
+  const { body, bx, out, X, under, kick, r } = o, E = out.exhaust; if (!E || !E.runs || !E.runs.length || !X) return;
+  const zinc = [0.56, 0.57, 0.59], rod = [0.2, 0.2, 0.21], rub = [0.03, 0.03, 0.034], braid = [0.5, 0.51, 0.53], dk = [0.3, 0.31, 0.33];
+  const len = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]), at = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const roof = z => { let y = under(z); for (const q of kick || []) if (z <= q.z0 && z >= q.z1) y = Math.max(y, q.y); return y; };
+  const cyl = (a, b, rr, k, n) => ex36Pipe(body, a, b, rr, rr, k, n || 8, true, true), dirOf = (a, b) => { const l = len(a, b) || 1; return [(b[0] - a[0]) / l, (b[1] - a[1]) / l, (b[2] - a[2]) / l]; };
+  const along = (p, d, t) => [p[0] + d[0] * t, p[1] + d[1] * t, p[2] + d[2] * t];
+  // (the level runs along the car: the pipe proper, where its joints and hangers are)
+  const M = E.runs.filter(([a, b]) => { const l = len(a, b); return l > 0.3 && Math.abs(a[2] - b[2]) > 0.85 * l && Math.abs(a[1] - b[1]) < 0.03; }); if (!M.length) return;
+  const got = { fl: 0, hg: 0, cl: 0 };
+  // a flange joint: two plates bolted face to face, three bolts round them
+  const flange = (p, d) => { cyl(along(p, d, -0.007), along(p, d, 0.007), r + 0.021, zinc, 10); const u = Math.abs(d[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0], v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]];
+    for (let k = 0; k < 3; k++) { const a = k * 2.094 + 0.5, c = Math.cos(a) * (r + 0.012), s = Math.sin(a) * (r + 0.012), q = [p[0] + u[0] * c + v[0] * s, p[1] + u[1] * c + v[1] * s, p[2] + u[2] * c + v[2] * s]; cyl(along(q, d, -0.014), along(q, d, 0.014), 0.0055, dk, 5); } got.fl++; };
+  // a hanger: a rod welded to the pipe, bent out and up into a rubber block bolted under the floor (in a recess, up to its roof)
+  const hanger = (p, sd) => { const yF = roof(p[2]), x1 = p[0] + sd * (r + 0.05); if (yF - p[1] > 0.1) { cyl([p[0], p[1] + r * 0.8, p[2]], [p[0], yF - 0.04, p[2]], 0.005, rod, 5); bx(p[0] - 0.02, p[0] + 0.02, yF - 0.045, yF, p[2] + 0.013, p[2] - 0.013, rub); }
+    else { cyl([p[0] + sd * r * 0.8, p[1] - 0.004, p[2]], [x1, p[1] - 0.004, p[2]], 0.005, rod, 5); cyl([x1, p[1] - 0.004, p[2]], [x1, yF - 0.03, p[2]], 0.005, rod, 5); bx(x1 - 0.02, x1 + 0.02, yF - 0.046, yF, p[2] + 0.013, p[2] - 0.013, rub); } got.hg++; };
+  // a band clamp: a strap round a slip joint, its bolt under it
+  const clamp = (p, d) => { cyl(along(p, d, -0.011), along(p, d, 0.011), r + 0.006, zinc, 10); bx(p[0] - 0.008, p[0] + 0.008, p[1] - r - 0.02, p[1] - r - 0.002, p[2] + 0.011, p[2] - 0.011, dk); got.cl++; };
+  const sdOf = p => Math.sign(p[0]) || 1;
+  // the first run: the flange off the down pipe, then the flex joint - braid over a bellows, a collar each end
+  { const [a, b] = M[0], d = dirOf(a, b), l = len(a, b); flange(along(a, d, 0.03), d);
+    if (l > 0.3) { const fl = Math.min(0.16, l - 0.16), f0 = along(a, d, 0.08), f1 = along(a, d, 0.08 + fl), nr = Math.max(2, Math.round(fl / 0.04)); cyl(f0, f1, r + 0.007, braid, 10); for (let k = 0; k < nr; k++) cyl(along(f0, d, fl * (k + 0.5) / nr - 0.005), along(f0, d, fl * (k + 0.5) / nr + 0.005), r + 0.0095, dk, 10);
+      cyl(along(f0, d, -0.012), along(f0, d, 0.012), r + 0.011, zinc, 10); cyl(along(f1, d, -0.012), along(f1, d, 0.012), r + 0.011, zinc, 10); out.rear.push('flex joint'); } }
+  // each run: a hanger every 0.8 m or so (one at least on a run over half a metre), a flange where a long run begins
+  M.forEach(([a, b], i) => { const d = dirOf(a, b), l = len(a, b), n = l > 0.55 ? Math.max(1, Math.round(l / 0.8)) : 0; for (let k = 0; k < n; k++) hanger(at(a, b, (k + 0.62) / (n + 0.24)), sdOf(a)); if (i > 0 && l > 0.6) flange(along(a, d, 0.04), d); });
+  // each box: a clamp on the pipe at each end and a hanger by it
+  for (const B of E.boxes || []) { const x = (B[0] + B[1]) / 2, alongX = B[1] - B[0] > (B[4] - B[5]) * 1.15; if (alongX) continue; const y = Math.min((B[2] + B[3]) / 2, B[2] + 0.032), d = [0, 0, -1];
+    clamp([x, y, B[4] + 0.03], d); clamp([x, y, B[5] - 0.03], d); hanger([x, y, B[5] - 0.07], sdOf([x])); }
+  // a quarter-wave resonator: a capped pipe alongside, joined at its front end (a build's choice, where it has a resonator)
+  if (X.res && X.resT === 'quarter') { const R = M.slice().sort((p, q) => len(q[0], q[1]) - len(p[0], p[1]))[0], d = dirOf(R[0], R[1]), l = len(R[0], R[1]), L = Math.min(0.7, l - 0.1);
+    if (L > 0.22) { const sd = -sdOf(R[0]), off = 2 * r + 0.014, a0 = along(R[0], d, l * 0.5 - L / 2), j0 = [a0[0] + sd * off, a0[1], a0[2]], j1 = along(j0, d, L); cyl(a0, j0, r * 0.9, ex40K([0.43, 0.396, 0.36], X, 9), 7); ex36Pipe(body, j0, j1, r * 0.9, r * 0.9, ex40K([0.43, 0.396, 0.36], X, 9), 8, true, true); out.rear.push('quarter-wave resonator'); } }
+  if (got.fl) out.rear.push('flanges'); if (got.hg) out.rear.push('hangers'); if (got.cl) out.rear.push('clamps'); E.hw = got;
+}
+// ---- the sound ----
+// What the two choices, the pipe's end and the way the pipe runs do to the sound of a build (the engine sound's terms:
+// see EngineDSP). A build with its body's own exhaust is left exactly as it was.
+//   resonator kind   a chamber notches the one note it is tuned to (as before); a quarter-wave pipe cancels that note
+//                    and its odd overtones, sharply; a straight-through one is packing round a perforated tube: no
+//                    note taken out, the hiss and rasp above 1.5 kHz soaked up
+//   pipe metal       a thin stainless wall rings where a thick mild steel one is dead; titanium, thinner and stiffer,
+//                    rings higher and longer - the tinny edge of a titanium system - scaled by the bore (a wider
+//                    tube's wall rings lower)
+//   the pipe's end   a megaphone couples the pipe to the air better: louder and brighter, less sent back up the pipe;
+//                    an end turned down at the road is heard duller from behind
+//   the pipe's run   the stretch behind the last silencer is a pipe open at one end: it sings at a quarter of its
+//                    wave (0.4 m behind a tail silencer: about 310 Hz; a side pipe's 0.25 m: 500 Hz), the more the
+//                    more the silencer sends back; every bend costs a little of the wave and adds to the gas's rush;
+//                    an end in the middle of the tail has two more bends and 0.25 m more pipe, a side pipe three fewer
+function ex40Sound(K, B, S0, E) {
+  const R = cuStockBuild(S0); if (!R) return; const L = typeof lkDecode === 'function' && B.look ? lkDecode(B.look) : null, tip = (L && L.tip) || 'own';
+  const same = ['hdr', 'xover', 'tail', 'cat', 'res', 'muff', 'pipeD', 'exit', 'resT', 'pmat', 'pos'].every(k => B[k] === R[k] || (B[k] == null && R[k] == null)) && (tip === 'own');
+  if (same) return; K.trim = (K.trim || [1, 1, 1, 1]).slice(); const res0 = (K.res || []).map(r => r.slice());
+  // the resonator's kind
+  if (B.res && B.resT === 'quarter') { const f = 2500 / 60 * (K.cyl || 4) / 2; K.res = [[+f.toFixed(1), 4, 0.6], [+(3 * f).toFixed(1), 4, 0.34]].concat(B.res > 1 ? [[+(2 * f).toFixed(1), 4, 0.5], [+(6 * f).toFixed(1), 4, 0.25]] : []); }
+  else if (B.res && B.resT === 'bottle') { K.res = [[2300, 0.7, B.res > 1 ? 0.42 : 0.28]]; K.flow = +((K.flow || 0.3) * (B.res > 1 ? 0.75 : 0.85)).toFixed(3); if (K.sil) K.sil = [Math.round(K.sil[0] * (B.res > 1 ? 0.86 : 0.92)), K.sil[1]]; }
+  else K.res = res0;
+  // the pipe's metal: its wall's ring (a peak: a resonator's term with its sign turned round)
+  if (B.pmat === 'stainless' || B.pmat === 'ti') { const I = exInfo(B, E), k = 57 / ((I && I.D) || 57), ti = B.pmat === 'ti'; K.res = K.res.concat(ti ? [[Math.round(3400 * k), 5, -0.3], [Math.round(5300 * k), 5, -0.16]] : [[Math.round(2600 * k), 4, -0.17]]);
+    K.emph = +Math.min(0.9, (K.emph || 0.5) + (ti ? 0.08 : 0.04)).toFixed(3); K.flow = +((K.flow || 0.3) * (ti ? 1.1 : 1.05)).toFixed(3); }
+  // the pipe's end
+  if (tip === 'mega') { K.trim[0] = +(K.trim[0] * 1.15).toFixed(3); K.emph = +Math.min(0.9, (K.emph || 0.5) + 0.07).toFixed(3); if (K.sil) K.sil = [Math.round(K.sil[0] * 1.1), K.sil[1]]; K.mainLoss = +Math.min(0.9, (K.mainLoss || 0.5) * 1.06).toFixed(3); }
+  else if (tip === 'down') { K.trim[0] = +(K.trim[0] * 0.95).toFixed(3); K.emph = +Math.max(0.2, (K.emph || 0.5) - 0.05).toFixed(3); }
+  // the pipe's run: the tail behind the silencer, the bends, the end's place
+  const exit = B.exit || 'own', muff = B.muff || 'straight';
+  if (muff !== 'none') { const Lt = exit === 'side' ? 0.25 : exit === 'centre' ? 0.55 : 0.4, g = { stock: 0.2, chamber: 0.28, turbo: 0.16, straight: 0.09 }[muff] || 0.1; K.res = K.res.concat([[Math.round(500 / (4 * Lt)), 3, -g]]); }
+  const nb = exit === 'centre' ? 2 : exit === 'side' ? -3 : 0;
+  if (nb) { K.mainLoss = +clamp((K.mainLoss || 0.5) * (1 + 0.04 * nb), 0.2, 0.9).toFixed(3); K.flow = +((K.flow || 0.3) * (1 + 0.03 * nb)).toFixed(3); if (exit === 'centre') K.main = +((K.main || 2.6) + 0.25).toFixed(2); }
+}
 // ---------- per-frame update ----------
 const PH = 1 / 240; let acc = 0;
 function physics(dt) {
@@ -40401,8 +40573,8 @@ const CU_FRONT_COOL = new Set(['hoodVents', 'hoodScoop', 'hoodBulge', 'louvres',
 // (round 36) a build's exhaust and engine as the kit draws them: the pipe's bore (the one that suits the engine unless
 // set), its catalyst, resonators and silencer, where it ends; the engine's parts, for the engine bay (see bay36.js)
 function cu36Design(D, B, S0, S) {
-  const E = cuEngineOn(cu35Ecu(B)), I = exInfo(B, E); D.ex36 = { cat: B.cat, res: B.res, muff: B.muff, exit: B.exit || 'own', d: I ? I.D : 0, hdr: B.hdr };
-  D.bay36 = B; D.kitKey = (D.kitKey || '') + [B.pipeD, B.exit, B.cat, B.res, B.muff, B.hdr, B.filter, B.itb, B.feed, B.ic, B.rad, B.oilc, B.batt, B.tsize, B.asp, B.cams, B.valves, B.block].join('');
+  const E = cuEngineOn(cu35Ecu(B)), I = exInfo(B, E); D.ex36 = { cat: B.cat, res: B.res, muff: B.muff, exit: B.exit || 'own', d: I ? I.D : 0, hdr: B.hdr, resT: B.resT, pmat: B.pmat };
+  D.bay36 = B; D.kitKey = (D.kitKey || '') + [B.resT, B.pmat, B.pipeD, B.exit, B.cat, B.res, B.muff, B.hdr, B.filter, B.itb, B.feed, B.ic, B.rad, B.oilc, B.batt, B.tsize, B.asp, B.cams, B.valves, B.block].join('');
 }
 function cuDesign(S, B, S0, D0) {
   const D = JSON.parse(JSON.stringify(D0)), rb = D0.ribs, last = rb[rb.length - 1], roof = rb.filter(r => r.r != null), rl = roof[roof.length - 1] || last, W = Math.max(...rb.map(r => Math.max(r.ws, r.wb)));
@@ -40618,7 +40790,7 @@ function cuSoundFor(S, B, S0) {
     if (turbo && B.asp === 'biturbo' && B.tseq && E.rc && In.whistle) In.seq = [Math.round(E.rc - 0.06 * E.red), Math.round(E.rc + 0.04 * E.red)]; }
   // its parts (see cuSoundParts): an engine made afresh from them all; the body's own engine as its car has it, with the
   // parts the build changed
-  cuSoundParts(K, B, E.fam ? K0 : Kd, !E.fam, Fe); ex36Sound(K, B, S0, E);
+  cuSoundParts(K, B, E.fam ? K0 : Kd, !E.fam, Fe); ex36Sound(K, B, S0, E); ex40Sound(K, B, S0, E);
   ENGINE_CFG[id] = K;
   ENGINE_SND[id] = Object.assign({}, ENGINE_SND[donor.id] || ENGINE_SND.ardent_5t, { k0: K.cyl, whistle: turbo ? 0.04 : 0, sc: B.asp === 'sc' || B.asp === 'twin' ? 0.075 : 0, chatter: turbo && !B.als ? 1 : 0 });
   // the starter (its kind by era: direct drive, reduction, a light race starter), cranking speed, compression and fuel
@@ -40797,7 +40969,7 @@ const WS_ENGL = { litres: 'Size', tsize: 'Turbo size', tkind: 'Turbo housing', t
 // the keys that make an engine another engine: changing one starts its rev limit afresh
 const WS_FAMILY = ['layout', 'cyl', 'fuel', 'asp', 'tech', 'tune', 'cams'];
 // the choices that show on the car as drawn
-const WS_LOOK = ['cat', 'res', 'muff', 'pipeD', 'exit', 'tail', 'hdr', 'cams', 'valves', 'feed', 'itb', 'filter', 'tsize', 'ic', 'rad', 'oilc', 'batt', 'block', 'tech', 'tune', 'camdrv', 'body', 'pos', 'mount', 'layout', 'cyl', 'asp', 'cool', 'aero', 'bonnet', 'boot', 'doors', 'bumpF', 'bumpR', 'cage', 'flaps', 'track', 'tyreF', 'tyreR', 'c1', 'c2', 'c3', 'roof', 'num',
+const WS_LOOK = ['resT', 'pmat', 'cat', 'res', 'muff', 'pipeD', 'exit', 'tail', 'hdr', 'cams', 'valves', 'feed', 'itb', 'filter', 'tsize', 'ic', 'rad', 'oilc', 'batt', 'block', 'tech', 'tune', 'camdrv', 'body', 'pos', 'mount', 'layout', 'cyl', 'asp', 'cool', 'aero', 'bonnet', 'boot', 'doors', 'bumpF', 'bumpR', 'cage', 'flaps', 'track', 'tyreF', 'tyreR', 'c1', 'c2', 'c3', 'roof', 'num',
   'kitMat', 'lipF', 'canard', 'bumpK', 'bonV', 'skirt', 'flare', 'qext', 'diffu', 'tailL', 'wingR', 'wingA', 'vortex', 'aux', 'rimD', 'suspF', 'suspR', 'look'];
 const Workshop = {
   on: false, id: null, B: null, S: null, saved: null, isNew: false, tab: 'engine', prev: null, el: null, ask: null, share: false, mode: 'build', L: null, L0: '', lkId: null, inside: false, iyaw: 0, ipitch: -0.3, goal: null,
