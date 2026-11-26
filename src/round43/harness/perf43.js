@@ -1,0 +1,8 @@
+// Cost of the sound with the chain against the old single tube (the same car, turn about), and of building a car.
+const { open } = require('./lib');
+(async () => { const H = await open(process.argv[2]); await new Promise(r => setTimeout(r, 2500));
+  const r = await H.page.evaluate(() => { const D = EngineDSPDef(), sr = 48000, blk = 128, out = [];
+    const run = (cfg, secs) => { const e = new D(sr, cfg), ch = [0, 1, 2, 3, 4].map(() => new Float32Array(blk)); e.set({ rpm: 5200, thr: 1, load: 1, on: 1, spool: 1, gear: 3 }); for (let o = 0; o < sr * 0.5; o += blk) e.process(ch[0], ch[1], ch[2], ch[3], blk, ch[4]); const t0 = performance.now(); for (let o = 0; o < sr * secs; o += blk) e.process(ch[0], ch[1], ch[2], ch[3], blk, ch[4]); return (performance.now() - t0) / (secs * 10); };
+    for (const id of ['vireo_4t', 'sentai_gt4', 'palanquin_25d']) { const S = carById(id), a = [], b = []; for (let k = 0; k < 4; k++) { const c1 = engineCfg(S), c0 = engineCfg(S); delete c0.net; b.push(run(c0, 4)); a.push(run(c1, 4)); } const med = v => v.slice().sort((x, y) => x - y)[1]; out.push(id + ': sections ' + (engineCfg(S).net ? engineCfg(S).net.sec.length : 0) + ', old ' + med(b).toFixed(2) + '% of real time, chain ' + med(a).toFixed(2) + '%'); }
+    Gfx.level = 'high'; const ts = []; for (const id of ['sentai_gt4', 'vireo_4t', 'pinnace_20', 'bastion_rs', 'esker_kr', 'sentai_gt4', 'vireo_4t', 'pinnace_20', 'bastion_rs', 'esker_kr']) { const t0 = performance.now(), m = buildCarMesh(carById(id), false, false, null); ts.push(performance.now() - t0); dropCarMesh(m); } out.push('car build ms (second pass of five cars): ' + ts.slice(5).map(v => v.toFixed(0)).join(' ')); return out; });
+  console.log(r.join('\n')); await H.close(); })();
