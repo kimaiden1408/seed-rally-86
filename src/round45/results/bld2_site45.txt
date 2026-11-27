@@ -1,0 +1,58 @@
+galliot_v8 #0      ok    len 3.933 tips 2 [p3.93] parts at 3.389 | two pipes: - - | sections 1 side pipes 0 peak 0.76 |  | mass 1420
+galliot_v8 #1      ok    len 3.731 tips 2 [p3.19 sil p0.08] parts at 3.422 | two pipes: - - | sections 3 side pipes 0 peak 0.5 |  | mass 1419
+galliot_v8 #2      ok    len 2.501 tips 1 [p1.73 sil p0.41] | two pipes: - - | sections 7 side pipes 0 peak 0.26 |  | mass 1414
+galliot_v8 #3      ok    len 3.671 tips 2 [p1.67 mid p1.20 sil p0.08] qw 0.75 parts at 3.392 | two pipes: - - | sections 15 side pipes 1 peak 0.39 | quarter-wave resonator | mass 1419
+galliot_v8 #4      ok    len 3.671 tips 2 [p1.67 mid p1.20 sil p0.08] parts at 3.392 | two pipes: - - | sections 13 side pipes 0 peak 0.06 |  | mass 1417
+galliot_v8 #5      ok    len 2.635 tips 2 [p2.63] | two pipes: x x@0.882 n4 | sections 1 side pipes 0 peak 0.85 | X-pipe | mass 1403
+galliot_v8 #6      ok    len 3.96 tips 2 [p1.99 sil p1.53] | two pipes: h L0.397 h@0.854 n9 | sections 3 side pipes 0 peak 0.32 | H-pipe | mass 1406
+sentai_gt4 #0      ok    len 3.483 tips 2 [p3.48] parts at 1.817 | two pipes: - - | sections 1 side pipes 0 peak 0.6 |  | mass 1100
+sentai_gt4 #1      ok    len 3.58 tips 2 [p1.82 sil p1.32] parts at 2.257 | two pipes: - - | sections 3 side pipes 0 peak 0.46 |  | mass 1100
+sentai_gt4 #2      ok    len 2.347 tips 1 [p1.56 sil p0.43] | two pipes: - - | sections 7 side pipes 0 peak 0.35 |  | mass 1093
+sentai_gt4 #3      ok    len 3.482 tips 2 [p0.93 mid p0.57 sil p1.23] qw 1.249 parts at 2.037 | two pipes: - - | sections 20 side pipes 1 peak 0.22 | quarter-wave resonator | mass 1099
+sentai_gt4 #4      ok    len 3.482 tips 2 [p0.93 mid p0.57 sil p1.23] parts at 2.037 | two pipes: - - | sections 13 side pipes 0 peak 0.13 |  | mass 1098
+sentai_gt4 #5      ok    len 2.383 tips 1 [p2.38] | two pipes: - - | sections 1 side pipes 0 peak 0.47 |  | mass 1113
+sentai_gt4 #6      ok    len 3.461 tips 2 [p1.79 sil p1.23] parts at 2.233 | two pipes: - - | sections 3 side pipes 0 peak 0.32 |  | mass 1119
+vireo_4t #0        ok    len 3.19 tips 2 [p0.91 mid p0.54 sil p0.99] parts at 2.204 | two pipes: - - | sections 7 side pipes 0 peak 0.58 |  | mass 1230
+vireo_4t #1        ok    len 3.243 tips 2 [p0.91 mid p0.54 sil p1.04] parts at 2.204 | two pipes: - - | sections 7 side pipes 0 peak 0.62 |  | mass 1230
+vireo_4t #2        ok    len 2.324 tips 1 [p0.92 mid p0.27 sil p0.46] | two pipes: - - | sections 11 side pipes 0 peak 0.68 |  | mass 1224
+vireo_4t #3        ok    len 3.191 tips 2 [p0.83 mid p0.46 sil p0.98] qw 1.149 parts at 1.985 | two pipes: - - | sections 17 side pipes 1 peak 0.38 | quarter-wave resonator | mass 1230
+vireo_4t #4        ok    len 3.19 tips 2 [p0.91 mid p0.54 sil p0.98] parts at 1.984 | two pipes: - - | sections 13 side pipes 0 peak 0.21 |  | mass 1229
+vireo_4t #5        ok    len 2.302 tips 1 [p0.91 mid p0.26 sil p0.46] | two pipes: - - | sections 7 side pipes 0 peak 0.76 |  | mass 1241
+vireo_4t #6        ok    len 3.032 tips 2 [p0.89 mid p0.53 sil p0.85] parts at 2.182 | two pipes: - - | sections 7 side pipes 0 peak 1.12 |  | mass 1247
+pinnace_20 #0      ok    len 3.646 tips 2 [p3.65] parts at 1.655 | two pipes: - - | sections 1 side pipes 0 peak 0.71 |  | mass 1000
+pinnace_20 #1      ok    len 3.669 tips 2 [p1.66 sil p1.57] parts at 1.875 | two pipes: - - | sections 3 side pipes 0 peak 0.45 |  | mass 1000
+pinnace_20 #2      ok    len 2.132 tips 1 [p1.40 sil p0.37] | two pipes: - - | sections 7 side pipes 0 peak 0.31 |  | mass 995
+pinnace_20 #3      ok    len 3.585 tips 2 [p0.92 mid p0.42 sil p1.49] qw 0.916 parts at 1.875 | two pipes: - - | sections 18 side pipes 1 peak 0.3 | quarter-wave resonator | mass 999
+pinnace_20 #4      ok    len 3.585 tips 2 [p0.92 mid p0.42 sil p1.49] parts at 1.875 | two pipes: - - | sections 13 side pipes 0 peak 0.1 |  | mass 997
+pinnace_20 #5      ok    len 2.185 tips 2 [p2.19] | two pipes: x x@0.788 n4 | sections 1 side pipes 0 peak 0.66 | X-pipe | mass 1016
+pinnace_20 #6      ok    len 3.506 tips 2 [p1.65 sil p1.42] | two pipes: h L0.455 h@0.788 n9 | sections 3 side pipes 0 peak 0.16 | H-pipe | mass 1019
+tasman_6r #0       ok    len 0.939 tips 2 [p0.94] parts at 0.603 | two pipes: - - | sections 1 side pipes 0 peak 0.63 |  | mass 1057
+tasman_6r #1       ok    len 1.157 tips 2 [p0.55 sil p0.10] parts at 0.803 | two pipes: - - | sections 3 side pipes 0 peak 0.42 |  | mass 1057
+tasman_6r #2       ok    len 2.241 tips 1 [p1.89 sil p0.11] | two pipes: - - | sections 7 side pipes 0 peak 0.32 |  | mass 1056
+tasman_6r #3       ok    len 1.307 tips 2 [p0.55 sil p0.10] parts at 0.878 | two pipes: - - | sections 7 side pipes 1 peak 0.46 |  | mass 1057
+tasman_6r #4       ok    len 1.307 tips 2 [p0.55 sil p0.10] parts at 0.878 | two pipes: - - | sections 7 side pipes 0 peak 0.24 |  | mass 1055
+tasman_6r #5       ok    len 2.273 tips 2 [p2.27] | two pipes: x x@0.903 n4 | sections 1 side pipes 0 peak 0.98 | X-pipe | mass 1056
+tasman_6r #6       ok    len 1.256 tips 2 [p0.50 sil p0.10] | two pipes: h L0.264 h@0.503 n9 | sections 3 side pipes 0 peak 0.41 | H-pipe | mass 1055
+esker_kr #0        ok    len 3.232 tips 2 [p3.23] parts at 2.574 | two pipes: - - | sections 1 side pipes 0 peak 0.65 |  | mass 960
+esker_kr #1        ok    len 3.124 tips 2 [p2.57 sil p0.10] parts at 2.801 | two pipes: - - | sections 3 side pipes 0 peak 0.48 |  | mass 960
+esker_kr #2        ok    len 2.485 tips 1 [p1.64 sil p0.48] | two pipes: - - | sections 7 side pipes 0 peak 0.3 |  | mass 953
+esker_kr #3        ok    len 3.124 tips 2 [p1.32 mid p0.94 sil p0.10] qw 1.5 parts at 2.801 | two pipes: - - | sections 12 side pipes 1 peak 0.43 | quarter-wave resonator | mass 959
+esker_kr #4        ok    len 3.124 tips 2 [p1.32 mid p0.94 sil p0.10] parts at 2.801 | two pipes: - - | sections 13 side pipes 0 peak 0.11 |  | mass 957
+esker_kr #5        ok    len 2.504 tips 1 [p2.50] | two pipes: - - | sections 1 side pipes 0 peak 0.49 |  | mass 974
+esker_kr #6        ok    len 3.084 tips 2 [p2.53 sil p0.10] parts at 2.761 | two pipes: - - | sections 3 side pipes 0 peak 0.35 |  | mass 980
+palanquin_25d #0   ok    len 4.928 tips 2 [p2.18 mid p1.69 sil p0.12] parts at 4.578 | two pipes: - - | sections 12 side pipes 0 peak 1.78 |  | mass 2710
+palanquin_25d #1   ok    len 4.928 tips 2 [p2.18 mid p1.69 sil p0.12] parts at 4.578 | two pipes: - - | sections 8 side pipes 0 peak 4.05 |  | mass 2712
+palanquin_25d #2   ok    len 3.488 tips 1 [p1.72 mid p0.60 sil p0.49] | two pipes: - - | sections 12 side pipes 0 peak 3.11 |  | mass 2707
+palanquin_25d #3   ok    len 4.928 tips 2 [p2.18 mid p1.69 sil p0.12] qw 1.5 parts at 4.578 | two pipes: - - | sections 21 side pipes 1 peak 4.46 | quarter-wave resonator | mass 2712
+palanquin_25d #4   ok    len 4.928 tips 2 [p2.18 mid p1.69 sil p0.12] parts at 4.578 | two pipes: - - | sections 14 side pipes 0 peak 1.76 |  | mass 2710
+palanquin_25d #5   ok    len 3.493 tips 1 [p1.72 mid p0.60 sil p0.49] | two pipes: - - | sections 12 side pipes 0 peak 1.88 |  | mass 2738
+palanquin_25d #6   ok    len 4.933 tips 2 [p2.18 mid p1.69 sil p0.12] parts at 4.582 | two pipes: - - | sections 8 side pipes 0 peak 5.43 |  | mass 2742
+xebec_24v #0       ok    len 1.078 tips 2 [p1.08] parts at 0.57 | two pipes: - - | sections 1 side pipes 0 peak 0.68 |  | mass 950
+xebec_24v #1       ok    len 1.023 tips 2 [p0.41 sil p0.11] parts at 0.659 | two pipes: - - | sections 3 side pipes 0 peak 0.36 |  | mass 949
+xebec_24v #2       ok    len 1.722 tips 1 [p1.34 sil p0.11] | two pipes: - - | sections 7 side pipes 0 peak 0.31 |  | mass 948
+xebec_24v #3       ok    len 1.173 tips 2 [p0.41 sil p0.11] parts at 0.734 | two pipes: - - | sections 7 side pipes 1 peak 0.38 |  | mass 949
+xebec_24v #4       ok    len 1.173 tips 2 [p0.41 sil p0.11] parts at 0.734 | two pipes: - - | sections 7 side pipes 0 peak 0.08 |  | mass 947
+xebec_24v #5       ok    len 1.812 tips 2 [p1.81] | two pipes: x x@1.64 n4 | sections 1 side pipes 0 peak 0.65 | X-pipe | mass 949
+xebec_24v #6       ok    len 1.173 tips 2 [p0.41 sil p0.11] | two pipes: h L0.264 h@0.52 n9 | sections 3 side pipes 0 peak 0.25 | H-pipe | mass 949
+builds 56 failed 0
+errors []
