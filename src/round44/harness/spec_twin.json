@@ -1,0 +1,8 @@
+[{"id":"galliot_v8","label":"V8 Y-pipe, one tailpipe","rpm":3000,"patch":{"xover":"y","tail":1}},
+ {"id":"galliot_v8","label":"V8 Y-pipe, two tailpipes","rpm":3000,"patch":{"xover":"y","tail":2}},
+ {"id":"galliot_v8","label":"V8 Y, one, chambered","rpm":3000,"patch":{"xover":"y","tail":1,"muff":"chamber"}},
+ {"id":"galliot_v8","label":"V8 Y, two, chambered","rpm":3000,"patch":{"xover":"y","tail":2,"muff":"chamber"}},
+ {"id":"sentai_gt4","label":"inline four, one tailpipe","rpm":4000,"patch":{"tail":1,"muff":"turbo"}},
+ {"id":"sentai_gt4","label":"inline four, two tailpipes","rpm":4000,"patch":{"tail":2,"muff":"turbo"}},
+ {"id":"vireo_4t","label":"across-car V6, Y one tailpipe","rpm":4000,"patch":{"layout":"vee","cyl":6,"xover":"y","tail":1}},
+ {"id":"vireo_4t","label":"across-car V6, H chosen, two","rpm":4000,"patch":{"layout":"vee","cyl":6,"xover":"h","tail":2}}]

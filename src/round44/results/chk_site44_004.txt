@@ -1,0 +1,55 @@
+ardent_5t      strut/strut        parts 109 ends 186 loose 0 
+vespera_sc     wishbone/wishbone  parts 112 ends 200 loose 0 
+petrel_m4      wishbone/wishbone  parts 129 ends 234 loose 0 
+halberd_x4     wishbone/wishbone  parts 129 ends 234 loose 0 
+mamba_tc       wishbone/wishbone  parts 129 ends 234 loose 0 
+tasman_6r      strut/semi         parts  92 ends 160 loose 0 
+bantam_6x      strut/strut        parts 105 ends 182 loose 0 
+corbeau_maxi   wishbone/wishbone  parts 108 ends 192 loose 0 
+veloce_hr      strut/strut        parts 109 ends 186 loose 0 
+sentai_gt4     strut/strut        parts 109 ends 186 loose 0 
+acrobat_2t     strut/strut        parts 109 ends 186 loose 0 
+katana_evo     strut/multi        parts 115 ends 206 loose 0 
+bastion_rs     strut/semi         parts 115 ends 194 loose 0 
+kaiser_3r      strut/semi         parts  95 ends 166 loose 0 
+ronin_tx       strut/strut        parts 109 ends 186 loose 0 
+hiryu_18t      strut/strut        parts 109 ends 186 loose 0 
+esker_kr       strut/trailing     parts  85 ends 142 loose 0 
+corvid_f2      strut/trailing     parts  85 ends 142 loose 0 
+quintel_20     strut/trailing     parts  85 ends 142 loose 0 
+sorrel_ve      strut/twist        parts  89 ends 146 loose 0 
+pavane_2s      strut/strut        parts  94 ends 156 loose 0 
+torvo_20       strut/twist        parts  89 ends 146 loose 0 
+linnet_20v     strut/twist        parts  89 ends 146 loose 0 
+rhodon_kx      strut/twist        parts  89 ends 146 loose 0 
+vireo_4t       strut/strut        parts 109 ends 186 loose 0 
+quintel_4t     strut/strut        parts 109 ends 186 loose 0 
+brenik_4t      strut/strut        parts 105 ends 182 loose 0 
+acrobat_4t     strut/strut        parts 109 ends 186 loose 0 
+katana_4t      strut/strut        parts 105 ends 182 loose 0 
+halvik_4t      strut/strut        parts 105 ends 182 loose 0 
+caspen_4t      strut/strut        parts 105 ends 182 loose 0 
+pellam_4t      strut/strut        parts 109 ends 186 loose 0 
+avocet_16t     strut/strut        parts 105 ends 182 loose 0 
+siskin_16t     strut/strut        parts 105 ends 182 loose 0 
+dunlin_16t     strut/strut        parts 105 ends 182 loose 0 
+jacana_16t     strut/strut        parts 109 ends 186 loose 0 
+pipit_16t      strut/strut        parts 105 ends 182 loose 0 
+ouzel_16t      strut/strut        parts 105 ends 182 loose 0 
+xebec_24v      wishbone/strut     parts 100 ends 174 loose 0 
+lugger_18      wishbone/wishbone  parts 106 ends 188 loose 0 
+tartane_16v    strut/strut        parts  95 ends 162 loose 0 
+pinnace_20     strut/live         parts  86 ends 148 loose 0 
+shallop_22     strut/live         parts  86 ends 148 loose 0 
+carrack_24     wishbone/live      parts  92 ends 164 loose 0 
+felucca_14t    wishbone/wishbone  parts 108 ends 192 loose 0 
+barque_21t     strut/strut        parts 109 ends 186 loose 0 
+ketch_30       strut/semi         parts  92 ends 160 loose 0 
+galliot_v8     wishbone/semi      parts 111 ends 190 loose 0 
+yawl_20t       wishbone/beam      parts  84 ends 148 loose 2 #58a@0.41,0.23,-1.51 d0.04 r0.018 L0.56 w2 | #67a@-0.41,0.23,-1.51 d0.04 r0.018 L0.56 w3
+polacca_v4     wishbone/beam      parts  84 ends 148 loose 2 #58a@0.37,0.23,-1.44 d0.04 r0.018 L0.56 w2 | #67a@-0.37,0.23,-1.44 d0.04 r0.018 L0.56 w3
+caisson_6x6    leaf/leaf          parts  99 ends 184 loose 8 #28b@0.55,0.98,3.06 d0.121 r0.011 L0.16 b | #41b@-0.55,0.98,3.06 d0.121 r0.011 L0.16 b | #56a@0.85,0.51,-1.32 d0.075 r0.23 L0.14 g2
+limber_4x4     wishbone/wishbone  parts 112 ends 216 loose 0 
+palanquin_25d  strut/leaf         parts  93 ends 162 loose 2 #49a@0.53,0.31,-1.52 d0.047 r0.026 L0.26 w2 | #62a@-0.53,0.31,-1.52 d0.047 r0.026 L0.26 w3
+cars with loose ends: 4 of 53
+errors []

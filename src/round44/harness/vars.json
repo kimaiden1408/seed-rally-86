@@ -1,0 +1,8 @@
+[{"xover":"none","tail":2,"muff":"none","cat":"none","res":0},
+ {"xover":"h","tail":2,"muff":"chamber","res":1,"resT":"bottle"},
+ {"xover":"x","tail":2,"muff":"straight","res":1,"resT":"bottle","joint":"vband"},
+ {"xover":"h","tail":2,"exit":"side","muff":"turbo"},
+ {"xover":"x","tail":2,"exit":"centre","muff":"stock","cat":"stock"},
+ {"xover":"h","tail":2,"res":1,"resT":"quarter","bend":"crush","flex":"bellows","hang":"solid"},
+ {"xover":"y","tail":1,"muff":"chamber"},
+ {"xover":"y","tail":2,"muff":"turbo"}]

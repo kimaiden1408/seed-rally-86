@@ -1,0 +1,10 @@
+bands Hz: 30-60 | 60-120 | 120-200 | 200-420 | 420-1k | 1k-2k | 2k-3k | 3k-4.5k | 4.5k-8k
+V8 stock: a pipe a bank, none      rms    0.0 |    0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0 | sections 1 | shell <250Hz 0.0  
+H-pipe                             rms    0.7 |    2.2   0.2  -0.8   2.9  -2.0  -0.4  -0.9  -1.1  -1.0 | sections 1 | shell <250Hz 0.0  
+X-pipe                             rms    0.6 |    2.4  -5.0  -2.4   3.0   0.4   0.1   0.6  -0.1   0.1 | sections 1 | shell <250Hz 0.0  
+Y-pipe, one tailpipe               rms    1.5 |    2.4  -3.8   2.3   3.5   1.1   0.3   0.3   0.4   0.3 | sections 1 | shell <250Hz 0.0  
+none + chambered silencers         rms   -2.3 |    2.2   1.2   2.5  -6.2  -7.5 -12.0 -11.6 -14.7  -8.4 | sections 5 | shell <250Hz 0.0  
+H + chambered silencers            rms   -1.9 |    4.2  -3.9   2.7  -0.8  -8.6 -12.1 -12.0 -15.3 -10.1 | sections 5 | shell <250Hz 0.0  
+X + chambered silencers            rms   -2.7 |    4.7  -5.6  -2.5   0.5  -7.2 -11.6 -11.4 -14.3  -8.3 | sections 5 | shell <250Hz 0.0  
+Y + chambered silencer             rms    1.2 |    2.7  -5.6   4.6   3.9  -4.5  -5.9  -5.6  -6.4  -4.6 | sections 5 | shell <250Hz 0.0  
+errors []

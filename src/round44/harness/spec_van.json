@@ -1,0 +1,8 @@
+[{"id":"palanquin_25d","label":"van vee6 none","rpm":3000,"patch":{"layout":"vee","cyl":6,"xover":"none","tail":2}},
+ {"id":"palanquin_25d","label":"van vee6 H","rpm":3000,"patch":{"layout":"vee","cyl":6,"xover":"h","tail":2}},
+ {"id":"palanquin_25d","label":"van vee6 X","rpm":3000,"patch":{"layout":"vee","cyl":6,"xover":"x","tail":2}},
+ {"id":"palanquin_25d","label":"van vee6 Y","rpm":3000,"patch":{"layout":"vee","cyl":6,"xover":"y","tail":1}},
+ {"id":"palanquin_25d","label":"van vee6 none 4500","rpm":4500,"patch":{"layout":"vee","cyl":6,"xover":"none","tail":2}},
+ {"id":"palanquin_25d","label":"van vee6 H 4500","rpm":4500,"patch":{"layout":"vee","cyl":6,"xover":"h","tail":2}},
+ {"id":"palanquin_25d","label":"van vee6 X 4500","rpm":4500,"patch":{"layout":"vee","cyl":6,"xover":"x","tail":2}},
+ {"id":"palanquin_25d","label":"van vee6 Y 4500","rpm":4500,"patch":{"layout":"vee","cyl":6,"xover":"y","tail":1}}]

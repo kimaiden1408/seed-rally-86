@@ -1,0 +1,8 @@
+[{"id":"galliot_v8","label":"V8 stock: a pipe a bank, none","rpm":3000},
+ {"id":"galliot_v8","label":"H-pipe","rpm":3000,"patch":{"xover":"h","tail":2}},
+ {"id":"galliot_v8","label":"X-pipe","rpm":3000,"patch":{"xover":"x","tail":2}},
+ {"id":"galliot_v8","label":"Y-pipe, one tailpipe","rpm":3000,"patch":{"xover":"y","tail":1}},
+ {"id":"galliot_v8","label":"none + chambered silencers","rpm":3000,"patch":{"xover":"none","tail":2,"muff":"chamber"}},
+ {"id":"galliot_v8","label":"H + chambered silencers","rpm":3000,"patch":{"xover":"h","tail":2,"muff":"chamber"}},
+ {"id":"galliot_v8","label":"X + chambered silencers","rpm":3000,"patch":{"xover":"x","tail":2,"muff":"chamber"}},
+ {"id":"galliot_v8","label":"Y + chambered silencer","rpm":3000,"patch":{"xover":"y","tail":1,"muff":"chamber"}}]

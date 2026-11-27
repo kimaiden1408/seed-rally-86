@@ -1,0 +1,10 @@
+bands Hz: 30-60 | 60-120 | 120-200 | 200-420 | 420-1k | 1k-2k | 2k-3k | 3k-4.5k | 4.5k-8k
+V8 Y-pipe, one tailpipe            rms  -16.8 |  -33.1 -28.4 -22.8 -18.4 -25.7 -25.6 -29.9 -32.9 -30.6 | sections 1 | shell <250Hz -49.6  {"len":3.48,"n":1,"d":76,"np":1}
+V8 Y-pipe, two tailpipes           rms  -16.7 |  -33.1 -28.5 -22.8 -18.4 -25.7 -25.5 -29.8 -32.9 -30.6 | sections 1 | shell <250Hz -49.6  {"len":3.48,"n":1,"d":72,"np":2}
+V8 Y, one, chambered               rms  -17.1 |  -32.8 -30.2 -20.5 -18.0 -31.3 -31.8 -35.8 -39.7 -35.5 | sections 5 | shell <250Hz -49.6  {"len":3.22,"n":5,"d":76,"np":1}
+V8 Y, two, chambered               rms  -17.2 |  -32.7 -30.2 -20.4 -18.1 -31.3 -32.7 -36.0 -40.6 -35.9 | sections 5 | shell <250Hz -49.6  {"len":3.22,"n":5,"d":72,"np":2}
+inline four, one tailpipe          rms  -19.8 |  -51.1 -47.2 -18.3 -30.2 -39.4 -47.1 -49.4 -49.8 -50.7 | sections 7 | shell <250Hz -56.6  {"len":3.31,"n":7,"d":76,"np":1}
+inline four, two tailpipes         rms  -18.4 |  -53.9 -48.7 -16.7 -36.0 -42.2 -45.9 -48.3 -48.7 -49.6 | sections 7 | shell <250Hz -56.9  {"len":3.48,"n":7,"d":81,"np":2}
+across-car V6, Y one tailpipe      rms  -11.1 |  -43.9 -38.4 -18.9 -11.0 -17.5 -23.5 -31.4 -37.5 -41.5 | sections 7 | shell <250Hz -48.8  {"len":2.7,"n":7,"d":76,"np":1}
+across-car V6, H chosen, two       rms   -9.6 |  -44.2 -36.8 -17.2  -9.0 -18.8 -23.8 -31.6 -37.7 -41.2 | sections 7 | shell <250Hz -48.8  {"len":3.09,"n":7,"d":81,"np":2}
+errors []
