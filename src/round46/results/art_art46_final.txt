@@ -1,0 +1,5 @@
+tab {"art":true,"offline":true,"newHidden":true,"rows":3,"note":"Pick a course, or make one on the map."}
+Turini {"kind":"p2p","km":"11.95","laps":0,"facts":"Point to point / 11.95 km","stats":{"buildings":410,"tunnels":1,"bridges":3,"walls":15,"fences":5,"hedges":0,"trees":0,"lamps":0,"poles":18,"water":6020,"net":8068,"rail":0,"ms":94}} ms 7874
+Bollène {"kind":"rt","km":"6.02","laps":0,"facts":"There and back / 6.02 km","stats":{"buildings":363,"tunnels":1,"bridges":4,"walls":17,"fences":5,"hedges":0,"trees":0,"lamps":0,"poles":16,"water":2470,"net":2846,"rail":0,"ms":33}} ms 4259
+Monaco {"kind":"loop","km":"9.96","laps":3,"facts":"Circuit, 3 laps / 9.96 km","stats":{"buildings":751,"tunnels":2,"bridges":42,"walls":45,"fences":8,"hedges":2,"trees":274,"lamps":23,"poles":0,"water":178,"net":11718,"rail":1104,"ms":180}} ms 4722
+errors [] reqs 0

@@ -1,0 +1,11 @@
+seed 1 build ms 5295
+seed 1 {"tris":132756,"calls":70,"geos":81,"tex":40}
+seed 777 build ms 6758
+seed 777 {"tris":88897,"calls":83,"geos":102,"tex":53}
+turini build ms 13009
+turini {"tris":165242,"calls":88,"geos":106,"tex":59}
+bollene_rt build ms 3915
+bollene_rt {"tris":159447,"calls":95,"geos":119,"tex":66}
+monaco build ms 4103
+monaco {"tris":261292,"calls":125,"geos":152,"tex":73}
+errors []

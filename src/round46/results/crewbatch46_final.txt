@@ -1,0 +1,6 @@
+seed 1      7.83 km ["DNF off@2716","DNF engine@3188","DNF engine@4032",571.3]
+seed 777    6.76 km [295.2,309.4,307.5,306.6]
+turini      11.95 km [682.8,669.3,654.5,656.7]
+bollene_rt  6.02 km [296.4,311.4,"DNF suspension@3022",287.2]
+monaco      9.96 km [429.7,419.1,417.9,418.4]
+errors []

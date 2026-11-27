@@ -1,0 +1,21 @@
+2.3s server: Seed Rally 86 is running on port 18583 (the board is saved in /tmp/rs46/data)
+2.3s race server on 18583
+16.0s both connected to the race server
+18.5s race code vb2g
+44.5s host laid out monaco in 26004 ms
+55.5s joiner laid out monaco in 11010 ms
+57.3s preset course host {"key":"rw|monaco|5|0","label":"Monaco streets circuit","real":true,"n":8435,"cN":1661,"laps":5,"kind":"loop","h":"f073936b","notes":151}
+57.3s preset course joiner {"key":"rw|monaco|5|0","label":"Monaco streets circuit","real":true,"n":8435,"cN":1661,"laps":5,"kind":"loop","h":"f073936b","notes":151}
+77.9s no signals: joiner {"note":"This race is on a course this page has not got: open its course file, or join the race from the game’s website.","go":"Course not on this page","dis":true,"rdy":0,"ready":false}
+99.6s joiner with the course kept laid it out in 20896 ms: [{"key":"rw|1eb7b265|0|0","label":"La Turbie","real":true,"n":4222,"cN":4222,"laps":0,"kind":"p2p","h":"f4ec862f","notes":6},{"key":"rw|1eb7b265|0|0","label":"La Turbie","real":true,"n":4222,"cN":4222,"laps":0,"kind":"p2p","h":"f4ec862f","notes":6}]
+99.9s kept course, no signals: joiner ready 1
+100.8s kept course, no signals: host sees it
+113.0s kept course, no signals: both on the grid
+117.4s kept course, no signals: start given
+131.2s kept course, no signals: host {"phase":"race","host":true,"state":"run","cd":-0.1,"slot":1,"rivals":[{"ph":"run","at":0,"d":14,"p":59}],"rdy":0,"note":"","rwNote":"","go":"Gather everyone at the start","car":[-3440,792,183]}
+131.2s kept course, no signals: joiner {"phase":"race","host":false,"state":"run","cd":-0.1,"slot":0,"rivals":[{"ph":"run","at":0,"d":9,"p":54}],"rdy":0,"note":"","rwNote":"","go":"Ready ✓ (tap to undo)","car":[-3429,786,189]}
+133.3s kept course, no signals: back in the race room
+133.3s FAILED Error: done (no signals)
+133.4s host {"phase":"lobby","host":true,"state":"menu","cd":-0.1,"slot":-1,"rivals":[],"rdy":0,"note":"","rwNote":"","go":"Start on your own","car":[-3435,790,185]}
+133.6s joiner {"phase":"lobby","host":false,"state":"menu","cd":-0.1,"slot":-1,"rivals":[],"rdy":0,"note":"","rwNote":"","go":"Ready","car":[-3418,780,195]}
+133.6s errors {"host":[],"joiner":[]}

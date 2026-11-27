@@ -1,0 +1,5 @@
+len 3321 | route->relation: median 0.0 m, 95% 0.1 m, max 3.4 m, over 6 m: 0 of 415
+relation->route: median 0.0 m, 95% 0.1 m, max 4.3 m, over 6 m: 0 of 409
+route off: []
+relation off: []
+0m Boulevard Albert 1er > 172m Circuit de Monaco > 264m Avenue d'Ostende > 626m Avenue Princesse Alice > 644m Avenue de Monte-Carlo > 864m Place du Casino > 904m Avenue de Monte-Carlo > 931m Avenue des Spélugues > 1281m Avenue Princesse Grace > 1391m Circuit de Monaco > 1429m Boulevard Louis II > 2087m service > 2100m Circuit de Monaco > 2172m Quai des États-Unis > 2307m Route de la Piscine > 2515m Circuit de Monaco > 2591m Route de la Piscine > 2670m Circuit de Monaco > 2904m Quai Antoine 1er > 2967m Circuit de Monaco > 3018m Avenue du Port > 3067m Boulevard Albert 1er

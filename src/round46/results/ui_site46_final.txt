@@ -1,0 +1,6 @@
+tab {"mode":"real","rows":["Col de Turini climbPoint to point · 12.0 km · one of the game’s","La Bollène there and backThere and back · 6.0 km · one of the game’s","Monaco streets circuitCircuit · 3.3 km · a lap · one of the game’s"],"note":"Pick a course, or make one on the map.","go":"Make a course"}
+turini {"name":"Col de Turini climb","km":"11.95","type":"Point to point","len":"11.95 km","note":"Col de Turini climb · Point to point","hash":"#real=0400215rmvx2kt68zw38zz81n3k0c","go":"Start stage"}
+map {"say":"3.00 km of real roads each way, 5.99 km in all.","wp":2,"kind":"rt","route":366,"tiles":30}
+built {"name":"La Bollène-Vésubie","kind":"rt","km":"6.02","rows":["La Bollène-Vésubie There and back · 6.0 km","Col de Turini climb Point to point · 12.0 km · one of the game’s","La Bollène there and back There and back · 6.0 km · one of the game’s","Monaco streets circuit Circuit · 3.3 km · a lap · one of the game’s"],"kept":1,"hash":"#real=040g215rm7x2kj6czw3af0g1m3kg2"}
+ko {"tab":"실제 도로","head":"실제 도로","rows":["La Bollène-Vésubie 왕복 코스 · 6.0 km","콜 드 튀리니 오르막 편도 코스 · 12.0 km · 게임 기본 코스"],"btn":"지도에서 코스 만들기"}
+errors [] net {"hit":69,"miss":0,"fail":0,"blocked":0}

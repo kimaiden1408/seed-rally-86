@@ -1,0 +1,8 @@
+graphics high
+seed:1       {"tris":320074,"calls":110} (not stage) 159718t/35c (0) | instanced 61992t/39c (59) | ground 41548t/18c (356) | road 34176t/3c (12) | baked 19394t/8c (39) | other 2824t/4c (8) | (instances) 2425t/0c (33) | baked+tex 422t/3c (32)
+seed:777     {"tris":253434,"calls":121} (not stage) 166630t/35c (0) | ground 27880t/13c (305) | baked+tex 27808t/20c (187) | instanced 24148t/42c (64) | road 3920t/2c (16) | other 1936t/6c (9) | (instances) 1200t/0c (29) | baked 1112t/2c (48)
+turini       {"tris":430456,"calls":146} (not stage) 166630t/35c (0) | instanced 113054t/53c (80) | baked 75438t/15c (76) | ground 36246t/18c (313) | road 29232t/3c (24) | rw:bld 7110t/7c (19) | (instances) 4877t/0c (40) | other 1056t/6c (21) | rw:water 874t/4c (35) | baked+tex 816t/4c (32)
+bollene_rt   {"tris":415502,"calls":160} (not stage) 166630t/35c (0) | instanced 122096t/52c (71) | ground 64518t/28c (215) | road 29232t/3c (6) | baked 22433t/15c (41) | rw:bld 7553t/9c (9) | (instances) 5385t/0c (40) | baked+tex 1342t/6c (15) | other 854t/7c (11) | rw:water 844t/4c (15)
+monaco       {"tris":499342,"calls":188} (not stage) 166630t/35c (0) | instanced 104184t/45c (51) | ground 75783t/32c (150) | road 65056t/8c (11) | baked 54211t/29c (53) | rw:bld 18983t/10c (16) | baked+tex 9652t/15c (28) | other 4500t/7c (8) | (instances) 3862t/0c (33) | rw:water 343t/6c (9)
+a8           {"tris":508708,"calls":119} (not stage) 166630t/35c (0) | instanced 143564t/37c (69) | baked 91030t/16c (118) | ground 41249t/17c (362) | other 39144t/5c (24) | road 26112t/2c (14) | (instances) 7933t/0c (34) | rw:bld 979t/6c (46) | rw:water 0t/0c (4) | baked+tex 0t/0c (27)
+errors []
