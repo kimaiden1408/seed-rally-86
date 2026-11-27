@@ -1,0 +1,8 @@
+Lap 3/3 |  | Last | Best | Gap
+1 | Ann | L3 | 2:15.400[lp] | 2:15.400[lp] | Leader
+2 | Me | L3 | 2:16.500[lg] | 2:16.500 | +5.000
+3 | Bo | L2 | 2:30.200[lg] | 2:30.200 | +1 L
+4 | Cy | L1 | – | – | out
+feed ["Ann: Fastest lap 2:15.400"]
+class mpstand tower | popup S1  41.000  +0.500 · P2 | results: me Best lap 2:16.500 | Ann Best lap 2:15.400 · Fastest lap
+errors []

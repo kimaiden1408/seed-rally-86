@@ -1,0 +1,2746 @@
+{
+ "preset": "monaco",
+ "from": "http://127.0.0.1:45639/",
+ "presetJoinMs": 6240,
+ "presetSig": [
+  {
+   "key": "rw|monaco|5|0",
+   "label": "Monaco streets circuit",
+   "real": true,
+   "n": 8435,
+   "cN": 1661,
+   "laps": 5,
+   "kind": "loop",
+   "h": "f073936b",
+   "notes": 151
+  },
+  {
+   "key": "rw|monaco|5|0",
+   "label": "Monaco streets circuit",
+   "real": true,
+   "n": 8435,
+   "cN": 1661,
+   "laps": 5,
+   "kind": "loop",
+   "h": "f073936b",
+   "notes": 151
+  }
+ ],
+ "presetRace": {
+  "host": {
+   "phase": "race",
+   "host": true,
+   "state": "run",
+   "cd": -0.1,
+   "slot": 1,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 6,
+     "p": 27
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Gather everyone at the start",
+   "car": [
+    -367,
+    124,
+    42
+   ]
+  },
+  "joiner": {
+   "phase": "race",
+   "host": false,
+   "state": "run",
+   "cd": -0.1,
+   "slot": 0,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 17,
+     "p": 35
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Ready ✓ (tap to undo)",
+   "car": [
+    -373,
+    114,
+    47
+   ]
+  }
+ },
+ "joinerHadIt": false,
+ "transfer": [
+  {
+   "t": 114,
+   "s": {
+    "got": [
+     0,
+     0
+    ],
+    "ready": false,
+    "note": "",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 454,
+   "s": {
+    "got": [
+     8,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 6%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 760,
+   "s": {
+    "got": [
+     15,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 12%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 1090,
+   "s": {
+    "got": [
+     20,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 16%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 1383,
+   "s": {
+    "got": [
+     24,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 19%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 1747,
+   "s": {
+    "got": [
+     31,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 25%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 2071,
+   "s": {
+    "got": [
+     40,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 32%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 2715,
+   "s": {
+    "got": [
+     43,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 34%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 3398,
+   "s": {
+    "got": [
+     53,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 42%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 3776,
+   "s": {
+    "got": [
+     56,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 44%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 4123,
+   "s": {
+    "got": [
+     61,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 48%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 4427,
+   "s": {
+    "got": [
+     67,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 53%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 4746,
+   "s": {
+    "got": [
+     70,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 56%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 5021,
+   "s": {
+    "got": [
+     73,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 58%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 5282,
+   "s": {
+    "got": [
+     76,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 60%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 5617,
+   "s": {
+    "got": [
+     80,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 63%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 5887,
+   "s": {
+    "got": [
+     87,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 69%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 6172,
+   "s": {
+    "got": [
+     90,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 71%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 6499,
+   "s": {
+    "got": [
+     93,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 74%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 6779,
+   "s": {
+    "got": [
+     97,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 77%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 7078,
+   "s": {
+    "got": [
+     102,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 81%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 7380,
+   "s": {
+    "got": [
+     108,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 86%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 7691,
+   "s": {
+    "got": [
+     111,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 88%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 7977,
+   "s": {
+    "got": [
+     115,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 91%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 8315,
+   "s": {
+    "got": [
+     123,
+     126
+    ],
+    "ready": false,
+    "note": "Getting the course from the host… 98%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 8677,
+   "s": {
+    "got": null,
+    "ready": false,
+    "note": "Getting the course from the host… 99%",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 9319,
+   "s": {
+    "got": null,
+    "ready": false,
+    "note": "",
+    "go": "Getting the course…",
+    "dis": true
+   }
+  },
+  {
+   "t": 21789,
+   "s": {
+    "got": null,
+    "ready": true,
+    "note": "",
+    "go": "Ready",
+    "dis": false
+   }
+  }
+ ],
+ "userJoinMs": 21789,
+ "dbg_host": {
+  "vis": [
+   "visible",
+   true
+  ],
+  "vis2": [
+   "visible",
+   true
+  ],
+  "sl": [
+   [
+    24934,
+    "in",
+    "offer",
+    null
+   ],
+   [
+    25456,
+    "in",
+    "ice",
+    null
+   ],
+   [
+    72233,
+    "in",
+    "rwq",
+    0
+   ],
+   [
+    72234,
+    "in",
+    "rwq",
+    0
+   ],
+   [
+    72234,
+    "in",
+    "rwq",
+    0
+   ],
+   [
+    72425,
+    "out",
+    "rwc",
+    0
+   ],
+   [
+    72425,
+    "out",
+    "rwc",
+    1
+   ],
+   [
+    72425,
+    "out",
+    "rwc",
+    2
+   ],
+   [
+    72522,
+    "out",
+    "rwc",
+    3
+   ],
+   [
+    72522,
+    "out",
+    "rwc",
+    4
+   ],
+   [
+    72686,
+    "out",
+    "rwc",
+    5
+   ],
+   [
+    72686,
+    "out",
+    "rwc",
+    6
+   ],
+   [
+    72686,
+    "out",
+    "rwc",
+    7
+   ],
+   [
+    72772,
+    "in",
+    "rwq",
+    6
+   ],
+   [
+    72773,
+    "out",
+    "rwc",
+    8
+   ],
+   [
+    72773,
+    "out",
+    "rwc",
+    9
+   ],
+   [
+    72851,
+    "out",
+    "rwc",
+    10
+   ],
+   [
+    72851,
+    "out",
+    "rwc",
+    11
+   ],
+   [
+    72936,
+    "in",
+    "rwq",
+    12
+   ],
+   [
+    73022,
+    "out",
+    "rwc",
+    12
+   ],
+   [
+    73023,
+    "out",
+    "rwc",
+    13
+   ],
+   [
+    73023,
+    "out",
+    "rwc",
+    14
+   ],
+   [
+    73169,
+    "out",
+    "rwc",
+    15
+   ],
+   [
+    73169,
+    "out",
+    "rwc",
+    16
+   ],
+   [
+    73169,
+    "out",
+    "rwc",
+    17
+   ],
+   [
+    73262,
+    "in",
+    "rwq",
+    18
+   ],
+   [
+    73266,
+    "out",
+    "rwc",
+    18
+   ],
+   [
+    73266,
+    "out",
+    "rwc",
+    19
+   ],
+   [
+    73439,
+    "out",
+    "rwc",
+    20
+   ],
+   [
+    73439,
+    "out",
+    "rwc",
+    21
+   ],
+   [
+    73439,
+    "out",
+    "rwc",
+    22
+   ],
+   [
+    73611,
+    "out",
+    "rwc",
+    23
+   ],
+   [
+    73611,
+    "out",
+    "rwc",
+    24
+   ],
+   [
+    73611,
+    "out",
+    "rwc",
+    25
+   ],
+   [
+    73696,
+    "out",
+    "rwc",
+    26
+   ],
+   [
+    73696,
+    "out",
+    "rwc",
+    27
+   ],
+   [
+    73815,
+    "in",
+    "rwq",
+    24
+   ],
+   [
+    73815,
+    "out",
+    "rwc",
+    28
+   ],
+   [
+    73815,
+    "out",
+    "rwc",
+    29
+   ],
+   [
+    73815,
+    "out",
+    "rwc",
+    30
+   ],
+   [
+    73904,
+    "in",
+    "rwq",
+    30
+   ],
+   [
+    73989,
+    "out",
+    "rwc",
+    31
+   ],
+   [
+    73993,
+    "out",
+    "rwc",
+    32
+   ],
+   [
+    73993,
+    "out",
+    "rwc",
+    33
+   ],
+   [
+    74070,
+    "out",
+    "rwc",
+    34
+   ],
+   [
+    74074,
+    "out",
+    "rwc",
+    35
+   ],
+   [
+    74165,
+    "out",
+    "rwc",
+    36
+   ],
+   [
+    74166,
+    "out",
+    "rwc",
+    37
+   ],
+   [
+    74263,
+    "in",
+    "rwq",
+    36
+   ],
+   [
+    74263,
+    "out",
+    "rwc",
+    38
+   ],
+   [
+    74264,
+    "out",
+    "rwc",
+    39
+   ],
+   [
+    74771,
+    "out",
+    "rwc",
+    40
+   ],
+   [
+    74771,
+    "out",
+    "rwc",
+    41
+   ],
+   [
+    74771,
+    "out",
+    "rwc",
+    42
+   ],
+   [
+    75210,
+    "in",
+    "rwq",
+    42
+   ],
+   [
+    75309,
+    "out",
+    "rwc",
+    43
+   ],
+   [
+    75314,
+    "out",
+    "rwc",
+    44
+   ],
+   [
+    75315,
+    "out",
+    "rwc",
+    45
+   ],
+   [
+    75412,
+    "out",
+    "rwc",
+    46
+   ],
+   [
+    75412,
+    "out",
+    "rwc",
+    47
+   ],
+   [
+    75493,
+    "out",
+    "rwc",
+    48
+   ],
+   [
+    75493,
+    "out",
+    "rwc",
+    49
+   ],
+   [
+    75613,
+    "in",
+    "rwq",
+    48
+   ],
+   [
+    75613,
+    "out",
+    "rwc",
+    50
+   ],
+   [
+    75613,
+    "out",
+    "rwc",
+    51
+   ],
+   [
+    75613,
+    "out",
+    "rwc",
+    52
+   ],
+   [
+    75864,
+    "out",
+    "rwc",
+    53
+   ],
+   [
+    75864,
+    "out",
+    "rwc",
+    54
+   ],
+   [
+    75864,
+    "out",
+    "rwc",
+    55
+   ],
+   [
+    75955,
+    "in",
+    "rwq",
+    54
+   ],
+   [
+    75956,
+    "out",
+    "rwc",
+    56
+   ],
+   [
+    75957,
+    "out",
+    "rwc",
+    57
+   ],
+   [
+    76219,
+    "out",
+    "rwc",
+    58
+   ],
+   [
+    76222,
+    "out",
+    "rwc",
+    59
+   ],
+   [
+    76222,
+    "out",
+    "rwc",
+    60
+   ],
+   [
+    76377,
+    "out",
+    "rwc",
+    61
+   ],
+   [
+    76377,
+    "out",
+    "rwc",
+    62
+   ],
+   [
+    76377,
+    "out",
+    "rwc",
+    63
+   ],
+   [
+    76378,
+    "in",
+    "rwq",
+    60
+   ],
+   [
+    76582,
+    "out",
+    "rwc",
+    64
+   ],
+   [
+    76583,
+    "out",
+    "rwc",
+    65
+   ],
+   [
+    76583,
+    "out",
+    "rwc",
+    66
+   ],
+   [
+    76860,
+    "out",
+    "rwc",
+    67
+   ],
+   [
+    76863,
+    "out",
+    "rwc",
+    68
+   ],
+   [
+    76863,
+    "out",
+    "rwc",
+    69
+   ],
+   [
+    76864,
+    "in",
+    "rwq",
+    66
+   ],
+   [
+    77209,
+    "out",
+    "rwc",
+    70
+   ],
+   [
+    77209,
+    "out",
+    "rwc",
+    71
+   ],
+   [
+    77210,
+    "out",
+    "rwc",
+    72
+   ],
+   [
+    77413,
+    "in",
+    "rwq",
+    72
+   ],
+   [
+    77422,
+    "out",
+    "rwc",
+    73
+   ],
+   [
+    77423,
+    "out",
+    "rwc",
+    74
+   ],
+   [
+    77423,
+    "out",
+    "rwc",
+    75
+   ],
+   [
+    77687,
+    "out",
+    "rwc",
+    76
+   ],
+   [
+    77689,
+    "out",
+    "rwc",
+    77
+   ],
+   [
+    77689,
+    "out",
+    "rwc",
+    78
+   ],
+   [
+    77869,
+    "out",
+    "rwc",
+    79
+   ],
+   [
+    77870,
+    "out",
+    "rwc",
+    80
+   ],
+   [
+    77871,
+    "out",
+    "rwc",
+    81
+   ],
+   [
+    77981,
+    "out",
+    "rwc",
+    82
+   ],
+   [
+    77981,
+    "out",
+    "rwc",
+    83
+   ],
+   [
+    77982,
+    "in",
+    "rwq",
+    78
+   ],
+   [
+    78072,
+    "out",
+    "rwc",
+    84
+   ],
+   [
+    78072,
+    "out",
+    "rwc",
+    85
+   ],
+   [
+    78073,
+    "out",
+    "rwc",
+    86
+   ],
+   [
+    78176,
+    "in",
+    "rwq",
+    84
+   ],
+   [
+    78294,
+    "out",
+    "rwc",
+    87
+   ],
+   [
+    78294,
+    "out",
+    "rwc",
+    88
+   ],
+   [
+    78294,
+    "out",
+    "rwc",
+    89
+   ],
+   [
+    78464,
+    "in",
+    "rwq",
+    90
+   ],
+   [
+    78575,
+    "out",
+    "rwc",
+    90
+   ],
+   [
+    78575,
+    "out",
+    "rwc",
+    91
+   ],
+   [
+    78575,
+    "out",
+    "rwc",
+    92
+   ],
+   [
+    78791,
+    "out",
+    "rwc",
+    93
+   ],
+   [
+    78791,
+    "out",
+    "rwc",
+    94
+   ],
+   [
+    78792,
+    "out",
+    "rwc",
+    95
+   ],
+   [
+    78924,
+    "in",
+    "rwq",
+    96
+   ],
+   [
+    79062,
+    "out",
+    "rwc",
+    96
+   ],
+   [
+    79062,
+    "out",
+    "rwc",
+    97
+   ],
+   [
+    79062,
+    "out",
+    "rwc",
+    98
+   ],
+   [
+    79249,
+    "out",
+    "rwc",
+    99
+   ],
+   [
+    79249,
+    "out",
+    "rwc",
+    100
+   ],
+   [
+    79249,
+    "out",
+    "rwc",
+    101
+   ],
+   [
+    79375,
+    "in",
+    "rwq",
+    102
+   ],
+   [
+    79375,
+    "out",
+    "rwc",
+    102
+   ],
+   [
+    79376,
+    "out",
+    "rwc",
+    103
+   ],
+   [
+    79376,
+    "out",
+    "rwc",
+    104
+   ],
+   [
+    79582,
+    "out",
+    "rwc",
+    105
+   ],
+   [
+    79582,
+    "out",
+    "rwc",
+    106
+   ],
+   [
+    79582,
+    "out",
+    "rwc",
+    107
+   ],
+   [
+    79696,
+    "in",
+    "rwq",
+    108
+   ],
+   [
+    79801,
+    "out",
+    "rwc",
+    108
+   ],
+   [
+    79801,
+    "out",
+    "rwc",
+    109
+   ],
+   [
+    79802,
+    "out",
+    "rwc",
+    110
+   ],
+   [
+    80011,
+    "out",
+    "rwc",
+    111
+   ],
+   [
+    80013,
+    "out",
+    "rwc",
+    112
+   ],
+   [
+    80013,
+    "out",
+    "rwc",
+    113
+   ],
+   [
+    80120,
+    "in",
+    "rwq",
+    114
+   ],
+   [
+    80239,
+    "out",
+    "rwc",
+    114
+   ],
+   [
+    80244,
+    "out",
+    "rwc",
+    115
+   ],
+   [
+    80244,
+    "out",
+    "rwc",
+    116
+   ],
+   [
+    80380,
+    "out",
+    "rwc",
+    117
+   ],
+   [
+    80385,
+    "out",
+    "rwc",
+    118
+   ],
+   [
+    80385,
+    "out",
+    "rwc",
+    119
+   ],
+   [
+    80507,
+    "in",
+    "rwq",
+    120
+   ],
+   [
+    80511,
+    "out",
+    "rwc",
+    120
+   ],
+   [
+    80513,
+    "out",
+    "rwc",
+    121
+   ],
+   [
+    80514,
+    "out",
+    "rwc",
+    122
+   ],
+   [
+    80746,
+    "out",
+    "rwc",
+    123
+   ],
+   [
+    80747,
+    "out",
+    "rwc",
+    124
+   ],
+   [
+    80747,
+    "out",
+    "rwc",
+    125
+   ]
+  ],
+  "tx": {
+   "join": {
+    "10": 1
+   },
+   "pp": {
+    "10": 2,
+    "18": 1,
+    "24": 1,
+    "25": 1,
+    "26": 2,
+    "27": 1,
+    "28": 1,
+    "29": 1,
+    "30": 1,
+    "31": 2,
+    "36": 1,
+    "37": 1,
+    "39": 1,
+    "40": 3,
+    "41": 1,
+    "42": 4,
+    "43": 3,
+    "44": 2,
+    "45": 2,
+    "46": 1,
+    "47": 1,
+    "48": 3,
+    "49": 2,
+    "50": 2,
+    "51": 2,
+    "52": 1,
+    "53": 2,
+    "54": 2,
+    "55": 1,
+    "56": 1,
+    "57": 1,
+    "59": 1,
+    "60": 1,
+    "61": 1,
+    "62": 1,
+    "72": 1,
+    "73": 1,
+    "74": 1,
+    "75": 1,
+    "76": 1,
+    "77": 1,
+    "78": 1,
+    "79": 1,
+    "80": 1,
+    "81": 1,
+    "82": 1,
+    "83": 1,
+    "84": 1,
+    "85": 1,
+    "87": 1,
+    "88": 1,
+    "89": 1,
+    "90": 1,
+    "91": 1,
+    "92": 1,
+    "93": 1
+   },
+   "sig:answer": {
+    "25": 1
+   },
+   "sig:ice": {
+    "25": 1
+   },
+   "hb": {
+    "60": 1
+   },
+   "sig:rwc": {
+    "72": 12,
+    "73": 22,
+    "74": 9,
+    "75": 15,
+    "76": 12,
+    "77": 14,
+    "78": 12,
+    "79": 15,
+    "80": 15
+   }
+  }
+ },
+ "dbg_joiner": {
+  "vis": [
+   "visible",
+   true
+  ],
+  "vis2": [
+   "visible",
+   true
+  ],
+  "sl": [
+   [
+    25049,
+    "in",
+    "answer",
+    null
+   ],
+   [
+    30257,
+    "in",
+    "ice",
+    null
+   ],
+   [
+    63283,
+    "out",
+    "rwq",
+    0
+   ],
+   [
+    66410,
+    "out",
+    "rwq",
+    0
+   ],
+   [
+    69460,
+    "out",
+    "rwq",
+    0
+   ],
+   [
+    72226,
+    "in",
+    "rwc",
+    0
+   ],
+   [
+    72308,
+    "in",
+    "rwc",
+    1
+   ],
+   [
+    72309,
+    "in",
+    "rwc",
+    2
+   ],
+   [
+    72389,
+    "in",
+    "rwc",
+    3
+   ],
+   [
+    72395,
+    "in",
+    "rwc",
+    4
+   ],
+   [
+    72474,
+    "in",
+    "rwc",
+    5
+   ],
+   [
+    72474,
+    "out",
+    "rwq",
+    6
+   ],
+   [
+    72558,
+    "in",
+    "rwc",
+    6
+   ],
+   [
+    72560,
+    "in",
+    "rwc",
+    7
+   ],
+   [
+    72641,
+    "in",
+    "rwc",
+    8
+   ],
+   [
+    72641,
+    "in",
+    "rwc",
+    9
+   ],
+   [
+    72641,
+    "in",
+    "rwc",
+    10
+   ],
+   [
+    72642,
+    "in",
+    "rwc",
+    11
+   ],
+   [
+    72642,
+    "out",
+    "rwq",
+    12
+   ],
+   [
+    72801,
+    "in",
+    "rwc",
+    12
+   ],
+   [
+    72801,
+    "in",
+    "rwc",
+    13
+   ],
+   [
+    72801,
+    "in",
+    "rwc",
+    14
+   ],
+   [
+    72951,
+    "in",
+    "rwc",
+    15
+   ],
+   [
+    73019,
+    "in",
+    "rwc",
+    16
+   ],
+   [
+    73020,
+    "in",
+    "rwc",
+    17
+   ],
+   [
+    73020,
+    "out",
+    "rwq",
+    18
+   ],
+   [
+    73101,
+    "in",
+    "rwc",
+    18
+   ],
+   [
+    73198,
+    "in",
+    "rwc",
+    19
+   ],
+   [
+    73298,
+    "in",
+    "rwc",
+    20
+   ],
+   [
+    73380,
+    "in",
+    "rwc",
+    21
+   ],
+   [
+    73385,
+    "in",
+    "rwc",
+    22
+   ],
+   [
+    73491,
+    "in",
+    "rwc",
+    23
+   ],
+   [
+    73491,
+    "out",
+    "rwq",
+    24
+   ],
+   [
+    73578,
+    "in",
+    "rwc",
+    24
+   ],
+   [
+    73579,
+    "in",
+    "rwc",
+    25
+   ],
+   [
+    73579,
+    "in",
+    "rwc",
+    26
+   ],
+   [
+    73579,
+    "in",
+    "rwc",
+    27
+   ],
+   [
+    73659,
+    "in",
+    "rwc",
+    28
+   ],
+   [
+    73660,
+    "in",
+    "rwc",
+    29
+   ],
+   [
+    73660,
+    "out",
+    "rwq",
+    30
+   ],
+   [
+    73660,
+    "in",
+    "rwc",
+    30
+   ],
+   [
+    73859,
+    "in",
+    "rwc",
+    31
+   ],
+   [
+    73969,
+    "in",
+    "rwc",
+    32
+   ],
+   [
+    73978,
+    "in",
+    "rwc",
+    33
+   ],
+   [
+    73979,
+    "in",
+    "rwc",
+    34
+   ],
+   [
+    73980,
+    "in",
+    "rwc",
+    35
+   ],
+   [
+    73980,
+    "out",
+    "rwq",
+    36
+   ],
+   [
+    74081,
+    "in",
+    "rwc",
+    36
+   ],
+   [
+    74083,
+    "in",
+    "rwc",
+    37
+   ],
+   [
+    74174,
+    "in",
+    "rwc",
+    38
+   ],
+   [
+    74181,
+    "in",
+    "rwc",
+    39
+   ],
+   [
+    74663,
+    "in",
+    "rwc",
+    40
+   ],
+   [
+    74741,
+    "in",
+    "rwc",
+    41
+   ],
+   [
+    74741,
+    "out",
+    "rwq",
+    42
+   ],
+   [
+    74742,
+    "in",
+    "rwc",
+    42
+   ],
+   [
+    75170,
+    "in",
+    "rwc",
+    43
+   ],
+   [
+    75257,
+    "in",
+    "rwc",
+    44
+   ],
+   [
+    75258,
+    "in",
+    "rwc",
+    45
+   ],
+   [
+    75331,
+    "in",
+    "rwc",
+    46
+   ],
+   [
+    75331,
+    "in",
+    "rwc",
+    47
+   ],
+   [
+    75334,
+    "out",
+    "rwq",
+    48
+   ],
+   [
+    75421,
+    "in",
+    "rwc",
+    48
+   ],
+   [
+    75425,
+    "in",
+    "rwc",
+    49
+   ],
+   [
+    75499,
+    "in",
+    "rwc",
+    50
+   ],
+   [
+    75501,
+    "in",
+    "rwc",
+    51
+   ],
+   [
+    75502,
+    "in",
+    "rwc",
+    52
+   ],
+   [
+    75718,
+    "in",
+    "rwc",
+    53
+   ],
+   [
+    75718,
+    "out",
+    "rwq",
+    54
+   ],
+   [
+    75846,
+    "in",
+    "rwc",
+    54
+   ],
+   [
+    75846,
+    "in",
+    "rwc",
+    55
+   ],
+   [
+    76016,
+    "in",
+    "rwc",
+    56
+   ],
+   [
+    76018,
+    "in",
+    "rwc",
+    57
+   ],
+   [
+    76135,
+    "in",
+    "rwc",
+    58
+   ],
+   [
+    76136,
+    "in",
+    "rwc",
+    59
+   ],
+   [
+    76136,
+    "out",
+    "rwq",
+    60
+   ],
+   [
+    76136,
+    "in",
+    "rwc",
+    60
+   ],
+   [
+    76233,
+    "in",
+    "rwc",
+    61
+   ],
+   [
+    76311,
+    "in",
+    "rwc",
+    62
+   ],
+   [
+    76311,
+    "in",
+    "rwc",
+    63
+   ],
+   [
+    76383,
+    "in",
+    "rwc",
+    64
+   ],
+   [
+    76455,
+    "in",
+    "rwc",
+    65
+   ],
+   [
+    76455,
+    "out",
+    "rwq",
+    66
+   ],
+   [
+    76459,
+    "in",
+    "rwc",
+    66
+   ],
+   [
+    76659,
+    "in",
+    "rwc",
+    67
+   ],
+   [
+    76762,
+    "in",
+    "rwc",
+    68
+   ],
+   [
+    76763,
+    "in",
+    "rwc",
+    69
+   ],
+   [
+    76997,
+    "in",
+    "rwc",
+    70
+   ],
+   [
+    77057,
+    "in",
+    "rwc",
+    71
+   ],
+   [
+    77057,
+    "out",
+    "rwq",
+    72
+   ],
+   [
+    77057,
+    "in",
+    "rwc",
+    72
+   ],
+   [
+    77253,
+    "in",
+    "rwc",
+    73
+   ],
+   [
+    77312,
+    "in",
+    "rwc",
+    74
+   ],
+   [
+    77313,
+    "in",
+    "rwc",
+    75
+   ],
+   [
+    77554,
+    "in",
+    "rwc",
+    76
+   ],
+   [
+    77640,
+    "in",
+    "rwc",
+    77
+   ],
+   [
+    77640,
+    "out",
+    "rwq",
+    78
+   ],
+   [
+    77641,
+    "in",
+    "rwc",
+    78
+   ],
+   [
+    77725,
+    "in",
+    "rwc",
+    79
+   ],
+   [
+    77807,
+    "in",
+    "rwc",
+    80
+   ],
+   [
+    77808,
+    "in",
+    "rwc",
+    81
+   ],
+   [
+    77898,
+    "in",
+    "rwc",
+    82
+   ],
+   [
+    77899,
+    "in",
+    "rwc",
+    83
+   ],
+   [
+    77899,
+    "out",
+    "rwq",
+    84
+   ],
+   [
+    77992,
+    "in",
+    "rwc",
+    84
+   ],
+   [
+    77993,
+    "in",
+    "rwc",
+    85
+   ],
+   [
+    77993,
+    "in",
+    "rwc",
+    86
+   ],
+   [
+    78077,
+    "in",
+    "rwc",
+    87
+   ],
+   [
+    78177,
+    "in",
+    "rwc",
+    88
+   ],
+   [
+    78183,
+    "in",
+    "rwc",
+    89
+   ],
+   [
+    78183,
+    "out",
+    "rwq",
+    90
+   ],
+   [
+    78406,
+    "in",
+    "rwc",
+    90
+   ],
+   [
+    78478,
+    "in",
+    "rwc",
+    91
+   ],
+   [
+    78480,
+    "in",
+    "rwc",
+    92
+   ],
+   [
+    78611,
+    "in",
+    "rwc",
+    93
+   ],
+   [
+    78672,
+    "in",
+    "rwc",
+    94
+   ],
+   [
+    78674,
+    "in",
+    "rwc",
+    95
+   ],
+   [
+    78674,
+    "out",
+    "rwq",
+    96
+   ],
+   [
+    78890,
+    "in",
+    "rwc",
+    96
+   ],
+   [
+    78968,
+    "in",
+    "rwc",
+    97
+   ],
+   [
+    78969,
+    "in",
+    "rwc",
+    98
+   ],
+   [
+    79050,
+    "in",
+    "rwc",
+    99
+   ],
+   [
+    79117,
+    "in",
+    "rwc",
+    100
+   ],
+   [
+    79117,
+    "in",
+    "rwc",
+    101
+   ],
+   [
+    79117,
+    "out",
+    "rwq",
+    102
+   ],
+   [
+    79189,
+    "in",
+    "rwc",
+    102
+   ],
+   [
+    79275,
+    "in",
+    "rwc",
+    103
+   ],
+   [
+    79276,
+    "in",
+    "rwc",
+    104
+   ],
+   [
+    79415,
+    "in",
+    "rwc",
+    105
+   ],
+   [
+    79420,
+    "in",
+    "rwc",
+    106
+   ],
+   [
+    79421,
+    "in",
+    "rwc",
+    107
+   ],
+   [
+    79421,
+    "out",
+    "rwq",
+    108
+   ],
+   [
+    79589,
+    "in",
+    "rwc",
+    108
+   ],
+   [
+    79660,
+    "in",
+    "rwc",
+    109
+   ],
+   [
+    79660,
+    "in",
+    "rwc",
+    110
+   ],
+   [
+    79797,
+    "in",
+    "rwc",
+    111
+   ],
+   [
+    79797,
+    "in",
+    "rwc",
+    112
+   ],
+   [
+    79797,
+    "in",
+    "rwc",
+    113
+   ],
+   [
+    79798,
+    "out",
+    "rwq",
+    114
+   ],
+   [
+    80085,
+    "in",
+    "rwc",
+    114
+   ],
+   [
+    80161,
+    "in",
+    "rwc",
+    115
+   ],
+   [
+    80161,
+    "in",
+    "rwc",
+    116
+   ],
+   [
+    80161,
+    "in",
+    "rwc",
+    117
+   ],
+   [
+    80161,
+    "in",
+    "rwc",
+    118
+   ],
+   [
+    80161,
+    "in",
+    "rwc",
+    119
+   ],
+   [
+    80161,
+    "out",
+    "rwq",
+    120
+   ],
+   [
+    80338,
+    "in",
+    "rwc",
+    120
+   ],
+   [
+    80422,
+    "in",
+    "rwc",
+    121
+   ],
+   [
+    80425,
+    "in",
+    "rwc",
+    122
+   ],
+   [
+    80580,
+    "in",
+    "rwc",
+    123
+   ],
+   [
+    80580,
+    "in",
+    "rwc",
+    124
+   ],
+   [
+    80580,
+    "in",
+    "rwc",
+    125
+   ]
+  ],
+  "tx": {
+   "join": {
+    "24": 1
+   },
+   "pp": {
+    "24": 1,
+    "30": 2,
+    "31": 1,
+    "36": 1,
+    "37": 1,
+    "38": 1,
+    "39": 2,
+    "40": 3,
+    "41": 2,
+    "42": 3,
+    "43": 3,
+    "44": 1,
+    "45": 3,
+    "46": 2,
+    "47": 2,
+    "48": 1,
+    "49": 2,
+    "50": 1,
+    "51": 2,
+    "53": 1,
+    "54": 2,
+    "55": 2,
+    "57": 1,
+    "58": 1,
+    "59": 1,
+    "60": 1,
+    "61": 1,
+    "62": 1,
+    "63": 1,
+    "64": 1,
+    "65": 1,
+    "66": 1,
+    "67": 1,
+    "68": 1,
+    "69": 1,
+    "70": 1,
+    "72": 1,
+    "73": 1,
+    "74": 1,
+    "75": 1,
+    "76": 1,
+    "77": 1,
+    "78": 1,
+    "79": 1,
+    "80": 1,
+    "81": 1,
+    "94": 1
+   },
+   "sig:offer": {
+    "24": 1
+   },
+   "sig:ice": {
+    "25": 1
+   },
+   "hb": {
+    "60": 1
+   },
+   "sig:rwq": {
+    "63": 1,
+    "66": 1,
+    "69": 1,
+    "72": 2,
+    "73": 4,
+    "74": 1,
+    "75": 2,
+    "76": 2,
+    "77": 3,
+    "78": 2,
+    "79": 3,
+    "80": 1
+   }
+  }
+ },
+ "joinerKeptIt": {
+  "name": "La Turbie",
+  "kind": "p2p",
+  "km": 7.941012452146695
+ },
+ "userSig": [
+  {
+   "key": "rw|1eb7b265|0|0",
+   "label": "La Turbie",
+   "real": true,
+   "n": 4222,
+   "cN": 4222,
+   "laps": 0,
+   "kind": "p2p",
+   "h": "663ac993",
+   "notes": 6
+  },
+  {
+   "key": "rw|1eb7b265|0|0",
+   "label": "La Turbie",
+   "real": true,
+   "n": 4222,
+   "cN": 4222,
+   "laps": 0,
+   "kind": "p2p",
+   "h": "663ac993",
+   "notes": 6
+  }
+ ],
+ "userRace": {
+  "host": {
+   "phase": "race",
+   "host": true,
+   "state": "run",
+   "cd": -0.1,
+   "slot": 0,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 8,
+     "p": 32
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Gather everyone at the start",
+   "car": [
+    -3472,
+    802,
+    166
+   ]
+  },
+  "joiner": {
+   "phase": "race",
+   "host": false,
+   "state": "run",
+   "cd": -0.1,
+   "slot": 1,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 12,
+     "p": 41
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Ready ✓ (tap to undo)",
+   "car": [
+    -3468,
+    806,
+    167
+   ]
+  }
+ },
+ "loopSig": [
+  {
+   "key": "rw|monaco|3|0",
+   "label": "Monaco streets circuit",
+   "real": true,
+   "n": 5115,
+   "cN": 1661,
+   "laps": 3,
+   "kind": "loop",
+   "h": "ed24b3e9",
+   "notes": 91
+  },
+  {
+   "key": "rw|monaco|3|0",
+   "label": "Monaco streets circuit",
+   "real": true,
+   "n": 5115,
+   "cN": 1661,
+   "laps": 3,
+   "kind": "loop",
+   "h": "ed24b3e9",
+   "notes": 91
+  }
+ ],
+ "loopRace": {
+  "host": {
+   "phase": "race",
+   "host": true,
+   "state": "run",
+   "cd": -0.2,
+   "slot": 1,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 8,
+     "p": 49
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Gather everyone at the start",
+   "car": [
+    -369,
+    92,
+    58
+   ]
+  },
+  "joiner": {
+   "phase": "race",
+   "host": false,
+   "state": "run",
+   "cd": 0,
+   "slot": 0,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 6,
+     "p": 48
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Ready ✓ (tap to undo)",
+   "car": [
+    -377,
+    79,
+    64
+   ]
+  }
+ },
+ "again": {
+  "ms": 8483,
+  "asks": 0
+ },
+ "handOnMs": 32098,
+ "handOnSig": [
+  {
+   "key": "rw|1eb7b265|0|0",
+   "label": "La Turbie",
+   "real": true,
+   "n": 4222,
+   "cN": 4222,
+   "laps": 0,
+   "kind": "p2p",
+   "h": "663ac993",
+   "notes": 6
+  },
+  {
+   "key": "rw|1eb7b265|0|0",
+   "label": "La Turbie",
+   "real": true,
+   "n": 4222,
+   "cN": 4222,
+   "laps": 0,
+   "kind": "p2p",
+   "h": "663ac993",
+   "notes": 6
+  }
+ ],
+ "handOnRace": {
+  "host": {
+   "phase": "race",
+   "host": true,
+   "state": "run",
+   "cd": -0.2,
+   "slot": 1,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 30,
+     "p": 15
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Gather everyone at the start",
+   "car": [
+    -3486,
+    812,
+    157
+   ]
+  },
+  "joiner": {
+   "phase": "race",
+   "host": false,
+   "state": "run",
+   "cd": -0.3,
+   "slot": 0,
+   "rivals": [
+    {
+     "ph": "run",
+     "at": 0,
+     "d": 36,
+     "p": 36
+    }
+   ],
+   "rdy": 0,
+   "note": "",
+   "rwNote": "",
+   "go": "Ready ✓ (tap to undo)",
+   "car": [
+    -3521,
+    817,
+    140
+   ]
+  }
+ },
+ "seedSig": [
+  {
+   "key": "777||1",
+   "label": "Race stage 777",
+   "real": false,
+   "n": 3595,
+   "laps": 0,
+   "kind": "",
+   "h": "67440cba",
+   "notes": 66
+  },
+  {
+   "key": "777||1",
+   "label": "Race stage 777",
+   "real": false,
+   "n": 3595,
+   "laps": 0,
+   "kind": "",
+   "h": "67440cba",
+   "notes": 66
+  }
+ ],
+ "errors3": [],
+ "errors": {
+  "host": [],
+  "joiner": []
+ },
+ "log": [
+  "2.0s server: Seed Rally 86 is running on port 18931 (the board is saved in /tmp/rs46/data)",
+  "2.1s race server on 18931",
+  "12.2s both connected to the race server",
+  "13.0s race code hvyk",
+  "26.9s host laid out monaco in 13882 ms",
+  "33.1s joiner laid out monaco in 6240 ms",
+  "33.3s preset course host {\"key\":\"rw|monaco|5|0\",\"label\":\"Monaco streets circuit\",\"real\":true,\"n\":8435,\"cN\":1661,\"laps\":5,\"kind\":\"loop\",\"h\":\"f073936b\",\"notes\":151}",
+  "33.3s preset course joiner {\"key\":\"rw|monaco|5|0\",\"label\":\"Monaco streets circuit\",\"real\":true,\"n\":8435,\"cN\":1661,\"laps\":5,\"kind\":\"loop\",\"h\":\"f073936b\",\"notes\":151}",
+  "33.5s monaco: joiner ready 1",
+  "34.1s monaco: host sees it",
+  "39.7s monaco: both on the grid",
+  "44.1s monaco: start given",
+  "56.7s monaco: host {\"phase\":\"race\",\"host\":true,\"state\":\"run\",\"cd\":-0.1,\"slot\":1,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":6,\"p\":27}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Gather everyone at the start\",\"car\":[-367,124,42]}",
+  "56.7s monaco: joiner {\"phase\":\"race\",\"host\":false,\"state\":\"run\",\"cd\":-0.1,\"slot\":0,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":17,\"p\":35}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Ready ✓ (tap to undo)\",\"car\":[-373,114,47]}",
+  "60.9s monaco: back in the race room",
+  "62.7s host kept its course {\"code\":\"040021mgqqdjk44jzw3f0bq0sr2r9c81t2f0a\",\"name\":\"La Turbie\",\"kind\":\"p2p\"}",
+  "63.8s host course list [\"p:turini\",\"p:bollene_rt\",\"p:monaco\",\"c:040021mgqqdjk44jzw3f0bq0sr2r9c81t2f0a\"]",
+  "75.0s host laid out its course in 11024 ms; cfg.rw {\"c\":\"040021mgqqdjk44jzw3f0bq0sr2r9c81t2f0a\",\"h\":\"1eb7b265\",\"n\":\"La Turbie\",\"k\":\"p2p\",\"z\":1417110,\"s\":0}",
+  "96.7s joiner got and laid out the course in 21789 ms; 28 steps; last {\"t\":21789,\"s\":{\"got\":null,\"ready\":true,\"note\":\"\",\"go\":\"Ready\",\"dis\":false}}",
+  "97.3s user course host {\"key\":\"rw|1eb7b265|0|0\",\"label\":\"La Turbie\",\"real\":true,\"n\":4222,\"cN\":4222,\"laps\":0,\"kind\":\"p2p\",\"h\":\"663ac993\",\"notes\":6}",
+  "97.3s user course joiner {\"key\":\"rw|1eb7b265|0|0\",\"label\":\"La Turbie\",\"real\":true,\"n\":4222,\"cN\":4222,\"laps\":0,\"kind\":\"p2p\",\"h\":\"663ac993\",\"notes\":6}",
+  "97.5s user course: joiner ready 1",
+  "98.0s user course: host sees it",
+  "105.1s user course: both on the grid",
+  "108.3s user course: start given",
+  "119.4s user course: host {\"phase\":\"race\",\"host\":true,\"state\":\"run\",\"cd\":-0.1,\"slot\":0,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":8,\"p\":32}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Gather everyone at the start\",\"car\":[-3472,802,166]}",
+  "119.4s user course: joiner {\"phase\":\"race\",\"host\":false,\"state\":\"run\",\"cd\":-0.1,\"slot\":1,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":12,\"p\":41}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Ready ✓ (tap to undo)\",\"car\":[-3468,806,167]}",
+  "121.6s user course: back in the race room",
+  "127.9s circuit host {\"key\":\"rw|monaco|3|0\",\"label\":\"Monaco streets circuit\",\"real\":true,\"n\":5115,\"cN\":1661,\"laps\":3,\"kind\":\"loop\",\"h\":\"ed24b3e9\",\"notes\":91}",
+  "127.9s circuit joiner {\"key\":\"rw|monaco|3|0\",\"label\":\"Monaco streets circuit\",\"real\":true,\"n\":5115,\"cN\":1661,\"laps\":3,\"kind\":\"loop\",\"h\":\"ed24b3e9\",\"notes\":91}",
+  "128.1s circuit: joiner ready 1",
+  "128.6s circuit: host sees it",
+  "133.6s circuit: both on the grid",
+  "137.0s circuit: start given",
+  "149.2s circuit: host {\"phase\":\"race\",\"host\":true,\"state\":\"run\",\"cd\":-0.2,\"slot\":1,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":8,\"p\":49}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Gather everyone at the start\",\"car\":[-369,92,58]}",
+  "149.2s circuit: joiner {\"phase\":\"race\",\"host\":false,\"state\":\"run\",\"cd\":0,\"slot\":0,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":6,\"p\":48}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Ready ✓ (tap to undo)\",\"car\":[-377,79,64]}",
+  "150.8s circuit: back in the race room",
+  "159.5s the course again: both laid out in 8483 ms, the joiner asked for pieces 0 times",
+  "181.7s host left",
+  "182.3s joiner now hosts: {\"host\":true,\"co\":\"rw\",\"rw\":{\"c\":\"040021mgqqdjk44jzw3f0bq0sr2r9c81t2f0a\",\"h\":\"1eb7b265\",\"n\":\"La Turbie\",\"k\":\"p2p\",\"z\":1417110,\"s\":0}}",
+  "215.6s third page got the course from the new host and laid it out in 32098 ms: {\"key\":\"rw|1eb7b265|0|0\",\"label\":\"La Turbie\",\"real\":true,\"n\":4222,\"cN\":4222,\"laps\":0,\"kind\":\"p2p\",\"h\":\"663ac993\",\"notes\":6} (new host 663ac993)",
+  "216.1s after the host left: joiner ready 1",
+  "216.6s after the host left: host sees it",
+  "224.6s after the host left: both on the grid",
+  "238.4s after the host left: start given",
+  "249.3s after the host left: host {\"phase\":\"race\",\"host\":true,\"state\":\"run\",\"cd\":-0.2,\"slot\":1,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":30,\"p\":15}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Gather everyone at the start\",\"car\":[-3486,812,157]}",
+  "249.3s after the host left: joiner {\"phase\":\"race\",\"host\":false,\"state\":\"run\",\"cd\":-0.3,\"slot\":0,\"rivals\":[{\"ph\":\"run\",\"at\":0,\"d\":36,\"p\":36}],\"rdy\":0,\"note\":\"\",\"rwNote\":\"\",\"go\":\"Ready ✓ (tap to undo)\",\"car\":[-3521,817,140]}",
+  "253.5s after the host left: back in the race room",
+  "270.5s seeded host {\"key\":\"777||1\",\"label\":\"Race stage 777\",\"real\":false,\"n\":3595,\"laps\":0,\"kind\":\"\",\"h\":\"67440cba\",\"notes\":66}",
+  "270.5s seeded joiner {\"key\":\"777||1\",\"label\":\"Race stage 777\",\"real\":false,\"n\":3595,\"laps\":0,\"kind\":\"\",\"h\":\"67440cba\",\"notes\":66}",
+  "271.5s errors {\"host\":[],\"joiner\":[]}"
+ ]
+}

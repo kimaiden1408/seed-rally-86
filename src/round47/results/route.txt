@@ -1,0 +1,9 @@
+page from the race server: 200 Referrer-Policy: no-referrer
+map open; tile requests 15 referrers seen: ["http://127.0.0.1:19664/"]
+  points on the map 2
+with the routing service: 2.4 s {"say":"3.00 km of real roads each way, 5.99 km in all.","route":366} asked {"routing.openstreetmap.de":1,"overpass-api.de":1} tile referrers ["http://127.0.0.1:19664/"]
+  points on the map 2
+without it (cells): 5.0 s {"say":"3.00 km of real roads each way, 5.99 km in all.","route":366} asked {"osrm (off)":2,"overpass-api.de":12} tile referrers []
+  points on the map 3
+again, set directly: 1.5 s {"say":"13.79 km of real roads each way, 27.58 km in all.","route":956} asked {"routing.openstreetmap.de":1,"overpass-api.de":1} tile referrers []
+errors [] net {"hit":16,"miss":0,"fail":0,"blocked":0}

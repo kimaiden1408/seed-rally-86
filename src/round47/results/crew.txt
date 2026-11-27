@@ -1,0 +1,5 @@
+monaco {"kind":"loop","n":5115,"cN":1661,"start":10,"finish":4990,"km":"9.96","laps":3,"build":2122,"sim":8881,"t":416.4,"out":null,"pen":0,"splits":499,"ev":[]}
+a8 {"kind":"p2p","n":4222,"cN":4222,"start":125,"finish":4096,"km":"7.94","laps":0,"build":2609,"sim":2962,"t":176.06,"out":null,"pen":0,"splits":398,"ev":[]}
+turini {"kind":"p2p","n":6229,"cN":6229,"start":126,"finish":6102,"km":"11.95","laps":0,"build":3324,"sim":9624,"t":683.47,"out":null,"pen":30,"splits":598,"ev":[{"k":"roll","i":3419,"t":350.31666666643025,"dt":36}]}
+bollene_rt {"kind":"rt","n":3249,"cN":1661,"start":125,"finish":3133,"km":"6.02","laps":0,"build":1642,"sim":4170,"t":285.38,"out":null,"pen":0,"splits":301,"ev":[]}
+errors []

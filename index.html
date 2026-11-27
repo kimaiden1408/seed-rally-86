@@ -1011,7 +1011,8 @@ body[data-tri] #hud{left:33.3333vw;right:33.3333vw}
     </div>
     <div id="realSetup" hidden>
       <div class="plate"><label id="realHead">Real roads</label><p id="realNote" class="small">Pick a course, or make one on the map.</p></div>
-      <div class="row"><button id="realNew" class="ghostbtn" type="button">Make a course on the map</button><button id="realEdit" class="ghostbtn" type="button">Change this course</button></div>
+      <div class="row"><button id="realNew" class="ghostbtn" type="button">Make a course on the map</button><button id="realEdit" class="ghostbtn" type="button">Change this course</button><a id="realWeb" class="ghostbtn" href="https://kimaiden1408.github.io/seed-rally-86/#real=new" target="_blank" rel="noopener" hidden>Make a course on the map (opens the game’s website)</a></div>
+      <p id="realWebNote" class="small" hidden>The map can’t open inside Claude: courses are made on the game’s website, and played here from a course file or with the game’s own courses.</p>
       <div id="realList"></div>
       <div class="mpopt" id="realLapsRow" hidden><span>Laps</span><div class="assist"><button id="real_lp_1" type="button">1</button><button id="real_lp_2" type="button">2</button><button id="real_lp_3" type="button">3</button><button id="real_lp_5" type="button">5</button><button id="real_lp_10" type="button">10</button></div></div>
       <div class="mpopt"><span>Season</span><div class="assist"><button id="realSnow" type="button">Under snow</button></div></div>
@@ -1152,7 +1153,7 @@ body[data-tri] #hud{left:33.3333vw;right:33.3333vw}
 </div>
 
 <div id="hud" hidden>
-  <div class="clock"><div id="time">0:00.00</div><div id="delta"></div><div id="rallyTag"></div><div id="fbTag" class="fbtag"></div></div>
+  <div class="clock"><div id="time">0:00.00</div><div id="delta"></div><div id="rallyTag"></div><div id="fbTag" class="fbtag"></div><div id="lapBox" class="lapbox" hidden><div class="lb1"><small class="lbL">Lap</small><span id="lapN">1/1</span><span id="lapPos" hidden></span></div><div class="lsec"><span id="lapS1">S1 –</span><span id="lapS2">S2 –</span><span id="lapS3">S3 –</span></div><div class="lb2"><span><small class="lbLast">Last</small> <b id="lapLast">–</b></span><span><small class="lbBest">Best</small> <b id="lapBest">–</b></span></div><div class="lb3"><span><small class="lbTot">Total</small> <b id="lapTot">0:00.00</b></span><span id="lapRec"></span></div></div></div>
   <div id="split"></div>
   <div id="notes" class="notes" hidden></div>
   <div class="dash"><div class="spd"><span id="speed">0</span><small>km/h</small></div><div id="gear">1</div><div id="assistTag" class="atag"></div>
@@ -2631,7 +2632,7 @@ function rwNat(K, x, z) {
   // where the map's coastline has nothing to say, as within its boxes the coastline's own sea does: see rwSeaOf)
   const S = K.sea; if (S && S.on && h < (far ? 0.15 : 0.05) && (far || !rwInBoxes(S.r, x, z))) h = Math.min(h, -1.5);
   h -= K.y0 || 0; const rt = K._rt; if (rt && rt.wl.size) { const w = rwWaterAt(rt, x, z); if (w !== null) { if (h > w - 0.9) h = w - 0.9; return h; } }
-  return h > -1 ? rwTuCover(K, x, z, h) : h;
+  return h; // (over a tunnel too: the land over its tube is made up where it must be by the strip, see rwTunLand)
 }
 // The hill over a real tunnel, where the map's heights give too little of one (a gallery by the sea, a covered cutting, a
 // street under a building): over its tube the land at least its crown and a cover of 1.4 m, falling away beside it as a
@@ -2639,7 +2640,7 @@ function rwNat(K, x, z) {
 // (whether a point near the ground y stands in a real tunnel's tube, or within m of it, under its cover: nothing grows
 // or stands there)
 function rwInTube(C, x, z, y, m) { const U = C && C._tu; if (!U) return false; const L = U.g.get(Math.floor(x / U.c) + ',' + Math.floor(z / U.c)); if (!L) return false;
-  for (const p of L) if (Math.hypot(x - p.x, z - p.z) < p.w / 2 + 0.9 + m && !(y > p.y + 7.4)) return true; return false; }
+  for (const p of L) if (Math.hypot(x - p.x, z - p.z) < (p.rwHo || p.w / 2 + 1.9) + m && !(y > p.y + (p.rwTop || 7.4) + 1)) return true; return false; }
 function rwTuCover(K, x, z, h) {
   const U = K._tu; if (!U || !U.on) return h; const L = U.g.get(Math.floor(x / U.c) + ',' + Math.floor(z / U.c)); if (!L) return h;
   for (const p of L) { const e = Math.hypot(x - p.x, z - p.z) - p.w / 2 - 0.9; if (e < 9 && p.y === p.y) h = Math.max(h, p.y + 7.4 - Math.max(0, e - 2.5)); }
@@ -2941,7 +2942,8 @@ function rwHeights(C, CL) {
   // taken out: a median over 18 m, then a mean over 30 m three times; then held to no grade a public road has, 22 %)
   const med = new Float64Array(n); for (let m = 0; m < n; m++) { const a = [], k0 = Math.max(0, m - 4), k1 = Math.min(n - 1, m + 4); for (let k = k0; k <= k1; k++) a.push(Y[k]); a.sort((p, q) => p - q); med[m] = a[a.length >> 1]; }
   let y = med; for (let pass = 0; pass < 3; pass++) { const o = new Float64Array(n); for (let m = 0; m < n; m++) { let s = 0, c = 0; for (let k = Math.max(0, m - 7); k <= Math.min(n - 1, m + 7); k++) { s += y[k]; c++; } o[m] = s / c; } y = o; }
-  const g = 0.22 * STEP; for (let it = 0; it < 3; it++) { for (let m = 1; m < n; m++) y[m] = clamp(y[m], y[m - 1] - g, y[m - 1] + g); for (let m = n - 2; m >= 0; m--) y[m] = clamp(y[m], y[m + 1] - g, y[m + 1] + g); }
+  const RG = { motorway: 0.065, trunk: 0.075, primary: 0.1 }, gm = new Float64Array(n); for (let m = 0; m < n; m++) { const t = (C.ways[R.w[Math.min(R.w.length - 1, CL.v[m])]] || {}).t || {}; gm[m] = (RG[(t.highway || '').replace('_link', '')] || 0.22) * STEP; }
+  for (let it = 0; it < 3; it++) { for (let m = 1; m < n; m++) { const g = Math.min(gm[m], gm[m - 1]); y[m] = clamp(y[m], y[m - 1] - g, y[m - 1] + g); } for (let m = n - 2; m >= 0; m--) { const g = Math.min(gm[m], gm[m + 1]); y[m] = clamp(y[m], y[m + 1] - g, y[m + 1] + g); } }
   return y;
 }
 // the junctions' side roads: where another road meets the course, it carries on from the course's edge as the map has it
@@ -3006,7 +3008,7 @@ function rwAliasS_unused(T, s, lat) { const A = T.ali, f0 = s / STEP, i = clamp(
 function rwFeats(K) {
   const C = K.pack, pts = K.pts, n = K.cN;
   for (let i = 0; i < n; i++) { if (pts[i].tag !== 'bridge') continue; let j = i; while (j < n - 1 && pts[j + 1].tag === 'bridge') j++;
-    if (j - i >= 1) { K.feat('bridge', i, j, { rw: 1, hump: 0 }); for (let k = i; k <= j; k++) pts[k].wall = true; } else pts[i].tag = null; i = j; }
+    if (j - i >= 1) { K.feat('bridge', i, j, Object.assign({ rw: 1, hump: 0 }, rwBridgeKind(pts, i, j))); for (let k = i; k <= j; k++) pts[k].wall = true; } else pts[i].tag = null; i = j; }
   // (a tunnel: walls either side its length, the hill left over it - see buildGround - its tube drawn: see rwTunnels)
   const TU = { c: 16, g: new Map(), on: false };
   for (let i = 0; i < n; i++) { if (!pts[i].rwtu) continue; let j = i; while (j < n - 1 && pts[j + 1].rwtu) j++; if (j - i >= 3) { for (let k = i; k <= j; k++) { pts[k].wall = true; pts[k].tag = pts[k].tag || null; } K.feat('tunnel', i, j, { rw: 1 });
@@ -3075,7 +3077,9 @@ function rwAlong(o, s) { const X = o.L.x, Z = o.L.z, cum = o.cum; let k = 0; whi
 function rwBoxes(K) {
   const C = K.pack, pts = K.pts, n = K.cN, nearI = (x, z, r) => { let bi = -1, bd = r * r; K.grid.query(x, z, r, o => { if (o.r || o.i == null || o.i >= n) return; const d = (o.x - x) ** 2 + (o.z - z) ** 2; if (d < bd) { bd = d; bi = o.i; } }); return [bi, Math.sqrt(bd)]; };
   const piece = (ax, az, bx, bz, th, top, kind) => { const L = Math.hypot(bx - ax, bz - az); if (L < 0.2) return; const nx = -(bz - az) / L * th / 2, nz = (bx - ax) / L * th / 2, mx = (ax + bx) / 2, mz = (az + bz) / 2, [i, d] = nearI(mx, mz, 24); if (i < 0) return;
-    if (d < pts[i].w / 2 + 0.25) return; const y = typeof top === 'function' ? top(mx, mz, i) : top; K.boxes.push({ i, q: Float64Array.from([ax + nx, az + nz, bx + nx, bz + nz, bx - nx, bz - nz, ax - nx, az - nz]), top: y, bot: -1e4, kind, rw: 1 }); };
+    if (d < pts[i].w / 2 + 0.25) return; if (C._tu && (rwInTube(C, mx, mz, -1e9, 0.3) || rwInTube(C, ax, az, -1e9, 0.3) || rwInTube(C, bx, bz, -1e9, 0.3))) return;
+    { const ea = nearI(ax, az, 24), eb = nearI(bx, bz, 24); if ((ea[0] >= 0 && ea[1] < pts[ea[0]].w / 2 + 0.1) || (eb[0] >= 0 && eb[1] < pts[eb[0]].w / 2 + 0.1)) return; }
+    const y = typeof top === 'function' ? top(mx, mz, i) : top; K.boxes.push({ i, q: Float64Array.from([ax + nx, az + nz, bx + nx, bz + nz, bx - nx, bz - nz, ax - nx, az - nz]), top: y, bot: -1e4, kind, rw: 1 }); };
   const cut = (ax, az, bx, bz, len, f) => { const L = Math.hypot(bx - ax, bz - az), m = Math.max(1, Math.ceil(L / len)); for (let k = 0; k < m; k++) f(ax + (bx - ax) * k / m, az + (bz - az) * k / m, ax + (bx - ax) * (k + 1) / m, az + (bz - az) * (k + 1) / m); };
   for (const b of C.bld || []) { if (nearI(b.cx, b.cz, Math.sqrt(b.a) / 2 + 26)[0] < 0) continue; const X = b.x, Z = b.z, m = X.length;
     for (let k = 0; k < m; k++) { const k2 = (k + 1) % m; cut(X[k], Z[k], X[k2], Z[k2], 8, (ax, az, bx, bz) => { const [i, d] = nearI((ax + bx) / 2, (az + bz) / 2, 24); if (i < 0 || d > 20) return;
@@ -3084,6 +3088,7 @@ function rwBoxes(K) {
   // (the piers of the bridges that cross over the course, beside it: see rwOver)
   for (const o of rwOver(K)) { const bw = (o.kind === 'rail' ? 4.2 : Math.max(3, o.L.w || 4)) + 1.2; for (const pr of rwOverPiers(o)) { const [x, z, h] = rwAlong(o, pr.s), lx = Math.cos(h), lz = -Math.sin(h), fx = Math.sin(h), fz = Math.cos(h), a = bw / 2, b = 0.65;
       K.boxes.push({ i: pr.ic, q: Float64Array.from([x - lx * a - fx * b, z - lz * a - fz * b, x + lx * a - fx * b, z + lz * a - fz * b, x + lx * a + fx * b, z + lz * a + fz * b, x - lx * a + fx * b, z - lz * a + fz * b]), top: 1e4, bot: -1e4, kind: 'pier', rw: 1 }); } }
+  rwTunBoxes(K); // (a real tunnel's portal faces beside its mouths)
   for (const w of C.bar || []) { const kind = w.k === 'wall' ? 'wall' : w.k === 'fence' ? 'fence' : w.k === 'rail' ? 'rail' : w.k === 'jersey' ? 'wall' : null; if (!kind) continue;
     const H = w.h > 0 ? w.h : kind === 'wall' ? 1.2 : kind === 'fence' ? 1.2 : 0.75, th = kind === 'wall' ? 0.45 : kind === 'rail' ? 0.25 : 0.12;
     for (let k = 0; k + 1 < w.x.length; k++) cut(w.x[k], w.z[k], w.x[k + 1], w.z[k + 1], 4, (ax, az, bx, bz) => { const [i, d] = nearI((ax + bx) / 2, (az + bz) / 2, 14); if (i < 0 || d > 12) return; piece(ax, az, bx, bz, th, (x, z) => K.nat(x, z) + H, kind); }); }
@@ -4498,6 +4503,7 @@ function jkSurf(T, x, z, info, pad) {
 function loopI(T, i) { const M = T.pts.length - 1; return ((i % M) + M) % M; }
 function groundY(T, x, z) { let kb = -1e9; if (T.spurs && T.spurs.length) { const sv = spurSurf(T, x, z, null, SPUR_SH); if (sv && !sv.on) { if (sv.ex <= 0) return sv.y; kb = sv.kerb; } }
   if (laneHas(T)) { const sv = jkSurf(T, x, z, null, SPUR_SH); if (sv && !sv.on) { if (sv.ex <= 0) return sv.y; kb = Math.max(kb, sv.kerb); } }
+  if (T.rwTun && !_rwTunOff) { const f = rwTunFloor(T, x, z); if (f !== null) return Math.max(kb, f); } // (in a real tunnel's tube: its floor)
   const s = stripAt(T, x, z), g = groundAt(T, x, z), y = s !== null ? (g === null ? s : Math.max(s, g)) : g !== null ? g : T.fieldAt ? T.fieldAt(x, z).h : 0; return Math.max(kb, T.iceN ? onIce(T, x, z, y) : y); }
 // is (x, z) under the road or a roadside strip?
 // (the cell that covered the last point asked about is tried first: points asked about one after another are close)
@@ -4533,6 +4539,7 @@ function surfaceY(T, info, x, z, y, sc) {
   let kb = -1e9; if (T.spurs && T.spurs.length) { const sv = spurSurf(T, x, z, info, SPUR_SH); if (sv && !sv.on) { if (sv.ex <= 0) return sv.y; kb = sv.kerb; } } // (a junction's side road: a road to drive on, up to its bales; its shoulders)
   if (laneHas(T)) { const sv = jkSurf(T, x, z, info, SPUR_SH); if (sv && !sv.on) { if (sv.ex <= 0) return sv.y; kb = Math.max(kb, sv.kerb); } } // (a rallycross circuit's joker lane, its start lane)
   if (info.wall && al < hw + 0.45) return roadSurfY(T, info.dist, sg * hw, info.w); // under a gate's wall
+  if (T.rwTun) { const f = rwTunFloor(T, x, z); if (f !== null) return Math.max(kb, f); } // (a real tunnel's gutter and walkway)
   // the drawn surface is whichever of the roadside strip and the terrain grid is higher (and over a frozen stream, its ice)
   const g = groundAt(T, x, z), sv = stripAt(T, x, z, sc);
   const y0 = sv !== null ? (g === null ? sv : Math.max(sv, g)) : g === null ? (T.fieldAt ? T.fieldAt(x, z).h : roadSurfY(T, info.dist, sg * hw, info.w)) : g + (vnoise(x / 1.7, z / 1.7, T.nseed + 11) - 0.5) * 0.05;
@@ -4769,6 +4776,7 @@ function barriers(T) {
     }
     i = j - 1;
   }
+  if (T.rwTun) rwTunBars(T, B); // (a real tunnel's walls, at its walkways' backs)
   return T._bars = B;
 }
 // the strip between road points k and k+1 on side s, as a quad in plan (q: x, z of its face at k and k+1, then its back
@@ -4813,6 +4821,7 @@ const _barQ = {}, _tumQ = {};
 // own ground. Physics and meshes both read the grid and strip built here.
 function buildGround(T) {
   if (T.terrain) return T;
+  if (T.real) rwTunPrep(T); // (a real course's tunnels, each a tube of its own: see rwTunPrep)
   const P = T.pts, N = P.length, X = T.xs, spurs = T.spurs || [];
   const all = P.slice(); for (const sp of spurs) for (const q of sp.pts) all.push(q); if (T.sss && T.sss.lane) for (const q of T.sss.lane) { q.eL = q.eR = q.y; all.push(q); }
   if (T.sss) for (const J of [T.sss.rx, T.sss.sl]) if (J && J.pts) for (const q of J.pts) { q.eL = q.eR = q.y; all.push(q); } // (a rallycross circuit's joker lane and start lane: the ground laid level to them, as to a side road)
@@ -5045,6 +5054,7 @@ function buildGround(T) {
     }
   }
   for (let pass = 0; pass < 2; pass++) for (let sd = 0; sd < 2; sd++) { for (let i = 1; i < N; i++) EXT[i * 2 + sd] = Math.min(EXT[i * 2 + sd], EXT[(i - 1) * 2 + sd] + 0.8); for (let i = N - 2; i >= 0; i--) EXT[i * 2 + sd] = Math.min(EXT[i * 2 + sd], EXT[(i + 1) * 2 + sd] + 0.8); }
+  if (T.rwTun) rwTunExt(T, EXT, cell, fieldAt); // (over a real tunnel: room for the land's bank down from over it)
   // columns: road edge (under the road), edge, shoulder, ditch bottom, ditch top, then three breaks on the slope placed
   // where the land bends most (the top of a cut, the toe of a fill), then the outer edge
   const BRK = new Float32Array(N * 2 * 3);
@@ -5085,12 +5095,12 @@ function buildGround(T) {
       // (a U-gutter, a table drain or a bank has four corners across it - its two tops and its floor's or top's two ends -
       // where a V ditch has three: it takes one of the slope's breaks)
       const sh = p.sh, dw = p.dw, four = !p.nb && !p.kerb && p.dd > 0 && (p.dt === 1 || p.dt === 3 || p.dt === 4), fa = p.dt === 1 ? Math.min(0.2, 0.03 / dw) : p.dt === 3 ? 0.3 : 0.22;
-      const us = p.nb ? [-hw, -hw * 0.5, 0, sh, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : p.kerb ? [-0.25, 0, 0.04, sh, sh + 0.35, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : four ? [-0.25, 0, sh, sh + dw * fa, sh + dw * (1 - fa), sh + dw, BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : [-0.25, 0, sh, sh + dw * 0.55, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext];
+      const us = p.rwtu && T.rwTun && T.rwTun.of[i] ? rwTunCols(T, i, hw, ext, BRK, k) : p.nb ? [-hw, -hw * 0.5, 0, sh, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : p.kerb ? [-0.25, 0, 0.04, sh, sh + 0.35, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : four ? [-0.25, 0, sh, sh + dw * fa, sh + dw * (1 - fa), sh + dw, BRK[k * 3 + 1], BRK[k * 3 + 2], ext] : [-0.25, 0, sh, sh + dw * 0.55, sh + dw, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext];
       const c0 = four ? 6 : 5; for (let c = c0; c < C - 1; c++) us[c] = clamp(us[c], us[c0 - 1] + 0.3 * (c - c0 + 1), ext - 0.3 * (C - 1 - c));
       for (let c = 1; c < C; c++) us[c] = Math.min(us[c], ext - 0.03 * (C - 1 - c)); for (let c = 1; c < C; c++) us[c] = Math.max(us[c], us[c - 1] + 0.01);
       for (let c = 0; c < C; c++) {
         const L = hw + us[c], x = p.x + lx * sd * L, z = p.z + lz * sd * L; SU[o + c] = L; SX[o + c] = x; SZ[o + c] = z;
-        SY[o + c] = p.rwtu ? e - 0.03 - 0.01 * c : p.nb || c > 1 ? fieldAt(x, z).h : c === 0 ? e - 0.08 : e - 0.03; // (in a real tunnel: its floor, level to its walls)
+        SY[o + c] = p.rwtu ? (T.rwTun ? rwTunLand(T, i, sd, L, hw + ext, fieldAt(x, z).h, () => fieldAt(p.x + lx * sd * (hw + ext), p.z + lz * sd * (hw + ext)).h) : e - 0.03 - 0.01 * c) : p.nb || c > 1 ? fieldAt(x, z).h : c === 0 ? e - 0.08 : e - 0.03; // (in a real tunnel: its floor, level to its walls)
       }
     }
   }
@@ -5121,7 +5131,7 @@ function buildGround(T) {
   // are near, at a small part of the cost)
   const near = new Uint8Array(nx * nz);
   const NR = EXT0 + 8, NR2 = NR * NR;
-  for (const o of all) { if (o.spur || o.rwtu) continue;
+  for (const o of all) { if (o.spur || (o.rwtu && !T.rwTun)) continue;
     const i0 = Math.max(0, Math.ceil((o.x - NR - x0) / cell) - 1), i1 = Math.min(nx - 1, Math.floor((o.x + NR - x0) / cell) + 1), j0 = Math.max(0, Math.ceil((o.z - NR - z0) / cell) - 1), j1 = Math.min(nz - 1, Math.floor((o.z + NR - z0) / cell) + 1);
     for (let j = j0; j <= j1; j++) { const z = z0 + j * cell, dz = o.z - z, dz2 = dz * dz; if (dz2 >= NR2) continue;
       for (let i = i0; i <= i1; i++) { const k = j * nx + i; if (near[k]) continue; const x = x0 + i * cell, dx = o.x - x; if (dx * dx + dz2 < NR2) near[k] = 1; } } }
@@ -5138,6 +5148,7 @@ function buildGround(T) {
     }
     if (ok) hole[(j * (nx - 1) + i) * 2 + t] = 1;
   }
+  if (T.rwTun) rwTunHoles(T, hole, x0, z0, cell, nx, nz); // (all the land over a real tunnel's tube is the strip's)
   T.terrain.hole = hole;
   // keep the visible grid under anything drawn on top of it (cut-out triangles need no help). A sample that finds the
   // grid too high asks each corner of its triangle for a share in proportion to how near that corner is (the least
@@ -5157,7 +5168,7 @@ function buildGround(T) {
     for (let k = 0; k < 3; k++) { const q = Math.min(capU && under[vs[k]] ? capU : cap, dl * ws[k]); if (need[vs[k]] < q) need[vs[k]] = q; }
   };
   for (let k = 0; k <= 4 * (N - 1); k++) {
-    const i0 = Math.min(Math.floor(k / 4), N - 2), t = k / 4 - i0, A = P[i0], B = P[i0 + 1]; if (A.nb && B.nb) continue; /* a bridge deck is far above its gorge; a walled gate is not */
+    const i0 = Math.min(Math.floor(k / 4), N - 2), t = k / 4 - i0, A = P[i0], B = P[i0 + 1]; if ((A.nb && B.nb) || (T.rwTun && A.rwtu && B.rwtu)) continue; /* a bridge deck is far above its gorge; a walled gate is not; a real tunnel's road is under its hill */
     const h = t > 0 && t < 1 ? Math.atan2(B.x - A.x, B.z - A.z) : (t === 0 ? A.h : B.h), lx = Math.cos(h), lz = -Math.sin(h), w = lerp(A.w, B.w, t), cx = lerp(A.x, B.x, t), cz = lerp(A.z, B.z, t), sv = k * STEP / 4;
     for (const f of [-1.1, -1, -0.6, -0.25, 0, 0.25, 0.6, 1, 1.1]) { const lat = f * w / 2; push(cx + lx * lat, cz + lz * lat, roadSurfY(T, sv, clamp(lat, -w / 2, w / 2), w, true) - (A.wall ? 0.16 : 0.08), 3); }
   }
@@ -12253,7 +12264,7 @@ const StageAI = {
   // back on the road, short of where it stopped (not on a bridge or in a gate), the time a player would lose
   recover(a, why) {
     const c = a.c, T = a.T; let i = clamp(Math.max(a.progI, c.hint) - 2, T.startIdx, T.pts.length - 2);
-    if (T.pts[i].wall) { while (i > T.startIdx && T.pts[i].wall) i--; i = Math.max(T.startIdx, i - 3); }
+    if (T.pts[i].wall && !(T.rwTun && T.rwTun.of[i])) { while (i > T.startIdx && T.pts[i].wall) i--; i = Math.max(T.startIdx, i - 3); }
     const river = !!c.flooded || (c.deep || 0) > 0.3, p = T.pts[i];
     const pen = why === 'roll' || river ? 30 : 5; a.pen += pen; a.rec++; a.ev.push({ k: why === 'roll' ? 'roll' : river ? 'river' : 'off', i, t: a.t });
     a.recd = { t0: a.offT0 != null ? a.offT0 : a.t - 2, pen };
@@ -12548,6 +12559,25 @@ I18N_MORE.de.push(...["Befestigung", "Flexstück", "Aufhängung", "Verbindungen"
   if (typeof I18N_MORE !== 'undefined' && I18N_MORE && I18N_MORE.k) { const n0 = I18N_MORE.k.length; I18N_MORE.k.push(...K);
     for (const l in I18N_MORE) { if (l === 'k' || !Array.isArray(I18N_MORE[l])) continue; const A = I18N_MORE[l]; while (A.length < n0) A.push(''); A.push(...(L[l] && L[l].length === K.length ? L[l] : K)); } } }
 
+// (round 47: a circuit's laps timed as a racing sim times them, and the map on the website from the artifact)
+{ const K = ['Lap', 'Last', 'Best', 'Total', 'Record', 'Finished', 'Leader', 'Gap', 'Personal best', 'Fastest lap', 'Lap {0}', 'Best lap {0}', 'Laps: {0}.', '{0} (best)',
+    'Make a course on the map (opens the game’s website)', 'The map can’t open inside Claude: courses are made on the game’s website, and played here from a course file or with the game’s own courses.', 'The map’s servers are slow just now. Try again in a moment, or put the points closer together.'];
+  const L = {
+    ko: ['랩', '직전', '베스트', '전체', '기록', '완주', '선두', '차이', '개인 최고', '최고 랩', '{0}랩', '베스트 랩 {0}', '랩 타임: {0}.', '{0} (베스트)',
+      '지도에서 코스 만들기 (게임 웹사이트가 열립니다)', 'Claude 안에서는 지도를 열 수 없습니다. 코스는 게임 웹사이트에서 만들고, 여기서는 코스 파일이나 게임 기본 코스로 달릴 수 있습니다.', '지도 서버가 지금 느립니다. 잠시 후 다시 시도하거나 지점을 더 가깝게 놓아 주세요.'],
+    ja: ['ラップ', '前周', 'ベスト', '合計', '記録', 'フィニッシュ', 'トップ', '差', '自己ベスト', 'ファステストラップ', '{0}周目', 'ベストラップ {0}', 'ラップタイム: {0}。', '{0}(ベスト)',
+      '地図でコースを作る(ゲームのウェブサイトが開きます)', 'Claude の中では地図を開けません。コースはゲームのウェブサイトで作り、ここではコースファイルかゲームのコースで走れます。', '地図のサーバーが今は遅くなっています。少し待ってからもう一度試すか、地点を近づけてください。'],
+    zh: ['圈', '上圈', '最佳', '总计', '纪录', '完赛', '领先', '差距', '个人最佳', '最快圈', '第{0}圈', '最佳圈 {0}', '各圈用时：{0}。', '{0}（最佳）',
+      '在地图上制作赛道（打开游戏网站）', '在 Claude 中无法打开地图：赛道在游戏网站上制作，在这里可用赛道文件或游戏自带的赛道来跑。', '地图服务器现在很慢。请稍后再试，或把各点放得更近一些。'],
+    es: ['Vuelta', 'Última', 'Mejor', 'Total', 'Récord', 'Terminado', 'Líder', 'Dif.', 'Mejor personal', 'Vuelta rápida', 'Vuelta {0}', 'Mejor vuelta {0}', 'Vueltas: {0}.', '{0} (mejor)',
+      'Crear un recorrido en el mapa (abre la web del juego)', 'El mapa no se puede abrir dentro de Claude: los recorridos se crean en la web del juego y aquí se corren con un archivo de recorrido o con los recorridos del juego.', 'Los servidores del mapa van lentos ahora mismo. Inténtalo de nuevo en un momento o pon los puntos más cerca.'],
+    fr: ['Tour', 'Dernier', 'Meilleur', 'Total', 'Record', 'Terminé', 'En tête', 'Écart', 'Record perso', 'Meilleur tour', 'Tour {0}', 'Meilleur tour {0}', 'Tours : {0}.', '{0} (meilleur)',
+      'Créer un parcours sur la carte (ouvre le site du jeu)', 'La carte ne s’ouvre pas dans Claude : les parcours se créent sur le site du jeu et se courent ici avec un fichier de parcours ou les parcours du jeu.', 'Les serveurs de la carte sont lents en ce moment. Réessayez dans un instant, ou rapprochez les points.'],
+    de: ['Runde', 'Letzte', 'Beste', 'Gesamt', 'Rekord', 'Im Ziel', 'Führend', 'Abstand', 'Persönliche Bestzeit', 'Schnellste Runde', 'Runde {0}', 'Beste Runde {0}', 'Runden: {0}.', '{0} (beste)',
+      'Eine Strecke auf der Karte bauen (öffnet die Website des Spiels)', 'In Claude lässt sich die Karte nicht öffnen: Strecken entstehen auf der Website des Spiels und werden hier mit einer Streckendatei oder den Strecken des Spiels gefahren.', 'Die Kartenserver sind gerade langsam. Versuche es gleich noch einmal oder setze die Punkte näher zusammen.'] };
+  if (typeof I18N_MORE !== 'undefined' && I18N_MORE && I18N_MORE.k) { const n0 = I18N_MORE.k.length; I18N_MORE.k.push(...K);
+    for (const l in I18N_MORE) { if (l === 'k' || !Array.isArray(I18N_MORE[l])) continue; const A = I18N_MORE[l]; while (A.length < n0) A.push(''); A.push(...(L[l] && L[l].length === K.length ? L[l] : K)); } } }
+
 for (const l in I18N_MORE) if (l !== 'k' && typeof I18N_DATA !== 'undefined' && I18N_DATA[l]) I18N_MORE.k.forEach((k, i) => { I18N_DATA[l][k] = I18N_MORE[l][i]; });
 // ==== THE GAME IN OTHER LANGUAGES ====
 // The game's words are written in English in its sources. Each other language is a table from those words to its own
@@ -12708,7 +12738,7 @@ function langButtons() {
     sel.value = I18N.lang; }
 }
 langButtons();
-const SR86_BUILD = '1782';
+const SR86_BUILD = '9814';
 // ---------- the co-driver's voice: the recorded phrases ----------
 // Every phrase the pace notes use, read by one voice: made with the open Kokoro-82M speech model (Apache 2.0) from an
 // even blend of two of its male voices, read at the model's own pace and then sped up by half with the pitch kept, as
@@ -14389,6 +14419,7 @@ const Atmos = {
       MIST[0] = clamp((this.mistK || 0) * tk * wk * smooth(7, 2.5, W.wind * this.gust), 0, 0.95); MIST[1] = this.mistY || -1e4; MIST[2] = this.mistH || 10; MIST[3] = 140;
       if (MIST[0] > 0) { _c1.copy(hemi.color).multiplyScalar(hemi.intensity * 0.95).add(_v3c.copy(sun.color).multiplyScalar(this.moonLight ? 0 : sun.intensity * 0.45)).lerp(fogC, 0.25);
         MIST_C[0] = Math.min(1, _c1.r); MIST_C[1] = Math.min(1, _c1.g); MIST_C[2] = Math.min(1, _c1.b); } }
+    { const kt = G.T && G.T.rwTun ? rwTunDark(G.T) : 0; if (kt > 0) { hemi.intensity *= 1 - 0.55 * kt; sun.intensity *= 1 - 0.85 * kt; } } // (in a real tunnel's tube: no sun, less sky)
     carHemi.color.copy(hemi.color); carHemi.groundColor.copy(hemi.groundColor); carHemi.intensity = hemi.intensity; carSun.color.copy(sun.color); carSun.intensity = sun.intensity;
     Light.expose(hemi.intensity + 0.85 * sun.intensity * Math.max(0.05, this.lightDir.y)); Light.update(dt);
     // particles drawn without scene lights take the light around them
@@ -16227,7 +16258,7 @@ function buildStage(T) {
   const R = mulberry32(strHash('scenery:' + T.seed));
   const rr = (a, b) => a + (b - a) * R();
   const col = new THREE.Color();
-  const gY = (x, z) => groundY(T, x, z);
+  const gY = T.rwTun ? (x, z) => rwLandY(T, x, z) : (x, z) => groundY(T, x, z); // (with real tunnels: the scenery stands on the land over them)
   const gAt = gY;
   // The ground, road and roadside of a long stage are split into chunks that share one set of vertex buffers but
   // each draw only their own triangles, with their own bounds, so only the chunks in view (and short of the fog)
@@ -16420,7 +16451,7 @@ function buildStage(T) {
       const p = P[i], o = (i * 2 + sd) * C;
       for (let c = 0; c < C; c++) {
         const k = o + c, x = S.x[k], y = S.y[k], z = S.z[k]; pos[k * 3] = x; pos[k * 3 + 1] = y; pos[k * 3 + 2] = z;
-        if (p.nb) { const st = c > 0 ? Math.abs((y - S.y[k - 1]) / (S.u[k] - S.u[k - 1] || 1)) : 0; landCol(col, x, z, st, y); } // (under a bridge: the gorge's own ground)
+        if (p.nb || (p.rwtu && T.rwTun)) { const st = c > 0 ? Math.abs((y - S.y[k - 1]) / (S.u[k] - S.u[k - 1] || 1)) : 0; landCol(col, x, z, st, y); } // (under a bridge: the gorge's own ground)
         else if (p.kerb && c <= 3) col.copy(c <= 1 ? kerbC : paveC).multiplyScalar(0.94 + 0.12 * hash2(i >> 1, c + sd * 7, 13)); // (a village street's kerb and pavement)
         // (a concrete U-gutter - its lids where it is covered - a paved gutter, a bank faced with stone or turf)
         else if (p.dt === 1 && c >= 2 && c <= (p.dd > 0 ? 5 : 4)) col.copy(gutC).multiplyScalar(c === 3 || c === 4 ? 0.62 : 1);
@@ -16438,7 +16469,7 @@ function buildStage(T) {
         }
         if (c <= 4 && !p.nb && p.tag === 'ford') bedCol(col, x, z, y); // (a splash's own bed: the shoulders under its water)
         if (snowLand && c <= 4 && !p.nb) { const sc = snowCover(T, x, y, z); if (sc > 0) col.lerp(SNC, Math.min(1, sc * 1.25)); } // (ploughed off the road onto the shoulder)
-        if (!p.nb) { if (p.kerb && c <= 3) lkSet(0, 0.08, 0.45, 0); else if ((p.dt === 1 && c >= 2 && c <= (p.dd > 0 ? 5 : 4)) || (p.dt === 2 && c >= 2 && c <= 4 && p.dd > 0)) lkSet(0, 0.08, 0.4, 0);
+        if (!p.nb && !(p.rwtu && T.rwTun)) { if (p.kerb && c <= 3) lkSet(0, 0.08, 0.45, 0); else if ((p.dt === 1 && c >= 2 && c <= (p.dd > 0 ? 5 : 4)) || (p.dt === 2 && c >= 2 && c <= 4 && p.dd > 0)) lkSet(0, 0.08, 0.4, 0);
           else if (p.dt === 4 && p.dd > 0.25 && c >= 2 && c <= 5) lkSet(0, 0.12, 0.05, 0); else if (c <= 1) lkSet(0, 0.14, 0.86, 0); else if (c === 2) lkSet(0, 0.32, 0.6, 0);
           else if (c === 3 && p.dd > 0.05) lkSet(0, 0.62, 0.15, 0); else if (c <= 4) lkMix(0, p.dd > 0.05 ? 0.62 : 0.14, p.dd > 0.05 ? 0.15 : 0.86, 0, c === 3 ? 0.45 : 0.18); }
         lkPut(gk, k * 4);
@@ -16966,9 +16997,9 @@ function buildStage(T) {
   // the deck's top): the parapets' faces, their coping a shade lighter, the deck's underside darker, closed at both ends
   const spanMat = masonryMat({ vertexColors: true });
   function bridgeSpan(f) {
-    const pos = [], col = [], cF = new THREE.Color(E.masonry), cT = cF.clone().multiplyScalar(1.18), cU = cF.clone().multiplyScalar(0.74);
+    const pos = [], col = [], cF = new THREE.Color(f.modern ? '#aca89f' : E.masonry), cT = cF.clone().multiplyScalar(f.modern ? 1.08 : 1.18), cU = cF.clone().multiplyScalar(0.74);
     const sec = i => { const p = P[i], lx = Math.cos(p.h), lz = -Math.sin(p.h), L0 = p.w / 2, L1 = L0 + 0.45, y = p.y;
-      return { p, lx, lz, fx: Math.sin(p.h), fz: Math.cos(p.h), S: [[L1, y - 1.1], [L1, y + 0.85], [L0, y + 0.85], [L0, y - 0.03], [-L0, y - 0.03], [-L0, y + 0.85], [-L1, y + 0.85], [-L1, y - 1.1]] }; };
+      return { p, lx, lz, fx: Math.sin(p.h), fz: Math.cos(p.h), S: [[L1, y - (f.depth || 1.1)], [L1, y + 0.85], [L0, y + 0.85], [L0, y - 0.03], [-L0, y - 0.03], [-L0, y + 0.85], [-L1, y + 0.85], [-L1, y - (f.depth || 1.1)]] }; }; // (a modern bridge's girder as deep as its spans: see rwBridgeKind)
     const W3 = (q, l, y) => [q.p.x + q.lx * l, y, q.p.z + q.lz * l];
     // a triangle wound to face n (world)
     const tri = (a, b, c, n, k) => { const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2], d = (uy * vz - uz * vy) * n[0] + (uz * vx - ux * vz) * n[1] + (ux * vy - uy * vx) * n[2];
@@ -16984,7 +17015,7 @@ function buildStage(T) {
     for (const [i, sg] of [[f.s0, -1], [f.s1, 1]]) { const q = sec(i), S = q.S, n = [q.fx * sg, 0, q.fz * sg], y0 = S[0][1], L0 = S[2][0], L1 = S[0][0];
       for (const [la, lb, ya, yb] of [[L0, L1, y0, S[1][1]], [-L0, L0, y0, S[3][1]], [-L1, -L0, y0, S[5][1]]]) { const a = W3(q, la, ya), b = W3(q, lb, ya), c = W3(q, lb, yb), d = W3(q, la, yb); tri(a, b, c, n, cF); tri(a, c, d, n, cF); } }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
-    const m = new THREE.Mesh(geo, spanMat); m.castShadow = true; m.receiveShadow = true; G.add(m);
+    const m = new THREE.Mesh(geo, f.modern ? rwConcMat(true) : spanMat); m.castShadow = true; m.receiveShadow = true; G.add(m);
   }
   // an old arch bridge over a stream: one solid of stone lofted along the road every half metre, its parapets, the deck
   // between them (the road's surface drawn over it) and its sides down to the ground, but over the stream the arch: an
@@ -17025,8 +17056,8 @@ function buildStage(T) {
       bridgeSpan(f);
       const deck = P[f.s0].w + 0.9;
       // the piers stand on the river's bed (down into it a little)
-      for (let i = f.s0 + 4; i < f.s1 - 2; i += f.rw ? rwPierStep(f) : 9) { const p = P[i]; let floor = Infinity; for (const l of [-deck / 2, 0, deck / 2]) floor = Math.min(floor, gY(p.x + Math.cos(p.h) * l, p.z - Math.sin(p.h) * l)); floor -= 0.4; const hgt = p.y - 0.9 - floor; const box = new THREE.Mesh(new THREE.BoxGeometry(deck, hgt, 1.4), stoneMat); box.position.set(p.x, floor + hgt / 2, p.z); box.rotation.y = p.h; G.add(box); }
-      for (const i of [f.s0, f.s1]) { const p = P[i]; const ab = new THREE.Mesh(new THREE.BoxGeometry(deck + 1.6, 9, 2.4), stoneMat); ab.position.set(p.x, p.y - 5.4, p.z); ab.rotation.y = p.h; G.add(ab); }
+      for (let i = f.s0 + 4; i < f.s1 - 2; i += f.rw ? rwPierStep(f) : 9) { const p = P[i]; let floor = Infinity; for (const l of [-deck / 2, 0, deck / 2]) floor = Math.min(floor, gY(p.x + Math.cos(p.h) * l, p.z - Math.sin(p.h) * l)); floor -= 0.4; const hgt = p.y - 0.9 - floor; if (f.modern) { rwPier(G, p, deck, floor, p.y - (f.depth || 1.1)); continue; } const box = new THREE.Mesh(new THREE.BoxGeometry(deck, hgt, 1.4), stoneMat); box.position.set(p.x, floor + hgt / 2, p.z); box.rotation.y = p.h; G.add(box); }
+      for (const i of [f.s0, f.s1]) { const p = P[i]; const ab = new THREE.Mesh(new THREE.BoxGeometry(deck + 1.6, 9, 2.4), f.modern ? rwConcMat(false) : stoneMat); ab.position.set(p.x, p.y - 5.4, p.z); ab.rotation.y = p.h; G.add(ab); }
     }
     if (f.type === 'narrows') {
       wallStrip(f.s0, f.s1, 1, 1.15, 0.3); wallStrip(f.s0, f.s1, -1, 1.15, 0.3);
@@ -28628,7 +28659,8 @@ const Snd = {
       // (more where the trees stand close round the car, less out in the open: see probe())
       const lr = this.envR, loc = lr ? Math.min(1.4, ((lr.trees[0] ? lr.trees[0][1] : 0) + (lr.trees[1] ? lr.trees[1][1] : 0)) / 0.6) : 0.6;
       const rv = (0.08 + 0.22 * wd + 0.12 * rock) * (T.surface === 'snow' ? 0.65 : 1) * (0.75 + 0.4 * loc) * (view === 1 ? 0.08 + 0.3 * open : view === 2 ? 1.7 : view === 3 ? 0.85 : 1);
-      this.set(this.RV.chS.gain, rv, 0.15); this.set(this.RV.enS.gain, rv * 0.8, 0.15);
+      const tk = T.rwTun ? rwTunDepth(T, c.hint | 0) : 0, rv2 = rv + (1.25 * (view === 1 ? 0.3 + 0.5 * open : 1) - rv) * tk; // (in a real tunnel: its walls ring with it)
+      this.set(this.RV.chS.gain, rv2, 0.15); this.set(this.RV.enS.gain, rv2 * 0.8, 0.15);
     }
     if (inp.handbrake && !E.hb && G.state === 'run' && !S.air) ev.push(['lever', {}]); E.hb = !!inp.handbrake;
     for (const [k, a] of ev) CH.post({ t: 'ev', k, a });
@@ -30380,6 +30412,7 @@ function startRun() {
       Duel.init(G.T, S, stagePace(G.T, S, G.T.wet || 0).t * (RALLY_PACE[G.T.surface] || 1.35) * 0.95 * rivalCarK(G.T, G.T.wet || 0, G.spec, RALLY_LVL.national), null, 'The other car'); } } // (its car, against a build, tuned toward the build's pace)
   Tape.reset(); placeCar(G.T.startIdx); G.steerSt = steerState(); G.pace = null; G.koStop = false; RaceLine.hide(); Moves.stop(); G.car.dmg = newDamage(Damage.current()); CarDmg.prep(G.mesh, G.phys); Fix.reset(); Debris.clear(); resetStones(G.T); Stones.sync(); Damage.q.length = 0; G.prog = G.T.startIdx; G.odo = 0; G.odoAtProg = 0; G.cut = null; G.penCut = 0; G.resetAt = null; G.stopT = 0; G.rec = []; G.recT = 0; G.progT = []; G.splits = []; G.stuckT = 0; G.shake = 0; G.camYaw = G.car.psi; G.waterWas = 0; G.ghostPos = null;
   const span = G.T.finishIdx - G.T.startIdx, nSplit = clamp(Math.round(G.T.length / 2500), 2, 4); G.splitIdx = []; for (let k = 1; k <= nSplit; k++) G.splitIdx.push(G.T.startIdx + Math.round(span * k / (nSplit + 1)));
+  RWLap.start(G.T); // (a real circuit: timed by laps and sectors, see RWLap)
   G.noteK = 0; while (G.noteK < G.T.notes.length && G.T.notes[G.noteK].i < G.T.startIdx) G.noteK++;
   Particles.clear(); CrowdFx.reset(); crowdReset(); Skids.clear(); HELP.thr = 1; HELP.brk = 1; HELP.clu = 1; HELP.cs = 0; inp.kThr = 0; inp.kBrk = 0;
   if (G.hard) setTimeout(() => { if (G.state === 'countdown' || G.state === 'run') flash('Hardcore: no assists, no flashbacks, the view from the driver\u2019s seat only'); }, 900);
@@ -30581,7 +30614,7 @@ function resetCar() {
   // a car still rolling over can't be helped yet; one rocking to a stop can. Only one on its side or roof costs the
   // spectators' help; one nearly on its wheels is an ordinary recovery
   let righted = false; { const c0 = G.car; if (c0.over) { if (!c0.stuck && Math.hypot(c0.u, c0.v, c0.vyb) > 2.5) return; righted = true; } }
-  let i = clamp(G.prog + 3, T.startIdx, T.pts.length - 2), lat = 0; if (T.pts[i].wall) { while (i > T.startIdx && T.pts[i].wall) i--; i = Math.max(T.startIdx, i - 3); } // (put back short of a bridge or a gate, not in it)
+  let i = clamp(G.prog + 3, T.startIdx, T.pts.length - 2), lat = 0; if (T.pts[i].wall && !(T.rwTun && T.rwTun.of[i])) { while (i > T.startIdx && T.pts[i].wall) i--; i = Math.max(T.startIdx, i - 3); } // (put back short of a bridge or a gate, not in it)
   if (mp) ({ i, lat } = MP.resetSpot(G.car, T));
   const p = T.pts[i], c = G.car, river = !!c.flooded || (c.deep || 0) > 0.3, D = c.dmg, plugs = !!(c.es && c.es.run === 'lock' && D && D.mode === 'real' && !D.drowned);
   Object.assign(c, { x: p.x + Math.cos(p.h) * lat, z: p.z - Math.sin(p.h) * lat, psi: p.h, u: 0, v: 0, r: 0, hint: i, gear: 1, boost: 0, spin: 0, rpm: 1000, flooded: false, floodT: 0, deep: 0 }); settleCar(c, G.phys, G.T);
@@ -30632,6 +30665,7 @@ function finishRun() {
   $('#finTime').textContent = fmtT(total);
   const lines = [];
   if (G.penalty > 0) { const { fx, cut, rec } = penParts(); lines.push('Includes ' + [rec ? `${rec} s for recoveries` : '', cut ? `${cut} s for cutting the course` : '', fx > 0.5 ? `${fixT(fx)} of repairs on the stage` : ''].filter(Boolean).join(' and ') + '.'); }
+  if (RWLap.on) { const fl = RWLap.finLine(); if (fl) lines.push(fl); }
   lines.push(lv === 'hardcore' ? 'Hardcore: no assists, no flashbacks, the driver\u2019s view.' : `Assists: ${levelName(lv)}${lv === 'custom' ? ' (' + assistList(Ctl.assist()) + ')' : ''}.`);
   if (G.run && G.run.as && G.run.as.line) { const ml = Moves.line(); if (ml) lines.push(ml); }
   if (Flash.used) lines.push(`Flashbacks used: ${Flash.used} of ${FB_PER}.`);
@@ -32608,11 +32642,12 @@ function physics(dt) {
     courseCheck(c, T, dt);
     const k = Math.floor((G.prog - T.startIdx) / 10); while (G.progT.length <= k) G.progT.push(Math.round(G.time * 100) / 100);
     for (let s = 0; s < G.splitIdx.length; s++) if (!G.splits[s] && G.prog >= G.splitIdx[s]) { G.splits[s] = G.time + G.penalty; showSplit(s); }
+    if (RWLap.on) RWLap.tick();
     if (G.prog >= T.finishIdx) finishRun();
     G.recT += dt; if (G.recT >= 0.05) { G.recT -= 0.05; G.rec.push([Math.round(c.x * 10) / 10, Math.round(c.y * 10) / 10, Math.round(c.z * 10) / 10, Math.round(c.psi * 1000) / 1000]); }
   }
 }
-function showSplit(s) { if (G.rally) return Rally.showSplit(s); if (MP.phase === 'race' || MP.phase === 'done') return; /* (a race shows its own: MP.splits) */ const gh = G.ghost; let txt = 'Split ' + (s + 1) + '  ' + fmtT(G.splits[s]); if (gh && gh.splits && gh.splits[s]) txt += '  ' + fmtD(G.splits[s] - gh.splits[s]); const el = $('#split'); el.textContent = txt; el.classList.toggle('neg', !!(gh && gh.splits && gh.splits[s] && G.splits[s] < gh.splits[s])); el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 4000); }
+function showSplit(s) { if (RWLap.on) return; if (G.rally) return Rally.showSplit(s); if (MP.phase === 'race' || MP.phase === 'done') return; /* (a race shows its own: MP.splits) */ const gh = G.ghost; let txt = 'Split ' + (s + 1) + '  ' + fmtT(G.splits[s]); if (gh && gh.splits && gh.splits[s]) txt += '  ' + fmtD(G.splits[s] - gh.splits[s]); const el = $('#split'); el.textContent = txt; el.classList.toggle('neg', !!(gh && gh.splits && gh.splits[s] && G.splits[s] < gh.splits[s])); el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 4000); }
 function updateRun(dt) {
   const c = G.car, S = G.phys || G.spec, T = G.T; G.frameN = (G.frameN || 0) + 1;
   if (G.pace && Math.abs((T.wet || 0) - (G.paceW || 0)) > 0.1) G.pace = null; // (the assists' pace through the bends worked out again as the road wets or dries: see Atmos.evolve)
@@ -32854,7 +32889,7 @@ const setText = (el, s) => { s = String(s); if (el.__t !== s || el.textContent =
 const setXf = (el, s) => { if (el._xf !== s) { el._xf = s; el.style.transform = s; } };
 function updateHud(sp) {
   const c = G.car, S = G.phys || G.spec, T = G.T;
-  setText(hud$('#time'), fmtT(G.finished ? G.finT : G.time + G.penalty));
+  setText(hud$('#time'), RWLap.on ? RWLap.timeTxt() : fmtT(G.finished ? G.finT : G.time + G.penalty));
   setText(hud$('#speed'), Math.round(sp * 3.6));
   setText(hud$('#gear'), c.gear === -1 ? 'R' : c.gear === 0 ? 'N' : G.spec && G.spec.cvt && inp.auto !== false ? 'D' : c.gear); // (a CVT left to itself: drive)
   { const rb = hud$('#rpmBar'); setXf(rb, `scaleX(${clamp(c.rpm / S.redline, 0, 1)})`); rb.classList.toggle('hot', c.rpm > S.redline * 0.9); }
@@ -32868,10 +32903,11 @@ function updateHud(sp) {
       if (bt > 720 && !G.brkTold) { G.brkTold = true; Damage.say('The brakes are fading: they are too hot. Ease off them and let the air cool them'); } else if (bt < 600) G.brkTold = false;
       const key = t + '|' + w.map(q => q.join()).join('|'); if (key !== G.eKey) { G.eKey = key; const ct = el.querySelector('.ct'), ew = el.querySelector('.ew');
         ct.textContent = t + '°'; ct.className = 'ct' + (t >= 115 ? ' r' : t >= 105 ? ' h' : t < 60 ? ' c' : ''); ew.textContent = ''; for (const [x, k] of w) { const sp = document.createElement('span'); sp.className = k; sp.textContent = x; ew.appendChild(sp); } } } }
-  const gh = G.ghost; const dEl = hud$('#delta'), dSet = d => { setText(dEl, fmtD(d)); const cl = d < 0 ? 'neg' : 'pos'; if (dEl.className !== cl) dEl.className = cl; };
+  const gh = RWLap.on ? null : G.ghost; const dEl = hud$('#delta'), dSet = d => { setText(dEl, fmtD(d)); const cl = d < 0 ? 'neg' : 'pos'; if (dEl.className !== cl) dEl.className = cl; };
   if (G.lead && G.state === 'run' && !G.finished) { const d = Rally.delta(); if (d != null) dSet(d); else setText(dEl, ''); }
   else if (gh && gh.prog && G.state === 'run' && !G.finished) { const k = Math.floor((G.prog - T.startIdx) / 10); if (k > 2 && gh.prog[k] != null) dSet(G.time + G.penalty - gh.prog[k]); }
-  else if (!gh && !G.lead) setText(dEl, '');
+  else if (!gh && !G.lead && !RWLap.on) setText(dEl, '');
+  if (RWLap.on) RWLap.hud();
   // notes
   PaceHud.update(T, c.info ? c.info.dist : 0);
   driverDisplay(c);
@@ -38683,7 +38719,7 @@ function crewSafe(m, f) {
 //   a new stage after each race, and conditions kept a surprise: the time of day and the weather drawn at the start.
 // Each driver's page also sends, as it races: its times at the splits, its horn (held), a quick reaction (one of
 // MP_REACT, by number: never free text) and, at the end, how its run went for the awards.
-const MP_V = 7, MP_MAX = 8, MP_HZ = 30, MP_HZ_P2P = 60, MP_CODE = 'abcdefghjkmnpqrstuvwxyz23456789', MP_WIDE = 1.8;
+const MP_V = 8, MP_MAX = 8, MP_HZ = 30, MP_HZ_P2P = 60, MP_CODE = 'abcdefghjkmnpqrstuvwxyz23456789', MP_WIDE = 1.8;
 // (how far on a car's last state is carried: news older than this is held there (s); a blow too slight to send on, as the
 // other car's change of speed (m/s); how long two cars that have just met pass through each other once a blow from the
 // other page has been taken, so the one blow is not felt twice (s); how far apart in time a blow this car felt itself and
@@ -39637,7 +39673,7 @@ const MP = {
   // car within six and a half metres (with none clear, the first: the car is a ghost until it is clear anyway)
   resetSpot(c, T) {
     let i0 = clamp(Math.min(G.prog, c.hint) - 2, T.startIdx, T.pts.length - 2);
-    if (T.pts[i0].wall) { while (i0 > T.startIdx && T.pts[i0].wall) i0--; i0 = Math.max(T.startIdx, i0 - 3); }
+    if (T.pts[i0].wall && !(T.rwTun && T.rwTun.of[i0])) { while (i0 > T.startIdx && T.pts[i0].wall) i0--; i0 = Math.max(T.startIdx, i0 - 3); }
     const R = [...this.rivals.values()].filter(r => r.pose && r.ph !== 'out' && r.ph !== 'lobby');
     for (const back of [0, 3, 6, 10, 15, 22]) {
       const i = Math.max(T.startIdx, i0 - back), p = T.pts[i]; if (p.wall) continue;
@@ -39722,6 +39758,7 @@ const MP = {
     const S = this.splitAt; let k = this.sp.length; if (k >= S.length || G.prog < S[k]) return;
     while (k < S.length && G.prog >= S[k]) { this.sp.push(Math.round((G.time + G.penalty) * 100) / 100); k++; }
     this.pub({ sp: this.sp.slice() });
+    if (RWLap.on) return; // (on a circuit the sectors and laps are called instead: see RWLap)
     // where this car stands at the split just passed, among the cars that have passed it (each car's time there and, with
     // a handicap or the start side by side, its start: the race's own clock)
     const j = this.sp.length - 1, rc = this.rc, mine = this.raceT(rc, this.slot, this.sp[j]);
@@ -39961,6 +39998,7 @@ const MP = {
   },
   standings() {
     const el = $('#mpStand'); if (!el) return; if (this.phase !== 'race' && this.phase !== 'done') { el.hidden = true; return; }
+    if (RWLap.on) { RWLap.tower(this); return; } // (a circuit: the timing tower, see RWLap)
     const F = this.F || this.field(), lead = F.length ? F[0] : null, rally = this.rc && this.rc.fm === 'rally'; el.hidden = F.length < 2; el.textContent = '';
     // (a rally start: the gap at the last split each car has passed to the quickest there)
     const best = []; if (rally) for (const f of F) for (let j = 0; j < (f.sp || []).length; j++) { const t = this.raceT(this.rc, f.k, f.sp[j]); if (best[j] == null || t < best[j]) best[j] = t; }
@@ -39990,7 +40028,7 @@ const MP = {
     // the points this race gives, as it stands (the finishers and the knocked out, in order)
     let place = 0; for (const f of F) { const placed = f.rt != null || f.ko >= 0; f.pts = placed ? MP_PTS[place++] || 0 : 0; f.pl = placed ? place : 0; }
     F.forEach((f, k) => {
-      const sub = [f.car, f.as ? levelName(f.as) : '', f.team >= 0 ? `Team ${MP_TEAMS[f.team].name}` : '', rc.dl && rc.dl[f.k] > 0.05 ? (rc.fm === 'rally' ? `+${rc.dl[f.k].toFixed(1)} s handicap` : `away +${rc.dl[f.k].toFixed(1)} s handicap`) : ''].filter(Boolean).join(' · ');
+      const sub = [f.car, RWLap.on ? RWLap.bestTxt(f) : '', f.as ? levelName(f.as) : '', f.team >= 0 ? `Team ${MP_TEAMS[f.team].name}` : '', rc.dl && rc.dl[f.k] > 0.05 ? (rc.fm === 'rally' ? `+${rc.dl[f.k].toFixed(1)} s handicap` : `away +${rc.dl[f.k].toFixed(1)} s handicap`) : ''].filter(Boolean).join(' · ');
       const t = f.rt != null ? fmtT(f.rt) : f.ko >= 0 ? `Out at split ${f.ko + 1}` : f.ph === 'out' ? 'Retired' : f.ph === 'gone' ? 'Left the race' : rxL ? `Lap ${clamp(Math.floor(f.m / rxL) + 1, 1, rxN)} of ${rxN}` : Math.min(99, Math.round(100 * f.m / Math.max(1, G.T.length))) + '%';
       const tr = mel('tr', { class: (f.me ? 'me' : '') + (f.rt == null && f.ko < 0 ? ' out' : '') }, mel('td', { text: String(k + 1) }), mel('td', { class: 'nm' }, f.name, mel('small', { text: sub })), mel('td', { class: 't', text: t }));
       if (series || teams) tr.append(mel('td', { class: 'g', text: f.pts ? '+' + f.pts : '' }));
@@ -46382,13 +46420,20 @@ const RWNet = {
   // the Overpass servers, tried in turn (the main one first; the others when it is busy or down)
   OVP: ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter', 'https://overpass.private.coffee/api/interpreter'],
   at: 0, live: null, busy: 0,
+  OSRM: ['https://routing.openstreetmap.de/routed-car/route/v1/driving/', 'https://router.project-osrm.org/route/v1/driving/'],
+  // the routing services' route through the points (its line and length): a guide to where the course's roads are
+  async osrm(P, live) { const q = P.map(p => p[1].toFixed(6) + ',' + p[0].toFixed(6)).join(';') + '?overview=full&geometries=geojson&continue_straight=false';
+    for (const u of this.OSRM) { if (live && !live()) throw new Error('stale');
+      try { const r = await this.get(u + q, {}, 15000); if (!r.ok) continue; const j = await r.json(), R = j && j.code === 'Ok' && j.routes && j.routes[0], C = R && R.geometry && R.geometry.coordinates; if (!C || C.length < 2) continue; return { line: C.map(c => [c[1], c[0]]), m: R.distance };
+      } catch (e) { if (live && !live()) throw new Error('stale'); } }
+    return null; },
   async get(url, opt, ms) { const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms || 60000); try { return await fetch(url, Object.assign({ signal: ac.signal, referrerPolicy: 'strict-origin-when-cross-origin' }, opt || {})); } finally { clearTimeout(t); } },
   // an Overpass query's answer (kept for a month: the map changes slowly, and its servers are shared)
-  async overpass(q, ms) {
+  async overpass(q, ms, live) {
     const key = rwKeyOf(q), c = await RWDB.get('ovp', key); if (c && c.t > Date.now() - 30 * 864e5) return c.j;
-    while (this.busy >= 2) await rwSleep(120); this.busy++;
+    while (this.busy >= 2) { if (live && !live()) throw new Error('stale'); await rwSleep(120); } if (live && !live()) throw new Error('stale'); this.busy++;
     try { let err = null;
-      for (let k = 0; k < this.OVP.length * 2; k++) { const u = this.OVP[(this.at + k) % this.OVP.length];
+      for (let k = 0; k < this.OVP.length * 2; k++) { if (live && !live()) throw new Error('stale'); const u = this.OVP[(this.at + k) % this.OVP.length];
         try { const r = await this.get(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'content-type': 'application/x-www-form-urlencoded; charset=UTF-8' } }, ms || 150000);
           if (r.status === 429 || r.status === 504 || r.status === 503) { err = new Error('busy'); await rwSleep(1500 * (1 + k)); continue; }
           const txt = await r.text(); if (!r.ok || txt.charAt(0) !== '{') { err = new Error('answer ' + r.status); continue; }
@@ -46443,8 +46488,14 @@ const RWRoute = {
   ways: new Map(), nodes: new Map(), cellW: new Map(), cells: new Map(),
   cell(i, j) { const k = i + ',' + j; if (!this.cells.has(k)) this.cells.set(k, this.loadCell(i, j).catch(e => { this.cells.delete(k); throw e; })); return this.cells.get(k); },
   async loadCell(i, j) { const s = i * RW_CELL, w = j * RW_CELL, f = v => v.toFixed(5);
-    const J = await RWNet.overpass(`[out:json][timeout:90];way[highway~"^(${RW_HW})$"][area!=yes](${f(s)},${f(w)},${f(s + RW_CELL)},${f(w + RW_CELL)});out body geom qt;`);
+    const J = await RWNet.overpass(`[out:json][timeout:90];way[highway~"^(${RW_HW})$"][area!=yes](${f(s)},${f(w)},${f(s + RW_CELL)},${f(w + RW_CELL)});out body geom qt;`, 45000, this.live);
     for (const el of J.elements || []) this.add(el); return true; },
+  // the drivable ways within r m of a line (a routing service's route), in one query: an Overpass buffer round it
+  async corridor(line, r) { const pts = []; let last = null; for (const p of line) if (!last || this.dist(last[0], last[1], p[0], p[1]) >= 45) { pts.push(p); last = p; } if (last !== line[line.length - 1]) pts.push(line[line.length - 1]);
+    let st = 1; while (pts.length / st > 360) st++; const use = pts.filter((p, k) => k % st === 0 || k === pts.length - 1);
+    const J = await RWNet.overpass(`[out:json][timeout:60];way[highway~"^(${RW_HW})$"][area!=yes](around:${r},${use.map(p => p[0].toFixed(5) + ',' + p[1].toFixed(5)).join(',')});out body geom qt;`, 70000, this.live);
+    for (const el of J.elements || []) this.add(el); return (J.elements || []).length; },
+  live: null,
   add(el) { if (el.type !== 'way' || !el.geometry || !el.nodes || this.ways.has(el.id)) return; const n = el.geometry.length; if (n < 2) return;
     const la = new Float64Array(n), lo = new Float64Array(n); let s = 90, w = 180, nn = -90, e = -180;
     for (let k = 0; k < n; k++) { const g = el.geometry[k]; la[k] = g.lat; lo[k] = g.lon; s = Math.min(s, g.lat); nn = Math.max(nn, g.lat); w = Math.min(w, g.lon); e = Math.max(e, g.lon); }
@@ -46522,11 +46573,13 @@ const RWRoute = {
   async plan(wp, kind, prog) {
     const P = wp.slice(); if (kind === 'loop' && P.length < 3) throw new Error('loop-few'); if (P.length < 2) throw new Error('few');
     const legs = P.map((p, k) => [p, P[k + 1] || (kind === 'loop' ? P[0] : null)]).filter(l => l[1]);
-    let done = 0; for (const [a, b] of legs) { await this.along(a, b, 1, f => prog && prog((done + f) / legs.length * 0.5)); done++; }
-    const snaps = []; for (const p of P) { const s = this.snap(p[0], p[1], RW_SNAP); if (!s) throw Object.assign(new Error('nosnap'), { at: P.indexOf(p) }); snaps.push(s); }
+    let guided = false; try { const G = await RWNet.osrm(kind === 'loop' ? P.concat([P[0]]) : P, this.live); if (G && G.m < 90000) { if (prog) prog(0.1); await this.corridor(G.line, 260); guided = true; if (prog) prog(0.5); } } catch (e) { if (e && e.message === 'stale') throw e; }
+    let done = 0; if (!guided) for (const [a, b] of legs) { await this.along(a, b, 1, f => prog && prog((done + f) / legs.length * 0.5)); done++; }
+    const snaps = []; for (const p of P) { let s = this.snap(p[0], p[1], RW_SNAP); if (!s && guided) { await this.along(p, p, 1); s = this.snap(p[0], p[1], RW_SNAP); } if (!s) throw Object.assign(new Error('nosnap'), { at: P.indexOf(p) }); snaps.push(s); }
     if (kind === 'loop') snaps.push(snaps[0]);
     const pl = [], seg = [], node = []; let back = 0;
     for (let k = 0; k + 1 < snaps.length; k++) { let R = this.path(snaps[k], snaps[k + 1], back);
+      if (!R && guided) { const a = P[k], b = P[(k + 1) % P.length]; await this.along(a, b, 1, f => prog && prog(0.5 + 0.4 * (k + f) / legs.length)); R = this.path(snaps[k], snaps[k + 1], back); }
       if (!R) { const a = P[k], b = P[(k + 1) % P.length]; await this.along(a, b, 3, f => prog && prog(0.5 + 0.4 * (k + f) / legs.length)); R = this.path(snaps[k], snaps[k + 1], back); }
       if (!R) throw Object.assign(new Error('noroute'), { at: k });
       const o = pl.length ? 1 : 0; for (let q = o; q < R.pl.length; q++) { pl.push(R.pl[q]); node.push(R.node[q]); } for (const s of R.seg) seg.push(s);
@@ -46681,7 +46734,7 @@ function rwSeaSum(wat, seaF, sdx, sdz, sb, sbn, rects) {
 // course comes within some 500 m, and coarsely 15 km round. spec: { wp, kind, laps, name }; prog(stage, share)
 async function rwBuildPack(spec, prog, lang) {
   const say = (k, f) => prog && prog(k, clamp(f, 0, 1));
-  say('route', 0); const R = await RWRoute.plan(spec.wp, spec.kind, f => say('route', f));
+  say('route', 0); RWRoute.live = null; const R = await RWRoute.plan(spec.wp, spec.kind, f => say('route', f));
   // the frame: about the middle of the course's extent
   let s = 90, w = 180, n = -90, e = -180; for (const p of R.pl) { s = Math.min(s, p[0]); n = Math.max(n, p[0]); w = Math.min(w, p[1]); e = Math.max(e, p[1]); }
   const o = [(s + n) / 2, (w + e) / 2], F = rwFrame(o[0], o[1]), RX = [], RZ = []; for (const p of R.pl) { const q = F.xz(p[0], p[1]); RX.push(q[0]); RZ.push(q[1]); }
@@ -47067,21 +47120,215 @@ function rwSurfaces(ctx, H) {
     out.rail += mesh(parts, new THREE.MeshLambertMaterial({ color: 0x7a746a, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), 'rail') + mesh(rails, new THREE.MeshLambertMaterial({ color: 0x4a4644 }), 'rail'); }
   return out;
 }
-// a tunnel's tube: its walls up from the road's edges, its vault over, its portals' faces where it goes into the hill
-function rwTunnels(ctx, H) { const { T, G } = ctx, P = T.pts, pos = [], idx = [], lp = [], li = [], mat = stdMat(0x8d8a84); let n = 0;
-  for (const f of T.feats) { if (f.type !== 'tunnel') continue; const a = Math.max(0, f.s0 - 1), b = Math.min(P.length - 1, f.s1 + 1), ring = [[-1, -0.05], [-1, 4.4], [-0.6, 5.6], [0, 6.0], [0.6, 5.6], [1, 4.4], [1, -0.05]];
-    let prev = -1; for (let i = a; i <= b; i++) { const p = P[i], hw = p.w / 2 + 0.9, lx = Math.cos(p.h), lz = -Math.sin(p.h), v = pos.length / 3; for (const [u, h] of ring) pos.push(p.x + lx * u * hw, p.y + h, p.z + lz * u * hw);
-      if (prev >= 0) for (let k = 0; k < ring.length - 1; k++) idx.push(prev + k, v + k, prev + k + 1, prev + k + 1, v + k, v + k + 1); prev = v; }
-    // (the portals: a face of concrete round each mouth, out to the hillside)
-    for (const i of [a, b]) { const p = P[i], hw = p.w / 2 + 0.9, lx = Math.cos(p.h), lz = -Math.sin(p.h);
-      for (const [u0, u1, h0, h1] of [[-1.8, -1, -0.5, 8], [1, 1.8, -0.5, 8], [-1, 1, 6.0, 8]]) { const v = pos.length / 3; for (const [u, h] of [[u0, h0], [u1, h0], [u1, h1], [u0, h1]]) pos.push(p.x + lx * u * hw, p.y + h, p.z + lz * u * hw); idx.push(v, v + 1, v + 2, v, v + 2, v + 3); } }
-    // (its lamps: a row of them along the crown every 8 m, as a road tunnel is lit, day and night)
-    for (let i = a + 2; i < b - 2; i += 4) { const p = P[i], q = P[i + 1], hw = p.w / 2 + 0.9, fx = Math.sin(p.h), fz = Math.cos(p.h), lx = Math.cos(p.h), lz = -Math.sin(p.h), yl = p.y + 5.66; // (just under the crown where they hang: it is 5.79 m up a third of the way out)
-      for (const u of [-0.32, 0.32]) { const cx = p.x + lx * u * hw, cz = p.z + lz * u * hw, v = lp.length / 3; for (const [df, dl] of [[-0.6, -0.12], [0.6, -0.12], [0.6, 0.12], [-0.6, 0.12]]) lp.push(cx + fx * df + lx * dl, yl, cz + fz * df + lz * dl); li.push(v, v + 2, v + 1, v, v + 3, v + 2); } }
+// ==== ROUND 47: A REAL ROAD'S TUNNELS, BUILT AS GAMES BUILD THEM ====
+// A real tunnel is a structure of its own, as a game's road tunnel is: a tube (a bored tunnel's vault where the land
+// over it is deep, a cut-and-cover box where it is shallow) with its road, a gutter and a raised walkway along each
+// wall, tiled walls and a roof lit by its own lamps, and at each end a portal: a concrete face fitted into the cutting
+// it leaves from, its top following the land over it. The land over the tube is the map's own - the hill over a bored
+// tunnel - drawn by the roadside strip, which is finer than the grid, and the grid under that strip cut out. Only where
+// the map's land lies too low over the tube (a shallow tunnel, a covered way by the sea) is it made up over it as fill
+// is, a crest over the tube falling to the land at a bank's slope; where there is no room for that bank the box stands
+// out of the land, its concrete walls and roof showing. Inside the tube the ground is its floor (rwTunFloor), so the
+// cameras, the wheels and whatever falls stay in it; outside it everything stands on the land (rwLandY). Nothing of the
+// map's (trees, houses, walls, the land itself) is left inside the tube.
+// ==== ROUND 47: A REAL ROAD'S OWN BRIDGES, BUILT AS THEIR KIND IS ====
+// A modern bridge - a motorway's, a trunk or main road's, or any longer than 60 m - is concrete: its deck a girder as deep
+// as its spans ask (a twentieth of a span, 1.2 to 2.8 m) under concrete parapets, each pier a column (two under a wide
+// deck) standing on a footing, a cap across the deck's width on top, its abutments concrete. An old one on a lesser road
+// stays the game's own stone bridge.
+function rwBridgeKind(pts, i, j) { const L = (j - i) * STEP, hw = pts[Math.round((i + j) / 2)].rwhw || '', modern = /motorway|trunk|primary/.test(hw) || L > 60;
+  if (!modern) return {}; const span = L < 80 ? 18 : L / Math.ceil(L / 42); return { modern: 1, depth: Math.min(2.8, Math.max(1.2, span / 20)) }; }
+let _rwConc = null;
+function rwConcMat(vc) { if (!_rwConc) _rwConc = { v: new THREE.MeshLambertMaterial({ vertexColors: true }), p: new THREE.MeshLambertMaterial({ color: 0xa8a49b }) }; return vc ? _rwConc.v : _rwConc.p; }
+// (a modern bridge's pier at road point p: from its footing (floor) up to under its deck (top))
+function rwPier(G, p, deck, floor, top) {
+  const mat = rwConcMat(false), add = (geo, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = p.h; m.castShadow = true; m.receiveShadow = true; G.add(m); };
+  const lx = Math.cos(p.h), lz = -Math.sin(p.h), capH = 1.3, colTop = top - capH, h = colTop - floor; if (h < 0.4) return;
+  const two = deck > 11, cols = two ? [-deck * 0.28, deck * 0.28] : [0];
+  for (const u of cols) { const x = p.x + lx * u, z = p.z + lz * u;
+    if (two) add(new THREE.CylinderGeometry(0.85, 0.95, h, 14), x, floor + h / 2, z); else add(new THREE.BoxGeometry(Math.max(2.2, deck * 0.42), h, 1.8), x, floor + h / 2, z);
+    add(new THREE.BoxGeometry(two ? 3.4 : Math.max(2.2, deck * 0.42) + 1.6, 1.0, 3.4), x, floor + 0.2, z); }
+  add(new THREE.BoxGeometry(deck - 0.3, capH, 2.2), p.x, colTop + capH / 2, p.z);
+}
+
+const RWT = { gut: 0.45, walk: 0.8, kerb: 0.18, soil: 0.5 };
+let _rwTunOff = 0;
+// the stage's real tunnels: each one's rows (a: its entry portal's face, b: its exit's), its section, and an index of
+// its rows by 8 m cell. A bored vault where the map's land over the middle of it stands more than 14 m over its road;
+// else a box, and a short shallow one (under a street, a building) a box standing clear of the land all its length
+function rwTunPrep(T) {
+  T.rwTun = null; if (!T.real || !T.feats) return null;
+  const P = T.pts, N = P.length, C = T.real, list = [], of = new Array(N).fill(null), g = new Map(), cs = 8;
+  for (const f of T.feats) { if (f.type !== 'tunnel' || !f.rw) continue;
+    const a = Math.max(0, f.s0 - 1), b = Math.min(N - 1, f.s1 + 1); if (b - a < 3) continue; // (a: its entry face's road point, b: its exit's)
+    let wm = 0; for (let i = a; i <= b; i++) wm = Math.max(wm, P[i].w);
+    const Hi = wm / 2 + RWT.gut + RWT.walk, len = (b - a) * STEP, cov = [];
+    for (let i = a + Math.floor((b - a) * 0.2); i <= b - Math.floor((b - a) * 0.2); i++) { const p = P[i], lx = Math.cos(p.h), lz = -Math.sin(p.h); let m = 1e9; for (const u of [-1, 0, 1]) m = Math.min(m, rwNat(C, p.x + lx * u * Hi, p.z + lz * u * Hi) - p.y); cov.push(m); }
+    cov.sort((x, y) => x - y); const med = cov.length ? cov[cov.length >> 1] : 0, arch = med > 14 && len > 60, under = len < 45 && med < 3.5;
+    const wallH = arch ? 2.6 : 4.7, crown = arch ? 2.6 + Math.max(3.0, Hi * 0.6) : 5.2, th = arch ? 0.55 : 0.7, nr = b - a + 1;
+    const t = { a, b, s0: f.s0, s1: f.s1, Hi, Ho: Hi + th, arch, under, wallH, crown, th, top: crown + th, len, med, ex: new Uint8Array(nr * 2), sl: new Float32Array(nr * 2), done: new Uint8Array(nr * 2) };
+    list.push(t); for (let i = a; i <= b; i++) { of[i] = t; P[i].rwTop = t.top; P[i].rwHo = t.Ho; }
+    for (let i = a; i < b; i++) { const A = P[i], B = P[i + 1], R = t.Ho + 1.5;
+      for (let gx = Math.floor((Math.min(A.x, B.x) - R) / cs); gx <= Math.floor((Math.max(A.x, B.x) + R) / cs); gx++) for (let gz = Math.floor((Math.min(A.z, B.z) - R) / cs); gz <= Math.floor((Math.max(A.z, B.z) + R) / cs); gz++) { const k = gx * 1e6 + gz; let L = g.get(k); if (!L) g.set(k, L = []); L.push(i); } } }
+  return T.rwTun = list.length ? { list, of, g, c: cs } : null;
+}
+// (the tube's row and how far across it a point lies: [row, t along to the next, lat], or null outside every tube)
+function rwTunWhere(T, x, z) {
+  const U = T.rwTun; if (!U) return null; const L = U.g.get(Math.floor(x / U.c) * 1e6 + Math.floor(z / U.c)); if (!L) return null;
+  // (the nearest of the tube's road lines a point lies square to; else, on the outside of a bend, where one line's
+  // reach ends before the next one's begins, the nearest of the points between them inside the tube)
+  const P = T.pts; let bi = -1, bt = 0, bl = 1e9;
+  for (const i of L) { const A = P[i], B = P[i + 1], dx = B.x - A.x, dz = B.z - A.z, l2 = dx * dx + dz * dz || 1, t = ((x - A.x) * dx + (z - A.z) * dz) / l2; if (t < -0.02 || t > 1.02) continue;
+    const lat = ((x - A.x) * dz - (z - A.z) * dx) / Math.sqrt(l2); if (Math.abs(lat) < Math.abs(bl)) { bl = lat; bi = i; bt = Math.min(1, Math.max(0, t)); } }
+  if (bi < 0) for (const i of L) { const tb = U.of[i]; if (i <= tb.a) continue; const Fa = P[tb.a], Fb = P[tb.b]; if ((x - Fa.x) * Math.sin(Fa.h) + (z - Fa.z) * Math.cos(Fa.h) <= 0 || (x - Fb.x) * Math.sin(Fb.h) + (z - Fb.z) * Math.cos(Fb.h) >= 0) continue; // (between its faces only)
+    const A = P[i], d = Math.hypot(x - A.x, z - A.z); if (d < Math.abs(bl)) { const B = P[i + 1]; bl = (((x - A.x) * (B.z - A.z) - (z - A.z) * (B.x - A.x)) >= 0 ? 1 : -1) * d; bi = i; bt = 0; } }
+  return bi < 0 || Math.abs(bl) > U.of[bi].Hi + 0.02 ? null : [bi, bt, bl];
+}
+// the floor of a tube under (x, z): its road, the gutter beside it, the walkway along its wall; null outside the tubes
+function rwTunFloor(T, x, z) {
+  if (_rwTunOff || !T.rwTun) return null; const w0 = rwTunWhere(T, x, z); if (!w0) return null;
+  const [i, t, lat] = w0, P = T.pts, A = P[i], B = P[i + 1], w = A.w + (B.w - A.w) * t, hw = w / 2, s = (i + t) * STEP, al = Math.abs(lat), tb = T.rwTun.of[i];
+  if (al <= hw) return roadSurfY(T, s, lat, w);
+  const e = roadSurfY(T, s, (lat < 0 ? -1 : 1) * hw, w); return al < tb.Hi - RWT.walk ? e : e + RWT.kerb;
+}
+// the land at (x, z), over a tube as anywhere (what the stage's scenery stands on)
+function rwLandY(T, x, z) { _rwTunOff++; try { return groundY(T, x, z); } finally { _rwTunOff--; } }
+// how far into a tube road point i is, 0 at its mouths to 1 some 28 m in (its daylight gone, its echo full)
+function rwTunDepth(T, i) { const t = T.rwTun && T.rwTun.of[Math.round(i)]; return t ? smooth(3, 28, Math.min(i - t.a, t.b - i) * STEP) : 0; }
+// the same for the camera, where it is in a tube (by its own place, under the tube's roof)
+function rwTunDark(T) {
+  if (!T || !T.rwTun || typeof camera === 'undefined') return 0; const c = camera.position, w0 = rwTunWhere(T, c.x, c.z); if (!w0) return 0;
+  const tb = T.rwTun.of[w0[0]]; return c.y < T.pts[w0[0]].y + tb.crown + 0.3 ? rwTunDepth(T, w0[0] + w0[1]) : 0;
+}
+// the roadside strip's reach over a tube: wide enough for the bank down from over it to the land, and at least a grid
+// cell and a half past its walls, so every grid triangle over the tube lies within it (and is cut out under it)
+function rwTunExt(T, EXT, cell, fieldAt) {
+  const U = T.rwTun; if (!U) return; const P = T.pts, N = P.length;
+  for (const t of U.list) for (let i = t.s0; i <= t.s1; i++) { const p = P[i], hw = p.w / 2, lx = Math.cos(p.h), lz = -Math.sin(p.h), crest = p.y + t.top + RWT.soil;
+    for (let s = 0; s < 2; s++) { const sd = s ? -1 : 1, L = t.Ho + 3, nat = fieldAt(p.x + lx * sd * L, p.z + lz * sd * L).h, dh = crest - nat;
+      const want = Math.min(44, Math.max(t.Ho - hw + 1.5 * cell + 2.5, t.Ho - hw + (dh > 0 ? dh / 0.55 + 2.5 : 3)));
+      for (let k = -5; k <= 5; k++) { const j = i + k; if (j < 0 || j >= N) continue; const o = j * 2 + s, inT = j >= t.s0 && j <= t.s1; EXT[o] = Math.max(EXT[o], inT ? want : want - Math.abs(k) * 1.5); } } }
+}
+// a tube row's strip columns, out from the middle of the road: the middle, the road's edge, just inside the tube's
+// outer wall (twice: the land over the tube ends there), then the bank's breaks and the strip's reach
+function rwTunCols(T, i, hw, ext, BRK, k) { const t = T.rwTun.of[i], u3 = Math.min(t.Ho - hw - 0.05, ext - 1.6), u4 = Math.min(t.Ho - hw - 0.02, ext - 1.5);
+  return [-hw, -hw * 0.5, 0, u3, u4, BRK[k * 3], BRK[k * 3 + 1], BRK[k * 3 + 2], ext]; }
+// the land over a tube at road point i, side sd (1 left), L m out from the middle (Lext: the strip's reach there; nat:
+// the map's land here, natExt(): at the reach). Over the tube a crest of soil over its roof, then a bank falling to the
+// map's land; where the bank would be steeper than the land stands (1 in 1.1), or the tube is a short shallow one, the
+// box shows instead: the land just under its roof over it, and the map's land beside it
+function rwTunLand(T, i, sd, L, Lext, nat, natExt) {
+  const t = T.rwTun && T.rwTun.of[i]; if (!t) return nat; const p = T.pts[i], top = p.y + t.top, crest = top + RWT.soil, k = (i - t.a) * 2 + (sd > 0 ? 0 : 1), L4 = t.Ho - 0.02;
+  if (!t.done[k]) { t.done[k] = 1; const ne = natExt(), room = Math.max(0.5, Lext - L4 - 0.5), need = crest - ne, s = need > 0 ? need / room : 0, prev = k >= 2 && t.done[k - 2] ? t.ex[k - 2] : 0;
+    t.ex[k] = t.under || s > (prev ? 0.8 : 1.1) ? 1 : 0; t.sl[k] = Math.max(0.55, s); }
+  if (t.ex[k]) return L <= L4 - 0.01 ? Math.max(nat, top - 0.06) : nat;
+  if (L <= L4 + 0.01) return Math.max(nat, crest);
+  return Math.max(nat, crest - t.sl[k] * (L - L4));
+}
+// every grid triangle with any part over a tube (its walls and half a metre more) is cut out: the strip is the land there
+function rwTunHoles(T, hole, x0, z0, cell, nx, nz) {
+  const U = T.rwTun; if (!U) return; const P = T.pts;
+  for (const t of U.list) for (let i = t.a; i < t.b; i++) for (let f = 0; f < 4; f++) { const A = P[i], B = P[i + 1], q = f / 4, cx = A.x + (B.x - A.x) * q, cz = A.z + (B.z - A.z) * q, h = A.h + wrapAngle(B.h - A.h) * q, lx = Math.cos(h), lz = -Math.sin(h);
+    for (let u = -(t.Ho + 0.5); u <= t.Ho + 0.5 + 1e-6; u += 0.75) { const x = cx + lx * u, z = cz + lz * u; if (!stripCovers(T, x, z)) continue; const fx = (x - x0) / cell, fz = (z - z0) / cell; if (fx < 0 || fz < 0 || fx >= nx - 1 || fz >= nz - 1) continue;
+      const gi = Math.floor(fx), gj = Math.floor(fz); hole[(gj * (nx - 1) + gi) * 2 + (fx - gi + fz - gj <= 1 ? 0 : 1)] = 1; } }
+}
+// the tube's walls as the cars meet them: from its entry face to its exit's, at the walkway's back, up to its roof
+function rwTunBars(T, B) {
+  const U = T.rwTun; if (!U) return; const P = T.pts;
+  for (const t of U.list) for (let i = t.a; i <= t.b; i++) for (let s = 0; s < 2; s++) { const o = i * 2 + s; B.kind[o] = 2; B.L0[o] = t.Hi; B.L1[o] = t.Hi + 0.6; B.top[o] = P[i].y + t.crown; B.bot[o] = -1e4; }
+}
+// (at layStage: the portals' faces beside each mouth, solid for the cars; the tube's own width as rwTunPrep has it)
+function rwTunBoxes(K) {
+  const pts = K.pts, n = K.cN;
+  for (let i = 1; i < n - 1; i++) { if (!pts[i].rwtu) continue; let j = i; while (j < n - 2 && pts[j + 1].rwtu) j++; if (j - i < 3) { i = j; continue; }
+    const a = i - 1, b = j + 1; let wm = 0; for (let k = a; k <= b; k++) wm = Math.max(wm, pts[k].w); const Hi = wm / 2 + RWT.gut + RWT.walk;
+    for (const [r, d] of [[a, STEP], [b, -STEP]]) { const p = pts[r], lx = Math.cos(p.h), lz = -Math.sin(p.h), fx = Math.sin(p.h), fz = Math.cos(p.h);
+      for (const sd of [1, -1]) { const u0 = sd * (Hi + 0.1), u1 = sd * (Hi + 8), q = [p.x + lx * u0, p.z + lz * u0, p.x + lx * u1, p.z + lz * u1, p.x + lx * u1 + fx * d, p.z + lz * u1 + fz * d, p.x + lx * u0 + fx * d, p.z + lz * u0 + fz * d];
+        K.boxes.push({ i: r, q: Float64Array.from(q), top: 1e4, bot: -1e4, kind: 'wall', rw: 1 }); } }
+    i = j; }
+}
+// The tubes drawn: inside, the gutters, kerbs and walkways, the tiled lower walls under a dark band, the concrete above
+// and the vault or the box's roof, lit as its lamps light it (its own light, the same by day and night; daylight near
+// its mouths), the lamps in two lines along its roof, jet fans in pairs under the roof of a long one, its emergency
+// signs; outside, the portals and, where it stands out of the land, the box's walls and roof
+function rwTunnels(ctx, H) {
+  const { T, G } = ctx, U = T.rwTun, P = T.pts, S = T.side; if (!U || !S) return 0;
+  const C = S.C, mk = () => ({ pos: [], col: [], idx: [] }), IN = mk(), EX = mk(), LM = mk();
+  const hex = h => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255], mul = (c, k) => [c[0] * k, c[1] * k, c[2] * k];
+  const GUT = hex(0x4a4946), KERB = hex(0xd8d4c8), WALK = hex(0x8a8780), PAN = hex(0xcac7bd), BAND = hex(0x2a3542), UPR = hex(0x5c5a55), ROOF = hex(0x403e3b), CONC = hex(0xb4b0a7), COPE = hex(0x97938b), FANB = hex(0x8c8c88), FANE = hex(0x2a2a2a), LAMP = hex(0xfff0cf), SIGN = hex(0x1fa957), WHT = hex(0xf2f2ee), SOS = hex(0xe8742a);
+  const V = (M, x, y, z, c) => { M.pos.push(x, y, z); M.col.push(c[0], c[1], c[2]); return M.pos.length / 3 - 1; }, Q = (M, a, b, c, d) => M.idx.push(a, b, c, a, c, d);
+  const at = (p, u, y) => [p.x + Math.cos(p.h) * u, y, p.z - Math.sin(p.h) * u];
+  // (a strip's land at road point i, side sd (1 left), L m out from the middle: its columns joined straight)
+  const landAt = (i, sd, L) => { const o = (i * 2 + (sd > 0 ? 0 : 1)) * C, u = S.u, y = S.y; if (L <= u[o]) return y[o]; for (let c = 1; c < C; c++) if (L <= u[o + c]) { const f = (L - u[o + c - 1]) / Math.max(1e-6, u[o + c] - u[o + c - 1]); return y[o + c - 1] + (y[o + c] - y[o + c - 1]) * f; } return y[o + C - 1]; };
+  const reachOf = (i, sd) => S.u[(i * 2 + (sd > 0 ? 0 : 1)) * C + C - 1];
+  let n = 0;
+  for (const t of U.list) {
+    // ---- inside: one ring of points per road point, from the left road edge up over the roof and down to the right ----
+    const ring = i => { const p = P[i], hw = p.w / 2, y0 = p.y, d = Math.min(i - t.a, t.b - i) * STEP, lit = 0.5 * (1 + 0.6 * Math.max(0, 1 - d / 24)) * ((i - t.a) % 2 ? 0.93 : 1.07), uk = t.Hi - RWT.walk; // (its own light, a pool under each lamp; daylight near its mouths)
+      const side = (sd, e) => { const q = [[hw - 0.02, e + 0.004, GUT], [uk, e + 0.004, GUT], [uk, e + 0.004, KERB], [uk, e + RWT.kerb, KERB], [uk, e + RWT.kerb, WALK], [t.Hi, e + RWT.kerb, WALK], [t.Hi, e + RWT.kerb, PAN], [t.Hi, y0 + 2.25, PAN], [t.Hi, y0 + 2.25, BAND], [t.Hi, y0 + 2.4, BAND], [t.Hi, y0 + 2.4, UPR], [t.Hi, y0 + t.wallH, UPR]];
+        if (t.arch) for (let k = 1; k <= 7; k++) { const th = k / 7 * Math.PI / 2; q.push([t.Hi * Math.cos(th), y0 + t.wallH + (t.crown - t.wallH) * Math.sin(th), k < 2 ? UPR : ROOF]); }
+        else q.push([t.Hi - 0.5, y0 + t.crown, ROOF], [t.Hi * 0.5, y0 + t.crown, ROOF], [0, y0 + t.crown, ROOF]);
+        return q.map(r => [sd * r[0], r[1], r[2]]); };
+      const L = side(1, p.eL), R = side(-1, p.eR).reverse(); return L.concat(R.slice(1)).map(r => [r[0], r[1], mul(r[2], lit * (r[1] > y0 + 2.45 ? 0.82 + 0.06 * hash2(i, 3, 71) : 0.97 + 0.06 * hash2(i, 5, 73)))]); };
+    let prev = null;
+    for (let i = t.a; i <= t.b; i++) { const p = P[i], R = ring(i), vs = R.map(r => { const [x, y, z] = at(p, r[0], r[1]); return V(IN, x, y, z, r[2]); });
+      if (prev) for (let k = 0; k + 1 < vs.length; k++) Q(IN, prev[k], vs[k], vs[k + 1], prev[k + 1]); prev = vs; }
+    // ---- the joints between its wall panels, every 4 m down the tiled lower wall ----
+    for (let i = t.a + 2; i < t.b - 1; i += 2) { const p = P[i], fx = Math.sin(p.h), fz = Math.cos(p.h), jc = mul(BAND, 0.8);
+      for (const sd of [1, -1]) { const e = sd > 0 ? p.eL : p.eR, [cx, , cz] = at(p, sd * (t.Hi - 0.012), 0), v = []; for (const [df, y] of [[-0.03, e + RWT.kerb], [0.03, e + RWT.kerb], [0.03, p.y + 2.25], [-0.03, p.y + 2.25]]) v.push(V(IN, cx + fx * df, y, cz + fz * df, jc)); Q(IN, v[0], v[1], v[2], v[3]); } }
+    // ---- its lamps: two lines of fittings along the roof, 1.6 m long every 4 m ----
+    const lampAt = sd => t.arch ? (() => { const th = 0.42, u = t.Hi * Math.cos(th) - 0.1, y = t.wallH + (t.crown - t.wallH) * Math.sin(th) - 0.06, du = -t.Hi * Math.sin(th), dy = (t.crown - t.wallH) * Math.cos(th), l = Math.hypot(du, dy); return [sd * u, y, sd * du / l, dy / l]; })() : [sd * t.Hi * 0.5, t.crown - 0.05, sd, 0];
+    for (let i = t.a + 1; i < t.b; i += 2) { const p = P[i], fx = Math.sin(p.h), fz = Math.cos(p.h);
+      for (const sd of [1, -1]) { const [u, y, tu, ty] = lampAt(sd), [cx, cy, cz] = at(p, u, p.y + y), w = 0.16, lx = Math.cos(p.h), lz = -Math.sin(p.h);
+        const c = [], o = [[-0.8, -w], [0.8, -w], [0.8, w], [-0.8, w]]; for (const [df, dw] of o) c.push(V(LM, cx + fx * df + lx * tu * dw, cy + ty * dw, cz + fz * df + lz * tu * dw, LAMP)); Q(LM, c[0], c[1], c[2], c[3]); } }
+    // ---- jet fans in pairs under the roof of a long tube, every 160 m ----
+    if (t.len >= 260) for (let s = 70; s < t.len - 50; s += 160) { const i = t.a + Math.round(s / STEP), p = P[i], fx = Math.sin(p.h), fz = Math.cos(p.h), lx = Math.cos(p.h), lz = -Math.sin(p.h), yc = p.y + t.crown - (t.arch ? 1.05 : 0.8);
+      for (const u of [-1.45, 1.45]) { const cx = p.x + lx * u, cz = p.z + lz * u, r = 0.55, ring2 = [];
+        for (const df of [-1.8, 1.8]) { const rr = []; for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2; rr.push(V(IN, cx + fx * df + lx * Math.cos(a) * r, yc + Math.sin(a) * r, cz + fz * df + lz * Math.cos(a) * r, mul(FANB, 0.75 + 0.2 * Math.max(0, Math.sin(a))))); } ring2.push(rr); }
+        for (let k = 0; k < 10; k++) Q(IN, ring2[0][k], ring2[1][k], ring2[1][(k + 1) % 10], ring2[0][(k + 1) % 10]);
+        for (const [e, df] of [[0, -1.8], [1, 1.8]]) { const cc = V(IN, cx + fx * df, yc, cz + fz * df, FANE); for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, b2 = (k + 1) / 10 * Math.PI * 2, v1 = V(IN, cx + fx * df + lx * Math.cos(a) * r * 0.97, yc + Math.sin(a) * r * 0.97, cz + fz * df + lz * Math.cos(a) * r * 0.97, FANE), v2 = V(IN, cx + fx * df + lx * Math.cos(b2) * r * 0.97, yc + Math.sin(b2) * r * 0.97, cz + fz * df + lz * Math.cos(b2) * r * 0.97, FANE); IN.idx.push(cc, v1, v2); } }
+        for (const df of [-1.1, 1.1]) { const v = []; for (const [dl, dy] of [[-0.04, 0.5], [0.04, 0.5], [0.04, 1.4], [-0.04, 1.4]]) v.push(V(IN, cx + fx * df + lx * dl, yc + dy, cz + fz * df + lz * dl, FANE)); Q(IN, v[0], v[1], v[2], v[3]); } } }
+    // ---- its emergency signs: a green exit sign over the right walkway every 150 m, an SOS panel on the left between ----
+    for (let s = 40; s < t.len - 20; s += 75) { const i = t.a + Math.round(s / STEP), p = P[i], fx = Math.sin(p.h), fz = Math.cos(p.h), sos = Math.round(s / 75) % 2 === 1, sd = sos ? 1 : -1, u = sd * (t.Hi - 0.03);
+      const box = (y0, y1, w, c) => { const [cx, , cz] = at(p, u, 0), v = []; for (const [df, y] of [[-w, y0], [w, y0], [w, y1], [-w, y1]]) v.push(V(LM, cx + fx * df, p.y + y, cz + fz * df, c)); Q(LM, v[0], v[1], v[2], v[3]); };
+      if (sos) { box(1.0, 1.9, 0.45, SOS); box(1.55, 1.8, 0.3, WHT); } else { box(2.5, 2.95, 0.55, SIGN); box(2.62, 2.83, 0.16, WHT); } }
+    // ---- outside: where the box stands out of the land, its outer walls (with a parapet) and its roof ----
+    const exAt = (i, s) => (i >= t.s0 && i <= t.s1) ? t.ex[(i - t.a) * 2 + s] : 0;
+    for (let i = t.s0; i < t.s1; i++) { const A = P[i], B = P[i + 1], eL = exAt(i, 0) || exAt(i + 1, 0), eR = exAt(i, 1) || exAt(i + 1, 1); if (!eL && !eR) continue;
+      const shade = 0.92 + 0.12 * hash2(i >> 2, 7, 79), cc = mul(CONC, shade);
+      { const a0 = at(A, -t.Ho, A.y + t.top), a1 = at(A, t.Ho, A.y + t.top), b0 = at(B, -t.Ho, B.y + t.top), b1 = at(B, t.Ho, B.y + t.top); Q(EX, V(EX, ...a0, cc), V(EX, ...b0, cc), V(EX, ...b1, cc), V(EX, ...a1, cc)); }
+      for (const [sd, e] of [[1, eL], [-1, eR]]) { if (!e) continue; const ya = landAt(i, sd, t.Ho + 0.8), yb = landAt(i + 1, sd, t.Ho + 0.8), u = sd * t.Ho, ui = sd * (t.Ho - 0.25);
+        Q(EX, V(EX, ...at(A, u, Math.min(ya, A.y) - 0.6), cc), V(EX, ...at(B, u, Math.min(yb, B.y) - 0.6), cc), V(EX, ...at(B, u, B.y + t.top + 0.35), cc), V(EX, ...at(A, u, A.y + t.top + 0.35), cc));
+        Q(EX, V(EX, ...at(A, ui, A.y + t.top), cc), V(EX, ...at(B, ui, B.y + t.top), cc), V(EX, ...at(B, ui, B.y + t.top + 0.35), cc), V(EX, ...at(A, ui, A.y + t.top + 0.35), cc));
+        Q(EX, V(EX, ...at(A, ui, A.y + t.top + 0.35), COPE), V(EX, ...at(B, ui, B.y + t.top + 0.35), COPE), V(EX, ...at(B, u, B.y + t.top + 0.35), COPE), V(EX, ...at(A, u, A.y + t.top + 0.35), COPE)); } }
+    // ---- the portals: a face across the cutting at each mouth, from the opening out to where the land over the tube
+    // meets the cutting's, its top following the land over the tube; a coping along its top; its top and back ----
+    for (const [r0, r1] of [[t.a, t.a + 1], [t.b, t.b - 1]]) { const p0 = P[r0], p1 = P[r1], y0 = p0.y;
+      // (out as far as the land over the tube stands well over the cutting's - a steeper step than a hillside makes in a
+      // road point's 2 m - and no more than 9 m past the tube: its wing walls)
+      const reach = sd => { const Lmax = Math.min(reachOf(r0, sd), reachOf(r1, sd), t.Ho + 9) - 0.3; let L = t.Ho + 1.5; for (; L < Lmax; L += 0.5) if (landAt(r1, sd, L) - landAt(r0, sd, L) < 1.0) break; return Math.max(t.Ho + 0.6, Math.min(Lmax, L + 0.8)); };
+      const RL = reach(1), RR = reach(-1);
+      const open = u => { const a = Math.abs(u); if (a >= t.Hi) return null; if (t.arch) { const c = a / t.Hi; return y0 + t.wallH + (t.crown - t.wallH) * Math.sqrt(Math.max(0, 1 - c * c)); } return a > t.Hi - 0.5 ? y0 + t.wallH + (t.crown - t.wallH) * (t.Hi - a) / 0.5 : y0 + t.crown; };
+      const us = []; for (let k = 0; k <= 28; k++) us.push(-t.Hi * 0.999 + 2 * t.Hi * 0.999 * k / 28); us.push(-t.Hi - 0.002, t.Hi + 0.002);
+      for (let L = t.Hi + 0.6; L < RL; L += 0.9) us.push(L); us.push(RL); for (let L = t.Hi + 0.6; L < RR; L += 0.9) us.push(-L); us.push(-RR); us.sort((x, y) => x - y);
+      const top = u => { const sd = u >= 0 ? 1 : -1, L = Math.abs(u); return Math.max(landAt(r1, sd, L), landAt(r0, sd, L) + 0.4, L < t.Ho + 0.4 ? y0 + t.top + 0.3 : -1e9) + 0.35; };
+      const bot = u => { const o = open(u); if (o !== null) return o; const sd = u >= 0 ? 1 : -1; return Math.min(landAt(r0, sd, Math.abs(u)), sd > 0 ? p0.eL : p0.eR) - 0.5; };
+      const backBot = u => landAt(r1, u >= 0 ? 1 : -1, Math.abs(u)) - 0.3;
+      const tops = us.map(top), shade = 0.95 + 0.08 * hash2(r0, 11, 83), cc = mul(CONC, shade), cp = mul(COPE, shade);
+      const F = us.map((u, k) => [V(EX, ...at(p0, u, bot(u)), cc), V(EX, ...at(p0, u, tops[k] - 0.4), cc), V(EX, ...at(p0, u, tops[k] - 0.4), cp), V(EX, ...at(p0, u, tops[k]), cp)]);
+      const Bk = us.map((u, k) => [V(EX, ...at(p1, u, Math.min(backBot(u), tops[k] - 0.05)), cc), V(EX, ...at(p1, u, tops[k]), cp)]);
+      const Tf = us.map((u, k) => V(EX, ...at(p0, u, tops[k]), cp)), Tb = us.map((u, k) => V(EX, ...at(p1, u, tops[k]), cp));
+      for (let k = 0; k + 1 < us.length; k++) { Q(EX, F[k][0], F[k + 1][0], F[k + 1][1], F[k][1]); Q(EX, F[k][2], F[k + 1][2], F[k + 1][3], F[k][3]); Q(EX, Bk[k][0], Bk[k + 1][0], Bk[k + 1][1], Bk[k][1]); Q(EX, Tf[k], Tf[k + 1], Tb[k + 1], Tb[k]); }
+      for (const k of [0, us.length - 1]) { const u = us[k]; Q(EX, V(EX, ...at(p0, u, bot(u)), cc), V(EX, ...at(p1, u, Math.min(backBot(u), tops[k] - 0.05)), cc), V(EX, ...at(p1, u, tops[k]), cc), V(EX, ...at(p0, u, tops[k]), cc)); } }
     n++; }
-  if (li.length) { const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(lp, 3)); g2.setIndex(li); const m2 = new THREE.Mesh(g2, new THREE.MeshBasicMaterial({ color: 0xfff0c8, side: THREE.DoubleSide })); m2.userData.rw = 'tunnel'; G.add(m2); }
-  if (!idx.length) return 0; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ color: 0x8d8a84, side: THREE.DoubleSide })); m.receiveShadow = true; m.castShadow = true; m.userData.rw = 'tunnel'; G.add(m); return n; } // (its shadow on the road inside: dark in there by day)
+  const mesh = (M, mat, sh) => { if (!M.idx.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(M.pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(M.col, 3)); g.setIndex(M.idx); g.computeVertexNormals(); g.computeBoundingSphere();
+    const m = new THREE.Mesh(g, mat); m.castShadow = !!sh; m.receiveShadow = sh === 2; m.userData.rw = 'tunnel'; G.add(m); };
+  mesh(IN, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), 1);
+  mesh(LM, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false }), 0);
+  mesh(EX, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), 2);
+  return n;
+}
+
 // a there-and-back's turning circle: its island, kerbed and grassed, a marker post with its flag at its middle
 function rwTurnIsland(ctx, H) { const { T, gY } = ctx, M = T.rwTurnM; if (!M) return; const B = H.B, y = gY(M.x, M.z), r = M.r;
   B.cyl(M.x, y, M.z, r + 0.25, 0.16, 24, new THREE.Color('#d9d6cf'), new THREE.Color('#d9d6cf'), y - 0.4); B.cyl(M.x, y + 0.16, M.z, r, 0.06, 24, new THREE.Color('#5f7d38'), new THREE.Color('#5f7d38'), y);
@@ -47096,7 +47343,7 @@ function rwBridges(ctx, H) { const { T, gY } = ctx, C = T.real, L0 = C._ov ? C._
   const conc = new THREE.Color('#a3a09a'), dark = new THREE.Color('#6d6b66'), tar = new THREE.Color('#57595b'), bal = new THREE.Color('#7a746a'), steel = new THREE.Color('#4a4644');
   for (const o of L0) { const Lw = o.kind === 'rail' ? 4.2 : Math.max(3, o.L.w || 4), bw = Lw + 0.6, len = o.len; if (len < 4) continue;
     const at = s => rwAlong(o, s), [x0, z0] = at(0), [x1, z1] = at(len), y0 = gY(x0, z0), y1 = gY(x1, z1); if (!(y0 > -1e8) || !(y1 > -1e8)) continue;
-    const lin = s => y0 + (y1 - y0) * s / len, bumps = o.xs.map(c => { const add = Math.max(0, P[c.ic].y + (c.tu ? 7.4 : 5.6) - lin(c.s)); /* (over a tunnel: its underside over the tube's crown) */ return { s: c.s, add, D: Math.max(c.s, len - c.s, 1) }; });
+    const lin = s => y0 + (y1 - y0) * s / len, bumps = o.xs.map(c => { const add = Math.max(0, P[c.ic].y + (c.tu ? (P[c.ic].rwTop || 6.8) + 0.9 : 5.6) - lin(c.s)); /* (over a tunnel: its underside over the tube's crown) */ return { s: c.s, add, D: Math.max(c.s, len - c.s, 1) }; });
     const top = s => { let y = lin(s); for (const b of bumps) y += b.add * Math.max(0, 1 - ((s - b.s) / b.D) ** 2); return y; };
     const N = Math.max(2, Math.ceil(len / 4)), S = []; for (let k = 0; k <= N; k++) { const s = len * k / N, [x, z, h] = at(s); S.push({ s, x, z, h, y: Math.max(top(s), gY(x, z) + 0.15) }); }
     for (let k = 0; k < N; k++) { const a = S[k], b = S[k + 1];
@@ -47151,11 +47398,12 @@ const RealUI = {
     for (const n of [1, 2, 3, 5, 10]) on('#real_lp_' + n, () => { if (!this.cur || this.cur.K.kind !== 'loop') return; this.cur.K.laps = n; this.use(this.cur); });
     const f = b('#realFile'); if (f) f.addEventListener('change', async () => { const file = f.files && f.files[0]; f.value = ''; if (!file) return; try { const txt = await rwGunzip(await file.arrayBuffer()), K = rwPackIn(txt); await this.keep(K, txt); this.use({ K, own: true }); } catch (e) { this.say('That file is not a course this game can read.'); } });
     // (a link to a course: #real=code)
-    const m = /(?:^|[#&])real=([0-9a-z]+)/i.exec(location.hash || ''); if (m) { this.want = m[1].toLowerCase(); Rally.mode = 'real'; }
+    const m = /(?:^|[#&])real(?:=([0-9a-z]+))?(?=$|&)/i.exec(location.hash || ''); if (m) { this.want = m[1] ? m[1].toLowerCase() : null; if (this.want === 'new') { this.want = null; this.mapNew = true; } Rally.mode = 'real'; }
   },
   say(t) { const e = $('#realNote'); if (e) e.textContent = t; },
   enter() { $('#realSetup').hidden = false; $('#boardWrap').hidden = true; for (const e of rwMenuBits()) e.hidden = true;
     for (const id of ['#selReg', '#selCourse']) { const l = $(id); if (l && l.parentElement) l.parentElement.hidden = true; } this.render();
+    if (this.mapNew && !rwOffline()) { this.mapNew = false; setTimeout(() => RWMap.open(null), 0); } // (a link to the map itself: #real=new)
     const code = this.want || lsGet('sr86.realLast', ''); this.want = null; if (G.T && G.T.real) { this.cur = this.cur || { K: G.T.real }; this.render(); return; }
     if (code) this.byCode(code).then(ok => { if (!ok && !this.cur) this.say(rwOffline() ? 'Open one of the game’s courses or a course file; new courses are made on the website, where the map can be reached.' : 'Pick a course, or make one on the map.'); }); },
   leave() { $('#realSetup').hidden = true; for (const e of rwMenuBits()) e.hidden = false; for (const id of ['#selReg', '#selCourse']) { const l = $(id); if (l && l.parentElement) l.parentElement.hidden = false; }
@@ -47174,7 +47422,7 @@ const RealUI = {
     const K = this.cur && this.cur.K, lp = $('#realLapsRow'); if (lp) lp.hidden = !(K && K.kind === 'loop'); if (K) for (const n of [1, 2, 3, 5, 10]) { const bt = $('#real_lp_' + n); if (bt) bt.setAttribute('aria-pressed', K.laps === n ? 'true' : 'false'); }
     { const sn = $('#realSnow'); if (sn) sn.setAttribute('aria-pressed', this.opt.snow ? 'true' : 'false'); }
     for (const id of ['#realExport', '#realCopy', '#realEdit']) { const e = $(id); if (e) e.disabled = !K; }
-    { const e = $('#realEdit'); if (e) e.hidden = rwOffline(); const n = $('#realNew'); if (n) n.hidden = rwOffline(); }
+    { const e = $('#realEdit'); if (e) e.hidden = rwOffline(); const n = $('#realNew'); if (n) n.hidden = rwOffline(); for (const id of ['#realWeb', '#realWebNote']) { const w = $(id); if (w) w.hidden = !rwOffline(); } }
     // (in the Claude artifact a page can hand over no file and its links lead nowhere: no saving the course or copying its link there)
     for (const id of ['#realExport', '#realCopy']) { const e = $(id); if (e) e.hidden = !!window.SR86_ARTIFACT; }
     if (K) { const e = $('#realNote'); if (e) { e.textContent = ''; const b = document.createElement('b'); b.textContent = K.name || 'Real road'; e.append(b, ' · '); const k = document.createElement('span'); k.textContent = RW_KIND[K.kind]; e.appendChild(k);
@@ -47256,12 +47504,13 @@ const RWMap = {
   changed(now) { this.bar(); this.draw(); clearTimeout(this.tm); const need = this.kind === 'loop' ? 3 : 2; if (this.wp.length < need) { this.R = null; this.say(this.wp.length ? (this.kind === 'loop' ? 'A circuit needs three points or more, round it in order.' : 'Now tap where it goes next.') : 'Tap the map where the course starts, then where it goes: each point is put on the nearest road.'); this.draw(); return; }
     if (this.z < 11) { this.say('Zoom in to put points on the roads.'); }
     this.tm = setTimeout(() => this.route(), now ? 0 : 600); },
-  async route() { const id = ++this.rq, wp = this.wp.map(p => p.slice()), kind = this.kind; this.say('Finding the roads…');
-    try { const R = await RWRoute.plan(wp, kind, f => { if (id === this.rq) this.prog(f); }); if (id !== this.rq) return; this.prog(null);
+  async route() { const id = ++this.rq, wp = this.wp.map(p => p.slice()), kind = this.kind; this.say('Finding the roads…'); RWRoute.live = () => id === this.rq;
+    // (given two minutes at most: past that the map's servers are too slow to wait for)
+    try { let tm = null; const R = await Promise.race([RWRoute.plan(wp, kind, f => { if (id === this.rq) this.prog(f); }), new Promise((_, no) => { tm = setTimeout(() => no(new Error('slow')), 120000); })]).finally(() => clearTimeout(tm)); if (id !== this.rq) return; this.prog(null);
       let len = 0; for (let k = R.a + 1; k <= R.b; k++) len += RWRoute.dist(R.pl[k - 1][0], R.pl[k - 1][1], R.pl[k][0], R.pl[k][1]);
       this.R = R; this.len = len; this.say(kind === 'rt' ? `${(len / 1000).toFixed(2)} km of real roads each way, ${(len * 2 / 1000).toFixed(2)} km in all.` : kind === 'loop' ? `${(len / 1000).toFixed(2)} km of real roads a lap.` : `${(len / 1000).toFixed(2)} km of real roads.`); this.draw();
-    } catch (e) { if (id !== this.rq) return; this.prog(null); this.R = null; const m = e && e.message;
-      this.say(m === 'nosnap' ? `No road the course can use near point ${e.at + 1}.` : m === 'noroute' ? `No way along the roads between points ${e.at + 1} and ${(e.at + 1) % wp.length + 1}.` : 'The map could not be reached just now. Try again in a little while.'); this.draw(); } },
+    } catch (e) { if (id !== this.rq) return; this.prog(null); this.R = null; const m = e && e.message; if (m === 'slow' && this.rq === id) this.rq++; // (its queries stopped)
+      this.say(m === 'slow' ? 'The map’s servers are slow just now. Try again in a moment, or put the points closer together.' : m === 'nosnap' ? `No road the course can use near point ${e.at + 1}.` : m === 'noroute' ? `No way along the roads between points ${e.at + 1} and ${(e.at + 1) % wp.length + 1}.` : 'The map could not be reached just now. Try again in a little while.'); this.draw(); } },
   say(t) { const e = this.el && this.el.querySelector('#rmSay'); if (e) e.textContent = t; },
   prog(f) { const e = this.el.querySelector('#rmProg'); e.hidden = f == null; if (f != null) e.firstChild.style.width = Math.round(f * 100) + '%'; },
   bar() { if (!this.el) return; for (const k of ['p2p', 'rt', 'loop']) this.el.querySelector('#rmK_' + k).setAttribute('aria-pressed', this.kind === k ? 'true' : 'false'); this.el.querySelector('#rmLaps').hidden = this.kind !== 'loop';
@@ -47274,7 +47523,7 @@ const RWMap = {
   draw() { const cv = this.cv, dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
     const g = this.g; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#1a1d21'; g.fillRect(0, 0, W, H); const z = this.z, n = 2 ** z, x0 = this.cx - W / 2, y0 = this.cy - H / 2;
     for (let ty = Math.floor(y0 / 256); ty <= Math.floor((y0 + H) / 256); ty++) for (let tx = Math.floor(x0 / 256); tx <= Math.floor((x0 + W) / 256); tx++) { if (ty < 0 || ty >= n) continue; const wx = ((tx % n) + n) % n, key = z + '/' + wx + '/' + ty; let im = this.T.get(key);
-      if (!im) { im = new Image(); im.onload = () => this.draw(); im.src = `https://tile.openstreetmap.org/${key}.png`; this.T.set(key, im); if (this.T.size > 400) { const k0 = this.T.keys().next().value; this.T.delete(k0); } }
+      if (!im) { im = new Image(); im.referrerPolicy = 'strict-origin-when-cross-origin'; im.onload = () => this.draw(); im.src = `https://tile.openstreetmap.org/${key}.png`; this.T.set(key, im); if (this.T.size > 400) { const k0 = this.T.keys().next().value; this.T.delete(k0); } }
       if (im.complete && im.naturalWidth) g.drawImage(im, tx * 256 - x0, ty * 256 - y0, 256, 256); }
     const P = (la, lo) => { const [x, y] = this.px(la, lo, z); return [x - x0, y - y0]; };
     if (this.R) { const R = this.R; g.lineCap = 'round'; g.lineJoin = 'round'; for (const [w, c] of [[9, 'rgba(0,0,0,.55)'], [5, '#e0a400']]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); R.pl.forEach((p, k) => { const [x, y] = P(p[0], p[1]); if (k) g.lineTo(x, y); else g.moveTo(x, y); }); g.stroke(); }
@@ -47399,6 +47648,140 @@ const MPRW = {
     if (!mp.host) return; if (v.startsWith('p:')) { mp.setCfg({ co: 'rw', rw: { p: v.slice(2), s: 0 } }); return; }
     const code = v.slice(2), e = await RWDB.get('pack', code); if (!e || !e.gz) return; const buf = await e.gz.arrayBuffer(), txt = await rwGunzip(buf), h = this.hashOf(txt), K = rwPackIn(txt);
     this.K.set(h, K); this.serve(h, new Uint8Array(buf)); mp.setCfg({ co: 'rw', rw: { c: K.code, h, n: String(K.name || '').slice(0, 40), k: K.kind, z: buf.byteLength, s: 0 } });
+  }
+};
+
+// ==== ROUND 47: A CIRCUIT'S LAPS, TIMED AS RACING SIMS TIME THEM ====
+// On a real circuit each lap is cut into three sectors by two timing lines a third of a lap apart, and its end is a
+// third line (the last lap's end is the finish). The car's time over each line is kept, on the run's clock with any
+// penalty in (lt); from those times come its laps and sectors and its best of each, and, against the best lap so far
+// point by point round the lap, a running delta as the lap goes. In a race with friends each page sends its own line
+// times with its presence, and every page times the whole field from them as a sim's timing tower does: place,
+// driver, lap, last lap, best lap and the gap to the leader, the gaps taken at the timing lines. The race's quickest
+// lap and sectors are purple, a driver's own best green, one slower than that yellow.
+const fmtL = t => { if (t == null || !isFinite(t)) return '–'; const ms = Math.round(t * 1000), m = Math.floor(ms / 60000), s = ms - m * 60000; return m + ':' + (s < 10000 ? '0' : '') + (s / 1000).toFixed(3); };
+const fmtSec = t => t == null || !isFinite(t) ? '–' : t < 60 ? t.toFixed(3) : fmtL(t);
+const fmtD3 = d => (d < 0 ? '−' : '+') + Math.abs(d).toFixed(3);
+const RWLap = {
+  on: false, T: null, laps: 0, M: 0, s0: 0, L: [], lt: [], tr: [], trL: -1, trO: -1, bestL: -1, ob: null, obT: null, recK: '', rec: null, popT: 0, css: false,
+  // (the timing lines, as points of the run: each lap's two sector lines and its end, the last lap's end the finish)
+  lines(T) { const R = T.rwRun, M = R.M, n = R.laps, s0 = T.startIdx, a = Math.round(M / 3), b = Math.round(2 * M / 3), L = [];
+    for (let l = 0; l < n; l++) L.push(s0 + l * M + a, s0 + l * M + b, s0 + (l + 1) * M); L[L.length - 1] = T.finishIdx; return L; },
+  // a run begins: timed by laps on a real circuit, as before on anything else
+  start(T) {
+    this.style(); const box = $('#lapBox'), st = $('#mpStand'); if (st) st.classList.remove('tower');
+    this.on = !!(T && T.real && T.rwLaps > 0 && T.rwRun && T.rwRun.M > 30 && T.rwRun.laps > 0);
+    if (box) box.hidden = !this.on;
+    if (!this.on) { if (MP.phase === 'race') MP.pub({ lt: null }); return; }
+    Object.assign(this, { T, laps: T.rwRun.laps, M: T.rwRun.M, s0: T.startIdx, L: this.lines(T), lt: [], tr: [], trL: -1, trO: -1, bestL: -1, ob: null, obT: null });
+    this.recK = 'sr86.laprec.' + ((T.real && T.real.code) || T.seed); this.rec = lsGet(this.recK, null);
+    if (box) { const w = (sel, k) => { const e = box.querySelector(sel); if (e) e.textContent = I18N.say(k); }; w('.lbL', 'Lap'); w('.lbLast', 'Last'); w('.lbBest', 'Best'); w('.lbTot', 'Total'); }
+    if (MP.phase === 'race') MP.pub({ lt: [] });
+  },
+  now() { return G.finished ? G.finT : G.time + G.penalty; },
+  // (when a driver's lap l began: the race's start, else the line that ended the lap before)
+  lapStart(lt, l) { return l === 0 ? 0 : lt[3 * l - 1]; },
+  // each frame of the run: the lines crossed since the last (a flashback takes back those it went back over), and the
+  // lap's trace - its time at each point round it - for the running delta
+  tick() {
+    if (!this.on) return; const p = G.prog, t = this.now(), L = this.L;
+    while (this.lt.length && p < L[this.lt.length - 1]) this.lt.pop();
+    const k0 = this.lt.length; let k = k0; while (k < L.length && p >= L[k]) { this.lt.push(t); this.crossed(k); k++; }
+    const l = clamp(Math.floor((p - this.s0) / this.M), 0, this.laps - 1), o = clamp(p - this.s0 - l * this.M, 0, this.M), t0 = this.lapStart(this.lt, l);
+    if (t0 != null) { let A = this.tr[l]; if (!A) A = this.tr[l] = new Float32Array(this.M + 1).fill(NaN); const q0 = this.trL === l && o >= this.trO ? this.trO + 1 : o; for (let q = q0; q <= o; q++) A[q] = t - t0; this.trL = l; this.trO = o; }
+    if (k > k0 && MP.phase === 'race') MP.pub({ lt: this.lt.map(x => Math.round(x * 1000) / 1000) });
+  },
+  // a driver's laps from its line times: each lap's three sectors and its time, as far as it has got
+  lapsOf(lt) { const out = []; for (let l = 0; l < this.laps; l++) { const a = this.lapStart(lt, l); if (a == null) break; const s1 = lt[3 * l], s2 = lt[3 * l + 1], e = lt[3 * l + 2];
+      out.push({ S: [s1 != null ? s1 - a : null, s1 != null && s2 != null ? s2 - s1 : null, s2 != null && e != null ? e - s2 : null], t: e != null ? e - a : null }); if (e == null) break; } return out; },
+  bestOf(laps) { const b = { t: null, S: [null, null, null], l: -1 }; laps.forEach((x, l) => { if (x.t != null && (b.t == null || x.t < b.t)) { b.t = x.t; b.l = l; } for (let k = 0; k < 3; k++) if (x.S[k] != null && (b.S[k] == null || x.S[k] < b.S[k])) b.S[k] = x.S[k]; }); return b; },
+  // (purple: the race's quickest; green: the driver's own best; yellow: slower than that)
+  cls(v, pb, ob) { return v == null ? '' : ob != null && v <= ob + 5e-4 ? 'lp' : pb != null && v <= pb + 5e-4 ? 'lg' : 'ly'; },
+  // (the race's bests: in a race with friends the whole field's, as the timing tower last found them; alone, the driver's)
+  field() { return MP.phase === 'race' || MP.phase === 'done' ? this.ob : null; },
+  // a line crossed: the sector or the lap called on the screen as a sim calls it, against the driver's own best before
+  // it; in a race, with the place at that line
+  crossed(j) {
+    const lt = this.lt, l = Math.floor(j / 3), k = j % 3, my = this.lapsOf(lt), x = my[l]; if (!x) return;
+    const prev = this.bestOf(my.slice(0, l)), mine = this.bestOf(my), ob = this.field() || mine;
+    const obS = ob.S[k] != null ? Math.min(ob.S[k], mine.S[k]) : mine.S[k], obT = ob.t != null ? (mine.t != null ? Math.min(ob.t, mine.t) : ob.t) : mine.t;
+    let pos = ''; if (MP.phase === 'race' && MP.F && MP.F.length > 1) { const rc = MP.rc || {}, me = MP.raceT(rc, MP.slot, lt[j]); let n = 1, of = 1; for (const f of MP.F) { if (f.me) continue; const o = this.ltOf(f.peer); if (o.length > j) { of++; if (MP.raceT(rc, f.k, o[j]) < me) n++; } } pos = ' · P' + n; }
+    let txt, c;
+    if (k < 2 || x.t == null) { const v = x.S[k], pv = prev.S[k]; c = this.cls(v, pv != null ? Math.min(pv, v) : v, obS); txt = 'S' + (k + 1) + '  ' + fmtSec(v) + (pv != null ? '  ' + fmtD3(v - pv) : '') + pos; }
+    else { const v = x.t, pv = prev.t; c = this.cls(v, pv != null ? Math.min(pv, v) : v, obT);
+      // (in a race: the race's quickest lap, or the driver's own best; alone, a lap better than the best before it)
+      const tag = MP.phase === 'race' ? (c === 'lp' ? 'Fastest lap' : c === 'lg' && pv != null ? 'Personal best' : '') : pv != null && v < pv ? 'Personal best' : '';
+      txt = I18N.say('Lap {0}', l + 1) + '  ' + fmtL(v) + (pv != null ? '  ' + fmtD3(v - pv) : '') + pos + (tag ? '\n' + I18N.say(tag) : '');
+      if (pv == null || v < pv) this.bestL = l;
+      if (!this.rec || v < this.rec.t) { this.rec = { t: v, car: G.spec ? G.spec.id : '', at: Date.now() }; lsSet(this.recK, this.rec); } }
+    const el = $('#split'); if (el) { el.textContent = txt; el.className = 'on ' + c; clearTimeout(this.popT); this.popT = setTimeout(() => { if (el.textContent === txt) el.className = ''; }, k === 2 ? 4500 : 2600); }
+  },
+  // the run's clock, as a sim shows it: the lap's own time (the race's once it is over)
+  timeTxt() { const lt = this.lt; if (lt.length >= this.L.length) return fmtT(this.now()); const l = Math.floor(lt.length / 3), t0 = this.lapStart(lt, l); return t0 == null ? fmtT(this.now()) : fmtL(this.now() - t0); },
+  // each frame: the lap, the place, this lap's sectors, the last and best laps, the race's time, the driver's record on
+  // this course, and the running delta to the best lap
+  hud() {
+    if (!this.on) return; const t = this.now(), lt = this.lt, n = lt.length, done = n >= this.L.length, my = this.lapsOf(lt), pb = this.bestOf(my), ob = this.field() || pb;
+    const l = Math.min(this.laps - 1, Math.floor(n / 3)), cur = done ? my[this.laps - 1] : my[l];
+    setText(hud$('#lapN'), done ? I18N.say('Finished') : (l + 1) + '/' + this.laps);
+    for (let k = 0; k < 3; k++) { const v = cur ? cur.S[k] : null, e = hud$('#lapS' + (k + 1)), c = this.cls(v, pb.S[k], ob.S[k] != null && pb.S[k] != null ? Math.min(ob.S[k], pb.S[k]) : pb.S[k]); setText(e, 'S' + (k + 1) + ' ' + fmtSec(v)); if (e.className !== c) e.className = c; }
+    const last = done ? my[this.laps - 1] : l > 0 ? my[l - 1] : null, lv = last ? last.t : null, obT = ob.t != null && pb.t != null ? Math.min(ob.t, pb.t) : pb.t, le = hud$('#lapLast'), be = hud$('#lapBest');
+    setText(le, fmtL(lv)); { const c = this.cls(lv, pb.t, obT); if (le.className !== c) le.className = c; }
+    setText(be, fmtL(pb.t)); { const c = pb.t != null && obT != null && pb.t <= obT + 5e-4 ? 'lp' : ''; if (be.className !== c) be.className = c; }
+    setText(hud$('#lapTot'), fmtT(t));
+    setText(hud$('#lapRec'), this.rec ? I18N.say('Record') + ' ' + fmtL(this.rec.t) : '');
+    { const pe = hud$('#lapPos'); let s = ''; if ((MP.phase === 'race' || MP.phase === 'done') && MP.F && MP.F.length > 1) { const i = MP.F.findIndex(f => f.me); if (i >= 0) s = 'P' + (i + 1) + '/' + MP.F.length; } setText(pe, s); pe.hidden = !s; }
+    const dEl = hud$('#delta'); let d = null;
+    if (!done && this.bestL >= 0 && this.bestL !== l && this.tr[this.bestL]) { const t0 = this.lapStart(lt, l); if (t0 != null) { const b = this.tr[this.bestL][clamp(G.prog - this.s0 - l * this.M, 0, this.M)]; if (b === b) d = t - t0 - b; } }
+    if (d == null) setText(dEl, ''); else { setText(dEl, fmtD(d)); const c = d < 0 ? 'neg' : 'pos'; if (dEl.className !== c) dEl.className = c; }
+  },
+  // (another driver's line times, as its page sent them: up to the first one missing)
+  ltOf(peer) { const p = MP.peers.find(q => q.peer === peer), L = p && p.presence && p.presence.lt, out = []; if (Array.isArray(L)) for (const v of L.slice(0, this.L.length)) { const x = mpNum(v, 0, 1e6); if (x == null) break; out.push(x); } return out; },
+  // the timing tower, in a race with friends (in place of the standings): each driver's place, name, lap, last lap,
+  // best lap and gap - to the leader at the last line both have crossed, or laps behind, or between finishing times
+  tower(mp) {
+    const el = $('#mpStand'); if (!el) return; const F = mp.F || mp.field(), rc = mp.rc || mp.cfg || {}; el.classList.add('tower'); el.textContent = ''; el.hidden = !F.length; if (!F.length) return;
+    const D = F.map(f => { const lt = f.me ? this.lt : this.ltOf(f.peer), laps = this.lapsOf(lt); return { f, lt, laps, pb: this.bestOf(laps) }; });
+    const ob = { t: null, S: [null, null, null], who: null }; for (const d of D) { if (d.pb.t != null && (ob.t == null || d.pb.t < ob.t)) { ob.t = d.pb.t; ob.who = d.f; } for (let k = 0; k < 3; k++) if (d.pb.S[k] != null && (ob.S[k] == null || d.pb.S[k] < ob.S[k])) ob.S[k] = d.pb.S[k]; }
+    // (a new quickest lap of the race, by another driver: said in the race's feed)
+    if (ob.t != null && (this.obT == null || ob.t < this.obT - 5e-4)) { if (ob.who && !ob.who.me) mp.feedAdd(ob.who.name, I18N.say('Fastest lap') + ' ' + fmtL(ob.t), false); this.obT = ob.t; }
+    this.ob = ob;
+    const lead = D[0], lapOf = d => Math.min(this.laps, Math.floor(d.lt.length / 3) + 1);
+    el.append(mel('div', { class: 'twh' }, mel('b', { text: I18N.say('Lap') + ' ' + lapOf(lead) + '/' + this.laps }), mel('i'), mel('span', { class: 'hl', text: I18N.say('Last') }), mel('span', { text: I18N.say('Best') }), mel('span', { text: I18N.say('Gap') })));
+    D.forEach((d, i) => { const f = d.f, n = d.lt.length, fin = f.rt != null, lastLap = d.laps.filter(x => x.t != null).pop(), lv = lastLap ? lastLap.t : null; let gap = '';
+      if (f.ph === 'out' && !fin) gap = I18N.say('race|out'); else if (f.ph === 'gone' && !fin) gap = I18N.say('race|left');
+      else if (i === 0) gap = fin ? I18N.say('Finished') : I18N.say('Leader');
+      else if (fin && lead.f.rt != null) gap = '+' + (f.rt - lead.f.rt).toFixed(3);
+      else if (lead.lt.length - n >= 3) gap = '+' + Math.floor((lead.lt.length - n) / 3) + ' L';
+      else if (n > 0 && lead.lt[n - 1] != null) gap = '+' + Math.max(0, mp.raceT(rc, f.k, d.lt[n - 1]) - mp.raceT(rc, lead.f.k, lead.lt[n - 1])).toFixed(3);
+      else gap = '–';
+      const row = mel('div', { class: 'twr' + (f.me ? ' me' : '') }, mel('b', { text: String(i + 1) }), mel('span', { class: 'nm', text: f.name }), mel('i', { text: fin ? '✓' : 'L' + lapOf(d) }),
+        mel('span', { class: 'lt ' + this.cls(lv, d.pb.t, ob.t), text: fmtL(lv) }), mel('span', { class: 'bt' + (d.pb.t != null && ob.t != null && d.pb.t <= ob.t + 5e-4 ? ' lp' : ''), text: fmtL(d.pb.t) }), mel('small', { text: gap }));
+      if (f.team >= 0) { row.style.setProperty('--tc', MP_TEAMS[f.team].col); row.classList.add('tm'); } el.append(row); });
+  },
+  // (the results: a driver's best lap, and whether it was the race's quickest)
+  bestTxt(f) { if (!this.on) return ''; const lt = f.me ? this.lt : this.ltOf(f.peer), pb = this.bestOf(this.lapsOf(lt)); if (pb.t == null) return ''; const ob = this.ob;
+    return I18N.say('Best lap {0}', fmtL(pb.t)) + (ob && ob.t != null && pb.t <= ob.t + 5e-4 ? ' · ' + I18N.say('Fastest lap') : ''); },
+  // (the finish, alone on a circuit: every lap's time, the best marked)
+  finLine() { const my = this.lapsOf(this.lt).filter(x => x.t != null); if (!my.length) return ''; const pb = this.bestOf(my);
+    return I18N.say('Laps: {0}.', my.map(x => x.t === pb.t ? I18N.say('{0} (best)', fmtL(x.t)) : fmtL(x.t)).join(', ')); },
+  style() {
+    if (this.css) return; this.css = true; const st = document.createElement('style');
+    st.textContent = `.lapbox{margin-top:6px;background:rgba(0,0,0,.45);border-radius:6px;padding:6px 8px;width:240px;max-width:calc(100vw - 24px);font-variant-numeric:tabular-nums;color:#fff}
+.lapbox .lb1{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px;line-height:1.2}.lapbox .lb1 small{font-size:12px;font-weight:700;opacity:.8}
+.lapbox #lapPos{margin-left:auto;background:#fff;color:#111;border-radius:4px;padding:0 6px;font-size:15px}
+.lapbox .lsec{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin:5px 0 4px}.lapbox .lsec span{font-size:12px;font-weight:800;text-align:center;border-radius:3px;padding:2px 0;background:rgba(255,255,255,.16);white-space:nowrap;overflow:hidden}
+.lapbox .lsec span.lp{background:#8f45f0}.lapbox .lsec span.lg{background:#1b9a52}.lapbox .lsec span.ly{background:#e3b400;color:#111}
+.lapbox .lb2,.lapbox .lb3{display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700;line-height:1.35}.lapbox .lb3{font-size:12px;opacity:.85}.lapbox .lb2 b,.lapbox .lb3 b{font-weight:800}
+.lapbox b.lp,.tower .lp{color:#c99bff}.lapbox b.lg,.tower .lg{color:#62e39d}.lapbox b.ly,.tower .ly{color:#ffd84a}
+#split.lp{color:#c99bff}#split.lg{color:#62e39d}#split.ly{color:#ffd84a}
+.mpstand.tower{min-width:290px;max-width:380px}
+.tower .twh,.tower .twr{display:grid;grid-template-columns:16px minmax(0,1fr) 24px 64px 64px 60px;gap:6px;align-items:baseline}
+.tower .twh{font-size:11px;font-weight:700;opacity:.8}.tower .twh b{grid-column:1/3;font-size:12px}.tower .twh span{text-align:right}
+.tower .twr{font-size:13px;font-weight:700;line-height:1.3}.tower .twr .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tower .twr i{font-style:normal;font-size:12px;opacity:.8}
+.tower .twr .lt,.tower .twr .bt,.tower .twr small{text-align:right;font-size:12px;white-space:nowrap}.tower .twr.me{color:var(--marshal)}.tower .twr.tm{border-left:3px solid var(--tc);padding-left:3px}
+@media (max-width:700px){.lapbox{width:200px}.tower .twh,.tower .twr{grid-template-columns:14px minmax(0,1fr) 22px 60px 54px}.tower .twh .hl,.tower .twr .lt{display:none}.mpstand.tower{min-width:220px}}`;
+    document.head.appendChild(st);
   }
 };
 

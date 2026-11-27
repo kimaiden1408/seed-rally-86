@@ -1,0 +1,4 @@
+website #real=new {"hash":"","mapOpen":true,"screen":"","tiles":9}
+errors [] net {"hit":9,"miss":0,"fail":0,"blocked":0}
+artifact {"offline":true,"link":"https://kimaiden1408.github.io/seed-rally-86/#real=new","linkText":"Make a course on the map (opens the game’s website)","note":"The map can’t open inside Claude: courses are made on the game’s website, and played here from a course file or with the"}
+errors []

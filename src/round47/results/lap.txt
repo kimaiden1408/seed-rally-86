@@ -1,0 +1,25 @@
+crew run 416.34 out null marks 499
+start {"on":true,"laps":3,"M":1660,"lines":[563,1117,1670,2223,2777,3330,3883,4437,4990],"state":"countdown","start":10,"finish":4990,"box":true}
+wall 15 at 5 prog 40  {"time":"0:05.000","lapN":"1/3","pos":"","s":["S1 –[]","S2 –[]","S3 –[]"],"last":"–","best":"–","tot":"0:05.00","rec":"","delta":""}  
+wall 8 at 65 prog 717  {"time":"1:05.000","lapN":"1/3","pos":"","s":["S1 44.983[lp]","S2 –[]","S3 –[]"],"last":"–","best":"–","tot":"1:05.00","rec":"","delta":""}  
+wall 11 at 125 prog 1450  {"time":"2:05.000","lapN":"1/3","pos":"","s":["S1 44.983[lp]","S2 49.733[lp]","S3 –[]"],"last":"–","best":"–","tot":"2:05.00","rec":"","delta":""}  
+wall 6 at 185 prog 2235  {"time":"0:41.517","lapN":"2/3","pos":"","s":["S1 39.850[lp]","S2 –[]","S3 –[]"],"last":"2:23.483","best":"2:23.483","tot":"3:05.00","rec":"Record 2:23.483","delta":"−5.10"}  
+wall 6 at 245 prog 2943  {"time":"1:41.517","lapN":"2/3","pos":"","s":["S1 39.850[lp]","S2 48.567[lp]","S3 –[]"],"last":"2:23.483","best":"2:23.483","tot":"4:05.00","rec":"Record 2:23.483","delta":"−6.50"}  
+wall 13 at 305 prog 3702  {"time":"0:25.250","lapN":"3/3","pos":"","s":["S1 –[]","S2 –[]","S3 –[]"],"last":"2:16.267","best":"2:16.267","tot":"5:05.00","rec":"Record 2:16.267","delta":"+0.45"}  
+wall 6 at 365 prog 4399  {"time":"1:25.250","lapN":"3/3","pos":"","s":["S1 40.233[ly]","S2 –[]","S3 –[]"],"last":"2:16.267","best":"2:16.267","tot":"6:05.00","rec":"Record 2:16.267","delta":"+0.37"}  
+wall 11 at 416.35 prog 4990 FINISHED {"time":"6:56.35","lapN":"Finished","pos":"","s":["S1 40.233[ly]","S2 48.433[lp]","S3 47.933[ly]"],"last":"2:16.600","best":"2:16.267","tot":"6:56.35","rec":"Record 2:16.267","delta":""}  
+stopped at 416.35 prog 4990 fin true err null dead null
+line 1 t 44.983 prog 563 | S1  44.983
+line 2 t 94.717 prog 1117 | S2  49.733
+line 3 t 143.483 prog 1670 | Lap 1  2:23.483
+line 4 t 183.333 prog 2223 | S1  39.850  −5.133
+line 5 t 231.9 prog 2777 | S2  48.567  −1.167
+line 6 t 279.75 prog 3330 | Lap 2  2:16.267  −7.217
+Personal best
+line 7 t 319.983 prog 3883 | S1  40.233  +0.383
+line 8 t 368.417 prog 4437 | S2  48.433  −0.133
+line 9 t 416.35 prog 4990 | Lap 3  2:16.600  +0.333
+laps [{"t":143.483,"S":[44.983,49.733,48.767]},{"t":136.267,"S":[39.85,48.567,47.85]},{"t":136.6,"S":[40.233,48.433,47.933]}]
+finLine Laps: 2:23.483, 2:16.267 (best), 2:16.600. | finT 416.34999999995 | record {"t":136.26666666673458,"car":"avocet_16t","at":1795809246375}
+check: sectors sum to laps true | laps sum 416.350 vs finish 416.350
+errors []
