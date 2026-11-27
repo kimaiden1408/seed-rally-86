@@ -1,8 +1,8 @@
 // Seed Rally 86 on its own website: this runs the race rooms (with their fast channel for the cars' states, and the
 // signals that set up direct links between the players' browsers), the players' names and the shared board of stage times,
 // and serves the game page too (index.html, and the game's own real courses beside it in real/; the config.js beside it
-// tells a page kept elsewhere, as on GitHub Pages, where this server is, while the page served here talks to this server). Start it with "npm install" and then
-// "npm start". Settings, all optional, from the environment:
+// tells a page kept elsewhere, as on GitHub Pages, where this server is, while the page served here talks to this
+// server). Start it with "npm install" and then "npm start". Settings, all optional, from the environment:
 //   PORT         the port to listen on (8080 when not set; hosting services set it themselves)
 //   DATA_DIR     the folder the board and the names are saved in (a folder named data next to this file when not set)
 //   MAX_PLAYERS  how many pages may be connected at once (500 when not set)

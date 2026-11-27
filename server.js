@@ -1,8 +1,8 @@
 // Seed Rally 86 on its own website: this runs the race rooms (with their fast channel for the cars' states, and the
 // signals that set up direct links between the players' browsers), the players' names and the shared board of stage times,
-// and serves the game page too (index.html; the config.js beside it tells a page kept elsewhere, as on GitHub Pages,
-// where this server is, while the page served here talks to this server). Start it with "npm install" and then
-// "npm start". Settings, all optional, from the environment:
+// and serves the game page too (index.html, and the game's own real courses beside it in real/; the config.js beside it
+// tells a page kept elsewhere, as on GitHub Pages, where this server is, while the page served here talks to this
+// server). Start it with "npm install" and then "npm start". Settings, all optional, from the environment:
 //   PORT         the port to listen on (8080 when not set; hosting services set it themselves)
 //   DATA_DIR     the folder the board and the names are saved in (a folder named data next to this file when not set)
 //   MAX_PLAYERS  how many pages may be connected at once (500 when not set)
@@ -89,6 +89,11 @@ const page = (() => {
   return { raw, br, gz, etag };
 })();
 const HEAD = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
+const REAL = new Map();
+function realFile(id) {
+  if (REAL.has(id)) return REAL.get(id); let raw; try { raw = fs.readFileSync(path.join(__dirname, 'real', id + '.json')); } catch (e) { return null; }
+  const f = { raw, gz: zlib.gzipSync(raw, { level: 9 }), etag: '"' + crypto.createHash('sha1').update(raw).digest('hex').slice(0, 20) + '"' }; REAL.set(id, f); return f;
+}
 const stats = { pages: 0, bytes: 0, most: 0 };
 const server = http.createServer((req, res) => {
   const u = (req.url || '/').split('?')[0], head = Object.assign({}, HEAD);
@@ -111,6 +116,13 @@ const server = http.createServer((req, res) => {
   // (the co-drivers' recordings, each voice's in each language (voice/ID-LANG.mp3), fetched by the page when it is chosen)
   { const m = /^\/voice\/((?:[a-z0-9]{1,3}-)?[a-z]{2})\.mp3$/.exec(u); if (m) { const f = path.join(__dirname, 'voice', m[1] + '.mp3'); let b = null; try { b = fs.readFileSync(f); } catch (e) { }
     if (b) { res.writeHead(200, Object.assign(head, { 'Content-Type': 'audio/mpeg', 'Content-Length': b.length, 'Cache-Control': 'public, max-age=86400' })); res.end(req.method === 'HEAD' ? undefined : b); return; } } }
+  // (the game's own real courses (real/ID.json), fetched by the page when one is chosen: read and compressed when first
+  // asked for, then kept)
+  { const m = /^\/real\/([a-z0-9_]{1,24})\.json$/.exec(u); if (m) { const f = realFile(m[1]);
+    if (f) { Object.assign(head, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', ETag: f.etag, Vary: 'Accept-Encoding' });
+      if ((req.headers['if-none-match'] || '').split(/\s*,\s*/).includes(f.etag)) { res.writeHead(304, head); res.end(); return; }
+      const gz = /\bgzip\b/.test(String(req.headers['accept-encoding'] || '')), body = gz ? f.gz : f.raw; if (gz) head['Content-Encoding'] = 'gzip'; head['Content-Length'] = body.length;
+      res.writeHead(200, head); res.end(req.method === 'HEAD' ? undefined : body); return; } } }
   if (u === '/healthz') { res.writeHead(200, Object.assign(head, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' })); res.end('ok'); return; }
   if (u === '/favicon.ico') { res.writeHead(204, head); res.end(); return; }
   res.writeHead(404, Object.assign(head, { 'Content-Type': 'text/plain' })); res.end('Not found');

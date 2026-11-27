@@ -11,6 +11,10 @@ account; each player types a name.
   free plan, which sleeps after 15 minutes with nobody playing. The first player after that wakes it: for up to a
   minute the race menu says "Waking up the race server", and then races and the shared board come on by themselves.
   Single stages and rallies don't wait for it.
+- **Real roads** (courses made on a map of the real world) ask the public map services straight from the player's
+  browser: OpenStreetMap's map tiles, Overpass for the roads and what is around them, Nominatim to find a place, and
+  terrain tiles for the heights. The race server isn't involved. When those services are busy, building a course can
+  take a while or fail, and trying again later works.
 
 ## The files
 
@@ -21,6 +25,9 @@ account; each player types a name.
   other languages, read if a newer file can't be fetched. Each file holds every phrase of the pace notes, its index in
   the file's own ID3 tag. The voices are made by computer (speech synthesis), with the open models Supertonic 3
   (Supertone, BigScience OpenRAIL-M licence) and Kokoro-82M (Apache 2.0 licence).
+- `real/`: the game's own real-road courses (Col de Turini, La Bollène there and back, the Monaco streets circuit),
+  each a course made from the map, fetched when a player picks one. Map data © OpenStreetMap contributors (ODbL);
+  heights from Mapterhorn and AWS Terrain Tiles.
 - `config.js`: the address of the race server, for the page on GitHub Pages.
 - `server.js` and `package.json`: the race server. It needs one library, `ws`.
 - `render.yaml`: settings for Render, so the server sets itself up.
@@ -52,8 +59,9 @@ Prices and limits are Render's and GitHub's as of October 2026 and may change.
 ## Updating the game
 
 Replace `index.html` on GitHub with the new one, together with `index.html.br` and `index.html.gz` if you have new
-ones. GitHub Pages shows the new page within a minute or two, and Render restarts the server with it by itself. If the
-compressed copies don't match the page, the server ignores them and compresses the page itself.
+ones, and the files in `real/` when a new version changes them. GitHub Pages shows the new page within a minute or
+two, and Render restarts the server with it by itself. If the compressed copies don't match the page, the server
+ignores them and compresses the page itself.
 
 ## Try it on your own computer
 
