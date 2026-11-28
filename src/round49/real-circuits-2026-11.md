@@ -37,8 +37,8 @@ bank and details 1:1, so every road drives as the real one does.
   of a corner tighter than 80 m. Red and white blocks 1 m long, rising to 4 cm at an apex and 3 cm elsewhere, ribbed
   in the physics, slippery when wet (painted). None at junctions, on bridges or in tunnels.
 - **Run-off**: grass out to the guard rail, falling about 2 %, with no ditch, crown or rocks. Gravel beds where the
-  map has them (`natural=shingle`, `raceway=gravel_trap`): loose, the car sinks and slows. Paved run-off where the map
-  has paving.
+  map has them (`natural=shingle`, `raceway=gravel_trap`): deep loose gravel to the physics. Paved run-off where the
+  map has paving.
 - **Guard rails** where the map has none (its own rails, walls and fences are kept): 2.2 m past the verge on a track
   narrower than 11 m, 5.5 m otherwise.
 - **The asphalt**: a circuit's even surface, with no repair patches, few cracks, no dusty edges and no farm mud.
@@ -188,6 +188,9 @@ against a rail at 11.9 km. These come from its own driving as much as from the t
   | Nordschleife | 53 % | 40 % | 5 % | 1 % |
 
 - The grass at the asphalt's edge: within 3 cm of it at half the points, 3 to 8 cm below it at the other half.
+- What the run-off is, 1, 3 and 5 m past the asphalt (`gravel49`): gravel bed on 10 % of the samples at Spa, 13 % on
+  the GP-Strecke, 0.7 % on the Nordschleife, 0.2 % at Inje; paving on 6 % of the GP's and 12 % of Inje's; grass on
+  the rest.
 - Land over the road: at most 1 sample of 8,000 to 124,000 on any of the ten courses measured (the eight and two
   players' courses, the A8 and Korea's route 44).
 
@@ -220,6 +223,8 @@ against a rail at 11.9 km. These come from its own driving as much as from the t
 - **Not built**: tyre walls, catch and debris fences, grid boxes, pit lane markings and boxes, start lights, marshal
   posts, advertising.
 - **Inje's heights and crossfall** come from the 30 m global land model: its banking is the design rule, not measured.
+- **Gravel beds**: no test drove into one. Their grip is the physics' deep loose gravel, not checked against a real
+  bed.
 - **Measured crossfall** where the map's line runs off the road's middle reads the land beside it. Roads are held to
   their class's maximum plus 3 %. Circuits are trusted up to 25 %: the Karussell's 17 % is real; some of the
   Nordschleife's other readings over 10 % (318 points of 10,385) may be overstated.
@@ -241,6 +246,6 @@ against a rail at 11.9 km. These come from its own driving as much as from the t
   - `patches/t49/rw_race.js`.
   - `build49.sh` and `notes/stamps49.txt`; `notes/presets49.*`, `notes/widths49.txt`, `notes/wp_*.txt`.
   - `harness/`: this round's tests (`circ49`, `ride49`, `drive49`, `enrich49`, `widths49`, `waypoints49`,
-    `art49t`) and `probes49/`.
+    `art49t`) and `probes49/` (with `gravel49`, `runoff49`).
   - `results/`: what they printed, and pictures.
 - Local builds: `work/site49/`, `work/art49/`; courses in `work/r49/packs/`.

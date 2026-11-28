@@ -1,0 +1,4 @@
+spa {"cnt":{"grass":9416,"trap":1087,"tarmac":3},"ex":{"grass":"0R+1","trap":"0L+3","tarmac":"72R+5"},"mix":{"grass":"-","trap":"-","tarmac":"-"}}
+gp {"cnt":{"grass":6209,"trap":996,"tarmac":481},"ex":{"grass":"0R+1","trap":"0L+1","tarmac":"844L+5"},"mix":{"grass":"-","trap":"-","tarmac":"-"}}
+nordschleife {"cnt":{"grass":30924,"tarmac":1,"trap":233},"ex":{"grass":"0R+1","tarmac":"1468R+5","trap":"3356L+1"},"mix":{"grass":"-","tarmac":"-","trap":"-"}}
+inje {"cnt":{"grass":5185,"tarmac":704,"trap":33},"ex":{"grass":"0R+1","tarmac":"0L+3","trap":"72L+5"},"mix":{"grass":"-","tarmac":"-","trap":"-"}}
