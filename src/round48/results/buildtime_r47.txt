@@ -1,0 +1,3 @@
+turini [{"lay":237,"draw":4337,"props":267,"tris":182662},{"lay":181,"draw":3921,"props":103,"tris":182662}]
+monaco [{"lay":236,"draw":2457,"props":427,"tris":160678},{"lay":225,"draw":1916,"props":383,"tris":160678}]
+hangye [{"lay":463,"draw":3608,"props":66,"tris":430124},{"lay":422,"draw":2925,"props":42,"tris":430124}]

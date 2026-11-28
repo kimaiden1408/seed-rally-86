@@ -1,0 +1,6 @@
+== a8
+{"n":4222,"km":8.44,"gMax":0.065,"g15":0,"d2":{"over1pc":12,"over2pc":3,"over4pc":0,"top":[{"v":0.034,"m":7496,"tag":"motorway"},{"v":0.02,"m":4676,"tag":"motorway"},{"v":0.02,"m":8364,"tag":"motorway"},{"v":0.019,"m":8378,"tag":"motorway"},{"v":0.018,"m":5230,"tag":"motorway"},{"v":0.017,"m":8376,"tag":"motorway"}]},"d10":{"over5pc":7,"over10pc":0,"over20pc":0,"top":[{"v":0.07,"m":8372,"tag":"motorway"},{"v":0.069,"m":8374,"tag":"motorway"},{"v":0.067,"m":8370,"tag":"motorway"},{"v":0.065,"m":8376,"tag":"motorway"},{"v":0.06,"m":8368,"tag":"motorway"},{"v":0.057,"m":8378,"tag":"motorway"}]},"demOff":{"over1":704,"over3":673,"top":[{"v":79.235,"m":2124,"tag":"motorway/tu/wall"},{"v":79.235,"m":2122,"tag":"motorway/tu/wall"},{"v":79.22,"m":2130,"tag":"motorway/tu/wall"},{"v":79.212,"m":2128,"tag":"motorway/tu/wall"}]}}
+{"samp":99521,"landOver":0,"stripOver":0,"worst":[],"edges":7046,"stepUp4cm":148,"stepDown15cm":4,"worstEdge":[{"d":0.15,"m":6706,"sd":-1,"tag":"motorway"},{"d":0.15,"m":6702,"sd":-1,"tag":"motorway"},{"d":0.15,"m":6704,"sd":1,"tag":"motorway"},{"d":0.15,"m":6714,"sd":1,"tag":"motorway"},{"d":0.15,"m":6708,"sd":-1,"tag":"motorway"},{"d":0.15,"m":6718,"sd":-1,"tag":"motorway"}]}
+undefined
+{"t":176.06,"out":null,"punct":[],"hits":{"rail":11},"hard":[]}
+errors []

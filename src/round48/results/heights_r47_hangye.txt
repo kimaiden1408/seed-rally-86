@@ -1,0 +1,5 @@
+== hangye
+{"n":4856,"km":9.71,"gMax":0.1,"g15":0,"d2":{"over1pc":79,"over2pc":40,"over4pc":25,"top":[{"v":0.126,"m":7426,"tag":"primary"},{"v":0.114,"m":6028,"tag":"primary"},{"v":0.11,"m":7782,"tag":"primary"},{"v":0.103,"m":336,"tag":"primary"},{"v":0.094,"m":7830,"tag":"primary"},{"v":0.09,"m":7784,"tag":"primary"}]},"d10":{"over5pc":128,"over10pc":22,"over20pc":0,"top":[{"v":0.182,"m":7782,"tag":"primary"},{"v":0.178,"m":7784,"tag":"primary"},{"v":0.142,"m":7780,"tag":"primary"},{"v":0.14,"m":6028,"tag":"primary"},{"v":0.139,"m":7830,"tag":"primary"},{"v":0.138,"m":7786,"tag":"primary"}]},"demOff":{"over1":956,"over3":455,"top":[{"v":14.125,"m":7738,"tag":"primary"},{"v":14.081,"m":7736,"tag":"primary"},{"v":14.039,"m":7734,"tag":"primary"},{"v":14.03,"m":7740,"tag":"primary"}]}}
+{"samp":47510,"landOver":0,"stripOver":0,"worst":[],"edges":9412,"stepUp4cm":0,"stepDown15cm":15,"worstEdge":[]}
+undefined
+errors []

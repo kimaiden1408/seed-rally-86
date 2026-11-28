@@ -1,0 +1,31 @@
+== turini
+{"n":6229,"km":12.46,"gMax":0.22,"g15":128,"d2":{"over1pc":98,"over2pc":4,"over4pc":2,"top":[{"v":0.088,"m":12348,"tag":"tertiary"},{"v":0.049,"m":14,"tag":"residential"},{"v":0.037,"m":12442,"tag":"tertiary"},{"v":0.021,"m":12350,"tag":"tertiary"},{"v":0.02,"m":11466,"tag":"tertiary"},{"v":0.02,"m":11468,"tag":"tertiary"}]},"d10":{"over5pc":95,"over10pc":2,"over20pc":0,"top":[{"v":0.115,"m":12348,"tag":"tertiary"},{"v":0.108,"m":12350,"tag":"tertiary"},{"v":0.094,"m":11466,"tag":"tertiary"},{"v":0.094,"m":12352,"tag":"tertiary"},{"v":0.093,"m":11464,"tag":"tertiary"},{"v":0.093,"m":11468,"tag":"tertiary"}]},"demOff":{"over1":485,"over3":88,"top":[{"v":51.857,"m":1994,"tag":"tertiary/tu/wall"},{"v":51.438,"m":1996,"tag":"tertiary/tu/wall"},{"v":50.414,"m":1992,"tag":"tertiary/tu/wall"},{"v":50.026,"m":1998,"tag":"tertiary/tu/wall"}]}}
+{"samp":73545,"landOver":0,"stripOver":0,"worst":[],"edges":12307,"stepUp4cm":1015,"stepDown15cm":48,"worstEdge":[{"d":1.05,"m":858,"sd":1,"tag":"tertiary"},{"d":1.02,"m":860,"sd":1,"tag":"tertiary"},{"d":1.02,"m":856,"sd":1,"tag":"tertiary"},{"d":1.01,"m":862,"sd":1,"tag":"tertiary"},{"d":1,"m":864,"sd":1,"tag":"tertiary"},{"d":0.99,"m":866,"sd":1,"tag":"tertiary"}]}
+{"samp":6436,"landOverMid":388,"over25cm":39}
+== monaco
+{"n":1661,"km":3.32,"gMax":0.094,"g15":0,"d2":{"over1pc":2,"over2pc":0,"over4pc":0,"top":[{"v":0.012,"m":18,"tag":"secondary"},{"v":0.011,"m":20,"tag":"secondary"},{"v":0.005,"m":944,"tag":"residential"},{"v":0.005,"m":946,"tag":"residential"},{"v":0.005,"m":942,"tag":"residential"},{"v":0.005,"m":948,"tag":"residential"}]},"d10":{"over5pc":0,"over10pc":0,"over20pc":0,"top":[{"v":0.023,"m":946,"tag":"residential"},{"v":0.023,"m":944,"tag":"residential"},{"v":0.023,"m":942,"tag":"residential"},{"v":0.023,"m":948,"tag":"residential"},{"v":0.023,"m":940,"tag":"residential"},{"v":0.023,"m":950,"tag":"residential"}]},"demOff":{"over1":173,"over3":149,"top":[{"v":14.966,"m":1686,"tag":"secondary/tu/wall"},{"v":14.954,"m":1684,"tag":"secondary/tu/wall"},{"v":14.909,"m":1688,"tag":"secondary/tu/wall"},{"v":14.883,"m":1692,"tag":"secondary/tu/wall"}]}}
+{"samp":16198,"landOver":0,"stripOver":0,"worst":[],"edges":2940,"stepUp4cm":2589,"stepDown15cm":73,"worstEdge":[{"d":1.43,"m":1360,"sd":1,"tag":"residential"},{"d":1.36,"m":1358,"sd":1,"tag":"residential"},{"d":1.31,"m":1356,"sd":1,"tag":"residential"},{"d":1.27,"m":1364,"sd":1,"tag":"residential"},{"d":1.25,"m":1362,"sd":1,"tag":"residential"},{"d":1.24,"m":1366,"sd":1,"tag":"residential"}]}
+{"samp":9287,"landOverMid":1268,"over25cm":338}
+== bollene_rt
+{"n":1661,"km":3.32,"gMax":0.178,"g15":53,"d2":{"over1pc":45,"over2pc":3,"over4pc":1,"top":[{"v":0.049,"m":14,"tag":"residential"},{"v":0.023,"m":3254,"tag":"rbt/tertiary"},{"v":0.021,"m":3240,"tag":"rbt/tertiary"},{"v":0.02,"m":2402,"tag":"tertiary"},{"v":0.02,"m":2400,"tag":"tertiary"},{"v":0.019,"m":2404,"tag":"tertiary"}]},"d10":{"over5pc":44,"over10pc":0,"over20pc":0,"top":[{"v":0.094,"m":2402,"tag":"tertiary"},{"v":0.093,"m":2400,"tag":"tertiary"},{"v":0.092,"m":2404,"tag":"tertiary"},{"v":0.09,"m":2398,"tag":"tertiary"},{"v":0.089,"m":2406,"tag":"tertiary"},{"v":0.084,"m":2396,"tag":"tertiary"}]},"demOff":{"over1":245,"over3":57,"top":[{"v":52.22,"m":1994,"tag":"tertiary/tu/wall"},{"v":51.132,"m":1992,"tag":"tertiary/tu/wall"},{"v":51.059,"m":1996,"tag":"tertiary/tu/wall"},{"v":49.559,"m":1998,"tag":"tertiary/tu/wall"}]}}
+{"samp":19230,"landOver":0,"stripOver":1,"worst":[],"edges":3240,"stepUp4cm":974,"stepDown15cm":21,"worstEdge":[{"d":1.09,"m":858,"sd":1,"tag":"tertiary"},{"d":1.06,"m":860,"sd":1,"tag":"tertiary"},{"d":1.06,"m":866,"sd":1,"tag":"tertiary"},{"d":1.04,"m":862,"sd":1,"tag":"tertiary"},{"d":1.04,"m":864,"sd":1,"tag":"tertiary"},{"d":1.04,"m":856,"sd":1,"tag":"tertiary"}]}
+{"samp":2230,"landOverMid":251,"over25cm":25}
+file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/common/CallbackRegistry.js:108
+    #error = new ProtocolError();
+             ^
+
+ProtocolError: Runtime.callFunctionOn timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.
+    at <instance_members_initializer> (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/common/CallbackRegistry.js:108:14)
+    at new Callback (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/common/CallbackRegistry.js:112:16)
+    at CallbackRegistry.create (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/common/CallbackRegistry.js:27:26)
+    at Connection._rawSend (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/cdp/Connection.js:131:26)
+    at CdpCDPSession.send (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/cdp/CdpSession.js:72:14)
+    at #evaluate (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:388:50)
+    at ExecutionContext.evaluate (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/cdp/ExecutionContext.js:302:36)
+    at IsolatedWorld.evaluate (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/cdp/IsolatedWorld.js:104:30)
+    at CdpFrame.evaluate (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/api/Frame.js:364:43)
+    at CdpFrame.<anonymous> (file:///home/claude/sr86/node_modules/puppeteer-core/lib/puppeteer/util/decorators.js:101:27)
+
+Node.js v22.23.5
+
+[exited with code 0]

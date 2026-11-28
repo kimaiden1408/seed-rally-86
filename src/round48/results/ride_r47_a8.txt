@@ -1,0 +1,2 @@
+a8 {"done":true,"t":262,"km":7.94,"ldMax":1.35,"ld25s":0,"aMax":1.44,"aAt":7500,"hits":{},"hard":[],"air":0,"wkeys":"omega,ux,uy,L,Ld,yw,g,gPrev,gRaw,comp,Fz,Fx,Fy,fF,fL,delta,lean,lb,slipL,slipT,rho,surf,x,z,n,q,penP,pm,em,stopV,mx,my,mz,cam,Rw,hx,hz,sc,bankH,onSol","tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}],"dead":null}
+errors []
