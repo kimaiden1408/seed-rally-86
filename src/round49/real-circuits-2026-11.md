@@ -4,8 +4,8 @@
 either.
 
 - **Private test copy** updated: version `1795875113-038a`, checked by hash (`index.html` and the eight courses).
-- **Source and tests**: `src/round49/` on the branch `round49` of `kimaiden1408/seed-rally-86` (made from `round48`).
-  `main`, which serves the website, is unchanged.
+- **Source and tests**: `src/round49/` on the branch `round49` of `kimaiden1408/seed-rally-86` (made from `round48`),
+  commit `481a94d`. `main`, which serves the website, is unchanged.
 
 - **Website build C48A**: `index.html`, 7,639,053 bytes, sha256 `927f2cfd...`, on round 48's CC74.
   - `real/`: the game's eight courses. The five circuits are new; the three earlier courses carry the road's measured
