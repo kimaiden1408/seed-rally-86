@@ -1,0 +1,5 @@
+nordschleife Nürburgring Nordschleife (loop, 20.8 km)
+gp Nürburgring GP-Strecke (loop, 5.12 km)
+n24h Nürburgring 24 Hours circuit (loop, 25.4 km)
+spa Circuit de Spa-Francorchamps (loop, 7.0 km)
+inje Inje Speedium (loop, 3.95 km)

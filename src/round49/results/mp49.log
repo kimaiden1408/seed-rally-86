@@ -1,0 +1,51 @@
+2.9s server: Seed Rally 86 is running on port 18867 (the board is saved in /tmp/rs46/data)
+3.0s race server on 18867
+22.1s both connected to the race server
+22.9s race code 463d
+56.4s host laid out inje in 33451 ms
+72.1s joiner laid out inje in 15751 ms
+72.8s preset course host {"key":"rw|inje|5|0","label":"Inje Speedium","real":true,"n":10000,"cN":1974,"laps":5,"kind":"loop","h":"4466b3e","notes":97}
+72.8s preset course joiner {"key":"rw|inje|5|0","label":"Inje Speedium","real":true,"n":10000,"cN":1974,"laps":5,"kind":"loop","h":"4466b3e","notes":97}
+74.2s inje: joiner ready 1
+75.0s inje: host sees it
+91.2s inje: both on the grid
+104.1s inje: start given
+118.2s inje: host {"phase":"race","host":true,"state":"run","cd":-0.1,"slot":0,"rivals":[{"ph":"run","at":0,"d":13,"p":7}],"rdy":0,"note":"","rwNote":"","go":"Gather everyone at the start","car":[323,-473,14]}
+118.2s inje: joiner {"phase":"race","host":false,"state":"run","cd":-0.2,"slot":1,"rivals":[{"ph":"run","at":0,"d":8,"p":4}],"rdy":0,"note":"","rwNote":"","go":"Ready ✓ (tap to undo)","car":[323,-463,18]}
+121.7s inje: back in the race room
+127.1s host kept its course {"code":"0400217wh2m29c78rnxe9e81mfcgg","name":"Seo","kind":"p2p"}
+129.9s host course list ["p:turini","p:bollene_rt","p:monaco","p:nordschleife","p:nring_gp","p:nring_24h","p:spa","p:inje","c:0400217wh2m29c78rnxe9e81mfcgg"]
+143.7s host laid out its course in 13621 ms; cfg.rw {"c":"0400217wh2m29c78rnxe9e81mfcgg","h":"c10e51ce","n":"Seo","k":"p2p","z":1448507,"s":0}
+173.3s joiner got and laid out the course in 29682 ms; 34 steps; last {"t":29682,"s":{"got":null,"ready":true,"note":"","go":"Ready","dis":false}}
+174.3s user course host {"key":"rw|c10e51ce|0|0","label":"Seo","real":true,"n":4856,"cN":4856,"laps":0,"kind":"p2p","h":"da1d94b6","notes":76}
+174.3s user course joiner {"key":"rw|c10e51ce|0|0","label":"Seo","real":true,"n":4856,"cN":4856,"laps":0,"kind":"p2p","h":"da1d94b6","notes":76}
+174.6s user course: joiner ready 1
+175.1s user course: host sees it
+185.3s user course: both on the grid
+187.8s user course: start given
+199.6s user course: host {"phase":"race","host":true,"state":"run","cd":-0.2,"slot":0,"rivals":[{"ph":"run","at":0,"d":4,"p":0}],"rdy":0,"note":"","rwNote":"","go":"Gather everyone at the start","car":[3057,547,127]}
+199.6s user course: joiner {"phase":"race","host":false,"state":"run","cd":-0.3,"slot":1,"rivals":[{"ph":"run","at":0,"d":8,"p":2}],"rdy":0,"note":"","rwNote":"","go":"Ready ✓ (tap to undo)","car":[3060,544,127]}
+201.7s user course: back in the race room
+212.7s circuit host {"key":"rw|monaco|3|0","label":"Monaco streets circuit","real":true,"n":5115,"cN":1661,"laps":3,"kind":"loop","h":"7eb853ab","notes":91}
+212.7s circuit joiner {"key":"rw|monaco|3|0","label":"Monaco streets circuit","real":true,"n":5115,"cN":1661,"laps":3,"kind":"loop","h":"7eb853ab","notes":91}
+213.1s circuit: joiner ready 1
+213.8s circuit: host sees it
+222.1s circuit: both on the grid
+226.9s circuit: start given
+239.6s circuit: host {"phase":"race","host":true,"state":"run","cd":-0.1,"slot":0,"rivals":[{"ph":"run","at":0,"d":5,"p":30}],"rdy":0,"note":"","rwNote":"","go":"Gather everyone at the start","car":[-373,113,48]}
+239.6s circuit: joiner {"phase":"race","host":false,"state":"run","cd":-0.2,"slot":1,"rivals":[{"ph":"run","at":0,"d":21,"p":31}],"rdy":0,"note":"","rwNote":"","go":"Ready ✓ (tap to undo)","car":[-368,110,49]}
+242.5s circuit: back in the race room
+251.6s the course again: both laid out in 8870 ms, the joiner asked for pieces 0 times
+281.1s host left
+281.5s joiner now hosts: {"host":true,"co":"rw","rw":{"c":"0400217wh2m29c78rnxe9e81mfcgg","h":"c10e51ce","n":"Seo","k":"p2p","z":1448507,"s":0}}
+317.8s third page got the course from the new host and laid it out in 36100 ms: {"key":"rw|c10e51ce|0|0","label":"Seo","real":true,"n":4856,"cN":4856,"laps":0,"kind":"p2p","h":"da1d94b6","notes":76} (new host da1d94b6)
+318.1s after the host left: joiner ready 1
+319.4s after the host left: host sees it
+329.8s after the host left: both on the grid
+344.4s after the host left: start given
+357.5s after the host left: host {"phase":"race","host":true,"state":"run","cd":-0.2,"slot":0,"rivals":[{"ph":"run","at":0,"d":4,"p":5}],"rdy":0,"note":"","rwNote":"","go":"Gather everyone at the start","car":[3052,542,130]}
+357.5s after the host left: joiner {"phase":"race","host":false,"state":"run","cd":-1,"slot":1,"rivals":[{"ph":"run","at":0,"d":4,"p":5}],"rdy":0,"note":"","rwNote":"","go":"Ready ✓ (tap to undo)","car":[3050,534,134]}
+366.0s after the host left: back in the race room
+401.7s seeded host {"key":"777||1","label":"Race stage 777","real":false,"n":3595,"laps":0,"kind":"","h":"67440cba","notes":66}
+401.7s seeded joiner {"key":"777||1","label":"Race stage 777","real":false,"n":3595,"laps":0,"kind":"","h":"67440cba","notes":66}
+402.7s errors {"host":[],"joiner":[]}

@@ -1,0 +1,7 @@
+tab {"art":true,"offline":true,"newHidden":true,"rows":8,"note":"Pick a course, or make one on the map."}
+Inje Speedium {"kind":"loop","km":"11.84","laps":3,"facts":"Circuit, 3 laps / 11.84 km","stats":{"buildings":14,"tunnels":0,"bridges":5,"walls":15,"fences":10,"hedges":0,"trees":0,"lamps":0,"poles":7,"water":762,"net":27154,"rail":0,"ms":341}} ms 7703
+Spa-Francorchamps {"kind":"loop","km":"21.01","laps":3,"facts":"Circuit, 3 laps / 21.01 km","stats":{"buildings":150,"tunnels":0,"bridges":9,"walls":81,"fences":89,"hedges":17,"trees":60,"lamps":0,"poles":0,"water":1839,"net":75052,"rail":8884,"ms":662}} ms 8183
+GP-Strecke {"kind":"loop","km":"15.37","laps":3,"facts":"Circuit, 3 laps / 15.37 km","stats":{"buildings":109,"tunnels":0,"bridges":16,"walls":90,"fences":31,"hedges":102,"trees":71,"lamps":0,"poles":0,"water":155,"net":86666,"rail":0,"ms":669}} ms 7966
+Nordschleife {"kind":"loop","km":"20.77","laps":1,"facts":"Circuit, 1 lap / 20.77 km","stats":{"buildings":470,"tunnels":0,"bridges":14,"walls":24,"fences":166,"hedges":33,"trees":76,"lamps":1,"poles":12,"water":2869,"net":256928,"rail":0,"ms":1000}} ms 11992
+24 Hours {"kind":"loop","km":"25.34","laps":1,"facts":"Circuit, 1 lap / 25.34 km","stats":{"buildings":517,"tunnels":0,"bridges":22,"walls":95,"fences":183,"hedges":104,"trees":141,"lamps":1,"poles":12,"water":2878,"net":313302,"rail":0,"ms":2041}} ms 14588
+errors [] reqs 0

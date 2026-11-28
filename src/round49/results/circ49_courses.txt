@@ -1,0 +1,712 @@
+inje 11499 ms {
+ "km": 3.948,
+ "xz": 0,
+ "cc": "KR",
+ "ways": [
+  "풀코스: map -, track 14.0 (14.0-14.0), paved 16.4, 3948 m"
+ ],
+ "taperMax": {
+  "rate": 0,
+  "m": 0,
+  "hw": "raceway"
+ },
+ "kerbs": {
+  "left": "28 runs 1044 m",
+  "right": "26 runs 934 m"
+ },
+ "rails": {
+  "racePts": 1974,
+  "left": 1846,
+  "right": 1807,
+  "fromWhiteLine": 6.7
+ },
+ "bank": {
+  "measuredShare": 0,
+  "max": 0.06,
+  "maxAt": "230 m 풀코스",
+  "p50": 0.021,
+  "p90": 0.059,
+  "over6": 0,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.166,
+  "gAt": "1142 m 풀코스",
+  "crestR": 237,
+  "crestAt": "3016 m 풀코스",
+  "rise": 49.6
+ },
+ "landOverRoad": "1/27636",
+ "meshes": {
+  "lines": 15520,
+  "kerbs": 15824
+ },
+ "surf": {
+  "tarmac": 1974
+ }
+}
+gp 10985 ms {
+ "km": 5.124,
+ "xz": 0.98,
+ "cc": "DE",
+ "ways": [
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 1132 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 798 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 44 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 68 m",
+  "Anbindung zur Müllenbachschleife: map -, track 12.0 (12.0-12.0), paved 14.4, 88 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 94 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 72 m",
+  "Ford-Kurve: map -, track 12.0 (12.0-12.0), paved 14.4, 126 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 134 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 262 m",
+  "Goodyear-Kehre: map -, track 12.0 (12.0-12.0), paved 14.4, 242 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 186 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 54 m",
+  "Michael-Schumacher-S: map -, track 12.0 (12.0-12.0), paved 14.4, 240 m",
+  "Anbindung zur Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 148 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 82 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 46 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 1176 m",
+  "NGK-Schikane: map -, track 12.0 (12.0-12.0), paved 14.4, 126 m"
+ ],
+ "taperMax": {
+  "rate": 0,
+  "m": 0,
+  "hw": "raceway"
+ },
+ "kerbs": {
+  "left": "22 runs 878 m",
+  "right": "21 runs 820 m"
+ },
+ "rails": {
+  "racePts": 2562,
+  "left": 1057,
+  "right": 957,
+  "fromWhiteLine": 6.7
+ },
+ "bank": {
+  "measuredShare": 0.98,
+  "max": 0.102,
+  "maxAt": "2726 m Goodyear-Kehre",
+  "p50": 0.03,
+  "p90": 0.071,
+  "over6": 310,
+  "over10": 10
+ },
+ "heights": {
+  "gMax": 0.096,
+  "gAt": "4092 m Nürburgring Sprintstrecke",
+  "crestR": 286,
+  "crestAt": "3348 m Anbindung zur Sprintstrecke",
+  "rise": 55.8
+ },
+ "landOverRoad": "0/30192",
+ "meshes": {
+  "lines": 19060,
+  "kerbs": 13568
+ },
+ "surf": {
+  "tarmac": 2562
+ }
+}
+spa 10160 ms {
+ "km": 7.004,
+ "xz": 1,
+ "cc": "BE",
+ "ways": [
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 130 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 462 m",
+  "Eau Rouge: map -, track 12.0 (12.0-12.0), paved 14.4, 94 m",
+  "Raidillon: map -, track 12.0 (12.0-12.0), paved 14.4, 224 m",
+  "Kemmel: map -, track 12.0 (12.0-12.0), paved 14.4, 1050 m",
+  "Les Combes: map -, track 12.0 (12.0-12.0), paved 14.4, 60 m",
+  "Les Combes: map -, track 12.0 (12.0-12.0), paved 14.4, 106 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 70 m",
+  "Malmedy: map -, track 12.0 (12.0-12.0), paved 14.4, 90 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 268 m",
+  "Bruxelles: map -, track 12.0 (12.0-12.0), paved 14.4, 186 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 96 m",
+  "Speaker's Corner: map -, track 12.0 (12.0-12.0), paved 14.4, 254 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 256 m",
+  "Double Gauche: map -, track 12.0 (12.0-12.0), paved 14.4, 364 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 300 m",
+  "Fagnes: map -, track 12.0 (12.0-12.0), paved 14.4, 298 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 180 m",
+  "Campus: map -, track 12.0 (12.0-12.0), paved 14.4, 88 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 114 m",
+  "Courbe Paul Frère: map -, track 12.0 (12.0-12.0), paved 14.4, 186 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 70 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 340 m",
+  "Blanchimont: map -, track 12.0 (12.0-12.0), paved 14.4, 536 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 332 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 162 m",
+  "Chicane: map -, track 12.0 (12.0-12.0), paved 14.4, 34 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 522 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 66 m",
+  "La Source: map -, track 12.0 (12.0-12.0), paved 14.4, 66 m"
+ ],
+ "taperMax": {
+  "rate": 0,
+  "m": 0,
+  "hw": "raceway"
+ },
+ "kerbs": {
+  "left": "23 runs 1058 m",
+  "right": "23 runs 940 m"
+ },
+ "rails": {
+  "racePts": 3502,
+  "left": 1942,
+  "right": 1160,
+  "fromWhiteLine": 6.7
+ },
+ "bank": {
+  "measuredShare": 1,
+  "max": 0.076,
+  "maxAt": "6916 m La Source",
+  "p50": 0.032,
+  "p90": 0.05,
+  "over6": 130,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.152,
+  "gAt": "712 m Raidillon",
+  "crestR": 381,
+  "crestAt": "3036 m Speaker's Corner",
+  "rise": 102.2
+ },
+ "landOverRoad": "0/42024",
+ "meshes": {
+  "lines": 27680,
+  "kerbs": 15984
+ },
+ "surf": {
+  "tarmac": 3502
+ }
+}
+nordschleife 16637 ms {
+ "km": 20.77,
+ "xz": 0.99,
+ "cc": "DE",
+ "ways": [
+  "Hatzenbogen: map 7.8, track 7.8 (7.8-8.3), paved 10.2, 472 m",
+  "Hatzenbach: map 7.7, track 7.7 (7.7-7.7), paved 10.1, 592 m",
+  "Hocheichen: map 7.6, track 7.6 (7.6-7.7), paved 10.0, 522 m",
+  "raceway: map 8, track 8.0 (7.8-8.0), paved 10.4, 72 m",
+  "Quiddelbacher Höhe: map 7.8, track 7.8 (7.8-7.8), paved 10.2, 322 m",
+  "Flugplatz: map 7.9, track 7.9 (7.9-7.9), paved 10.3, 716 m",
+  "Schwedenkreuz: map 8, track 8.0 (8.0-8.1), paved 10.4, 752 m",
+  "Aremberg: map 8.5, track 8.5 (8.3-8.5), paved 10.9, 374 m",
+  "Fuchsröhre: map 8, track 8.0 (8.0-8.1), paved 10.4, 870 m",
+  "Adenauer Forst: map 8.5, track 8.5 (8.3-8.5), paved 10.9, 508 m",
+  "Metzgesfeld: map 8, track 8.0 (8.0-8.1), paved 10.4, 706 m",
+  "Kallenhard: map 8, track 8.0 (8.0-8.9), paved 10.4, 518 m",
+  "Spiegelkurve: map 10, track 9.9 (9.0-10.0), paved 12.3, 186 m",
+  "Dreifach-Rechts: map 8, track 8.0 (8.0-8.9), paved 10.4, 340 m",
+  "Wehrseifen: map 8, track 8.0 (8.0-8.0), paved 10.4, 372 m",
+  "Breidscheid: map 8, track 8.0 (8.0-8.4), paved 10.4, 218 m",
+  "Breidscheid: map 9, track 9.0 (8.5-9.0), paved 11.4, 174 m",
+  "Breidscheid: map 9, track 9.0 (8.5-9.0), paved 11.4, 112 m",
+  "Exmühle: map 8, track 8.0 (8.0-8.4), paved 10.4, 402 m",
+  "Lauda-Links: map 8, track 8.0 (7.7-8.0), paved 10.4, 342 m",
+  "Bergwerk: map 7.4, track 7.4 (7.3-7.6), paved 9.8, 408 m",
+  "Senkenlinks: map 7.2, track 7.2 (7.2-7.5), paved 9.6, 666 m",
+  "Kesselchen: map 8, track 8.0 (7.6-8.0), paved 10.4, 790 m",
+  "Mutkurve: map 8, track 8.0 (8.0-8.4), paved 10.4, 372 m",
+  "Klostertal: map 9, track 9.0 (8.5-9.0), paved 11.4, 342 m",
+  "Steilstrecke: map 9, track 9.0 (9.0-9.9), paved 11.4, 554 m",
+  "Karussell: map 11, track 10.8 (9.8-11.0), paved 13.2, 152 m",
+  "Hohe Acht: map 8.6, track 8.6 (8.3-9.7), paved 11.0, 1108 m",
+  "Hedwigshöhe: map 8, track 8.0 (8.0-8.3), paved 10.4, 164 m",
+  "Wippermann: map 8.7, track 8.7 (8.4-8.8), paved 11.1, 296 m",
+  "Eschbach: map 9, track 9.0 (8.9-9.4), paved 11.4, 446 m",
+  "Brünnchen: map 10, track 10.0 (9.5-10.0), paved 12.4, 464 m",
+  "Eiskurve: map 10, track 9.9 (9.0-10.0), paved 12.3, 208 m",
+  "Pflanzgarten: map 8, track 8.0 (8.0-8.9), paved 10.4, 746 m",
+  "Sprunghügel: map 7.9, track 7.9 (7.9-8.2), paved 10.3, 276 m",
+  "Stefan-Bellof-S: map 8.7, track 8.7 (8.3-8.7), paved 11.1, 426 m",
+  "Schwalbenschwanz: map 8, track 8.0 (8.0-8.9), paved 10.4, 492 m",
+  "Mini-Karussell: map 10, track 10.0 (9.0-10.0), paved 12.4, 384 m",
+  "Galgenkopf: map 9, track 9.0 (9.0-10.4), paved 11.4, 698 m",
+  "Döttinger Höhe: map 12, track 12.0 (10.5-12.0), paved 14.4, 650 m",
+  "raceway: map 12, track 12.0 (12.0-12.0), paved 14.4, 256 m",
+  "raceway: map 12, track 12.0 (12.0-12.0), paved 14.4, 240 m",
+  "raceway: map 12, track 12.0 (12.0-12.0), paved 14.4, 118 m",
+  "Antoniusbuche: map 12, track 11.9 (10.0-12.0), paved 14.3, 818 m",
+  "Antoniusbuche: map 8, track 8.4 (7.8-9.9), paved 10.8, 84 m",
+  "Tiergarten: map 7.5, track 7.5 (7.3-7.7), paved 9.9, 288 m",
+  "Hohenrain: map 7, track 7.0 (7.0-7.4), paved 9.4, 386 m",
+  "raceway: map 8, track 8.0 (7.5-8.4), paved 10.4, 22 m",
+  "T13: map 9, track 9.0 (8.5-9.0), paved 11.4, 198 m",
+  "raceway: map 9, track 9.0 (9.0-9.0), paved 11.4, 26 m",
+  "Sabine-Schmitz-Kurve: map 9, track 9.0 (8.4-9.0), paved 11.4, 112 m"
+ ],
+ "taperMax": {
+  "rate": 0.05,
+  "m": 832,
+  "hw": "raceway"
+ },
+ "kerbs": {
+  "left": "104 runs 3818 m",
+  "right": "94 runs 3402 m"
+ },
+ "rails": {
+  "racePts": 10385,
+  "left": 1865,
+  "right": 2422,
+  "fromWhiteLine": 3.53
+ },
+ "bank": {
+  "measuredShare": 0.99,
+  "max": 0.173,
+  "maxAt": "11582 m Karussell",
+  "p50": 0.036,
+  "p90": 0.079,
+  "over6": 2257,
+  "over10": 318
+ },
+ "heights": {
+  "gMax": 0.154,
+  "gAt": "12350 m Hohe Acht",
+  "crestR": 219,
+  "crestAt": "9590 m Kesselchen",
+  "rise": 292.1
+ },
+ "landOverRoad": "0/96786",
+ "meshes": {
+  "lines": 82096,
+  "kerbs": 57744
+ },
+ "surf": {
+  "tarmac": 10385
+ }
+}
+n24h 18204 ms {
+ "km": 25.34,
+ "xz": 0.99,
+ "cc": "DE",
+ "ways": [
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 1002 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 138 m",
+  "Variante 24h-Rennen: map -, track 12.0 (12.0-12.0), paved 14.4, 144 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 22 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 90 m",
+  "Anbindung zur Müllenbachschleife: map -, track 12.0 (12.0-12.0), paved 14.4, 86 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 96 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 66 m",
+  "Ford-Kurve: map -, track 12.0 (12.0-12.0), paved 14.4, 130 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 134 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 264 m",
+  "Goodyear-Kehre: map -, track 12.0 (12.0-12.0), paved 14.4, 214 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 212 m",
+  "raceway: map -, track 12.0 (12.0-12.0), paved 14.4, 52 m",
+  "Michael-Schumacher-S: map -, track 12.0 (12.0-12.0), paved 14.4, 240 m",
+  "Anbindung zur Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 148 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 84 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 48 m",
+  "Nürburgring Sprintstrecke: map -, track 12.0 (12.0-12.0), paved 14.4, 1174 m",
+  "NGK-Schikane: map -, track 12.0 (12.0-12.0), paved 14.4, 120 m",
+  "Anbindung zur Nordschleife: map -, track 11.8 (10.5-12.0), paved 14.2, 98 m",
+  "T13: map 9, track 9.4 (9.0-10.4), paved 11.8, 56 m",
+  "raceway: map 9, track 9.0 (9.0-9.0), paved 11.4, 26 m",
+  "Sabine-Schmitz-Kurve: map 9, track 9.0 (8.4-9.0), paved 11.4, 112 m",
+  "Hatzenbogen: map 7.8, track 7.8 (7.8-8.3), paved 10.2, 470 m",
+  "Hatzenbach: map 7.7, track 7.7 (7.7-7.7), paved 10.1, 592 m",
+  "Hocheichen: map 7.6, track 7.6 (7.6-7.7), paved 10.0, 520 m",
+  "raceway: map 8, track 8.0 (7.8-8.0), paved 10.4, 76 m",
+  "Quiddelbacher Höhe: map 7.8, track 7.8 (7.8-7.8), paved 10.2, 320 m",
+  "Flugplatz: map 7.9, track 7.9 (7.9-7.9), paved 10.3, 712 m",
+  "Schwedenkreuz: map 8, track 8.0 (8.0-8.1), paved 10.4, 758 m",
+  "Aremberg: map 8.5, track 8.5 (8.3-8.5), paved 10.9, 372 m",
+  "Fuchsröhre: map 8, track 8.0 (8.0-8.1), paved 10.4, 872 m",
+  "Adenauer Forst: map 8.5, track 8.5 (8.3-8.5), paved 10.9, 506 m",
+  "Metzgesfeld: map 8, track 8.0 (8.0-8.1), paved 10.4, 708 m",
+  "Kallenhard: map 8, track 8.0 (8.0-8.9), paved 10.4, 512 m",
+  "Spiegelkurve: map 10, track 9.9 (9.0-10.0), paved 12.3, 192 m",
+  "Dreifach-Rechts: map 8, track 8.0 (8.0-8.9), paved 10.4, 334 m",
+  "Wehrseifen: map 8, track 8.0 (8.0-8.0), paved 10.4, 376 m",
+  "Breidscheid: map 8, track 8.0 (8.0-8.4), paved 10.4, 218 m",
+  "Breidscheid: map 9, track 9.0 (8.5-9.0), paved 11.4, 174 m",
+  "Breidscheid: map 9, track 9.0 (8.5-9.0), paved 11.4, 110 m",
+  "Exmühle: map 8, track 8.0 (8.0-8.4), paved 10.4, 404 m",
+  "Lauda-Links: map 8, track 8.0 (7.7-8.0), paved 10.4, 342 m",
+  "Bergwerk: map 7.4, track 7.4 (7.3-7.6), paved 9.8, 408 m",
+  "Senkenlinks: map 7.2, track 7.2 (7.2-7.5), paved 9.6, 664 m",
+  "Kesselchen: map 8, track 8.0 (7.6-8.0), paved 10.4, 792 m",
+  "Mutkurve: map 8, track 8.0 (8.0-8.4), paved 10.4, 374 m",
+  "Klostertal: map 9, track 9.0 (8.5-9.0), paved 11.4, 342 m",
+  "Steilstrecke: map 9, track 9.0 (9.0-9.9), paved 11.4, 554 m",
+  "Karussell: map 11, track 10.8 (9.8-11.0), paved 13.2, 150 m",
+  "Hohe Acht: map 8.6, track 8.6 (8.3-9.7), paved 11.0, 1108 m",
+  "Hedwigshöhe: map 8, track 8.0 (8.0-8.3), paved 10.4, 164 m",
+  "Wippermann: map 8.7, track 8.7 (8.4-8.8), paved 11.1, 296 m",
+  "Eschbach: map 9, track 9.0 (8.9-9.4), paved 11.4, 446 m",
+  "Brünnchen: map 10, track 10.0 (9.5-10.0), paved 12.4, 464 m",
+  "Eiskurve: map 10, track 9.9 (9.0-10.0), paved 12.3, 208 m",
+  "Pflanzgarten: map 8, track 8.0 (8.0-8.9), paved 10.4, 764 m",
+  "Sprunghügel: map 7.9, track 7.9 (7.9-8.2), paved 10.3, 256 m",
+  "Stefan-Bellof-S: map 8.7, track 8.7 (8.3-8.7), paved 11.1, 428 m",
+  "Schwalbenschwanz: map 8, track 8.0 (8.0-8.9), paved 10.4, 496 m",
+  "Mini-Karussell: map 10, track 10.0 (9.0-10.0), paved 12.4, 382 m",
+  "Galgenkopf: map 9, track 9.0 (9.0-10.4), paved 11.4, 692 m",
+  "Nürburgring Nordschleife: map 12, track 11.3 (10.5-12.0), paved 13.7, 34 m",
+  "Döttinger Höhe: map 12, track 12.0 (12.0-12.0), paved 14.4, 680 m",
+  "raceway: map 12, track 12.0 (12.0-12.0), paved 14.4, 200 m",
+  "raceway: map 12, track 12.0 (12.0-12.0), paved 14.4, 238 m",
+  "raceway: map 12, track 12.0 (12.0-12.0), paved 14.4, 118 m",
+  "Antoniusbuche: map 12, track 11.9 (10.0-12.0), paved 14.3, 818 m",
+  "Antoniusbuche: map 8, track 8.4 (7.8-9.9), paved 10.8, 86 m",
+  "Tiergarten: map 7.5, track 7.5 (7.3-7.7), paved 9.9, 288 m",
+  "Hohenrain: map 7, track 7.0 (7.0-8.0), paved 9.4, 384 m",
+  "raceway: map 8, track 8.7 (8.1-9.2), paved 11.1, 24 m",
+  "Anbindung zum GP Kurs: map -, track 11.5 (9.5-12.0), paved 13.9, 140 m"
+ ],
+ "taperMax": {
+  "rate": 0.05,
+  "m": 4524,
+  "hw": "raceway"
+ },
+ "kerbs": {
+  "left": "122 runs 4514 m",
+  "right": "115 runs 4034 m"
+ },
+ "rails": {
+  "racePts": 12670,
+  "left": 2632,
+  "right": 3129,
+  "fromWhiteLine": 4.27
+ },
+ "bank": {
+  "measuredShare": 0.99,
+  "max": 0.173,
+  "maxAt": "16556 m Karussell",
+  "p50": 0.035,
+  "p90": 0.077,
+  "over6": 2557,
+  "over10": 317
+ },
+ "heights": {
+  "gMax": 0.155,
+  "gAt": "17326 m Hohe Acht",
+  "crestR": 203,
+  "crestAt": "14564 m Kesselchen",
+  "rise": 292.1
+ },
+ "landOverRoad": "0/123718",
+ "meshes": {
+  "lines": 99112,
+  "kerbs": 68384
+ },
+ "surf": {
+  "tarmac": 12670
+ }
+}
+monaco 9665 ms {
+ "km": 3.322,
+ "xz": 0.89,
+ "cc": "MC",
+ "ways": [
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-7.3), paved 6.6, 212 m",
+  "Boulevard Albert 1er: map -, track 8.3 (7.4-9.1), paved 8.8, 30 m",
+  "Circuit de Monaco: map -, track 10.3 (9.2-11.4), paved 10.8, 86 m",
+  "Avenue d'Ostende: map -, track 6.9 (6.5-9.1), paved 7.0, 160 m",
+  "Avenue d'Ostende: map -, track 6.5 (6.5-6.5), paved 6.5, 208 m",
+  "Avenue de Monte-Carlo: map -, track 3.6 (3.6-3.6), paved 3.6, 164 m",
+  "Avenue de Monte-Carlo: map -, track 3.0 (3.0-3.1), paved 3.0, 28 m",
+  "Place du Casino: map -, track 3.2 (3.0-4.1), paved 3.2, 40 m",
+  "Avenue de Monte-Carlo: map -, track 5.1 (4.2-5.5), paved 5.1, 28 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 30 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 32 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 138 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 150 m",
+  "Avenue Princesse Grace: map -, track 5.8 (5.5-6.6), paved 6.0, 88 m",
+  "Avenue Princesse Grace: map -, track 7.1 (6.6-7.7), paved 7.6, 20 m",
+  "Circuit de Monaco: map -, track 8.4 (7.8-8.9), paved 8.9, 24 m",
+  "Boulevard Louis II: map -, track 8.3 (7.7-8.9), paved 8.2, 22 m",
+  "Boulevard Louis II: map -, track 6.7 (6.5-7.5), paved 6.8, 58 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.5, 360 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.5, 50 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.3, 110 m",
+  "Boulevard Louis II: map -, track 7.0 (6.5-8.2), paved 7.3, 50 m",
+  "Circuit de Monaco: map -, track 9.0 (7.5-10.1), paved 9.4, 72 m",
+  "Quai des États-Unis: map -, track 4.1 (3.0-7.4), paved 4.3, 118 m",
+  "Route de la Piscine: map -, track 5.7 (4.2-8.6), paved 5.8, 224 m",
+  "Circuit de Monaco: map -, track 9.7 (8.8-10.6), paved 10.2, 76 m",
+  "Route de la Piscine: map -, track 7.1 (5.5-8.6), paved 7.6, 80 m",
+  "Circuit de Monaco: map -, track 11.1 (8.8-12.0), paved 11.8, 234 m",
+  "Quai Antoine 1er: map -, track 7.4 (6.2-8.6), paved 7.9, 62 m",
+  "Circuit de Monaco: map -, track 9.6 (8.8-10.3), paved 10.1, 52 m",
+  "Avenue du Port: map -, track 8.2 (7.2-9.1), paved 8.7, 34 m",
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-6.5), paved 6.5, 44 m",
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-6.5), paved 6.5, 142 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 1520,
+  "hw": "secondary"
+ },
+ "kerbs": {
+  "left": "11 runs 218 m",
+  "right": "9 runs 204 m"
+ },
+ "rails": {
+  "racePts": 279,
+  "left": 189,
+  "right": 95,
+  "fromWhiteLine": 0.7
+ },
+ "bank": {
+  "measuredShare": 0.88,
+  "max": 0.083,
+  "maxAt": "1366 m Avenue Princesse Grace",
+  "p50": 0.016,
+  "p90": 0.037,
+  "over6": 25,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.094,
+  "gAt": "434 m Avenue d'Ostende",
+  "crestR": 365,
+  "crestAt": "3014 m Circuit de Monaco",
+  "rise": 41.9
+ },
+ "landOverRoad": "0/8555",
+ "meshes": {
+  "lines": 9362,
+  "kerbs": 3376
+ },
+ "surf": {
+  "tarmac": 1661
+ }
+}
+turini 13117 ms {
+ "km": 12.458,
+ "xz": 0.99,
+ "cc": "FR",
+ "ways": [
+  "residential: map -, track 5.5 (5.5-5.6), paved 5.5, 576 m",
+  "Boulevard Philippe Corniglion-Molinier: map -, track 6.0 (5.7-6.0), paved 5.9, 310 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 102 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 988 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 68 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 936 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 344 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 970 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 676 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 300 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 1704 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 3538 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 1564 m",
+  "Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 282 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 790,
+  "hw": "tertiary"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0.99,
+  "max": 0.12,
+  "maxAt": "1088 m Route du Monte-Carlo",
+  "p50": 0.047,
+  "p90": 0.12,
+  "over6": 2390,
+  "over10": 1412
+ },
+ "heights": {
+  "gMax": 0.195,
+  "gAt": "2 m ",
+  "crestR": 287,
+  "crestAt": "230 m ",
+  "rise": 928.2
+ },
+ "landOverRoad": "0/30619",
+ "meshes": {
+  "lines": 22976
+ },
+ "surf": {
+  "tarmac": 6229
+ }
+}
+bollene_rt 8257 ms {
+ "km": 3.322,
+ "xz": 0.97,
+ "cc": "FR",
+ "ways": [
+  "residential: map -, track 5.5 (5.5-5.6), paved 5.5, 578 m",
+  "Boulevard Philippe Corniglion-Molinier: map -, track 6.0 (5.7-6.0), paved 5.9, 308 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 102 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 988 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 68 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 936 m",
+  "Route du Monte-Carlo: map -, track 4.8 (0.0-6.0), paved 6.2, 328 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 792,
+  "hw": "tertiary"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0.95,
+  "max": 0.12,
+  "maxAt": "1088 m Route du Monte-Carlo",
+  "p50": 0.055,
+  "p90": 0.12,
+  "over6": 648,
+  "over10": 373
+ },
+ "heights": {
+  "gMax": 0.196,
+  "gAt": "2 m ",
+  "crestR": 286,
+  "crestAt": "230 m ",
+  "rise": 207.6
+ },
+ "landOverRoad": "1/7987",
+ "meshes": {
+  "lines": 6120
+ },
+ "surf": {
+  "tarmac": 1661
+ }
+}
+a8 8859 ms {
+ "km": 8.444,
+ "xz": 0.84,
+ "cc": "FR",
+ "ways": [
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 1416 m",
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 482 m",
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 750 m",
+  "La Provençale: map -, track 10.7 (10.5-12.2), paved 14.2, 412 m",
+  "La Provençale: map -, track 12.6 (12.2-13.0), paved 16.1, 90 m",
+  "La Provençale: map -, track 12.5 (10.5-17.0), paved 15.1, 628 m",
+  "La Provençale: map -, track 21.7 (17.3-24.0), paved 22.8, 284 m",
+  "La Provençale: map -, track 15.0 (12.7-17.2), paved 16.7, 310 m",
+  "La Provençale: map -, track 12.3 (12.0-12.7), paved 14.1, 50 m",
+  "La Provençale: map -, track 10.7 (10.5-11.9), paved 14.0, 428 m",
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 256 m",
+  "La Provençale: map -, track 10.4 (8.8-10.5), paved 13.9, 916 m",
+  "La Provençale: map -, track 7.4 (7.0-8.7), paved 10.9, 252 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 294 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 502 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 1100 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 204 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 48 m"
+ ],
+ "taperMax": {
+  "rate": 0.062,
+  "m": 3792,
+  "hw": "motorway"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0.83,
+  "max": 0.063,
+  "maxAt": "3020 m La Provençale",
+  "p50": 0.021,
+  "p90": 0.041,
+  "over6": 21,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.066,
+  "gAt": "8270 m La Provençale",
+  "crestR": 5755,
+  "crestAt": "6188 m La Provençale",
+  "rise": 252.4
+ },
+ "landOverRoad": "0/40877",
+ "meshes": {
+  "lines": 37484
+ },
+ "surf": {
+  "tarmac": 4222
+ }
+}
+hangye 12480 ms {
+ "km": 9.712,
+ "xz": 0,
+ "cc": "KR",
+ "ways": [
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 74 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 174 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1222 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1246 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 56 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1958 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 940 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 34 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 174 m",
+  "오색1교: map -, track 7.0 (7.0-7.0), paved 7.0, 34 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1002 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 672 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 36 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1160 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 38 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 90 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 22 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 454 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 46 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 252 m"
+ ],
+ "taperMax": {
+  "rate": 0,
+  "m": 0,
+  "hw": "primary"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0,
+  "max": 0.07,
+  "maxAt": "358 m 설악로",
+  "p50": 0.032,
+  "p90": 0.068,
+  "over6": 800,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.12,
+  "gAt": "9534 m 설악로",
+  "crestR": 611,
+  "crestAt": "9618 m 설악로",
+  "rise": 382.4
+ },
+ "landOverRoad": "1/28260",
+ "meshes": {
+  "lines": 58340
+ },
+ "surf": {
+  "tarmac": 4856
+ }
+}
+errors ["TypeError: Cannot read properties of undefined (reading 'y')\n    at roadYAt (http://127.0.0.1:35055/:4933:19)\n    at locate (http://127.0.0.1:35055/:5259:51)\n    at stepCar (http://127.0.0.1:35055/:9665:12)\n    at physics (http://127.0.0.1:35055/:33324:3)\n    at updateRun (http://127.0.0.1:35055/:33348:65)\n    at frame (http://127.0.0.1:35055/:33701:32)","TypeError: Cannot read properties of undefined (reading 'y')\n    at roadYAt (http://127.0.0.1:35055/:4933:19)\n    at locate (http://127.0.0.1:35055/:5259:51)\n    at stepCar (http://127.0.0.1:35055/:9665:12)\n    at physics (http://127.0.0.1:35055/:33324:3)\n    at updateRun (http://127.0.0.1:35055/:33348:65)\n    at frame (http://127.0.0.1:35055/:33701:32)","TypeError: Cannot read properties of undefined (reading 'y')\n    at roadYAt (http://127.0.0.1:35055/:4933:19)\n    at locate (http://127.0.0.1:35055/:5259:51)\n    at stepCar (http://127.0.0.1:35055/:9665:12)\n    at physics (http://127.0.0.1:35055/:33324:3)\n    at updateRun (http://127.0.0.1:35055/:33348:65)\n    at frame (http://127.0.0.1:35055/:33701:32)"]

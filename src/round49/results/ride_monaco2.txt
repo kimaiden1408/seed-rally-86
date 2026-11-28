@@ -1,0 +1,2 @@
+monaco {"done":true,"t":600.2,"km":9.96,"ldMax":6.27,"ld25s":0.09,"aMax":0.72,"aAt":1278,"hits":{},"hard":[],"air":0,"surf":{"tarmac":0.968,"steel":0.004,"paint":0.008,"dirt":0.013,"loose":0.007},"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}],"dead":null,"log":[]}
+errors []

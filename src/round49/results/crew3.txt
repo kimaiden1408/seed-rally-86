@@ -1,0 +1,4 @@
+nordschleife crew {"tag":"crew","t":571.6,"out":null,"punct":0,"hits":{"rail":1,"belly":1},"landMax":0,"hard6":0,"det":[],"where":["rail@16056:-5.4:1.2","belly@19982:4.5:2.4"],"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}]}
+inje crew {"tag":"crew","t":385.45,"out":null,"punct":0,"hits":{"belly":2},"landMax":0,"hard6":0,"det":[],"where":["belly@7898:-8.3:2.7","belly@11844:-8.2:2.3"],"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}]}
+gp crew {"tag":"crew","t":471.95,"out":null,"punct":0,"hits":{},"landMax":0,"hard6":0,"det":[],"where":[],"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}]}
+errors []

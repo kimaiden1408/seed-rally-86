@@ -1,0 +1,2 @@
+a8 {"done":true,"t":262,"km":7.94,"ldMax":0.56,"ld25s":0,"aMax":0.25,"aAt":4460,"hits":{},"hard":[],"air":0,"surf":{"tarmac":0.997,"snowlayer":0.001,"slush":0.002,"paint":0,"steel":0},"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}],"dead":null,"log":[]}
+errors []

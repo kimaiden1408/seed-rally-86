@@ -1,0 +1,80 @@
+monaco 51270 ms {
+ "km": 3.322,
+ "xz": 0.89,
+ "cc": "MC",
+ "ways": [
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-7.3), paved 6.6, 212 m",
+  "Boulevard Albert 1er: map -, track 8.3 (7.4-9.1), paved 8.8, 30 m",
+  "Circuit de Monaco: map -, track 10.3 (9.2-11.4), paved 10.8, 86 m",
+  "Avenue d'Ostende: map -, track 6.9 (6.5-9.1), paved 7.0, 160 m",
+  "Avenue d'Ostende: map -, track 6.5 (6.5-6.5), paved 6.5, 208 m",
+  "Avenue de Monte-Carlo: map -, track 3.6 (3.6-3.6), paved 3.6, 164 m",
+  "Avenue de Monte-Carlo: map -, track 3.0 (3.0-3.1), paved 3.0, 28 m",
+  "Place du Casino: map -, track 3.2 (3.0-4.1), paved 3.2, 40 m",
+  "Avenue de Monte-Carlo: map -, track 5.1 (4.2-5.5), paved 5.1, 28 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 30 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 32 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 138 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 150 m",
+  "Avenue Princesse Grace: map -, track 5.8 (5.5-6.6), paved 6.0, 88 m",
+  "Avenue Princesse Grace: map -, track 7.1 (6.6-7.7), paved 7.6, 20 m",
+  "Circuit de Monaco: map -, track 8.4 (7.8-8.9), paved 8.9, 24 m",
+  "Boulevard Louis II: map -, track 8.3 (7.7-8.9), paved 8.2, 22 m",
+  "Boulevard Louis II: map -, track 6.7 (6.5-7.5), paved 6.8, 58 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.5, 360 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.5, 50 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.3, 110 m",
+  "Boulevard Louis II: map -, track 7.0 (6.5-8.2), paved 7.3, 50 m",
+  "Circuit de Monaco: map -, track 9.0 (7.5-10.1), paved 9.4, 72 m",
+  "Quai des États-Unis: map -, track 4.1 (3.0-7.4), paved 4.3, 118 m",
+  "Route de la Piscine: map -, track 5.7 (4.2-8.6), paved 5.8, 224 m",
+  "Circuit de Monaco: map -, track 9.7 (8.8-10.6), paved 11.1, 76 m",
+  "Route de la Piscine: map -, track 7.1 (5.5-8.6), paved 13.0, 80 m",
+  "Circuit de Monaco: map -, track 11.5 (8.8-12.0), paved 13.0, 234 m",
+  "Quai Antoine 1er: map -, track 12.0 (11.9-12.0), paved 12.3, 62 m",
+  "Circuit de Monaco: map -, track 10.5 (9.2-11.8), paved 11.0, 52 m",
+  "Avenue du Port: map -, track 8.2 (7.2-9.1), paved 8.7, 34 m",
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-6.5), paved 6.5, 44 m",
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-6.5), paved 6.5, 142 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 1520,
+  "hw": "secondary"
+ },
+ "kerbs": {
+  "left": "11 runs 218 m",
+  "right": "9 runs 220 m"
+ },
+ "rails": {
+  "racePts": 279,
+  "left": 194,
+  "right": 100,
+  "fromWhiteLine": 0.93
+ },
+ "bank": {
+  "measuredShare": 0.88,
+  "max": 0.067,
+  "maxAt": "928 m Avenue de Monte-Carlo",
+  "p50": 0.016,
+  "p90": 0.037,
+  "over6": 20,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.094,
+  "gAt": "434 m Avenue d'Ostende",
+  "crestR": 365,
+  "crestAt": "3014 m Circuit de Monaco",
+  "rise": 41.9
+ },
+ "landOverRoad": "0/9027",
+ "meshes": {
+  "lines": 9418,
+  "kerbs": 3504
+ },
+ "surf": {
+  "tarmac": 1661
+ }
+}
+errors []

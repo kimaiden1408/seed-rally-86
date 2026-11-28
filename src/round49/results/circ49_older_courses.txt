@@ -1,0 +1,307 @@
+monaco 29016 ms {
+ "km": 3.322,
+ "xz": 0.89,
+ "cc": "MC",
+ "ways": [
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-7.3), paved 6.6, 212 m",
+  "Boulevard Albert 1er: map -, track 8.3 (7.4-9.1), paved 8.8, 30 m",
+  "Circuit de Monaco: map -, track 10.3 (9.2-11.4), paved 10.8, 86 m",
+  "Avenue d'Ostende: map -, track 6.9 (6.5-9.1), paved 7.0, 160 m",
+  "Avenue d'Ostende: map -, track 6.5 (6.5-6.5), paved 6.5, 208 m",
+  "Avenue de Monte-Carlo: map -, track 3.6 (3.6-3.6), paved 3.6, 164 m",
+  "Avenue de Monte-Carlo: map -, track 3.0 (3.0-3.1), paved 3.0, 28 m",
+  "Place du Casino: map -, track 3.2 (3.0-4.1), paved 3.2, 40 m",
+  "Avenue de Monte-Carlo: map -, track 5.1 (4.2-5.5), paved 5.1, 28 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 30 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 32 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 138 m",
+  "Avenue des Spélugues: map -, track 5.5 (5.5-5.5), paved 5.5, 150 m",
+  "Avenue Princesse Grace: map -, track 5.8 (5.5-6.6), paved 6.0, 88 m",
+  "Avenue Princesse Grace: map -, track 7.1 (6.6-7.7), paved 7.6, 20 m",
+  "Circuit de Monaco: map -, track 8.4 (7.8-8.9), paved 8.9, 24 m",
+  "Boulevard Louis II: map -, track 8.3 (7.7-8.9), paved 8.2, 22 m",
+  "Boulevard Louis II: map -, track 6.7 (6.5-7.5), paved 6.8, 58 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.5, 360 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.5, 50 m",
+  "Boulevard Louis II: map -, track 6.5 (6.5-6.5), paved 6.3, 110 m",
+  "Boulevard Louis II: map -, track 7.0 (6.5-8.2), paved 7.3, 50 m",
+  "Circuit de Monaco: map -, track 9.0 (7.5-10.1), paved 9.4, 72 m",
+  "Quai des États-Unis: map -, track 4.1 (3.0-7.4), paved 4.3, 118 m",
+  "Route de la Piscine: map -, track 5.7 (4.2-8.6), paved 5.8, 224 m",
+  "Circuit de Monaco: map -, track 9.7 (8.8-10.6), paved 10.2, 76 m",
+  "Route de la Piscine: map -, track 7.1 (5.5-8.6), paved 7.6, 80 m",
+  "Circuit de Monaco: map -, track 11.1 (8.8-12.0), paved 11.8, 234 m",
+  "Quai Antoine 1er: map -, track 7.4 (6.2-8.6), paved 7.9, 62 m",
+  "Circuit de Monaco: map -, track 9.6 (8.8-10.3), paved 10.1, 52 m",
+  "Avenue du Port: map -, track 8.2 (7.2-9.1), paved 8.7, 34 m",
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-6.5), paved 6.5, 44 m",
+  "Boulevard Albert 1er: map -, track 6.5 (6.5-6.5), paved 6.5, 142 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 1520,
+  "hw": "secondary"
+ },
+ "kerbs": {
+  "left": "11 runs 218 m",
+  "right": "9 runs 204 m"
+ },
+ "rails": {
+  "racePts": 279,
+  "left": 189,
+  "right": 95,
+  "fromWhiteLine": 0.7
+ },
+ "bank": {
+  "measuredShare": 0.88,
+  "max": 0.067,
+  "maxAt": "928 m Avenue de Monte-Carlo",
+  "p50": 0.016,
+  "p90": 0.037,
+  "over6": 20,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.094,
+  "gAt": "434 m Avenue d'Ostende",
+  "crestR": 365,
+  "crestAt": "3014 m Circuit de Monaco",
+  "rise": 41.9
+ },
+ "landOverRoad": "0/8555",
+ "meshes": {
+  "lines": 9362,
+  "kerbs": 3376
+ },
+ "surf": {
+  "tarmac": 1661
+ }
+}
+turini 19746 ms {
+ "km": 12.458,
+ "xz": 0.99,
+ "cc": "FR",
+ "ways": [
+  "residential: map -, track 5.5 (5.5-5.6), paved 5.5, 576 m",
+  "Boulevard Philippe Corniglion-Molinier: map -, track 6.0 (5.7-6.0), paved 5.9, 310 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 102 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 988 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 68 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 936 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 344 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 970 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 676 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 300 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 1704 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 3538 m",
+  "Route du Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 1564 m",
+  "Col de Turini: map -, track 6.0 (6.0-6.0), paved 6.0, 282 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 790,
+  "hw": "tertiary"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0.99,
+  "max": 0.1,
+  "maxAt": "1090 m Route du Monte-Carlo",
+  "p50": 0.045,
+  "p90": 0.1,
+  "over6": 2302,
+  "over10": 660
+ },
+ "heights": {
+  "gMax": 0.195,
+  "gAt": "2 m ",
+  "crestR": 287,
+  "crestAt": "230 m ",
+  "rise": 928.2
+ },
+ "landOverRoad": "0/30619",
+ "meshes": {
+  "lines": 22976
+ },
+ "surf": {
+  "tarmac": 6229
+ }
+}
+bollene_rt 10180 ms {
+ "km": 3.322,
+ "xz": 0.97,
+ "cc": "FR",
+ "ways": [
+  "residential: map -, track 5.5 (5.5-5.6), paved 5.5, 578 m",
+  "Boulevard Philippe Corniglion-Molinier: map -, track 6.0 (5.7-6.0), paved 5.9, 308 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 102 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 988 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 68 m",
+  "Route du Monte-Carlo: map -, track 6.0 (6.0-6.0), paved 6.0, 936 m",
+  "Route du Monte-Carlo: map -, track 4.8 (0.0-6.0), paved 6.2, 328 m"
+ ],
+ "taperMax": {
+  "rate": 0.0833,
+  "m": 792,
+  "hw": "tertiary"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0.95,
+  "max": 0.1,
+  "maxAt": "1090 m Route du Monte-Carlo",
+  "p50": 0.055,
+  "p90": 0.1,
+  "over6": 607,
+  "over10": 198
+ },
+ "heights": {
+  "gMax": 0.196,
+  "gAt": "2 m ",
+  "crestR": 286,
+  "crestAt": "230 m ",
+  "rise": 207.6
+ },
+ "landOverRoad": "1/7987",
+ "meshes": {
+  "lines": 6120
+ },
+ "surf": {
+  "tarmac": 1661
+ }
+}
+a8 17788 ms {
+ "km": 8.444,
+ "xz": 0.84,
+ "cc": "FR",
+ "ways": [
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 1416 m",
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 482 m",
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 750 m",
+  "La Provençale: map -, track 10.7 (10.5-12.2), paved 14.2, 412 m",
+  "La Provençale: map -, track 12.6 (12.2-13.0), paved 16.1, 90 m",
+  "La Provençale: map -, track 12.5 (10.5-17.0), paved 15.1, 628 m",
+  "La Provençale: map -, track 21.7 (17.3-24.0), paved 22.8, 284 m",
+  "La Provençale: map -, track 15.0 (12.7-17.2), paved 16.7, 310 m",
+  "La Provençale: map -, track 12.3 (12.0-12.7), paved 14.1, 50 m",
+  "La Provençale: map -, track 10.7 (10.5-11.9), paved 14.0, 428 m",
+  "La Provençale: map -, track 10.5 (10.5-10.5), paved 14.0, 256 m",
+  "La Provençale: map -, track 10.4 (8.8-10.5), paved 13.9, 916 m",
+  "La Provençale: map -, track 7.4 (7.0-8.7), paved 10.9, 252 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 294 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 502 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 1100 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 204 m",
+  "La Provençale: map -, track 7.0 (7.0-7.0), paved 10.5, 48 m"
+ ],
+ "taperMax": {
+  "rate": 0.062,
+  "m": 3792,
+  "hw": "motorway"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0.83,
+  "max": 0.063,
+  "maxAt": "3020 m La Provençale",
+  "p50": 0.021,
+  "p90": 0.041,
+  "over6": 21,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.066,
+  "gAt": "8270 m La Provençale",
+  "crestR": 5755,
+  "crestAt": "6188 m La Provençale",
+  "rise": 252.4
+ },
+ "landOverRoad": "0/40877",
+ "meshes": {
+  "lines": 37484
+ },
+ "surf": {
+  "tarmac": 4222
+ }
+}
+hangye 23402 ms {
+ "km": 9.712,
+ "xz": 0,
+ "cc": "KR",
+ "ways": [
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 74 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 174 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1222 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1246 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 56 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1958 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 940 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 34 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 174 m",
+  "오색1교: map -, track 7.0 (7.0-7.0), paved 7.0, 34 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1002 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 672 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 36 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 1160 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 38 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 90 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 22 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 454 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 46 m",
+  "설악로: map -, track 7.0 (7.0-7.0), paved 7.0, 252 m"
+ ],
+ "taperMax": {
+  "rate": 0,
+  "m": 0,
+  "hw": "primary"
+ },
+ "kerbs": null,
+ "rails": {
+  "racePts": 0,
+  "left": 0,
+  "right": 0,
+  "fromWhiteLine": null
+ },
+ "bank": {
+  "measuredShare": 0,
+  "max": 0.07,
+  "maxAt": "358 m 설악로",
+  "p50": 0.032,
+  "p90": 0.068,
+  "over6": 800,
+  "over10": 0
+ },
+ "heights": {
+  "gMax": 0.12,
+  "gAt": "9534 m 설악로",
+  "crestR": 611,
+  "crestAt": "9618 m 설악로",
+  "rise": 382.4
+ },
+ "landOverRoad": "1/28260",
+ "meshes": {
+  "lines": 58340
+ },
+ "surf": {
+  "tarmac": 4856
+ }
+}
+errors ["TypeError: Cannot read properties of undefined (reading 'y')\n    at roadYAt (http://127.0.0.1:38459/:4937:19)\n    at locate (http://127.0.0.1:38459/:5263:51)\n    at stepCar (http://127.0.0.1:38459/:9669:12)\n    at physics (http://127.0.0.1:38459/:33328:3)\n    at updateRun (http://127.0.0.1:38459/:33352:65)\n    at frame (http://127.0.0.1:38459/:33705:32)","TypeError: Cannot read properties of undefined (reading 'y')\n    at roadYAt (http://127.0.0.1:38459/:4937:19)\n    at locate (http://127.0.0.1:38459/:5263:51)\n    at stepCar (http://127.0.0.1:38459/:9669:12)\n    at physics (http://127.0.0.1:38459/:33328:3)\n    at updateRun (http://127.0.0.1:38459/:33352:65)\n    at frame (http://127.0.0.1:38459/:33705:32)","TypeError: Cannot read properties of undefined (reading 'y')\n    at roadYAt (http://127.0.0.1:38459/:4937:19)\n    at locate (http://127.0.0.1:38459/:5263:51)\n    at stepCar (http://127.0.0.1:38459/:9669:12)\n    at physics (http://127.0.0.1:38459/:33328:3)\n    at updateRun (http://127.0.0.1:38459/:33352:65)\n    at frame (http://127.0.0.1:38459/:33705:32)"]

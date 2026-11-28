@@ -1,0 +1,3 @@
+spa {"done":true,"t":930.5,"km":21.01,"ldMax":2.65,"ld25s":0.01,"aMax":0.39,"aAt":3072,"hits":{},"hard":[],"air":0.26,"surf":{"tarmac":0.904,"loose":0.013,"dirt":0,"paint":0.081,"grass":0.002},"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}],"dead":null,"log":[]}
+gp {"done":true,"t":741.9,"km":15.37,"ldMax":4.98,"ld25s":0.01,"aMax":0.51,"aAt":10244,"hits":{},"hard":[],"air":0,"surf":{"tarmac":0.905,"loose":0.01,"dirt":0,"paint":0.084,"steel":0},"tyres":[{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1},{"rim":0,"flat":0,"arm":1}],"dead":null,"log":[]}
+errors []

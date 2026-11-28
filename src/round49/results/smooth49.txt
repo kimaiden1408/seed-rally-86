@@ -1,0 +1,6 @@
+inje {"raceShare":1,"jumpBefore":[0.289,2296],"jumpAfter":[0.033,2290],"moved":0.75,"len":[3946,3942]}
+gp {"raceShare":1,"jumpBefore":[0.166,2740],"jumpAfter":[0.013,895],"moved":0.53,"len":[5121,5118]}
+spa {"raceShare":1,"jumpBefore":[0.282,6918],"jumpAfter":[0.017,6918],"moved":0.57,"len":[7002,6998]}
+nordschleife {"raceShare":1,"jumpBefore":[0.137,6920],"jumpAfter":[0.008,20177],"moved":0.47,"len":[20769,20761]}
+n24h {"raceShare":1,"jumpBefore":[0.145,814],"jumpAfter":[0.049,872],"moved":0.95,"len":[25338,25327]}
+monaco {"raceShare":0.17,"jumpBefore":[0.275,640],"jumpAfter":[0.164,643],"moved":0.5,"len":[3321,3317]}

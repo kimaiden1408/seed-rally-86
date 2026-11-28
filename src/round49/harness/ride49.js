@@ -1,0 +1,35 @@
+// Round 49 (from ride48): LAT=metres drives that far left of the road's line (negative: right); LAT=kerb drives over the
+// kerbs wherever the course has them (onto the kerb on the side it is, 0.6 m past the white line), down the middle between;
+// it records too the surfaces the wheels were on (the share of wheel-steps on each).
+// Round 48: a real course's road as a car feels it, the driving taken out: the game's own car and physics (stepCar)
+// driven down the middle of the road by a simple steady driver - steering to the road's own line 12 m ahead, at a speed
+// no more than SPEED km/h (default 90) and slow enough for each bend (3 m/s2 across) - with damage on. What it records:
+// the suspension's speeds (the fastest compression and how often it passes 2.5 m/s), the body's sharpest rise and fall
+// (vertical acceleration over 50 ms), time with a wheel off the road surface, bump-stop blows, and the tyres and rims at the end.
+// node harness/ride48.js pack...   env PAGE (default work/site48/index.html), PACKS (default work/r48/packs), SPEED
+const L = require('./lib46'), fs = require('fs');
+(async () => {
+  const H = await L.open(process.env.PAGE || 'work/site49/index.html', { w: 640, h: 360 });
+  await H.page.waitForFunction(() => typeof rwStageOf === 'function' && typeof stepCar === 'function', { timeout: 120000 }); if (process.env.X) await H.page.evaluate(x => { window.__X = x; }, process.env.X); if (process.env.LOGA) await H.page.evaluate(a => { window.__LOGA = a; }, process.env.LOGA.split(',').map(Number)); await new Promise(r => setTimeout(r, 1500));
+  for (const name of process.argv.slice(2)) {
+    const txt = fs.readFileSync((process.env.PACKS || 'work/r49/packs') + '/' + name + '.json', 'utf8');
+    const R = await H.page.evaluate((txt, vmax, LATM) => { COND.time = 'midday'; COND.wx = 'clear'; const K = rwPackIn(txt), T = rwStageOf(K); rwUseStage(T); if (window.__X === 'nobank') T.bank.fill(0); if (window.__X === 'nokerb') T.rwKb = null; if (window.__X === 'flat') { T.bank.fill(0); T.rwKb = null; }
+      const base = CARS.find(s => s.id === G.spec.id) || CARS[0], env = { surface: T.surface, air: 15, wet: 0, lay: T.lay ? T.lay.sum : null, safari: false }, S = setupSpec(base, setupRec(base, env), env);
+      const c = makeCar(S, T, T.startIdx); c.dmg = newDamage('real'); initTyres(c, T, S, 0);
+      const hits = [], was = dmgHit; dmgHit = function (cc, kind, x, yy, z, nx, ny, nz, dv) { if (cc === c) hits.push({ k: kind, dv: +(+dv).toFixed(1), i: cc.hint }); return was.apply(this, arguments); };
+      const P = T.pts, N = P.length, dt = 1 / 240, fin = T.finishIdx; const SF = {}, LOG = [], LOGA = (typeof window.__LOGA === 'object') ? window.__LOGA : null; let t = 0, ldMax = 0, ld25 = 0, frames = 0, aMax = 0, aWhere = -1, vyPrev = null, yPrev = null, air = 0, steer = 0;
+      const kap = i => { const a = P[Math.max(0, i - 4)], b = P[Math.min(N - 1, i + 4)]; return Math.abs(wrapAngle(b.h - a.h)) / (8 * STEP); };
+      const hist = []; // (the body's height every 50 ms, for its vertical acceleration)
+      try { for (; t < 1500 && c.hint < fin; t += dt) { const i = c.hint | 0, spd0 = Math.hypot(c.u, c.v), k = Math.min(N - 1, i + Math.max(4, Math.round(spd0 * 0.45 / STEP))), q = P[k], KB = T.rwKb, kc = KB && k < KB.n ? (KB.k[0][k] > 0 ? 1 : KB.k[1][k] > 0 ? -1 : 0) : 0, lt = LATM === 'kerb' ? kc * ((q.rwlw || q.w) / 2 + 0.6) : +LATM || 0, qx = q.x + Math.cos(q.h) * lt, qz = q.z - Math.sin(q.h) * lt, want = Math.atan2(qx - c.x, qz - c.z), d = wrapAngle(want - c.psi);
+          let vt = vmax / 3.6; for (let j = i; j < Math.min(N - 1, i + 60); j += 3) { const kk = kap(j), dist = (j - i) * STEP; if (kk > 1e-4) vt = Math.min(vt, Math.sqrt(3 / kk + 2 * 4 * dist)); }
+          const sp = Math.hypot(c.u, c.v); steer += (clamp(d * 3, -1, 1) - steer) * 0.5;
+          stepCar(c, S, { steer, throttle: sp < vt ? clamp((vt - sp) * 0.6, 0, 1) : 0, brake: window.__X === 'nobrake' ? 0 : sp > vt + 1 ? clamp((sp - vt) * 0.3, 0, 1) : 0, handbrake: false, auto: true }, dt, T, {}); frames++;
+          for (const w of c.w) { const v = Math.abs(w.Ld || 0); if (v > ldMax) ldMax = v; if (v > 2.5) ld25++; SF[w.surf] = (SF[w.surf] || 0) + 1; } if (!c.grounded) air += dt;
+          if (frames % 12 === 0) { hist.push([c.yb, i]); const n = hist.length; if (n >= 3) { const a = (hist[n - 1][0] - 2 * hist[n - 2][0] + hist[n - 3][0]) / (0.05 * 0.05); if (Math.abs(a) > aMax) { aMax = Math.abs(a); aWhere = hist[n - 2][1]; } } }
+          if (c.dmg && c.dmg.dead) break; if (LOGA && c.hint >= LOGA[0] && c.hint <= LOGA[1] && frames % (LOGA[2] || 24) === 0) { const I = locate(T, c.x, c.z, c.hint | 0); LOG.push([+c.hint.toFixed(2), +(I.lat).toFixed(2), +Math.hypot(c.u, c.v).toFixed(1), c.grounded ? 1 : 0, +(c.yb - roadSurfY(T, I.dist, I.lat, I.w)).toFixed(2), 'st' + steer.toFixed(2), 'yaw' + wrapAngle(c.psi - P[c.hint | 0].h).toFixed(3), 'r' + (c.r || 0).toFixed(2), 'Fz' + c.w.map(w => Math.round(w.Fz || 0)).join('/'), c.w.map(w => w.surf).join('/'), 'ev' + (c.ev || []).slice(-2).join(','), 'v' + (c.v || 0).toFixed(3), 'Fy' + c.w.map(w => Math.round(w.Fy || 0)).join('/'), 'Fx' + c.w.map(w => Math.round(w.Fx || 0)).join('/'), 'ph' + (c.phi || c.roll || 0).toFixed(3), 'yb' + (c.yb || 0).toFixed(2), 'mx' + c.w.map(w => w.mix ? (w.mix.wet.toFixed(2) + ':' + w.mix.pool.toFixed(2) + ':' + (w.mix.k || []).slice(0, w.mix.n).join('+')) : '-').join('/'), 'gd' + c.w.map(w => { const I2 = locate(T, w.x, w.z, c.hint | 0); return (w.g - roadSurfY(T, I2.dist, I2.lat, I2.w)).toFixed(3) + (w.onSol ? 'S' : '') + (w.onRock ? 'R' : ''); }).join('/'), 'mk' + (T.marks || []).map(m => m.kind + '@' + (m.s || 0).toFixed(0) + ':' + (m.lat || 0).toFixed(1)).join(',')].join(' ')); } } } finally { dmgHit = was; }
+      const D = c.dmg, byK = {}; for (const h of hits) byK[h.k] = (byK[h.k] || 0) + 1;
+      return { done: c.hint >= fin, t: +t.toFixed(1), km: +((Math.min(c.hint, fin) - T.startIdx) * STEP / 1000).toFixed(2), ldMax: +ldMax.toFixed(2), ld25s: +(ld25 * dt / 4).toFixed(2), aMax: +(aMax / 9.81).toFixed(2), aAt: Math.round(aWhere * STEP), hits: byK, hard: hits.filter(h => h.dv >= 4).slice(0, 6),
+        air: +air.toFixed(2), surf: Object.fromEntries(Object.entries(SF).map(([k, v]) => [k, +(v / (frames * 4)).toFixed(3)])), tyres: D.w.map(w => ({ rim: +(w.rim || 0).toFixed(2), flat: w.flat ? 1 : 0, arm: +(w.arm == null ? 1 : w.arm).toFixed(2) })), dead: D.dead || null, log: LOG.slice(0, 80) }; }, txt, +(process.env.SPEED || 90), process.env.LAT || '0');
+    console.log(name, JSON.stringify(R)); }
+  console.log('errors', JSON.stringify(H.errors.filter(e => !/WebSocket/.test(e)).slice(0, 4))); await H.close();
+})();

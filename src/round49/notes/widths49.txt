@@ -1,0 +1,3 @@
+# Round 49: a circuit's published track width, set on its course pack where the map gives none (harness/widths49.js).
+# pack  way-id  width(m)  source
+inje 651693293 14 Hyundai N's N Festival track information for Inje Speedium (hyundai-n.com): track length 3.908 km, track width 14 m
